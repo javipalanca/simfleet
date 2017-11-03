@@ -65,8 +65,8 @@ var usgsImagery = L.layerGroup([L.tileLayer("http://basemap.nationalmap.gov/arcg
 
 
 map = L.map("map", {
-  zoom: 10,
-  center: [40.702222, -73.979378],
+  zoom: 14,
+  center: [39.47, -0.37],
   layers: [cartoLight],
   zoomControl: false,
   attributionControl: false

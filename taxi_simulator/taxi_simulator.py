@@ -26,7 +26,7 @@ class SimulatorAgent(Agent):
         tpl = ACLTemplate()
         tpl.setProtocol(REGISTER_PROTOCOL)
         template = MessageTemplate(tpl)
-        self.addBehaviour(RegisterTaxi(), template)
+        self.addBehaviour(RegisterTaxiBehaviour(), template)
 
         self.wui.registerController("app", self.index_controller)
         self.wui.registerController("entities", self.entities_controller)
@@ -42,7 +42,7 @@ class SimulatorAgent(Agent):
         return None, result
 
 
-class RegisterTaxi(Behaviour):
+class RegisterTaxiBehaviour(Behaviour):
     def _process(self):
         msg = self._receive(block=True)
         newmsg = msg.createReply()

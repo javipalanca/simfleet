@@ -15,6 +15,7 @@ requirements = [
     'Click>=6.0',
     # TODO: put package requirements here
     'SPADE>=2.3',
+    'factory_boy',
 ]
 
 setup_requirements = [

@@ -1,25 +1,30 @@
-import random
-import json
+import logging
+
 from spade.Agent import Agent
 
-from taxi_simulator.structs import TAXI_WAITING
+from utils import TAXI_WAITING, random_position
 
-
-def random_position():
-    with open("taxi_simulator/templates/data/taxi_stations.json") as f:
-        stations = json.load(f)["features"]
-        pos = random.choice(stations)
-        return pos["geometry"]["coordinates"]
+logger = logging.getLogger("TaxiAgent")
 
 
 class TaxiAgent(Agent):
     def _setup(self):
-        self.current_pos = None
         self.status = TAXI_WAITING
         self.dest = None
+
+    def set_id(self, taxi_id):
+        self.taxi_id = taxi_id
 
     def set_position(self, coords=None):
         if coords:
             self.current_pos = coords
         else:
             self.current_pos = random_position()
+
+    def to_json(self):
+        return {
+            "id": self.taxi_id,
+            "position": self.current_pos,
+            "dest": self.dest,
+            "status": self.status
+        }

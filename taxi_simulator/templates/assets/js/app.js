@@ -1,39 +1,39 @@
 var map;
 
-$(window).resize(function() {
-  sizeLayerControl();
+$(window).resize(function () {
+    sizeLayerControl();
 });
 
-$("#list-btn").click(function() {
-  animateSidebar();
-  return false;
+$("#list-btn").click(function () {
+    animateSidebar();
+    return false;
 });
 
-$("#nav-btn").click(function() {
-  $(".navbar-collapse").collapse("toggle");
-  return false;
+$("#nav-btn").click(function () {
+    $(".navbar-collapse").collapse("toggle");
+    return false;
 });
 
-$("#sidebar-toggle-btn").click(function() {
-  animateSidebar();
-  return false;
+$("#sidebar-toggle-btn").click(function () {
+    animateSidebar();
+    return false;
 });
 
-$("#sidebar-hide-btn").click(function() {
-  animateSidebar();
-  return false;
+$("#sidebar-hide-btn").click(function () {
+    animateSidebar();
+    return false;
 });
 
 function animateSidebar() {
-  $("#sidebar").animate({
-    width: "toggle"
-  }, 350, function() {
-    map.invalidateSize();
-  });
+    $("#sidebar").animate({
+        width: "toggle"
+    }, 350, function () {
+        map.invalidateSize();
+    });
 }
 
 function sizeLayerControl() {
-  $(".leaflet-control-layers").css("max-height", $("#map").height() - 50);
+    $(".leaflet-control-layers").css("max-height", $("#map").height() - 50);
 }
 
 /*function sidebarClick(id) {
@@ -49,82 +49,111 @@ function sizeLayerControl() {
 
 /* Basemap Layers */
 var cartoLight = L.tileLayer("https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://cartodb.com/attributions">CartoDB</a>'
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://cartodb.com/attributions">CartoDB</a>'
 });
 var usgsImagery = L.layerGroup([L.tileLayer("http://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}", {
-  maxZoom: 15,
+    maxZoom: 15,
 }), L.tileLayer.wms("http://raster.nationalmap.gov/arcgis/services/Orthoimagery/USGS_EROS_Ortho_SCALE/ImageServer/WMSServer?", {
-  minZoom: 16,
-  maxZoom: 19,
-  layers: "0",
-  format: 'image/jpeg',
-  transparent: true,
-  attribution: "Aerial Imagery courtesy USGS"
+    minZoom: 16,
+    maxZoom: 19,
+    layers: "0",
+    format: 'image/jpeg',
+    transparent: true,
+    attribution: "Aerial Imagery courtesy USGS"
 })]);
 
 
 map = L.map("map", {
-  zoom: 14,
-  center: [39.47, -0.37],
-  layers: [cartoLight],
-  zoomControl: false,
-  attributionControl: false
+    zoom: 14,
+    center: [39.47, -0.37],
+    layers: [cartoLight],
+    zoomControl: false,
+    attributionControl: false
 });
 
 /* Attribution control */
 function updateAttribution(e) {
-  $.each(map._layers, function(index, layer) {
-    if (layer.getAttribution) {
-      $("#attribution").html((layer.getAttribution()));
-    }
-  });
+    $.each(map._layers, function (index, layer) {
+        if (layer.getAttribution) {
+            $("#attribution").html((layer.getAttribution()));
+        }
+    });
 }
+
 map.on("layeradd", updateAttribution);
 map.on("layerremove", updateAttribution);
 
 var attributionControl = L.control({
-  position: "bottomright"
+    position: "bottomright"
 });
 attributionControl.onAdd = function (map) {
-  var div = L.DomUtil.create("div", "leaflet-control-attribution");
-  div.innerHTML = "<span class='hidden-xs'>Developed by <a href='http://gti-ia.upv.es'>GTI-IA</a></span>";
-  return div;
+    var div = L.DomUtil.create("div", "leaflet-control-attribution");
+    div.innerHTML = "<span class='hidden-xs'>Developed by <a href='http://gti-ia.upv.es'>GTI-IA</a></span>";
+    return div;
 };
 map.addControl(attributionControl);
 
 var zoomControl = L.control.zoom({
-  position: "bottomright"
+    position: "bottomright"
 }).addTo(map);
 
 /* Larger screens get expanded layer control and visible sidebar */
 if (document.body.clientWidth <= 767) {
-  var isCollapsed = true;
+    var isCollapsed = true;
 } else {
-  var isCollapsed = false;
+    var isCollapsed = false;
 }
 
 var baseLayers = {
-  "Street Map": cartoLight,
-  "Aerial Imagery": usgsImagery
+    "Street Map": cartoLight,
+    "Aerial Imagery": usgsImagery
 };
 
 
 var layerControl = L.control.groupedLayers(baseLayers, {
-  collapsed: isCollapsed
+    collapsed: isCollapsed
 }).addTo(map);
 
 $("#featureModal").on("hidden.bs.modal", function (e) {
-  $(document).on("mouseout", ".feature-row", clearHighlight);
+    $(document).on("mouseout", ".feature-row", clearHighlight);
 });
 
 
 // Leaflet patch to make layer control scrollable on touch browsers
 var container = $(".leaflet-control-layers")[0];
 if (!L.Browser.touch) {
-  L.DomEvent
-  .disableClickPropagation(container)
-  .disableScrollPropagation(container);
+    L.DomEvent
+        .disableClickPropagation(container)
+        .disableScrollPropagation(container);
 } else {
-  L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.disableClickPropagation(container);
 }
+
+/************/
+
+var taxiIcon = L.icon({
+    iconUrl: 'assets/img/taxi.png',
+
+    iconSize: [38, 55], // size of the icon
+    //iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
+    //popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
+});
+
+$("#generate-btn").on("click", function (e) {
+    $.getJSON("/generate", function (data) {
+    })
+});
+
+
+
+var intervalID = setInterval(function () {
+    $.getJSON("/entities", function (data) {
+        var count = data.taxis.length;
+        for (var i = 0; i < count; i++) {
+            var taxi = data.taxis[i];
+            L.marker(taxi.position, {icon: taxiIcon}).addTo(map);
+        }
+    });
+}, 1000);
+

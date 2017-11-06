@@ -9,7 +9,7 @@ import thread
 from spade import spade_backend
 from xmppd.xmppd import Server
 
-from taxi_simulator import SimulatorAgent
+from simulator import SimulatorAgent
 
 logging.basicConfig(level=logging.INFO)
 
@@ -39,6 +39,7 @@ def main(args=None):
             time.sleep(1)
         except KeyboardInterrupt:
             click.echo("\nTerminating...")
+            simulator_agent.stop_agents()
             simulator_agent.stop()
             platform.shutdown()
             s.shutdown("")

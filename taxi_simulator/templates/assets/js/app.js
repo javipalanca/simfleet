@@ -130,57 +130,6 @@ if (!L.Browser.touch) {
     L.DomEvent.disableClickPropagation(container);
 }
 
-/************/
-
-var taxiIcon = L.icon({
-    iconUrl: 'assets/img/taxi.png',
-
-    iconSize: [38, 55], // size of the icon
-    //iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
-    //popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
-});
-
-$("#generate-btn").on("click", function (e) {
-    $.getJSON("/generate", function (data) {
-    })
-});
-
-$("#move-btn").on("click", function (e) {
-    $.getJSON("/move", function (data) {
-    })
-});
-
-
-var taxis = {};
-var paths = {};
-
-var intervalID = setInterval(function () {
-    $.getJSON("/entities", function (data) {
-        var count = data.taxis.length;
-        for (var i = 0; i < count; i++) {
-            var taxi = data.taxis[i];
-            if (taxi.id in taxis) {
-                var localtaxi = taxis[taxi.id];
-                updateTaxi(taxi);
-            }
-            else {
-                console.log("Creating marker with position " + taxi.position);
-                var marker = L.animatedMarker([taxi.position], {
-                    icon: taxiIcon,
-                    //destinations: [{latLng: taxi.position}]
-                });
-                //marker.addTo(map);
-                map.addLayer(marker);
-                taxi.marker = marker;
-                taxis[taxi.id] = taxi;
-                if (taxi.dest && taxi.path) {
-                    updateTaxi(taxi);
-                }
-            }
-        }
-    });
-}, 1000);
-
 /**********************************/
 // Warn if overriding existing method
 if(Array.prototype.equals)
@@ -208,33 +157,6 @@ Array.prototype.equals = function (array) {
         }
     }
     return true;
-}
+};
 // Hide method from for-in loops
 Object.defineProperty(Array.prototype, "equals", {enumerable: false});
-/**********************************/
-
-var updateTaxi = function (taxi) {
-    var localtaxi = taxis[taxi.id];
-    console.log("Updating taxi " + taxi.id);
-    if (taxi.dest != null && !taxi.dest.equals(localtaxi.dest)) {
-        localtaxi.path = taxi.path;
-        localtaxi.dest = taxi.dest;
-        //localtaxi.marker.destinations = taxi.destinations;
-        var polyline = L.polyline(taxi.path, {color: 'blue'});
-        polyline.addTo(map);
-        map.removeLayer(localtaxi.marker);
-        localtaxi.marker = L.animatedMarker(polyline.getLatLngs(), {
-            icon: taxiIcon,
-            autoStart: false,
-            onEnd: function() {
-                _polyline = paths[this];
-                map.removeLayer(_polyline);
-            }
-        });
-        map.addLayer(localtaxi.marker);
-        localtaxi.marker.start();
-        paths[localtaxi.marker] = polyline;
-        localtaxi.marker.start();
-        localtaxi.dest = taxi.dest;
-    }
-};

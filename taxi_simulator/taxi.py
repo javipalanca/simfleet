@@ -4,18 +4,35 @@ import logging
 import requests
 from spade.Agent import Agent
 
-from utils import TAXI_WAITING, random_position
+from utils import TAXI_WAITING, random_position, unused_port
 
 logger = logging.getLogger("TaxiAgent")
 
 
 class TaxiAgent(Agent):
-    def _setup(self):
+
+    def __init__(self, agentjid, password, debug):
+        Agent.__init__(self, agentjid, password, debug=debug)
+        self.taxi_id = None
         self.status = TAXI_WAITING
+        self.current_pos = None
         self.dest = None
         self.path = None
         self.distance = 0
         self.duration = 0
+        self.port = None
+
+    def _setup(self):
+        self.port = unused_port("127.0.0.1")
+        self.wui.setPort(self.port)
+        self.wui.start()
+
+        self.wui.registerController("update_position", self.update_position_controller)
+
+    def update_position_controller(self, lat, lon):
+        self.current_pos = [float(lat), float(lon)]
+        logger.info("Agent {} updated position to {}".format(self.taxi_id, self.current_pos))
+        return None, {}
 
     def set_id(self, taxi_id):
         self.taxi_id = taxi_id
@@ -33,6 +50,7 @@ class TaxiAgent(Agent):
             "dest": self.dest,
             "status": self.status,
             "path": self.path,
+            "url": "http://127.0.0.1:{port}".format(port=self.port)
         }
 
     def move_to(self, dest):

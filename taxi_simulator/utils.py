@@ -1,5 +1,6 @@
 import json
 import random
+import socket
 
 from spade.AID import aid
 
@@ -18,3 +19,12 @@ def random_position():
         stations = json.load(f)["features"]
         pos = random.choice(stations)
         return [pos["geometry"]["coordinates"][1], pos["geometry"]["coordinates"][0]]
+
+
+def unused_port(hostname):
+    """Return a port that is unused on the current host."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind((hostname, 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port

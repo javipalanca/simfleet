@@ -145,15 +145,96 @@ $("#generate-btn").on("click", function (e) {
     })
 });
 
+$("#move-btn").on("click", function (e) {
+    $.getJSON("/move", function (data) {
+    })
+});
 
+
+var taxis = {};
+var paths = {};
 
 var intervalID = setInterval(function () {
     $.getJSON("/entities", function (data) {
         var count = data.taxis.length;
         for (var i = 0; i < count; i++) {
             var taxi = data.taxis[i];
-            L.marker(taxi.position, {icon: taxiIcon}).addTo(map);
+            if (taxi.id in taxis) {
+                var localtaxi = taxis[taxi.id];
+                updateTaxi(taxi);
+            }
+            else {
+                console.log("Creating marker with position " + taxi.position);
+                var marker = L.animatedMarker([taxi.position], {
+                    icon: taxiIcon,
+                    //destinations: [{latLng: taxi.position}]
+                });
+                //marker.addTo(map);
+                map.addLayer(marker);
+                taxi.marker = marker;
+                taxis[taxi.id] = taxi;
+                if (taxi.dest && taxi.path) {
+                    updateTaxi(taxi);
+                }
+            }
         }
     });
 }, 1000);
 
+/**********************************/
+// Warn if overriding existing method
+if(Array.prototype.equals)
+    console.warn("Overriding existing Array.prototype.equals. Possible causes: New API defines the method, there's a framework conflict or you've got double inclusions in your code.");
+// attach the .equals method to Array's prototype to call it on any array
+Array.prototype.equals = function (array) {
+    // if the other array is a falsy value, return
+    if (!array)
+        return false;
+
+    // compare lengths - can save a lot of time
+    if (this.length != array.length)
+        return false;
+
+    for (var i = 0, l=this.length; i < l; i++) {
+        // Check if we have nested arrays
+        if (this[i] instanceof Array && array[i] instanceof Array) {
+            // recurse into the nested arrays
+            if (!this[i].equals(array[i]))
+                return false;
+        }
+        else if (this[i] != array[i]) {
+            // Warning - two different object instances will never be equal: {x:20} != {x:20}
+            return false;
+        }
+    }
+    return true;
+}
+// Hide method from for-in loops
+Object.defineProperty(Array.prototype, "equals", {enumerable: false});
+/**********************************/
+
+var updateTaxi = function (taxi) {
+    var localtaxi = taxis[taxi.id];
+    console.log("Updating taxi " + taxi.id);
+    if (taxi.dest != null && !taxi.dest.equals(localtaxi.dest)) {
+        localtaxi.path = taxi.path;
+        localtaxi.dest = taxi.dest;
+        //localtaxi.marker.destinations = taxi.destinations;
+        var polyline = L.polyline(taxi.path, {color: 'blue'});
+        polyline.addTo(map);
+        map.removeLayer(localtaxi.marker);
+        localtaxi.marker = L.animatedMarker(polyline.getLatLngs(), {
+            icon: taxiIcon,
+            autoStart: false,
+            onEnd: function() {
+                _polyline = paths[this];
+                map.removeLayer(_polyline);
+            }
+        });
+        map.addLayer(localtaxi.marker);
+        localtaxi.marker.start();
+        paths[localtaxi.marker] = polyline;
+        localtaxi.marker.start();
+        localtaxi.dest = taxi.dest;
+    }
+};

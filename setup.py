@@ -16,6 +16,7 @@ requirements = [
     # TODO: put package requirements here
     'SPADE>=2.3',
     'factory_boy',
+    'requests',
 ]
 
 setup_requirements = [

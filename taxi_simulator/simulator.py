@@ -28,7 +28,7 @@ class SimulatorAgent(Agent):
         logger.info("Simulator agent running")
         self.wui.setPort(9000)
         self.wui.start()
-        logger.info("Web interface running at http://localhost:{}".format(self.wui.port))
+        logger.info("Web interface running at http://127.0.0.1:{}/app".format(self.wui.port))
 
         self.wui.setTemplatePath("taxi_simulator/templates")
 
@@ -40,6 +40,7 @@ class SimulatorAgent(Agent):
         self.wui.registerController("app", self.index_controller)
         self.wui.registerController("entities", self.entities_controller)
         self.wui.registerController("generate", self.generate_controller)
+        self.wui.registerController("move", self.move_random_controller)
 
     def index_controller(self):
         return "index.html", {}
@@ -53,8 +54,15 @@ class SimulatorAgent(Agent):
 
     def generate_controller(self):
         logger.info("Creating taxis.")
-        for _ in range(10):
+        for _ in range(1):
             self.create_taxi()
+        return None, {"status": "done"}
+
+    def move_random_controller(self):
+        taxi = self.taxi_agents.values()[0]
+        dest = random_position()
+        logger.info("Moving taxi {} from {} to {}".format(taxi.taxi_id, taxi.current_pos, dest))
+        taxi.move_to(dest)
         return None, {"status": "done"}
 
     def stop_agents(self):

@@ -1,31 +1,30 @@
 import logging
+import time
 
 from spade.Agent import Agent
 
-from utils import TAXI_WAITING, random_position, unused_port, request_path
+from utils import unused_port, random_position, PASSENGER_WAITING
 
-logger = logging.getLogger("TaxiAgent")
+logger = logging.getLogger("PassengerAgent")
 
 
-class TaxiAgent(Agent):
-
+class PassengerAgent(Agent):
     def __init__(self, agentjid, password, debug):
         Agent.__init__(self, agentjid, password, debug=debug)
         self.agent_id = None
-        self.status = TAXI_WAITING
+        self.status = PASSENGER_WAITING
         self.current_pos = None
         self.dest = None
-        self.path = None
-        self.distance = 0
-        self.duration = 0
         self.port = None
+        self.init_time = None
 
     def _setup(self):
         self.port = unused_port("127.0.0.1")
         self.wui.setPort(self.port)
         self.wui.start()
-
         self.wui.registerController("update_position", self.update_position_controller)
+
+        self.init_time = time.time()
 
     def update_position_controller(self, lat, lon):
         self.current_pos = [float(lat), float(lon)]
@@ -47,14 +46,5 @@ class TaxiAgent(Agent):
             "position": self.current_pos,
             "dest": self.dest,
             "status": self.status,
-            "path": self.path,
             "url": "http://127.0.0.1:{port}".format(port=self.port)
         }
-
-    def move_to(self, dest):
-        logger.info("Requesting path from {} to {}".format(self.current_pos, dest))
-        path, distance, duration = request_path(self.current_pos, dest)
-        self.path = path
-        self.dest = dest
-        self.distance += distance
-        self.duration += duration

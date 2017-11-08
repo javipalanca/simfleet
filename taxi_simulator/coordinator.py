@@ -10,12 +10,13 @@ from spade.Agent import Agent
 from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate
 
 from taxi import TaxiAgent
+from passenger import PassengerAgent
 from utils import random_position, simulator_aid, CREATE_PROTOCOL
 
-logger = logging.getLogger("SimulatorAgent")
+logger = logging.getLogger("CoordinatorAgent")
 
 
-class SimulatorAgent(Agent):
+class CoordinatorAgent(Agent):
     def __init__(self, agentjid, password, debug):
         self.taxi_agents = {}
         self.passenger_agents = {}
@@ -25,7 +26,7 @@ class SimulatorAgent(Agent):
         Agent.__init__(self, agentjid=agentjid, password=password, debug=debug)
 
     def _setup(self):
-        logger.info("Simulator agent running")
+        logger.info("Coordinator agent running")
         self.wui.setPort(9000)
         self.wui.start()
         logger.info("Web interface running at http://127.0.0.1:{}/app".format(self.wui.port))
@@ -54,14 +55,15 @@ class SimulatorAgent(Agent):
 
     def generate_controller(self):
         logger.info("Creating taxis.")
-        for _ in range(1):
-            self.create_taxi()
+        self.create_agent("taxi", 3)
+        logger.info("Creating passengers.")
+        self.create_agent("passenger", 3)
         return None, {"status": "done"}
 
     def move_random_controller(self):
         taxi = self.taxi_agents.values()[0]
         dest = random_position()
-        logger.info("Moving taxi {} from {} to {}".format(taxi.taxi_id, taxi.current_pos, dest))
+        logger.info("Moving taxi {} from {} to {}".format(taxi.agent_id, taxi.current_pos, dest))
         taxi.move_to(dest)
         return None, {"status": "done"}
 
@@ -75,18 +77,13 @@ class SimulatorAgent(Agent):
             agent.stop()
         del self.passenger_agents
 
-    def create_taxi(self, position=None):
-        position = random_position() if not position else position
-        taxi_id = self.faker.user_name()
-        password = self.faker.password()
+    def create_agent(self, type_, number=1):
         msg = ACLMessage()
         msg.addReceiver(simulator_aid)
         msg.setProtocol(CREATE_PROTOCOL)
         content = {
-            "type": "taxi",
-            "id": taxi_id,
-            "password": password,
-            "position": position
+            "type": type_,
+            "number": number
         }
         msg.setContent(json.dumps(content))
         self.send(msg)
@@ -97,14 +94,28 @@ class CreateAgent(Behaviour):
         msg = self._receive(block=True)
         content = json.loads(msg.content)
         type_ = content["type"]
-        name = content["id"]
-        passwd = content["password"]
-        position = content["position"]
-        jid = name + "@127.0.0.1"
+        number = content["number"]
         if type_ == "taxi":
-            taxi = TaxiAgent(jid, passwd, debug=[])
-            taxi.set_id(name)
-            taxi.set_position(position)
-            self.myAgent.taxi_agents[jid] = taxi
-            taxi.start()
-            logger.info("Created taxi {} at position {}".format(name, position))
+            for _ in range(number):
+                position = random_position()
+                name = self.myAgent.faker.user_name()
+                password = self.myAgent.faker.password()
+                jid = name + "@127.0.0.1"
+                taxi = TaxiAgent(jid, password, debug=[])
+                taxi.set_id(name)
+                taxi.set_position(position)
+                self.myAgent.taxi_agents[jid] = taxi
+                taxi.start()
+                logger.info("Created taxi {} at position {}".format(name, position))
+        elif type_ == "passenger":
+            for _ in range(number):
+                position = random_position()
+                name = self.myAgent.faker.user_name()
+                password = self.myAgent.faker.password()
+                jid = name + "@127.0.0.1"
+                passenger = PassengerAgent(jid, password, debug=[])
+                passenger.set_id(name)
+                passenger.set_position(position)
+                self.myAgent.passenger_agents[jid] = passenger
+                passenger.start()
+                logger.info("Created passenger {} at position {}".format(name, position))

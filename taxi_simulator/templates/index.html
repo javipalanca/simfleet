@@ -87,32 +87,37 @@
               <h3 class="panel-title">Control Panel
               <button type="button" class="btn btn-xs btn-default pull-right" id="sidebar-hide-btn"><i class="fa fa-chevron-left"></i></button></h3>
             </div>
-            <div class="panel-body">
-              <div class="row">
+            #!<div class="panel-body">
+            #!  <div class="row">
             #!    <div class="col-xs-8 col-md-8">
-            #!      <input type="text" class="form-control search" placeholder="Filter" />
+            #!      <input type="text" class="form-control" placeholder="Taxis" />
+            #!      <input type="text" class="form-control" placeholder="Passengers" />
             #!    </div>
-                <div class="col-xs-4 col-md-4">
-                  <button type="button" class="btn btn-primary" data-sort="feature-name" id="generate-btn"><i class="fa fa-legal    "></i>&nbsp;&nbsp;Generate</button>
-                </div>
-              </div>
-                <div class="row">
-                <div class="col-xs-4 col-md-4">
-                  <button type="button" class="btn btn-primary" data-sort="feature-name" id="move-btn"><i class="fa fa-legal    "></i>&nbsp;&nbsp;Move</button>
-                </div>
-              </div>
-            </div>
-            <div class="sidebar-table">
+            #!    <div class="col-xs-4 col-md-4">
+            #!      <button type="button" class="btn btn-primary" data-sort="feature-name" id="generate-btn"><i class="fa fa-legal"></i>&nbsp;&nbsp;Generate</button>
+            #!    </div>
+            #!  </div>
+            #!  <div class="row">
+            #!    <div class="col-xs-4 col-md-4">
+            #!      <button type="button" class="btn btn-primary" data-sort="feature-name" id="clean-btn"><i class="fa fa-trash-o"></i>&nbsp;&nbsp;Clean</button>
+            #!    </div>
+            #!  </div>
+            #!</div>
+            #!<div class="sidebar-table">
+            <div class="panel-body">
               <table class="table table-hover" id="feature-list">
-                <thead class="hidden">
+                <thead class="">
                   <tr>
-                    <th>Icon</th>
-                  <tr>
-                  <tr>
-                    <th>Name</th>
+                    <th><input type="number" class="form-control" id="numtaxis" placeholder="Taxis" /></th>
                   <tr>
                   <tr>
-                    <th>Chevron</th>
+                    <th><input type="number" class="form-control" id="numpassengers" placeholder="Passengers" /></th>
+                  <tr>
+                  <tr>
+                    <th><button type="button" class="btn btn-primary" data-sort="feature-name" id="generate-btn"><i class="fa fa-play"></i>&nbsp;&nbsp;Start</button></th>
+                  <tr>
+                  <tr>
+                      <th><button type="button" class="btn btn-primary" data-sort="feature-name" id="clean-btn"><i class="fa fa-trash-o"></i>&nbsp;&nbsp;Clean</button></th>
                   <tr>
                 </thead>
                 <tbody class="list"></tbody>

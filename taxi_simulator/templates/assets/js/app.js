@@ -160,3 +160,39 @@ Array.prototype.equals = function (array) {
 };
 // Hide method from for-in loops
 Object.defineProperty(Array.prototype, "equals", {enumerable: false});
+
+/**********************************/
+function HashTable(){
+    var hash = {};
+    this.put = function(key, value){
+        if(typeof key === "string"){
+            hash[key] = value;
+        }
+        else{
+            if(key._hashtableUniqueId == undefined){
+                key._hashtableUniqueId = UniqueId.prototype.generateId();
+            }
+            hash[key._hashtableUniqueId] = value;
+        }
+
+    };
+
+    this.get = function(key){
+        if(typeof key === "string"){
+            return hash[key];
+        }
+        if(key._hashtableUniqueId == undefined){
+            return undefined;
+        }
+        return hash[key._hashtableUniqueId];
+    };
+}
+
+function UniqueId(){
+
+}
+
+UniqueId.prototype._id = 0;
+UniqueId.prototype.generateId = function(){
+    return (++UniqueId.prototype._id).toString();
+};

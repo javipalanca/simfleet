@@ -17,6 +17,7 @@ requirements = [
     'SPADE>=2.3',
     'factory_boy',
     'requests',
+    'geopy',
 ]
 
 setup_requirements = [

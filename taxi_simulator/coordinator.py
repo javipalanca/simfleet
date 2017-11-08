@@ -11,7 +11,8 @@ from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate
 
 from taxi import TaxiAgent
 from passenger import PassengerAgent
-from utils import random_position, simulator_aid, CREATE_PROTOCOL
+from utils import random_position, coordinator_aid, CREATE_PROTOCOL, PASSENGER_IN_DEST, REQUEST_PROTOCOL, \
+    REQUEST_PERFORMATIVE
 
 logger = logging.getLogger("CoordinatorAgent")
 
@@ -33,15 +34,20 @@ class CoordinatorAgent(Agent):
 
         self.wui.setTemplatePath("taxi_simulator/templates")
 
-        tpl = ACLTemplate()
-        tpl.setProtocol(CREATE_PROTOCOL)
-        template = MessageTemplate(tpl)
-        self.addBehaviour(CreateAgent(), template)
-
         self.wui.registerController("app", self.index_controller)
         self.wui.registerController("entities", self.entities_controller)
         self.wui.registerController("generate", self.generate_controller)
-        self.wui.registerController("move", self.move_random_controller)
+        self.wui.registerController("clean", self.clean_controller)
+
+        tpl = ACLTemplate()
+        tpl.setProtocol(CREATE_PROTOCOL)
+        template = MessageTemplate(tpl)
+        self.addBehaviour(CreateAgentBehaviour(), template)
+
+        tpl = ACLTemplate()
+        tpl.setProtocol(REQUEST_PROTOCOL)
+        template = MessageTemplate(tpl)
+        self.addBehaviour(DelegateRequestTaxiBehaviour(), template)
 
     def index_controller(self):
         return "index.html", {}
@@ -53,18 +59,17 @@ class CoordinatorAgent(Agent):
         }
         return None, result
 
-    def generate_controller(self):
+    def generate_controller(self, taxis=1, passengers=1):
         logger.info("Creating taxis.")
-        self.create_agent("taxi", 3)
+        self.create_agent("taxi", number=int(taxis))
         logger.info("Creating passengers.")
-        self.create_agent("passenger", 3)
+        self.create_agent("passenger", number=int(passengers))
         return None, {"status": "done"}
 
-    def move_random_controller(self):
-        taxi = self.taxi_agents.values()[0]
-        dest = random_position()
-        logger.info("Moving taxi {} from {} to {}".format(taxi.agent_id, taxi.current_pos, dest))
-        taxi.move_to(dest)
+    def clean_controller(self):
+        self.stop_agents()
+        self.taxi_agents = {}
+        self.passenger_agents = {}
         return None, {"status": "done"}
 
     def stop_agents(self):
@@ -79,8 +84,9 @@ class CoordinatorAgent(Agent):
 
     def create_agent(self, type_, number=1):
         msg = ACLMessage()
-        msg.addReceiver(simulator_aid)
+        msg.addReceiver(coordinator_aid)
         msg.setProtocol(CREATE_PROTOCOL)
+        msg.setPerformative(REQUEST_PERFORMATIVE)
         content = {
             "type": type_,
             "number": number
@@ -89,7 +95,7 @@ class CoordinatorAgent(Agent):
         self.send(msg)
 
 
-class CreateAgent(Behaviour):
+class CreateAgentBehaviour(Behaviour):
     def _process(self):
         msg = self._receive(block=True)
         content = json.loads(msg.content)
@@ -119,3 +125,17 @@ class CreateAgent(Behaviour):
                 self.myAgent.passenger_agents[jid] = passenger
                 passenger.start()
                 logger.info("Created passenger {} at position {}".format(name, position))
+
+
+class CoordinatorStrategyBehaviour(Behaviour):
+    pass
+
+
+class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
+    def _process(self):
+        msg = self._receive(block=True)
+        msg.removeReceiver(coordinator_aid)
+        for taxi in self.myAgent.taxi_agents.values():
+            msg.addReceiver(taxi.getAID())
+            self.myAgent.send(msg)
+            logger.info("Coordinator sent request to taxi {}".format(taxi.getAID().getName()))

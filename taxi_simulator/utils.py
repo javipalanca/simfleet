@@ -1,29 +1,51 @@
 import json
 import random
 import socket
-
 import requests
+from geopy.distance import vincenty
+
 from spade.AID import aid
 
 REGISTER_PROTOCOL = "REGISTER"
 CREATE_PROTOCOL = "CREATE"
+REQUEST_PROTOCOL = "REQUEST"
+TRAVEL_PROTOCOL = "INFORM"
+
+REQUEST_PERFORMATIVE = "request"
+ACCEPT_PERFORMATIVE = "accept"
+PROPOSE_PERFORMATIVE = "propose"
+INFORM_PERFORMATIVE = "inform"
 
 TAXI_WAITING = 10
 TAXI_MOVING_TO_PASSENGER = 11
-TAXI_MOVING_TO_DESTINY = 12
+TAXI_IN_PASSENGER_PLACE = 12
+TAXI_MOVING_TO_DESTINY = 13
 
 PASSENGER_WAITING = 20
 PASSENGER_IN_TAXI = 21
 PASSENGER_IN_DEST = 22
+PASSENGER_LOCATION = 23
 
-simulator_aid = aid(name="coordinator@127.0.0.1", addresses=["xmpp://coordinator@127.0.0.1"])
+
+def build_aid(agent_id):
+    return aid(name=agent_id + "@127.0.0.1", addresses=["xmpp://" + agent_id + "@127.0.0.1"])
+
+
+coordinator_aid = build_aid("coordinator")
 
 
 def random_position():
     with open("taxi_simulator/templates/data/taxi_stations.json") as f:
         stations = json.load(f)["features"]
         pos = random.choice(stations)
-        return [pos["geometry"]["coordinates"][1], pos["geometry"]["coordinates"][0]]
+        coords = [pos["geometry"]["coordinates"][1], pos["geometry"]["coordinates"][0]]
+        lat = float("{0:.6f}".format(coords[0]))
+        lng = float("{0:.6f}".format(coords[1]))
+        return [lat, lng]
+
+
+def are_close(coord1, coord2, tolerance=10):
+    return vincenty(coord1, coord2).meters < tolerance
 
 
 def unused_port(hostname):

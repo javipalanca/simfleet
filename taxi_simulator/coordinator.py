@@ -2,25 +2,29 @@
 
 """Main module."""
 import json
-import faker
 import logging
 
+import faker
 from spade.ACLMessage import ACLMessage
 from spade.Agent import Agent
 from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate
 
-from taxi import TaxiAgent
 from passenger import PassengerAgent
-from utils import random_position, coordinator_aid, CREATE_PROTOCOL, PASSENGER_IN_DEST, REQUEST_PROTOCOL, \
-    REQUEST_PERFORMATIVE
+from taxi import TaxiAgent
+from utils import random_position, coordinator_aid, CREATE_PROTOCOL, REQUEST_PROTOCOL, REQUEST_PERFORMATIVE, load_class
 
 logger = logging.getLogger("CoordinatorAgent")
 
 
 class CoordinatorAgent(Agent):
     def __init__(self, agentjid, password, debug):
+        self.simulation_running = False
         self.taxi_agents = {}
         self.passenger_agents = {}
+
+        self.coordinator_strategy = None
+        self.taxi_strategy = None
+        self.passenger_strategy = None
 
         self.faker = faker.Factory.create()
 
@@ -37,6 +41,7 @@ class CoordinatorAgent(Agent):
         self.wui.registerController("app", self.index_controller)
         self.wui.registerController("entities", self.entities_controller)
         self.wui.registerController("generate", self.generate_controller)
+        self.wui.registerController("run", self.run_controller)
         self.wui.registerController("clean", self.clean_controller)
 
         tpl = ACLTemplate()
@@ -44,13 +49,34 @@ class CoordinatorAgent(Agent):
         template = MessageTemplate(tpl)
         self.addBehaviour(CreateAgentBehaviour(), template)
 
+    def set_strategies(self, coordinator_strategy, taxi_strategy, passenger_strategy):
+        self.coordinator_strategy = load_class(coordinator_strategy)
+        self.taxi_strategy = load_class(taxi_strategy)
+        self.passenger_strategy = load_class(passenger_strategy)
+
+    def run_simulation(self):
+        if not self.simulation_running:
+            self.add_strategy(self.coordinator_strategy)
+            for taxi in self.taxi_agents.values():
+                taxi.add_strategy(self.taxi_strategy)
+            for passenger in self.passenger_agents.values():
+                passenger.add_strategy(self.passenger_strategy)
+
+            self.simulation_running = True
+            logger.info("Simulation started.")
+
+    def add_strategy(self, strategyClass):
         tpl = ACLTemplate()
         tpl.setProtocol(REQUEST_PROTOCOL)
         template = MessageTemplate(tpl)
-        self.addBehaviour(DelegateRequestTaxiBehaviour(), template)
+        self.addBehaviour(strategyClass(), template)
 
     def index_controller(self):
         return "index.html", {}
+
+    def run_controller(self):
+        self.run_simulation()
+        return None, {}
 
     def entities_controller(self):
         result = {
@@ -77,11 +103,9 @@ class CoordinatorAgent(Agent):
         for name, agent in self.taxi_agents.items():
             logger.info("Stopping taxi {}".format(name))
             agent.stop()
-        del self.taxi_agents
         for name, agent in self.passenger_agents.items():
             logger.info("Stopping passenger {}".format(name))
             agent.stop()
-        del self.passenger_agents
 
     def create_agent(self, type_, number=1):
         msg = ACLMessage()
@@ -97,16 +121,6 @@ class CoordinatorAgent(Agent):
 
 
 class CreateAgentBehaviour(Behaviour):
-    def create_agent(self, cls):
-        position = random_position()
-        name = self.myAgent.faker.user_name()
-        password = self.myAgent.faker.password()
-        jid = name + "@127.0.0.1"
-        agent = cls(jid, password, debug=[])
-        agent.set_id(name)
-        agent.set_position(position)
-        return agent
-
     def _process(self):
         msg = self._receive(block=True)
         content = json.loads(msg.content)
@@ -115,11 +129,15 @@ class CreateAgentBehaviour(Behaviour):
         if type_ == "taxi":
             cls = TaxiAgent
             store = self.myAgent.taxi_agents
+            strategy = self.myAgent.taxi_strategy
         else:  # type_ == "passenger":
             cls = PassengerAgent
             store = self.myAgent.passenger_agents
+            strategy = self.myAgent.passenger_strategy
 
         for _ in range(number):
+            if self.myAgent.forceKill():
+                break
             position = random_position()
             name = self.myAgent.faker.user_name()
             password = self.myAgent.faker.password()
@@ -129,19 +147,14 @@ class CreateAgentBehaviour(Behaviour):
             agent.set_position(position)
             store[name] = agent
             agent.start()
+            if self.myAgent.simulation_running:
+                agent.add_strategy(strategy)
             logger.info("Created {} {} at position {}".format(type_, name, position))
 
 
 class CoordinatorStrategyBehaviour(Behaviour):
+    def onStart(self):
+        self.logger = logging.getLogger("CoordinatorAgent")
+
     def _process(self):
         raise NotImplementedError
-
-
-class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
-    def _process(self):
-        msg = self._receive(block=True)
-        msg.removeReceiver(coordinator_aid)
-        for taxi in self.myAgent.taxi_agents.values():
-            msg.addReceiver(taxi.getAID())
-            self.myAgent.send(msg)
-            logger.info("Coordinator sent request to taxi {}".format(taxi.getName()))

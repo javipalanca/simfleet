@@ -30,11 +30,6 @@ class PassengerAgent(Agent):
         self.wui.registerController("update_position", self.update_position_controller)
 
         tpl = ACLTemplate()
-        tpl.setProtocol(REQUEST_PROTOCOL)
-        template = MessageTemplate(tpl)
-        self.addBehaviour(AcceptFirstRequestTaxiBehaviour(), template)
-
-        tpl = ACLTemplate()
         tpl.setProtocol(TRAVEL_PROTOCOL)
         template = MessageTemplate(tpl)
         self.addBehaviour(TravelBehaviour(), template)
@@ -42,6 +37,12 @@ class PassengerAgent(Agent):
         self.init_time = None
         self.end_time = None
         self.pick_up_time = None
+
+    def add_strategy(self, strategyClass):
+        tpl = ACLTemplate()
+        tpl.setProtocol(REQUEST_PROTOCOL)
+        template = MessageTemplate(tpl)
+        self.addBehaviour(strategyClass(), template)
 
     def update_position_controller(self, lat, lon):
         coords = [float(lat), float(lon)]
@@ -103,6 +104,7 @@ class TravelBehaviour(Behaviour):
 
 class PassengerStrategyBehaviour(OneShotBehaviour):
     def onStart(self):
+        self.logger = logging.getLogger("PassengerAgent")
         self.myAgent.init_time = time.time()
 
     def timeout_receive(self, timeout=5):
@@ -128,7 +130,7 @@ class PassengerStrategyBehaviour(OneShotBehaviour):
         }
         msg.setContent(json.dumps(content))
         self.myAgent.send(msg)
-        logger.info("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
+        self.logger.info("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
 
     def accept_taxi(self, taxi_aid):
         reply = ACLMessage()
@@ -142,19 +144,7 @@ class PassengerStrategyBehaviour(OneShotBehaviour):
         }
         reply.setContent(json.dumps(content))
         self.myAgent.send(reply)
-        logger.info("Passenger {} accepted proposal from taxi {}".format(self.myAgent.agent_id, taxi_aid.getName()))
+        self.logger.info("Passenger {} accepted proposal from taxi {}".format(self.myAgent.agent_id, taxi_aid.getName()))
 
     def _process(self):
         raise NotImplementedError
-
-
-class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
-    def _process(self):
-        msg = None
-        while msg is None:
-            self.send_request()
-            msg = self.timeout_receive(timeout=5)
-
-        taxi_aid = msg.getSender()
-        logger.info("Passenger {} received proposal from {}".format(self.myAgent.agent_id, taxi_aid.getName()))
-        self.accept_taxi(taxi_aid)

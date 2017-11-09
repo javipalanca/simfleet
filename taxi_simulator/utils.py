@@ -75,3 +75,10 @@ def request_path(ori, dest):
     except Exception as e:
         logger.error("Error requesting route: ", e)
     return None, None, None
+
+
+def load_class(class_path):
+    module_path, class_name = class_path.rsplit(".", 1)
+    mod = __import__(module_path, fromlist=[class_name])
+    return getattr(mod, class_name)
+

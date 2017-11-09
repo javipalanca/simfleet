@@ -5,9 +5,9 @@ from spade.ACLMessage import ACLMessage
 from spade.Agent import Agent
 from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate
 
-from utils import TAXI_WAITING, random_position, unused_port, request_path, PROPOSE_PERFORMATIVE, REQUEST_PERFORMATIVE, \
-    ACCEPT_PERFORMATIVE, INFORM_PERFORMATIVE, TAXI_MOVING_TO_PASSENGER, TAXI_IN_PASSENGER_PLACE, TAXI_MOVING_TO_DESTINY, \
-    PASSENGER_IN_DEST, REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PASSENGER_LOCATION, coordinator_aid, build_aid, are_close
+from utils import TAXI_WAITING, random_position, unused_port, request_path, PROPOSE_PERFORMATIVE, INFORM_PERFORMATIVE, \
+    TAXI_MOVING_TO_PASSENGER, TAXI_IN_PASSENGER_PLACE, TAXI_MOVING_TO_DESTINY, \
+    PASSENGER_IN_DEST, REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PASSENGER_LOCATION, build_aid
 
 logger = logging.getLogger("TaxiAgent")
 
@@ -35,10 +35,11 @@ class TaxiAgent(Agent):
         self.wui.registerController("update_position", self.update_position_controller)
         self.wui.registerController("arrived", self.arrived_to_dest_controller)
 
+    def add_strategy(self, strategyClass):
         tpl = ACLTemplate()
         tpl.setProtocol(REQUEST_PROTOCOL)
         template = MessageTemplate(tpl)
-        self.addBehaviour(AcceptAlwaysStrategyBehaviour(), template)
+        self.addBehaviour(strategyClass(), template)
 
     def update_position_controller(self, lat, lon):
         coords = [float(lat), float(lon)]
@@ -109,8 +110,11 @@ class TaxiAgent(Agent):
 
 
 class TaxiStrategyBehaviour(Behaviour):
+    def onStart(self):
+        self.logger = logging.getLogger("TaxiAgent")
+
     def pick_up_passenger(self, passenger_id, origin, dest):
-        logger.info("Taxi {} on route to passenger {}".format(self.myAgent.agent_id, passenger_id))
+        self.logger.info("Taxi {} on route to passenger {}".format(self.myAgent.agent_id, passenger_id))
         passenger_aid = build_aid(passenger_id)
         reply = ACLMessage()
         reply.addReceiver(passenger_aid)
@@ -136,24 +140,8 @@ class TaxiStrategyBehaviour(Behaviour):
         reply.setProtocol(REQUEST_PROTOCOL)
         reply.setPerformative(PROPOSE_PERFORMATIVE)
         reply.setContent(content)
-        logger.info("Taxi {} sent proposal to passenger {}".format(self.myAgent.agent_id, passenger_id))
+        self.logger.info("Taxi {} sent proposal to passenger {}".format(self.myAgent.agent_id, passenger_id))
         self.myAgent.send(reply)
 
     def _process(self):
         raise NotImplementedError
-
-
-class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
-    def _process(self):
-        msg = self._receive(block=True)
-        logger.info("Taxi {} received message with performative {}.".format(self.myAgent.agent_id,
-                                                                            msg.getPerformative()))
-
-        if self.myAgent.status == TAXI_WAITING:
-            content = json.loads(msg.getContent())
-
-            if msg.getPerformative() == REQUEST_PERFORMATIVE:
-                self.send_proposal(content["passenger_id"], {})
-
-            elif msg.getPerformative() == ACCEPT_PERFORMATIVE:
-                self.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])

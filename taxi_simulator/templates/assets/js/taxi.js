@@ -22,21 +22,8 @@ $("#generate-btn").on("click", function (e) {
     })
 });
 
-$("#clean-btn").on("click", function (e) {
-    $.getJSON("/clean", function (data) {
-        for (var taxi in taxis){
-            if (taxi.marker !== undefined)
-                map.removeLayer(taxi.marker);
-        }
-        for (var passenger in passengers){
-            if (passenger.marker !== undefined)
-                map.removeLayer(passenger.marker);
-        }
-        taxis = {};
-        passengers = {};
-        paths = new HashTable();
-        urls = new HashTable();
-    })
+$("#play-btn").on("click", function (e) {
+    $.getJSON("/run");
 });
 
 

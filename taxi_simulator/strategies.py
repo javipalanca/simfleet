@@ -18,7 +18,7 @@ class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
         for taxi in self.myAgent.taxi_agents.values():
             msg.addReceiver(taxi.getAID())
             self.myAgent.send(msg)
-            self.logger.info("Coordinator sent request to taxi {}".format(taxi.getName()))
+            self.logger.debug("Coordinator sent request to taxi {}".format(taxi.getName()))
 
 
 ################################################################
@@ -30,7 +30,7 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
     def _process(self):
         msg = self._receive(block=True)
         content = json.loads(msg.getContent())
-        self.logger.info("Taxi {} received request from passenger {}.".format(self.myAgent.agent_id,
+        self.logger.debug("Taxi {} received request from passenger {}.".format(self.myAgent.agent_id,
                                                                               content["passenger_id"]))
 
         if self.myAgent.status == TAXI_WAITING:
@@ -57,5 +57,5 @@ class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
             return
 
         taxi_aid = msg.getSender()
-        self.logger.info("Passenger {} received proposal from {}".format(self.myAgent.agent_id, taxi_aid.getName()))
+        self.logger.debug("Passenger {} received proposal from {}".format(self.myAgent.agent_id, taxi_aid.getName()))
         self.accept_taxi(taxi_aid)

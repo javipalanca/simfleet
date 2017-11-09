@@ -3,6 +3,7 @@
 """Main module."""
 import json
 import logging
+import threading
 
 import faker
 from spade.ACLMessage import ACLMessage
@@ -19,6 +20,9 @@ logger = logging.getLogger("CoordinatorAgent")
 class CoordinatorAgent(Agent):
     def __init__(self, agentjid, password, debug):
         self.simulation_running = False
+        self.kill_simulator = threading.Event()
+        self.kill_simulator.clear()
+        self.lock = threading.RLock()
         self.taxi_agents = {}
         self.passenger_agents = {}
 
@@ -65,11 +69,11 @@ class CoordinatorAgent(Agent):
             self.simulation_running = True
             logger.info("Simulation started.")
 
-    def add_strategy(self, strategyClass):
+    def add_strategy(self, strategy_class):
         tpl = ACLTemplate()
         tpl.setProtocol(REQUEST_PROTOCOL)
         template = MessageTemplate(tpl)
-        self.addBehaviour(strategyClass(), template)
+        self.addBehaviour(strategy_class(), template)
 
     def index_controller(self):
         return "index.html", {}
@@ -100,12 +104,15 @@ class CoordinatorAgent(Agent):
         return None, {"status": "done"}
 
     def stop_agents(self):
-        for name, agent in self.taxi_agents.items():
-            logger.info("Stopping taxi {}".format(name))
-            agent.stop()
-        for name, agent in self.passenger_agents.items():
-            logger.info("Stopping passenger {}".format(name))
-            agent.stop()
+        self.kill_simulator.set()
+        with self.lock:
+            for name, agent in self.taxi_agents.items():
+                logger.info("Stopping taxi {}".format(name))
+                agent.stop()
+        with self.lock:
+            for name, agent in self.passenger_agents.items():
+                logger.info("Stopping passenger {}".format(name))
+                agent.stop()
 
     def create_agent(self, type_, number=1):
         msg = ACLMessage()
@@ -136,25 +143,27 @@ class CreateAgentBehaviour(Behaviour):
             strategy = self.myAgent.passenger_strategy
 
         for _ in range(number):
-            if self.myAgent.forceKill():
-                break
-            position = random_position()
-            name = self.myAgent.faker.user_name()
-            password = self.myAgent.faker.password()
-            jid = name + "@127.0.0.1"
-            agent = cls(jid, password, debug=[])
-            agent.set_id(name)
-            agent.set_position(position)
-            store[name] = agent
-            agent.start()
-            if self.myAgent.simulation_running:
-                agent.add_strategy(strategy)
-            logger.info("Created {} {} at position {}".format(type_, name, position))
+            with self.myAgent.lock:
+                if self.myAgent.kill_simulator.isSet():
+                    break
+                position = random_position()
+                name = self.myAgent.faker.user_name()
+                password = self.myAgent.faker.password()
+                jid = name + "@127.0.0.1"
+                agent = cls(jid, password, debug=[])
+                agent.set_id(name)
+                agent.set_position(position)
+                store[name] = agent
+                agent.start()
+                if self.myAgent.simulation_running:
+                    agent.add_strategy(strategy)
+                logger.debug("Created {} {} at position {}".format(type_, name, position))
 
 
 class CoordinatorStrategyBehaviour(Behaviour):
     def onStart(self):
         self.logger = logging.getLogger("CoordinatorAgent")
+        self.logger.debug("Strategy {} started in coordinator".format(type(self).__name__))
 
     def _process(self):
         raise NotImplementedError

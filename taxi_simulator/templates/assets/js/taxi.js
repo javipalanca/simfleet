@@ -26,6 +26,13 @@ $("#play-btn").on("click", function (e) {
     $.getJSON("/run");
 });
 
+function request_url(url) {
+    $.getJSON(url, function(result) {
+        if(!result.finished) {
+            setTimeout(request_url, 2000);
+        }
+    });
+}
 
 var taxis = {};
 var passengers = {};
@@ -76,16 +83,9 @@ var intervalID = setInterval(function () {
             }
             else {
                 localpassenger = passengers[passenger.id];
-                if (passenger.status === PASSENGER_IN_TAXI) {
+                if (passenger.status === PASSENGER_IN_TAXI || passenger.status === PASSENGER_IN_DEST) {
                     map.removeLayer(localpassenger.marker);
                 }
-                /*else if ((passenger.id in passengers) && passenger.status === PASSENGER_IN_DEST) {
-                    marker = L.animatedMarker([passenger.position], {
-                        icon: passenger2Icon
-                    });
-                    map.addLayer(marker);
-                    delete passengers[passenger.id];
-                }*/
             }
         }
     });
@@ -97,7 +97,7 @@ var intervalID = setInterval(function () {
 var updateTaxi = function (taxi) {
     var localtaxi = taxis[taxi.id];
     // check if there is a new route for the taxi
-    if (taxi.dest != null && !taxi.dest.equals(localtaxi.dest)) {
+    if (taxi.dest != null && !taxi.dest.equals(localtaxi.dest) && taxi.path) {
         localtaxi.path = taxi.path;
         localtaxi.dest = taxi.dest;
         var polyline = L.polyline(taxi.path, {color: color[taxi.status]});
@@ -111,10 +111,7 @@ var updateTaxi = function (taxi) {
                 map.removeLayer(_polyline);
                 var url = urls.get(this);
                 url = url + "/arrived";
-                $.getJSON(url).error(function (e) {
-                    // retry
-                    $.getJSON(url);
-                });
+                request_url(url);
                 urls.put(this, undefined);
             }
         });
@@ -129,7 +126,7 @@ var updateTaxi = function (taxi) {
         if (localtaxi.position[0] != coords.lat || localtaxi.position[1] != coords.lng) {
             var url = urls.get(localtaxi.marker);
             url = url + "/update_position?lat=" + coords.lat + "&lon=" + coords.lng;
-            $.getJSON(url);
+            request_url(url);
         }
     }
 };

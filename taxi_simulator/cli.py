@@ -8,13 +8,11 @@ import click
 import thread
 import sys
 
+import cPickle as pickle
 from spade import spade_backend
-from tqdm import tqdm
 from xmppd.xmppd import Server
 
 from coordinator import CoordinatorAgent
-
-logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger()
 
@@ -26,8 +24,18 @@ logger = logging.getLogger()
               help='Passenger strategy class.')
 @click.option('--coordinator', default="strategies.DelegateRequestTaxiBehaviour",
               help='Coordinator strategy class.')
-def main(taxi, passenger, coordinator):
+@click.option('--debug', default=False, is_flag=True)
+def main(taxi, passenger, coordinator, debug):
     """Console script for taxi_simulator."""
+    if debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+
+    # reset user_db
+    with open("user_db.xml", 'w') as f:
+        pickle.dump({"127.0.0.1": {}}, f)
+
     s = Server(cfgfile="xmppd.xml", cmd_options={'enable_debug': [],
                                                  'enable_psyco': False})
     thread.start_new_thread(s.run, tuple())
@@ -36,7 +44,7 @@ def main(taxi, passenger, coordinator):
     platform.start()
     logger.info("Running SPADE platform.")
 
-    coordinator_agent = CoordinatorAgent("coordinator@127.0.0.1", password="kakatua", debug=[])
+    coordinator_agent = CoordinatorAgent("coordinator@127.0.0.1", password="coordinator_passwd", debug=[])
     coordinator_agent.set_strategies(coordinator, taxi, passenger)
     coordinator_agent.start()
 
@@ -49,12 +57,6 @@ def main(taxi, passenger, coordinator):
     coordinator_agent.stop_agents()
     coordinator_agent.stop()
     platform.shutdown()
-
-    with tqdm(total=threading.active_count() - 48) as pbar:
-        while threading.active_count() > 48:
-            pbar.update(threading.active_count() - 48)
-            time.sleep(1)
-
     s.shutdown("")
     sys.exit(0)
 

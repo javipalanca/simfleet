@@ -62,7 +62,7 @@ def unused_port(hostname):
 
 def request_path(ori, dest):
     try:
-        url = "http://router.project-osrm.org/route/v1/car/{src1},{src2};{dest1},{dest2}?geometries=geojson&overview=full"
+        url = "http://osrm.gti-ia.upv.es/route/v1/car/{src1},{src2};{dest1},{dest2}?geometries=geojson&overview=full"
         src1, src2, dest1, dest2 = ori[1], ori[0], dest[1], dest[0]
         url = url.format(src1=src1, src2=src2, dest1=dest1, dest2=dest2)
         result = requests.get(url)
@@ -73,7 +73,7 @@ def request_path(ori, dest):
         distance = result["routes"][0]["distance"]
         return path, distance, duration
     except Exception as e:
-        logger.error("Error requesting route: ", e)
+        logger.error("Error requesting route: {}".format(e))
     return None, None, None
 
 

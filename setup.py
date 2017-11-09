@@ -18,7 +18,6 @@ requirements = [
     'factory_boy',
     'requests',
     'geopy',
-    'tqdm',
 ]
 
 setup_requirements = [

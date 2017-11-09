@@ -58,7 +58,7 @@ class PassengerAgent(Agent):
             self.current_pos = coords
         else:
             self.current_pos = random_position()
-        logger.info("Passenger {} position is {}".format(self.agent_id, self.current_pos))
+        logger.debug("Passenger {} position is {}".format(self.agent_id, self.current_pos))
 
     def get_position(self):
         return self.current_pos
@@ -105,6 +105,7 @@ class TravelBehaviour(Behaviour):
 class PassengerStrategyBehaviour(OneShotBehaviour):
     def onStart(self):
         self.logger = logging.getLogger("PassengerAgent")
+        self.logger.debug("Strategy {} started in passenger {}".format(type(self).__name__, self.myAgent.agent_id))
         self.myAgent.init_time = time.time()
 
     def timeout_receive(self, timeout=5):
@@ -130,7 +131,7 @@ class PassengerStrategyBehaviour(OneShotBehaviour):
         }
         msg.setContent(json.dumps(content))
         self.myAgent.send(msg)
-        self.logger.info("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
+        self.logger.debug("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
 
     def accept_taxi(self, taxi_aid):
         reply = ACLMessage()
@@ -144,7 +145,8 @@ class PassengerStrategyBehaviour(OneShotBehaviour):
         }
         reply.setContent(json.dumps(content))
         self.myAgent.send(reply)
-        self.logger.info("Passenger {} accepted proposal from taxi {}".format(self.myAgent.agent_id, taxi_aid.getName()))
+        self.logger.debug("Passenger {} accepted proposal from taxi {}".format(self.myAgent.agent_id,
+                                                                               taxi_aid.getName()))
 
     def _process(self):
         raise NotImplementedError

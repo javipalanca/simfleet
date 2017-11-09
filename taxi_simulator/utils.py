@@ -1,10 +1,13 @@
 import json
+import logging
 import random
 import socket
 import requests
 from geopy.distance import vincenty
 
 from spade.AID import aid
+
+logger = logging.getLogger()
 
 REGISTER_PROTOCOL = "REGISTER"
 CREATE_PROTOCOL = "CREATE"
@@ -58,14 +61,17 @@ def unused_port(hostname):
 
 
 def request_path(ori, dest):
-    url = "http://router.project-osrm.org/route/v1/car/{src1},{src2};{dest1},{dest2}?geometries=geojson&overview=full"
-    src1, src2, dest1, dest2 = ori[1], ori[0], dest[1], dest[0]
-    url = url.format(src1=src1, src2=src2, dest1=dest1, dest2=dest2)
-    result = requests.get(url)
-    result = json.loads(result.content)
-    path = result["routes"][0]["geometry"]["coordinates"]
-    path = [[point[1], point[0]] for point in path]
-    duration = result["routes"][0]["duration"]
-    distance = result["routes"][0]["distance"]
-
-    return path, distance, duration
+    try:
+        url = "http://router.project-osrm.org/route/v1/car/{src1},{src2};{dest1},{dest2}?geometries=geojson&overview=full"
+        src1, src2, dest1, dest2 = ori[1], ori[0], dest[1], dest[0]
+        url = url.format(src1=src1, src2=src2, dest1=dest1, dest2=dest2)
+        result = requests.get(url)
+        result = json.loads(result.content)
+        path = result["routes"][0]["geometry"]["coordinates"]
+        path = [[point[1], point[0]] for point in path]
+        duration = result["routes"][0]["duration"]
+        distance = result["routes"][0]["distance"]
+        return path, distance, duration
+    except Exception as e:
+        logger.error("Error requesting route: ", e)
+    return None, None, None

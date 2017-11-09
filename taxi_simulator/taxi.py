@@ -71,6 +71,9 @@ class TaxiAgent(Agent):
         if self.status == TAXI_MOVING_TO_DESTINY:
             self.inform_passenger(PASSENGER_LOCATION, {"location": self.current_pos})
 
+    def get_position(self):
+        return self.current_pos
+
     def move_to(self, dest):
         logger.info("Requesting path from {} to {}".format(self.current_pos, dest))
         path, distance, duration = request_path(self.current_pos, dest)
@@ -106,35 +109,51 @@ class TaxiAgent(Agent):
 
 
 class TaxiStrategyBehaviour(Behaviour):
-    pass
+    def pick_up_passenger(self, passenger_id, origin, dest):
+        logger.info("Taxi {} on route to passenger {}".format(self.myAgent.agent_id, passenger_id))
+        passenger_aid = build_aid(passenger_id)
+        reply = ACLMessage()
+        reply.addReceiver(passenger_aid)
+        reply.setPerformative(INFORM_PERFORMATIVE)
+        reply.setProtocol(TRAVEL_PROTOCOL)
+        content = {
+            "status": TAXI_MOVING_TO_PASSENGER
+        }
+        reply.setContent(json.dumps(content))
+        self.myAgent.status = TAXI_MOVING_TO_PASSENGER
+        self.myAgent.current_passenger = passenger_aid
+        self.myAgent.current_passenger_orig = origin
+        self.myAgent.current_passenger_dest = dest
+        self.myAgent.move_to(self.myAgent.current_passenger_orig)
+        self.myAgent.send(reply)
+
+    def send_proposal(self, passenger_id, content=None):
+        if content is None:
+            content = {}
+        passenger_aid = build_aid(passenger_id)
+        reply = ACLMessage()
+        reply.addReceiver(passenger_aid)
+        reply.setProtocol(REQUEST_PROTOCOL)
+        reply.setPerformative(PROPOSE_PERFORMATIVE)
+        reply.setContent(content)
+        logger.info("Taxi {} sent proposal to passenger {}".format(self.myAgent.agent_id, passenger_id))
+        self.myAgent.send(reply)
+
+    def _process(self):
+        raise NotImplementedError
 
 
 class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
     def _process(self):
         msg = self._receive(block=True)
-        logger.info("Taxi {} received message with performative {}.".format(self.myAgent.agent_id, msg.getPerformative()))
-        if self.myAgent.status == TAXI_WAITING:
-            reply = msg.createReply()
-            reply.removeReceiver(coordinator_aid)
-            c = json.loads(msg.getContent())
-            reply.addReceiver(build_aid(c["passenger_id"]))
-            if msg.getPerformative() == REQUEST_PERFORMATIVE:
-                reply.setPerformative(PROPOSE_PERFORMATIVE)
-                logger.info("Taxi {} sent proposal to passenger {}"
-                            .format(self.myAgent.agent_id, msg.getSender().getName()))
-            elif msg.getPerformative() == ACCEPT_PERFORMATIVE:
-                logger.info("Taxi {} on route to passenger {}"
-                            .format(self.myAgent.agent_id, msg.getSender().getName()))
-                reply.setPerformative(INFORM_PERFORMATIVE)
-                reply.setProtocol(TRAVEL_PROTOCOL)
-                content = {
-                    "status": TAXI_MOVING_TO_PASSENGER
-                }
-                reply.setContent(json.dumps(content))
-                self.myAgent.status = TAXI_MOVING_TO_PASSENGER
-                self.myAgent.current_passenger = msg.getSender()
-                self.myAgent.current_passenger_orig = c["origin"]
-                self.myAgent.current_passenger_dest = c["dest"]
-                self.myAgent.move_to(self.myAgent.current_passenger_orig)
+        logger.info("Taxi {} received message with performative {}.".format(self.myAgent.agent_id,
+                                                                            msg.getPerformative()))
 
-            self.myAgent.send(reply)
+        if self.myAgent.status == TAXI_WAITING:
+            content = json.loads(msg.getContent())
+
+            if msg.getPerformative() == REQUEST_PERFORMATIVE:
+                self.send_proposal(content["passenger_id"], {})
+
+            elif msg.getPerformative() == ACCEPT_PERFORMATIVE:
+                self.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])

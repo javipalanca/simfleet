@@ -39,8 +39,9 @@ class PassengerAgent(Agent):
         template = MessageTemplate(tpl)
         self.addBehaviour(TravelBehaviour(), template)
 
-        self.init_time = time.time()
+        self.init_time = None
         self.end_time = None
+        self.pick_up_time = None
 
     def update_position_controller(self, lat, lon):
         coords = [float(lat), float(lon)]
@@ -57,6 +58,15 @@ class PassengerAgent(Agent):
         else:
             self.current_pos = random_position()
         logger.info("Passenger {} position is {}".format(self.agent_id, self.current_pos))
+
+    def get_position(self):
+        return self.current_pos
+
+    def total_time(self):
+        if self.init_time and self.end_time:
+            return self.end_time - self.init_time
+        else:
+            return 0
 
     def to_json(self):
         return {
@@ -76,18 +86,34 @@ class TravelBehaviour(Behaviour):
             status = content["status"]
             if status == TAXI_MOVING_TO_PASSENGER:
                 self.myAgent.status = PASSENGER_WAITING
+                self.myAgent.waiting_time = time.time() - self.myAgent.init_time
             elif status == TAXI_IN_PASSENGER_PLACE:
                 self.myAgent.status = PASSENGER_IN_TAXI
                 logger.info("Passenger {} in taxi.".format(self.myAgent.agent_id))
+                self.myAgent.pick_up_time = time.time() - self.myAgent.waiting_time
             elif status == PASSENGER_IN_DEST:
                 self.myAgent.status = PASSENGER_IN_DEST
-                logger.info("Passenger {} arrived to destiny.".format(self.myAgent.agent_id))
+                self.myAgent.end_time = time.time()
+                logger.info("Passenger {} arrived to destiny after {} seconds.".format(self.myAgent.agent_id,
+                                                                                       self.myAgent.total_time()))
             elif status == PASSENGER_LOCATION:
                 coords = content["location"]
                 self.myAgent.set_position(coords)
 
 
 class PassengerStrategyBehaviour(OneShotBehaviour):
+    def onStart(self):
+        self.myAgent.init_time = time.time()
+
+    def timeout_receive(self, timeout=5):
+        init_time = time.time()
+        while (time.time() - init_time) < timeout:
+            msg = self._receive(block=False)
+            if msg is not None:
+                return msg
+            time.sleep(0.1)
+        return None
+
     def send_request(self):
         if not self.myAgent.dest:
             self.myAgent.dest = random_position()
@@ -104,14 +130,10 @@ class PassengerStrategyBehaviour(OneShotBehaviour):
         self.myAgent.send(msg)
         logger.info("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
 
-
-class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
-    def _process(self):
-        self.send_request()
-
-        msg = self._receive(block=True)
-
-        reply = msg.createReply()
+    def accept_taxi(self, taxi_aid):
+        reply = ACLMessage()
+        reply.addReceiver(taxi_aid)
+        reply.setProtocol(REQUEST_PROTOCOL)
         reply.setPerformative(ACCEPT_PERFORMATIVE)
         content = {
             "passenger_id": self.myAgent.agent_id,
@@ -120,3 +142,19 @@ class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
         }
         reply.setContent(json.dumps(content))
         self.myAgent.send(reply)
+        logger.info("Passenger {} accepted proposal from taxi {}".format(self.myAgent.agent_id, taxi_aid.getName()))
+
+    def _process(self):
+        raise NotImplementedError
+
+
+class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
+    def _process(self):
+        msg = None
+        while msg is None:
+            self.send_request()
+            msg = self.timeout_receive(timeout=5)
+
+        taxi_aid = msg.getSender()
+        logger.info("Passenger {} received proposal from {}".format(self.myAgent.agent_id, taxi_aid.getName()))
+        self.accept_taxi(taxi_aid)

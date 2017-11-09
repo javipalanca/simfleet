@@ -34,12 +34,12 @@ def main(args=None):
         try:
             time.sleep(1)
         except KeyboardInterrupt:
-            click.echo("\nTerminating...")
-            coordinator_agent.stop_agents()
-            coordinator_agent.stop()
-            platform.shutdown()
-            s.shutdown("")
             break
+    click.echo("\nTerminating...")
+    coordinator_agent.stop_agents()
+    coordinator_agent.stop()
+    platform.shutdown()
+    s.shutdown("")
 
 
 if __name__ == "__main__":

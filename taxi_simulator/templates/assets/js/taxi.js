@@ -16,12 +16,26 @@ var passenger2Icon = L.icon({
 $("#generate-btn").on("click", function (e) {
     var numtaxis = $("#numtaxis").val();
     var numpassengers = $("#numpassengers").val();
+    if (numtaxis === "") { numtaxis = 0;}
+    if (numpassengers === "") { numpassengers = 0;}
     $.getJSON("/generate?taxis="+numtaxis+"&passengers="+numpassengers, function (data) {
     })
 });
 
 $("#clean-btn").on("click", function (e) {
     $.getJSON("/clean", function (data) {
+        for (var taxi in taxis){
+            if (taxi.marker !== undefined)
+                map.removeLayer(taxi.marker);
+        }
+        for (var passenger in passengers){
+            if (passenger.marker !== undefined)
+                map.removeLayer(passenger.marker);
+        }
+        taxis = {};
+        passengers = {};
+        paths = new HashTable();
+        urls = new HashTable();
     })
 });
 
@@ -35,6 +49,11 @@ var PASSENGER_WAITING = 20;
 var PASSENGER_IN_TAXI = 21;
 var PASSENGER_IN_DEST = 22;
 
+color = {
+    11: "blue",
+    13: "green"
+};
+
 var intervalID = setInterval(function () {
     $.getJSON("/entities", function (data) {
         // draw taxis
@@ -43,9 +62,10 @@ var intervalID = setInterval(function () {
             var taxi = data.taxis[i];
             if (!(taxi.id in taxis))
             {
-                //console.log("Creating marker with position " + taxi.position);
                 var marker = L.animatedMarker([taxi.position], {
                     icon: taxiIcon,
+                    distance: 600,  // meters
+                    interval: 1000 // milliseconds
                 });
                 map.addLayer(marker);
                 taxi.marker = marker;
@@ -60,7 +80,7 @@ var intervalID = setInterval(function () {
             var passenger = data.passengers[i];
             if (!(passenger.id in passengers) && (passenger.status === PASSENGER_WAITING)) {
                 //console.log("Creating marker with position " + passenger.position);
-                marker = L.animatedMarker([passenger.position], {
+                marker = L.marker(passenger.position, {
                     icon: passengerIcon
                 });
                 map.addLayer(marker);
@@ -93,7 +113,7 @@ var updateTaxi = function (taxi) {
     if (taxi.dest != null && !taxi.dest.equals(localtaxi.dest)) {
         localtaxi.path = taxi.path;
         localtaxi.dest = taxi.dest;
-        var polyline = L.polyline(taxi.path, {color: 'blue'});
+        var polyline = L.polyline(taxi.path, {color: color[taxi.status]});
         polyline.addTo(map);
         map.removeLayer(localtaxi.marker);
         localtaxi.marker = L.animatedMarker(polyline.getLatLngs(), {
@@ -104,7 +124,10 @@ var updateTaxi = function (taxi) {
                 map.removeLayer(_polyline);
                 var url = urls.get(this);
                 url = url + "/arrived";
-                $.getJSON(url);
+                $.getJSON(url).error(function (e) {
+                    // retry
+                    $.getJSON(url);
+                });
                 urls.put(this, undefined);
             }
         });

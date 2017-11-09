@@ -60,10 +60,11 @@ class CoordinatorAgent(Agent):
         return None, result
 
     def generate_controller(self, taxis=1, passengers=1):
-        logger.info("Creating taxis.")
-        self.create_agent("taxi", number=int(taxis))
-        logger.info("Creating passengers.")
-        self.create_agent("passenger", number=int(passengers))
+        taxis = int(taxis) if taxis is not None else 0
+        passengers = int(passengers) if passengers is not None else 0
+        logger.info("Creating {} taxis and {} passengers.".format(taxis, passengers))
+        self.create_agent("taxi", number=taxis)
+        self.create_agent("passenger", number=passengers)
         return None, {"status": "done"}
 
     def clean_controller(self):
@@ -96,39 +97,44 @@ class CoordinatorAgent(Agent):
 
 
 class CreateAgentBehaviour(Behaviour):
+    def create_agent(self, cls):
+        position = random_position()
+        name = self.myAgent.faker.user_name()
+        password = self.myAgent.faker.password()
+        jid = name + "@127.0.0.1"
+        agent = cls(jid, password, debug=[])
+        agent.set_id(name)
+        agent.set_position(position)
+        return agent
+
     def _process(self):
         msg = self._receive(block=True)
         content = json.loads(msg.content)
         type_ = content["type"]
         number = content["number"]
         if type_ == "taxi":
-            for _ in range(number):
-                position = random_position()
-                name = self.myAgent.faker.user_name()
-                password = self.myAgent.faker.password()
-                jid = name + "@127.0.0.1"
-                taxi = TaxiAgent(jid, password, debug=[])
-                taxi.set_id(name)
-                taxi.set_position(position)
-                self.myAgent.taxi_agents[jid] = taxi
-                taxi.start()
-                logger.info("Created taxi {} at position {}".format(name, position))
-        elif type_ == "passenger":
-            for _ in range(number):
-                position = random_position()
-                name = self.myAgent.faker.user_name()
-                password = self.myAgent.faker.password()
-                jid = name + "@127.0.0.1"
-                passenger = PassengerAgent(jid, password, debug=[])
-                passenger.set_id(name)
-                passenger.set_position(position)
-                self.myAgent.passenger_agents[jid] = passenger
-                passenger.start()
-                logger.info("Created passenger {} at position {}".format(name, position))
+            cls = TaxiAgent
+            store = self.myAgent.taxi_agents
+        else:  # type_ == "passenger":
+            cls = PassengerAgent
+            store = self.myAgent.passenger_agents
+
+        for _ in range(number):
+            position = random_position()
+            name = self.myAgent.faker.user_name()
+            password = self.myAgent.faker.password()
+            jid = name + "@127.0.0.1"
+            agent = cls(jid, password, debug=[])
+            agent.set_id(name)
+            agent.set_position(position)
+            store[name] = agent
+            agent.start()
+            logger.info("Created {} {} at position {}".format(type_, name, position))
 
 
 class CoordinatorStrategyBehaviour(Behaviour):
-    pass
+    def _process(self):
+        raise NotImplementedError
 
 
 class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
@@ -138,4 +144,4 @@ class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
         for taxi in self.myAgent.taxi_agents.values():
             msg.addReceiver(taxi.getAID())
             self.myAgent.send(msg)
-            logger.info("Coordinator sent request to taxi {}".format(taxi.getAID().getName()))
+            logger.info("Coordinator sent request to taxi {}".format(taxi.getName()))

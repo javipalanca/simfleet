@@ -19,7 +19,7 @@ logger = logging.getLogger("CoordinatorAgent")
 
 
 class CoordinatorAgent(Agent):
-    def __init__(self, agentjid, password, debug, http_port):
+    def __init__(self, agentjid, password, debug, http_port, debug_level):
         self.simulation_running = False
         self.kill_simulator = threading.Event()
         self.kill_simulator.clear()
@@ -34,6 +34,7 @@ class CoordinatorAgent(Agent):
         self.faker = faker.Factory.create()
 
         self.http_port = http_port
+        self.debug_level = debug_level
 
         Agent.__init__(self, agentjid=agentjid, password=password, debug=debug)
 
@@ -154,7 +155,7 @@ class CreateAgentBehaviour(Behaviour):
                 name = self.myAgent.faker.user_name()
                 password = self.myAgent.faker.password()
                 jid = name + "@127.0.0.1"
-                agent = cls(jid, password, debug=[])
+                agent = cls(jid, password, debug=self.myAgent.debug_level)
                 agent.set_id(name)
                 agent.set_position(position)
                 store[name] = agent

@@ -7,7 +7,6 @@ import pytest
 
 from click.testing import CliRunner
 
-from taxi_simulator import taxi_simulator
 from taxi_simulator import cli
 
 

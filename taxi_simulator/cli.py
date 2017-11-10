@@ -30,11 +30,11 @@ logger = logging.getLogger()
               help="Coordinator agent name (default: coordinator).")
 @click.option('--passwd', default="coordinator_passwd",
               help="Coordinator agent password (default: coordinator_passwd).")
-@click.option('--debug', default=False, is_flag=True,
+@click.option('-v', '--verbose', count=True,
               help='Show verbose debug.')
-def main(taxi, passenger, coordinator, port, name, passwd, debug):
+def main(taxi, passenger, coordinator, port, name, passwd, verbose):
     """Console script for taxi_simulator."""
-    if debug:
+    if verbose > 0:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
@@ -47,7 +47,8 @@ def main(taxi, passenger, coordinator, port, name, passwd, debug):
     with open("user_db.xml", 'w') as f:
         pickle.dump({"127.0.0.1": {}}, f)
 
-    s = Server(cfgfile="xmppd.xml", cmd_options={'enable_debug': [],
+    debug_level = ['always'] if verbose > 2 else []
+    s = Server(cfgfile="xmppd.xml", cmd_options={'enable_debug': debug_level,
                                                  'enable_psyco': False})
     thread.start_new_thread(s.run, tuple())
     logger.info("XMPP server running.")
@@ -55,7 +56,9 @@ def main(taxi, passenger, coordinator, port, name, passwd, debug):
     platform.start()
     logger.info("Running SPADE platform.")
 
-    coordinator_agent = CoordinatorAgent(name+"@127.0.0.1", password=passwd, debug=[], http_port=port)
+    debug_level = ['always'] if verbose > 1 else []
+    coordinator_agent = CoordinatorAgent(name+"@127.0.0.1", password=passwd, debug=debug_level,
+                                         http_port=port, debug_level=debug_level)
     coordinator_agent.set_strategies(coordinator, taxi, passenger)
     coordinator_agent.start()
 

@@ -19,7 +19,7 @@ logger = logging.getLogger("CoordinatorAgent")
 
 
 class CoordinatorAgent(Agent):
-    def __init__(self, agentjid, password, debug):
+    def __init__(self, agentjid, password, debug, http_port):
         self.simulation_running = False
         self.kill_simulator = threading.Event()
         self.kill_simulator.clear()
@@ -33,11 +33,13 @@ class CoordinatorAgent(Agent):
 
         self.faker = faker.Factory.create()
 
+        self.http_port = http_port
+
         Agent.__init__(self, agentjid=agentjid, password=password, debug=debug)
 
     def _setup(self):
         logger.info("Coordinator agent running")
-        self.wui.setPort(9000)
+        self.wui.setPort(self.http_port)
         self.wui.start()
         logger.info("Web interface running at http://127.0.0.1:{}/app".format(self.wui.port))
 

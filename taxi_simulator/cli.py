@@ -26,8 +26,11 @@ logger = logging.getLogger()
 @click.option('--coordinator', default="taxi_simulator.strategies.DelegateRequestTaxiBehaviour",
               help='Coordinator strategy class.')
 @click.option('--debug', default=False, is_flag=True,
-              help='Show verbose debug')
-def main(taxi, passenger, coordinator, debug):
+              help='Show verbose debug.')
+@click.option('--port', default=9000, help="Web interface port.")
+@click.option('--name', default="coordinator", help="Coordinator agent name.")
+@click.option('--passwd', default="coordinator_passwd", help="Coordinator agent password.")
+def main(taxi, passenger, coordinator, debug, port, name, passwd):
     """Console script for taxi_simulator."""
     if debug:
         logging.basicConfig(level=logging.DEBUG)
@@ -50,7 +53,7 @@ def main(taxi, passenger, coordinator, debug):
     platform.start()
     logger.info("Running SPADE platform.")
 
-    coordinator_agent = CoordinatorAgent("coordinator@127.0.0.1", password="coordinator_passwd", debug=[])
+    coordinator_agent = CoordinatorAgent(name+"@127.0.0.1", password=passwd, debug=[], http_port=port)
     coordinator_agent.set_strategies(coordinator, taxi, passenger)
     coordinator_agent.start()
 

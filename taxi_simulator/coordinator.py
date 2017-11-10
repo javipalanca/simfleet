@@ -4,6 +4,7 @@
 import json
 import logging
 import threading
+import os
 
 import faker
 from spade.ACLMessage import ACLMessage
@@ -40,7 +41,8 @@ class CoordinatorAgent(Agent):
         self.wui.start()
         logger.info("Web interface running at http://127.0.0.1:{}/app".format(self.wui.port))
 
-        self.wui.setTemplatePath("taxi_simulator/templates")
+        template_path = os.path.dirname(__file__) + os.sep + "templates"
+        self.wui.setTemplatePath(template_path)
 
         self.wui.registerController("app", self.index_controller)
         self.wui.registerController("entities", self.entities_controller)

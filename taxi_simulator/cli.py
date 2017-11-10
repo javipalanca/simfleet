@@ -20,17 +20,19 @@ logger = logging.getLogger()
 
 @click.command()
 @click.option('--taxi', default="taxi_simulator.strategies.AcceptAlwaysStrategyBehaviour",
-              help='Taxi strategy class.')
+              help='Taxi strategy class (default: AcceptAlwaysStrategyBehaviour).')
 @click.option('--passenger', default="taxi_simulator.strategies.AcceptFirstRequestTaxiBehaviour",
-              help='Passenger strategy class.')
+              help='Passenger strategy class (default: AcceptFirstRequestTaxiBehaviour).')
 @click.option('--coordinator', default="taxi_simulator.strategies.DelegateRequestTaxiBehaviour",
-              help='Coordinator strategy class.')
+              help='Coordinator strategy class (default: DelegateRequestTaxiBehaviour).')
+@click.option('--port', default=9000, help="Web interface port (default: 9000).")
+@click.option('--name', default="coordinator",
+              help="Coordinator agent name (default: coordinator).")
+@click.option('--passwd', default="coordinator_passwd",
+              help="Coordinator agent password (default: coordinator_passwd).")
 @click.option('--debug', default=False, is_flag=True,
               help='Show verbose debug.')
-@click.option('--port', default=9000, help="Web interface port.")
-@click.option('--name', default="coordinator", help="Coordinator agent name.")
-@click.option('--passwd', default="coordinator_passwd", help="Coordinator agent password.")
-def main(taxi, passenger, coordinator, debug, port, name, passwd):
+def main(taxi, passenger, coordinator, port, name, passwd, debug):
     """Console script for taxi_simulator."""
     if debug:
         logging.basicConfig(level=logging.DEBUG)

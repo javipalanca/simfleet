@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 import random
@@ -38,7 +39,8 @@ coordinator_aid = build_aid("coordinator")
 
 
 def random_position():
-    with open("taxi_simulator/templates/data/taxi_stations.json") as f:
+    path = os.path.dirname(__file__) + os.sep + "templates" + os.sep + "data" + os.sep + "taxi_stations.json"
+    with open(path) as f:
         stations = json.load(f)["features"]
         pos = random.choice(stations)
         coords = [pos["geometry"]["coordinates"][1], pos["geometry"]["coordinates"][0]]

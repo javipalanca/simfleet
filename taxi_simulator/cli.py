@@ -7,8 +7,9 @@ import time
 import click
 import thread
 import sys
-
+import os
 import cPickle as pickle
+
 from spade import spade_backend
 from xmppd.xmppd import Server
 
@@ -18,19 +19,24 @@ logger = logging.getLogger()
 
 
 @click.command()
-@click.option('--taxi', default="strategies.AcceptAlwaysStrategyBehaviour",
+@click.option('--taxi', default="taxi_simulator.strategies.AcceptAlwaysStrategyBehaviour",
               help='Taxi strategy class.')
-@click.option('--passenger', default="strategies.AcceptFirstRequestTaxiBehaviour",
+@click.option('--passenger', default="taxi_simulator.strategies.AcceptFirstRequestTaxiBehaviour",
               help='Passenger strategy class.')
-@click.option('--coordinator', default="strategies.DelegateRequestTaxiBehaviour",
+@click.option('--coordinator', default="taxi_simulator.strategies.DelegateRequestTaxiBehaviour",
               help='Coordinator strategy class.')
-@click.option('--debug', default=False, is_flag=True)
+@click.option('--debug', default=False, is_flag=True,
+              help='Show verbose debug')
 def main(taxi, passenger, coordinator, debug):
     """Console script for taxi_simulator."""
     if debug:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
+
+    # generate config
+    if not os.path.exists("spade.xml") or not os.path.exists("xmppd.xml"):
+        os.system("configure.py 127.0.0.1")
 
     # reset user_db
     with open("user_db.xml", 'w') as f:

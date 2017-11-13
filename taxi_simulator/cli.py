@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 """Console script for taxi_simulator."""
-import logging
-import threading
-import time
 import click
+import logging
 import thread
 import sys
 import os
 import cPickle as pickle
+
+from flask import Flask
 
 from spade import spade_backend
 from xmppd.xmppd import Server
@@ -16,28 +16,29 @@ from xmppd.xmppd import Server
 from coordinator import CoordinatorAgent
 from passenger import PassengerAgent
 from taxi import TaxiAgent
-from utils import random_position
+from utils import random_position, crossdomain
 
 logger = logging.getLogger()
 
 
 @click.command()
-@click.option('--taxi', default="taxi_simulator.strategies.AcceptAlwaysStrategyBehaviour",
+@click.option('-t', '--taxi', default="taxi_simulator.strategies.AcceptAlwaysStrategyBehaviour",
               help='Taxi strategy class (default: AcceptAlwaysStrategyBehaviour).')
-@click.option('--passenger', default="taxi_simulator.strategies.AcceptFirstRequestTaxiBehaviour",
+@click.option('-p', '--passenger', default="taxi_simulator.strategies.AcceptFirstRequestTaxiBehaviour",
               help='Passenger strategy class (default: AcceptFirstRequestTaxiBehaviour).')
-@click.option('--coordinator', default="taxi_simulator.strategies.DelegateRequestTaxiBehaviour",
+@click.option('-c', '--coordinator', default="taxi_simulator.strategies.DelegateRequestTaxiBehaviour",
               help='Coordinator strategy class (default: DelegateRequestTaxiBehaviour).')
-@click.option('--port', default=9000, help="Web interface port (default: 9000).")
-@click.option('--num-taxis', default=0, help="Number of initial taxis to create (default: 0).")
-@click.option('--num-passengers', default=0, help="Number of initial passengers to create (default: 0).")
+@click.option('-p', '--port', default=9000, help="Web interface port (default: 9000).")
+@click.option('-nt', '--num-taxis', default=0, help="Number of initial taxis to create (default: 0).")
+@click.option('-np', '--num-passengers', default=0, help="Number of initial passengers to create (default: 0).")
 @click.option('--name', default="coordinator",
               help="Coordinator agent name (default: coordinator).")
 @click.option('--passwd', default="coordinator_passwd",
               help="Coordinator agent password (default: coordinator_passwd).")
+@click.option('-bp', '--backend-port', default=5000, help="Backend port (default: 5000).")
 @click.option('-v', '--verbose', count=True,
               help='Show verbose debug.')
-def main(taxi, passenger, coordinator, port, num_taxis, num_passengers, name, passwd, verbose):
+def main(taxi, passenger, coordinator, port, num_taxis, num_passengers, name, passwd, backend_port, verbose):
     """Console script for taxi_simulator."""
     if verbose > 0:
         logging.basicConfig(level=logging.DEBUG)
@@ -62,20 +63,29 @@ def main(taxi, passenger, coordinator, port, num_taxis, num_passengers, name, pa
     logger.info("Running SPADE platform.")
 
     debug_level = ['always'] if verbose > 1 else []
-    coordinator_agent = CoordinatorAgent(name+"@127.0.0.1", password=passwd, debug=debug_level,
-                                         http_port=port, debug_level=debug_level)
+    coordinator_agent = CoordinatorAgent(name + "@127.0.0.1", password=passwd, debug=debug_level,
+                                         http_port=port, backend_port=backend_port, debug_level=debug_level)
     coordinator_agent.set_strategies(coordinator, taxi, passenger)
     coordinator_agent.start()
 
+    logger.info("Creating {} taxis and {} passengers.".format(num_taxis, num_passengers))
     create_agent("taxi", num_taxis, coordinator_agent)
     create_agent("passenger", num_passengers, coordinator_agent)
 
-    while True:
-        try:
-            time.sleep(1)
-        except KeyboardInterrupt:
-            break
+    app = Flask(__name__)
+
+    @app.route("/generate/taxis/<int:ntaxis>/passengers/<int:npassengers>")
+    @crossdomain(origin='*')
+    def generate(ntaxis, npassengers):
+        logger.info("Creating {} taxis and {} passengers.".format(ntaxis, npassengers))
+        create_agent("taxi", ntaxis, coordinator_agent)
+        create_agent("passenger", npassengers, coordinator_agent)
+        return ""
+
+    app.run(host="127.0.0.1", port=backend_port)
+
     click.echo("\nTerminating...")
+
     coordinator_agent.stop_agents()
     coordinator_agent.stop()
     platform.shutdown()

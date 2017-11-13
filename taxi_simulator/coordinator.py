@@ -19,7 +19,7 @@ logger = logging.getLogger("CoordinatorAgent")
 
 
 class CoordinatorAgent(Agent):
-    def __init__(self, agentjid, password, debug, http_port, debug_level):
+    def __init__(self, agentjid, password, debug, http_port, backend_port, debug_level):
         self.simulation_running = False
         self.kill_simulator = threading.Event()
         self.kill_simulator.clear()
@@ -34,6 +34,7 @@ class CoordinatorAgent(Agent):
         self.faker = faker.Factory.create()
 
         self.http_port = http_port
+        self.backend_port = backend_port
         self.debug_level = debug_level
 
         Agent.__init__(self, agentjid=agentjid, password=password, debug=debug)
@@ -53,9 +54,9 @@ class CoordinatorAgent(Agent):
         self.wui.registerController("run", self.run_controller)
         self.wui.registerController("clean", self.clean_controller)
 
-        tpl = ACLTemplate()
-        tpl.setProtocol(CREATE_PROTOCOL)
-        template = MessageTemplate(tpl)
+        # tpl = ACLTemplate()
+        # tpl.setProtocol(CREATE_PROTOCOL)
+        # template = MessageTemplate(tpl)
         # self.addBehaviour(CreateAgentBehaviour(), template)
 
     def set_strategies(self, coordinator_strategy, taxi_strategy, passenger_strategy):
@@ -81,7 +82,7 @@ class CoordinatorAgent(Agent):
         self.addBehaviour(strategy_class(), template)
 
     def index_controller(self):
-        return "index.html", {}
+        return "index.html", {"port": self.backend_port}
 
     def run_controller(self):
         self.run_simulation()

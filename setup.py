@@ -11,14 +11,8 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = [
-    'Click>=6.0',
-    # TODO: put package requirements here
-    'SPADE>=2.3',
-    'factory_boy',
-    'requests',
-    'geopy',
-]
+with open("requirements.txt") as f:
+    requirements = [req for req in f.readlines()]
 
 setup_requirements = [
     'pytest-runner',

@@ -13,13 +13,15 @@ var passenger2Icon = L.icon({
     className: "fadeOut",
 });
 
+var backend_port = $("#backport").val();
+
 $("#generate-btn").on("click", function (e) {
     var numtaxis = $("#numtaxis").val();
     var numpassengers = $("#numpassengers").val();
     if (numtaxis === "") { numtaxis = 0;}
     if (numpassengers === "") { numpassengers = 0;}
-    $.getJSON("/generate?taxis="+numtaxis+"&passengers="+numpassengers, function (data) {
-    })
+    $.getJSON("http://127.0.0.1:" + backend_port + "/generate/taxis/"+numtaxis+"/passengers/"+numpassengers,
+        function (data) {});
 });
 
 $("#play-btn").on("click", function (e) {

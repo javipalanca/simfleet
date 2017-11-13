@@ -47,32 +47,7 @@
           <a class="navbar-brand" href="#"><i class="fa fa-taxi" aria-hidden="true"></i> Taxi Simulator</a>
         </div>
         <div class="navbar-collapse collapse">
-          #!<form class="navbar-form navbar-right" role="search">
-          #!  <div class="form-group has-feedback">
-          #!      <input id="searchbox" type="text" placeholder="Search" class="form-control">
-          #!      <span id="searchicon" class="fa fa-search form-control-feedback"></span>
-          #!  </div>
-          </form>
           <ul class="nav navbar-nav">
-            #!<li><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in" id="about-btn"><i class="fa fa-question-circle white"></i>&nbsp;&nbsp;About</a></li>
-            #!<li class="dropdown">
-            #!  <a id="toolsDrop" href="#" role="button" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-globe white"></i>&nbsp;&nbsp;Tools <b class="caret"></b></a>
-            #!  <ul class="dropdown-menu">
-            #!    <li><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in" id="full-extent-btn"><i class="fa fa-arrows-alt"></i>&nbsp;&nbsp;Zoom To Full Extent</a></li>
-            #!    <li><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in" id="legend-btn"><i class="fa fa-picture-o"></i>&nbsp;&nbsp;Show Legend</a></li>
-            #!    <li class="divider hidden-xs"></li>
-            #!    <li><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in" id="login-btn"><i class="fa fa-user"></i>&nbsp;&nbsp;Login</a></li>
-            #!  </ul>
-            #!</li>
-            #!<li class="dropdown">
-            #!    <a class="dropdown-toggle" id="downloadDrop" href="#" role="button" data-toggle="dropdown"><i class="fa fa-cloud-download white"></i>&nbsp;&nbsp;Download <b class="caret"></b></a>
-            #!    <ul class="dropdown-menu">
-            #!      <li><a href="data/boroughs.geojson" download="boroughs.geojson" target="_blank" data-toggle="collapse" data-target=".navbar-collapse.in"><i class="fa fa-download"></i>&nbsp;&nbsp;Boroughs</a></li>
-            #!      <li><a href="data/subways.geojson" download="subways.geojson" target="_blank" data-toggle="collapse" data-target=".navbar-collapse.in"><i class="fa fa-download"></i>&nbsp;&nbsp;Subway Lines</a></li>
-            #!      <li><a href="data/DOITT_THEATER_01_13SEPT2010.geojson" download="theaters.geojson" target="_blank" data-toggle="collapse" data-target=".navbar-collapse.in"><i class="fa fa-download"></i>&nbsp;&nbsp;Theaters</a></li>
-            #!      <li><a href="data/DOITT_MUSEUM_01_13SEPT2010.geojson" download="museums.geojson" target="_blank" data-toggle="collapse" data-target=".navbar-collapse.in"><i class="fa fa-download"></i>&nbsp;&nbsp;Museums</a></li>
-            #!    </ul>
-            #!</li>
             <li class="hidden-xs"><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in" id="list-btn"><i class="fa fa-gears white"></i>&nbsp;&nbsp;Control Panel</a></li>
           </ul>
         </div><!--/.navbar-collapse -->
@@ -87,23 +62,6 @@
               <h3 class="panel-title">Control Panel
               <button type="button" class="btn btn-xs btn-default pull-right" id="sidebar-hide-btn"><i class="fa fa-chevron-left"></i></button></h3>
             </div>
-            #!<div class="panel-body">
-            #!  <div class="row">
-            #!    <div class="col-xs-8 col-md-8">
-            #!      <input type="text" class="form-control" placeholder="Taxis" />
-            #!      <input type="text" class="form-control" placeholder="Passengers" />
-            #!    </div>
-            #!    <div class="col-xs-4 col-md-4">
-            #!      <button type="button" class="btn btn-primary" data-sort="feature-name" id="generate-btn"><i class="fa fa-legal"></i>&nbsp;&nbsp;Generate</button>
-            #!    </div>
-            #!  </div>
-            #!  <div class="row">
-            #!    <div class="col-xs-4 col-md-4">
-            #!      <button type="button" class="btn btn-primary" data-sort="feature-name" id="clean-btn"><i class="fa fa-trash-o"></i>&nbsp;&nbsp;Clean</button>
-            #!    </div>
-            #!  </div>
-            #!</div>
-            #!<div class="sidebar-table">
             <div class="panel-body">
               <table class="table table-hover" id="feature-list">
                 <thead class="">
@@ -127,14 +85,9 @@
         </div>
       </div>
       <div id="map"></div>
+        <input type="hidden"id="backport" value="@!port!@" >
     </div>
-    #!<div id="loading">
-    #!  <div class="loading-indicator">
-    #!    <div class="progress progress-striped active">
-    #!      <div class="progress-bar progress-bar-info progress-bar-full"></div>
-    #!    </div>
-    #!  </div>
-    #!</div>
+
 
 
     <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>

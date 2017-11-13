@@ -49,13 +49,20 @@ var urls = new HashTable();
 var PASSENGER_WAITING = 20;
 var PASSENGER_IN_TAXI = 21;
 var PASSENGER_IN_DEST = 22;
+var PASSENGER_ASSIGNED = 24;
 
 var statuses = {
     10: "TAXI_WAITING",
     11: "TAXI_MOVING_TO_PASSENGER",
     12: "TAXI_IN_PASSENGER_PLACE",
     13: "TAXI_MOVING_TO_DESTINY",
-    14: "TAXI_WAITING_FOR_APPROVAL"
+    14: "TAXI_WAITING_FOR_APPROVAL",
+    //
+    20: "PASSENGER_WAITING",
+    21: "PASSENGER_IN_TAXI",
+    22: "PASSENGER_IN_DEST",
+    23: "PASSENGER_LOCATION",
+    24: "PASSENGER_ASSIGNED"
 };
 
 color = {
@@ -65,6 +72,7 @@ color = {
 
 function gen_passenger_popup(passenger) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + passenger.id + "</td></tr>" +
+        "<tr><th>STATUS</th><td>" + statuses[passenger.status] + "</td></tr>" +
         "<tr><th>TAXI</th><td>" + passenger.taxi + "</td></tr>" +
         "<tr><th>WAITING</th><td>" + passenger.waiting + "</td></tr>" +
         "</table>"
@@ -72,6 +80,7 @@ function gen_passenger_popup(passenger) {
 
 function gen_taxi_popup(taxi) {
         return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" +
+        "<tr><th>STATUS</th><td>" + statuses[taxi.status] + "</td></tr>" +
         "<tr><th>PASSENGER</th><td>" + taxi.passenger + "</td></tr>" +
         "<tr><th>ASSIGNMENTS</th><td>" + taxi.assignments + "</td></tr>" +
         "<tr><th>DISTANCE</th><td>" + taxi.distance + "</td></tr>" +
@@ -103,8 +112,8 @@ var intervalID = setInterval(function () {
         var localpassenger;
         for (i = 0; i < count; i++) {
             var passenger = data.passengers[i];
-            if (!(passenger.id in passengers) && (passenger.status === PASSENGER_WAITING)) {
-                //console.log("Creating marker with position " + passenger.position);
+            if (!(passenger.id in passengers) &&
+                (passenger.status === PASSENGER_WAITING || passenger.status === PASSENGER_ASSIGNED)) {
                 marker = L.marker(passenger.position, {
                     icon: passengerIcon
                 });
@@ -117,10 +126,14 @@ var intervalID = setInterval(function () {
             else {
                 localpassenger = passengers[passenger.id];
                 if (passenger.status === PASSENGER_IN_TAXI || passenger.status === PASSENGER_IN_DEST) {
-                    map.removeLayer(localpassenger.marker);
+                    if (localpassenger && "marker" in localpassenger) {
+                        map.removeLayer(localpassenger.marker);
+                    }
                 }
             }
-            localpassenger.marker._popup.setContent(gen_passenger_popup(passenger))
+            if (localpassenger && "marker" in localpassenger && "_popup" in localpassenger.marker) {
+                localpassenger.marker._popup.setContent(gen_passenger_popup(passenger))
+            }
         }
     });
 }, 1000);

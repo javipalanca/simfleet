@@ -8,7 +8,7 @@ from spade.Behaviour import OneShotBehaviour, ACLTemplate, MessageTemplate, Beha
 
 from utils import unused_port, random_position, PASSENGER_WAITING, coordinator_aid, REQUEST_PROTOCOL, \
     REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, PASSENGER_IN_DEST, TAXI_MOVING_TO_PASSENGER, PASSENGER_IN_TAXI, \
-    TAXI_IN_PASSENGER_PLACE, TRAVEL_PROTOCOL, PASSENGER_LOCATION
+    TAXI_IN_PASSENGER_PLACE, TRAVEL_PROTOCOL, PASSENGER_LOCATION, REFUSE_PERFORMATIVE, PASSENGER_ASSIGNED
 
 logger = logging.getLogger("PassengerAgent")
 
@@ -103,7 +103,7 @@ class TravelBehaviour(Behaviour):
         if "status" in content:
             status = content["status"]
             if status == TAXI_MOVING_TO_PASSENGER:
-                self.myAgent.status = PASSENGER_WAITING
+                self.myAgent.status = PASSENGER_ASSIGNED
                 self.myAgent.waiting_time = time.time()
             elif status == TAXI_IN_PASSENGER_PLACE:
                 self.myAgent.status = PASSENGER_IN_TAXI
@@ -119,7 +119,7 @@ class TravelBehaviour(Behaviour):
                 self.myAgent.set_position(coords)
 
 
-class PassengerStrategyBehaviour(OneShotBehaviour):
+class PassengerStrategyBehaviour(Behaviour):
     def onStart(self):
         self.logger = logging.getLogger("PassengerAgent")
         self.logger.debug("Strategy {} started in passenger {}".format(type(self).__name__, self.myAgent.agent_id))
@@ -166,6 +166,22 @@ class PassengerStrategyBehaviour(OneShotBehaviour):
         self.myAgent.taxi_assigned = taxi_aid.getName()
         self.logger.debug("Passenger {} accepted proposal from taxi {}".format(self.myAgent.agent_id,
                                                                                taxi_aid.getName()))
+        self.myAgent.status = PASSENGER_ASSIGNED
+
+    def refuse_taxi(self, taxi_aid):
+        reply = ACLMessage()
+        reply.addReceiver(taxi_aid)
+        reply.setProtocol(REQUEST_PROTOCOL)
+        reply.setPerformative(REFUSE_PERFORMATIVE)
+        content = {
+            "passenger_id": self.myAgent.agent_id,
+            "origin": self.myAgent.current_pos,
+            "dest": self.myAgent.dest
+        }
+        reply.setContent(json.dumps(content))
+        self.myAgent.send(reply)
+        self.logger.debug("Passenger {} refused proposal from taxi {}".format(self.myAgent.agent_id,
+                                                                              taxi_aid.getName()))
 
     def _process(self):
         raise NotImplementedError

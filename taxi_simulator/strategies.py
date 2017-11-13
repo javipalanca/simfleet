@@ -3,7 +3,8 @@ import json
 from coordinator import CoordinatorStrategyBehaviour
 from passenger import PassengerStrategyBehaviour
 from taxi import TaxiStrategyBehaviour
-from utils import TAXI_WAITING, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, coordinator_aid
+from utils import TAXI_WAITING, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, coordinator_aid, \
+    TAXI_WAITING_FOR_APPROVAL, REFUSE_PERFORMATIVE, PASSENGER_WAITING, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE
 
 
 ################################################################
@@ -30,15 +31,30 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
     def _process(self):
         msg = self._receive(block=True)
         content = json.loads(msg.getContent())
-        self.logger.debug("Taxi {} received request from passenger {}.".format(self.myAgent.agent_id,
-                                                                              content["passenger_id"]))
+        performative = msg.getPerformative()
 
-        if self.myAgent.status == TAXI_WAITING:
-            if msg.getPerformative() == REQUEST_PERFORMATIVE:
+        self.logger.debug("Taxi {} received request protocol from passenger {}.".format(self.myAgent.agent_id,
+                                                                                        content["passenger_id"]))
+        if performative == REQUEST_PERFORMATIVE:
+            if self.myAgent.status == TAXI_WAITING:
                 self.send_proposal(content["passenger_id"], {})
+                self.myAgent.status = TAXI_WAITING_FOR_APPROVAL
 
-            elif msg.getPerformative() == ACCEPT_PERFORMATIVE:
+                self.logger.debug("Taxi {} sent proposal to passenger {}.".format(self.myAgent.agent_id,
+                                                                                  content["passenger_id"]))
+
+        elif performative == ACCEPT_PERFORMATIVE:
+            if self.myAgent.status == TAXI_WAITING_FOR_APPROVAL:
+                self.logger.debug("Taxi {} got accept from {}".format(self.myAgent.agent_id,
+                                                                      content["passenger_id"]))
                 self.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])
+            else:
+                self.cancel_proposal(content["passenger_id"], {})
+
+        elif performative == REFUSE_PERFORMATIVE:
+            self.logger.debug("Taxi {} got refusal from {}".format(self.myAgent.agent_id,
+                                                                   content["passenger_id"]))
+            self.myAgent.status = TAXI_WAITING
 
 
 ################################################################
@@ -48,14 +64,21 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
 ################################################################
 class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
     def _process(self):
-        msg = None
-        while msg is None and self.myAgent.forceKill() is False:
-            self.send_request()
-            msg = self.timeout_receive(timeout=5)
+        if self.myAgent.status == PASSENGER_WAITING:
+            self.send_request(content={})
 
-        if self.myAgent.forceKill():
-            return
+        msg = self.timeout_receive(timeout=5)
 
-        taxi_aid = msg.getSender()
-        self.logger.debug("Passenger {} received proposal from {}".format(self.myAgent.agent_id, taxi_aid.getName()))
-        self.accept_taxi(taxi_aid)
+        if msg:
+            performative = msg.getPerformative()
+            if performative == PROPOSE_PERFORMATIVE:
+                taxi_aid = msg.getSender()
+                if self.myAgent.status == PASSENGER_WAITING:
+                    self.logger.debug("Passenger {} received proposal from {}".format(self.myAgent.agent_id,
+                                                                                      taxi_aid.getName()))
+                    self.accept_taxi(taxi_aid)
+                else:
+                    self.refuse_taxi(taxi_aid)
+
+            elif performative == CANCEL_PERFORMATIVE:
+                self.myAgent.status = PASSENGER_WAITING

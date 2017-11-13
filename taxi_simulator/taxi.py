@@ -7,7 +7,7 @@ from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate
 
 from utils import TAXI_WAITING, random_position, unused_port, request_path, PROPOSE_PERFORMATIVE, INFORM_PERFORMATIVE, \
     TAXI_MOVING_TO_PASSENGER, TAXI_IN_PASSENGER_PLACE, TAXI_MOVING_TO_DESTINY, \
-    PASSENGER_IN_DEST, REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PASSENGER_LOCATION, build_aid
+    PASSENGER_IN_DEST, REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PASSENGER_LOCATION, build_aid, CANCEL_PERFORMATIVE
 
 logger = logging.getLogger("TaxiAgent")
 
@@ -79,12 +79,28 @@ class TaxiAgent(Agent):
         return self.current_pos
 
     def move_to(self, dest):
-        logger.debug("Requesting path from {} to {}".format(self.current_pos, dest))
-        path, distance, duration = request_path(self.current_pos, dest)
-        self.path = path
-        self.dest = dest
-        self.distance += distance
-        self.duration += duration
+        counter = 5
+        path = None
+        while counter > 0 and path is None:
+            logger.debug("Requesting path from {} to {}".format(self.current_pos, dest))
+            path, distance, duration = request_path(self.current_pos, dest)
+            counter -= 1
+        if path is None:
+            logger.error("Taxi {} could not get a path to passenger {}.".format(self.agent_id,
+                                                                                self.current_passenger.getName()))
+            reply = ACLMessage()
+            reply.addReceiver(self.current_passenger)
+            reply.setProtocol(REQUEST_PROTOCOL)
+            reply.setPerformative(CANCEL_PERFORMATIVE)
+            reply.setContent("{}")
+            logger.debug("Taxi {} sent cancel proposal to passenger {}".format(self.agent_id,
+                                                                               self.current_passenger.getName()))
+            self.send(reply)
+        else:
+            self.path = path
+            self.dest = dest
+            self.distance += distance
+            self.duration += duration
 
     def inform_passenger(self, status, data=None):
         if data is None:
@@ -149,6 +165,18 @@ class TaxiStrategyBehaviour(Behaviour):
         reply.setPerformative(PROPOSE_PERFORMATIVE)
         reply.setContent(content)
         self.logger.debug("Taxi {} sent proposal to passenger {}".format(self.myAgent.agent_id, passenger_id))
+        self.myAgent.send(reply)
+
+    def cancel_proposal(self, passenger_id, content=None):
+        if content is None:
+            content = {}
+        passenger_aid = build_aid(passenger_id)
+        reply = ACLMessage()
+        reply.addReceiver(passenger_aid)
+        reply.setProtocol(REQUEST_PROTOCOL)
+        reply.setPerformative(CANCEL_PERFORMATIVE)
+        reply.setContent(json.dumps(content))
+        self.logger.debug("Taxi {} sent cancel proposal to passenger {}".format(self.myAgent.agent_id, passenger_id))
         self.myAgent.send(reply)
 
     def _process(self):

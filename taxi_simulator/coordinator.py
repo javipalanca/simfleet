@@ -56,7 +56,7 @@ class CoordinatorAgent(Agent):
         tpl = ACLTemplate()
         tpl.setProtocol(CREATE_PROTOCOL)
         template = MessageTemplate(tpl)
-        self.addBehaviour(CreateAgentBehaviour(), template)
+        # self.addBehaviour(CreateAgentBehaviour(), template)
 
     def set_strategies(self, coordinator_strategy, taxi_strategy, passenger_strategy):
         self.coordinator_strategy = load_class(coordinator_strategy)

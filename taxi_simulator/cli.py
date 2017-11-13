@@ -14,6 +14,9 @@ from spade import spade_backend
 from xmppd.xmppd import Server
 
 from coordinator import CoordinatorAgent
+from passenger import PassengerAgent
+from taxi import TaxiAgent
+from utils import random_position
 
 logger = logging.getLogger()
 
@@ -26,13 +29,15 @@ logger = logging.getLogger()
 @click.option('--coordinator', default="taxi_simulator.strategies.DelegateRequestTaxiBehaviour",
               help='Coordinator strategy class (default: DelegateRequestTaxiBehaviour).')
 @click.option('--port', default=9000, help="Web interface port (default: 9000).")
+@click.option('--num-taxis', default=0, help="Number of initial taxis to create (default: 0).")
+@click.option('--num-passengers', default=0, help="Number of initial passengers to create (default: 0).")
 @click.option('--name', default="coordinator",
               help="Coordinator agent name (default: coordinator).")
 @click.option('--passwd', default="coordinator_passwd",
               help="Coordinator agent password (default: coordinator_passwd).")
 @click.option('-v', '--verbose', count=True,
               help='Show verbose debug.')
-def main(taxi, passenger, coordinator, port, name, passwd, verbose):
+def main(taxi, passenger, coordinator, port, num_taxis, num_passengers, name, passwd, verbose):
     """Console script for taxi_simulator."""
     if verbose > 0:
         logging.basicConfig(level=logging.DEBUG)
@@ -62,6 +67,9 @@ def main(taxi, passenger, coordinator, port, name, passwd, verbose):
     coordinator_agent.set_strategies(coordinator, taxi, passenger)
     coordinator_agent.start()
 
+    create_agent("taxi", num_taxis, coordinator_agent)
+    create_agent("passenger", num_passengers, coordinator_agent)
+
     while True:
         try:
             time.sleep(1)
@@ -73,6 +81,33 @@ def main(taxi, passenger, coordinator, port, name, passwd, verbose):
     platform.shutdown()
     s.shutdown("")
     sys.exit(0)
+
+
+def create_agent(type_, number, coordinator):
+    if type_ == "taxi":
+        cls = TaxiAgent
+        store = coordinator.taxi_agents
+        strategy = coordinator.taxi_strategy
+    else:  # type_ == "passenger":
+        cls = PassengerAgent
+        store = coordinator.passenger_agents
+        strategy = coordinator.passenger_strategy
+    for _ in range(number):
+        with coordinator.lock:
+            if coordinator.kill_simulator.isSet():
+                break
+            position = random_position()
+            name = coordinator.faker.user_name()
+            password = coordinator.faker.password()
+            jid = name + "@127.0.0.1"
+            agent = cls(jid, password, debug=coordinator.debug_level)
+            agent.set_id(name)
+            agent.set_position(position)
+            store[name] = agent
+            agent.start()
+            if coordinator.simulation_running:
+                agent.add_strategy(strategy)
+            logger.debug("Created {} {} at position {}".format(type_, name, position))
 
 
 if __name__ == "__main__":

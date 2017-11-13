@@ -14,7 +14,7 @@ input[type="radio"], input[type="checkbox"] {
 
 #sidebar {
     display: block;
-    width: 250px;
+    width: 300px;
     height: 100%;
     max-width: 100%;
     float: left;
@@ -61,11 +61,11 @@ input[type="radio"], input[type="checkbox"] {
 }
 
 .panel-heading {
-    width: 250px;
+    width: 300px;
 }
 
 .panel-body {
-    width: 250px;
+    width: 300px;
 }
 
 .feature-row {

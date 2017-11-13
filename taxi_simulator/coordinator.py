@@ -45,8 +45,8 @@ class CoordinatorAgent(Agent):
         self.wui.start()
         logger.info("Web interface running at http://127.0.0.1:{}/app".format(self.wui.port))
 
-        template_path = os.path.dirname(__file__) + os.sep + "templates"
-        self.wui.setTemplatePath(template_path)
+        self.template_path = os.path.dirname(__file__) + os.sep + "templates"
+        self.wui.setTemplatePath(self.template_path)
 
         self.wui.registerController("app", self.index_controller)
         self.wui.registerController("entities", self.entities_controller)

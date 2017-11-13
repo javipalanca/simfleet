@@ -126,7 +126,7 @@ class TaxiAgent(Agent):
             "path": self.path,
             "passenger": self.current_passenger.getName() if self.current_passenger else None,
             "assignments": self.num_assignments,
-            "distance": sum(self.distances),
+            "distance": "{0:.2f}".format(sum(self.distances)),
             "url": "http://127.0.0.1:{port}".format(port=self.port)
         }
 

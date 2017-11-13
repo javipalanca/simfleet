@@ -34,7 +34,7 @@
           .navbar-inverse .navbar-nav>li>a {
               color: white;
           }
-          .bodycontainer { max-height: 450px; width: 100%; margin: 0; overflow-y: auto; }
+          .bodycontainer { max-height: 100%; overflow-y: auto; }
           .table-scrollable { margin: 0; padding: 0; }
       </style>
   </head>
@@ -58,7 +58,7 @@
     </div>
 
     <div id="container">
-      <div id="sidebar">
+      <div id="sidebar" class="bodycontainer table-scrollable">
         <div class="sidebar-wrapper">
           <div class="panel panel-default" id="features">
             <div class="panel-heading">
@@ -84,7 +84,7 @@
                 <tbody class="list">
                     <tr><th>Waiting Time</th><td id="waiting"></td></tr>
                     <tr><th>Total Time</th><td id="total"></td></tr>
-                    <tr><td colspan="2"><div class="bodycontainer table-scrollable" id="tree"></div></td></tr>
+                    <tr><td colspan="2"><div class="" id="tree"></div></td></tr>
                 </tbody>
               </table>
             </div>

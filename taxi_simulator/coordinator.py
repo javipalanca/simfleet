@@ -92,6 +92,7 @@ class CoordinatorAgent(Agent):
         result = {
             "taxis": [taxi.to_json() for taxi in self.taxi_agents.values()],
             "passengers": [passenger.to_json() for passenger in self.passenger_agents.values()],
+            "tree": self.generate_tree()
         }
         return None, result
 
@@ -131,6 +132,27 @@ class CoordinatorAgent(Agent):
         }
         msg.setContent(json.dumps(content))
         self.send(msg)
+
+    def generate_tree(self):
+        tree = [
+            {
+                "text": "Taxis",
+                "tags": ["{}".format(len(self.taxi_agents))],
+                "nodes": [{
+                    "text": " {}".format(i),
+                    "icon": "fa fa-taxi"
+                } for i in self.taxi_agents.keys()]
+            },
+            {
+                "text": "Passengers",
+                "tags": ["{}".format(len(self.passenger_agents))],
+                "nodes": [{
+                    "text": " {}".format(i),
+                    "icon": "fa fa-user"
+                } for i in self.passenger_agents.keys()]
+            }
+        ]
+        return tree
 
 
 class CreateAgentBehaviour(Behaviour):

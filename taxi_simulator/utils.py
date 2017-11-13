@@ -71,6 +71,8 @@ def unused_port(hostname):
 
 
 def request_path(ori, dest):
+    if ori[0] == dest[0] and ori[1] == dest[1]:
+        return [[ori[1], ori[0]]], 0, 0
     try:
         url = "http://osrm.gti-ia.upv.es/route/v1/car/{src1},{src2};{dest1},{dest2}?geometries=geojson&overview=full"
         src1, src2, dest1, dest2 = ori[1], ori[0], dest[1], dest[0]

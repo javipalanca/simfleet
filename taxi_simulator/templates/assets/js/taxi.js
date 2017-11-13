@@ -87,8 +87,18 @@ function gen_taxi_popup(taxi) {
         "</table>"
 }
 
+var tree = JSON.stringify({});
+var $tree = $('#tree');
+var newtree;
+
 var intervalID = setInterval(function () {
     $.getJSON("/entities", function (data) {
+        // update tree
+        newtree = JSON.stringify(data.tree);
+        if (newtree !== tree) {
+            tree = newtree;
+            $tree.treeview({data: tree, showTags: true});
+        }
         // draw taxis
         var count = data.taxis.length;
         for (var i = 0; i < count; i++) {

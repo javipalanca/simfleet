@@ -20,8 +20,8 @@ class TaxiAgent(Agent):
         self.current_pos = None
         self.dest = None
         self.path = None
-        self.distance = 0
-        self.duration = 0
+        self.distances = []
+        self.durations = []
         self.port = None
         self.current_passenger = None
         self.current_passenger_orig = None
@@ -36,11 +36,11 @@ class TaxiAgent(Agent):
         self.wui.registerController("update_position", self.update_position_controller)
         self.wui.registerController("arrived", self.arrived_to_dest_controller)
 
-    def add_strategy(self, strategyClass):
+    def add_strategy(self, strategy_class):
         tpl = ACLTemplate()
         tpl.setProtocol(REQUEST_PROTOCOL)
         template = MessageTemplate(tpl)
-        self.addBehaviour(strategyClass(), template)
+        self.addBehaviour(strategy_class(), template)
 
     def update_position_controller(self, lat, lon):
         coords = [float(lat), float(lon)]
@@ -99,8 +99,8 @@ class TaxiAgent(Agent):
         else:
             self.path = path
             self.dest = dest
-            self.distance += distance
-            self.duration += duration
+            self.distances.append(distance)
+            self.durations.append(duration)
 
     def inform_passenger(self, status, data=None):
         if data is None:
@@ -126,7 +126,7 @@ class TaxiAgent(Agent):
             "path": self.path,
             "passenger": self.current_passenger.getName() if self.current_passenger else None,
             "assignments": self.num_assignments,
-            "distance": self.distance,
+            "distance": sum(self.distances),
             "url": "http://127.0.0.1:{port}".format(port=self.port)
         }
 

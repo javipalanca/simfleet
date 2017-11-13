@@ -89,6 +89,8 @@ function gen_taxi_popup(taxi) {
 
 var tree = JSON.stringify({});
 var $tree = $('#tree');
+var $waiting = $('#waiting');
+var $total = $('#total');
 var newtree;
 
 var intervalID = setInterval(function () {
@@ -99,6 +101,10 @@ var intervalID = setInterval(function () {
             tree = newtree;
             $tree.treeview({data: tree, showTags: true});
         }
+        // update stats
+        $waiting.html(data.stats.waiting);
+        $total.html(data.stats.totaltime);
+
         // draw taxis
         var count = data.taxis.length;
         for (var i = 0; i < count; i++) {

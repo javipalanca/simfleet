@@ -92,7 +92,8 @@ class CoordinatorAgent(Agent):
         result = {
             "taxis": [taxi.to_json() for taxi in self.taxi_agents.values()],
             "passengers": [passenger.to_json() for passenger in self.passenger_agents.values()],
-            "tree": self.generate_tree()
+            "tree": self.generate_tree(),
+            "stats": self.get_stats()
         }
         return None, result
 
@@ -153,6 +154,18 @@ class CoordinatorAgent(Agent):
             }
         ]
         return tree
+
+    def get_stats(self):
+        def avg(l):
+            fl = filter(None, l)
+            return (sum(fl, 0.0) / len(fl)) if len(fl) > 0 else 0.0
+
+        waiting = avg([passenger.get_waiting_time() for passenger in self.passenger_agents.values()])
+        total = avg([passenger.total_time() for passenger in self.passenger_agents.values()])
+        return {
+            "waiting": "{0:.2f}".format(waiting),
+            "totaltime": "{0:.2f}".format(total)
+        }
 
 
 class CreateAgentBehaviour(Behaviour):

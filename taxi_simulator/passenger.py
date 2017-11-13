@@ -21,7 +21,11 @@ class PassengerAgent(Agent):
         self.current_pos = None
         self.dest = None
         self.port = None
+        self.taxi_assigned = None
         self.init_time = None
+        self.waiting_time = None
+        self.pick_up_time = None
+        self.end_time = None
 
     def _setup(self):
         self.port = unused_port("127.0.0.1")
@@ -33,10 +37,6 @@ class PassengerAgent(Agent):
         tpl.setProtocol(TRAVEL_PROTOCOL)
         template = MessageTemplate(tpl)
         self.addBehaviour(TravelBehaviour(), template)
-
-        self.init_time = None
-        self.end_time = None
-        self.pick_up_time = None
 
     def add_strategy(self, strategyClass):
         tpl = ACLTemplate()
@@ -69,13 +69,30 @@ class PassengerAgent(Agent):
         else:
             return 0
 
+    def get_waiting_time(self):
+        if self.init_time:
+            if self.pick_up_time:
+                t = self.pick_up_time - self.init_time
+            else:
+                t = time.time() - self.init_time
+            return t
+        return None
+
+    def get_pick_up_time(self):
+        if self.pick_up_time:
+            return self.pick_up_time - self.waiting_time
+        return None
+
     def to_json(self):
+        t = self.get_waiting_time()
         return {
             "id": self.agent_id,
             "position": self.current_pos,
             "dest": self.dest,
             "status": self.status,
-            "url": "http://127.0.0.1:{port}".format(port=self.port)
+            "taxi": self.taxi_assigned,
+            "url": "http://127.0.0.1:{port}".format(port=self.port),
+            "waiting": float("{0:.2f}".format(t)) if t else None
         }
 
 
@@ -87,11 +104,11 @@ class TravelBehaviour(Behaviour):
             status = content["status"]
             if status == TAXI_MOVING_TO_PASSENGER:
                 self.myAgent.status = PASSENGER_WAITING
-                self.myAgent.waiting_time = time.time() - self.myAgent.init_time
+                self.myAgent.waiting_time = time.time()
             elif status == TAXI_IN_PASSENGER_PLACE:
                 self.myAgent.status = PASSENGER_IN_TAXI
                 logger.info("Passenger {} in taxi.".format(self.myAgent.agent_id))
-                self.myAgent.pick_up_time = time.time() - self.myAgent.waiting_time
+                self.myAgent.pick_up_time = time.time()
             elif status == PASSENGER_IN_DEST:
                 self.myAgent.status = PASSENGER_IN_DEST
                 self.myAgent.end_time = time.time()
@@ -117,21 +134,22 @@ class PassengerStrategyBehaviour(OneShotBehaviour):
             time.sleep(0.1)
         return None
 
-    def send_request(self):
+    def send_request(self, content=None):
+        if content is None or len(content) == 0:
+            content = {
+                "passenger_id": self.myAgent.agent_id,
+                "origin": self.myAgent.current_pos,
+                "dest": self.myAgent.dest
+            }
         if not self.myAgent.dest:
             self.myAgent.dest = random_position()
         msg = ACLMessage()
         msg.addReceiver(coordinator_aid)
         msg.setProtocol(REQUEST_PROTOCOL)
         msg.setPerformative(REQUEST_PERFORMATIVE)
-        content = {
-            "passenger_id": self.myAgent.agent_id,
-            "origin": self.myAgent.current_pos,
-            "dest": self.myAgent.dest
-        }
         msg.setContent(json.dumps(content))
         self.myAgent.send(msg)
-        self.logger.debug("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
+        self.logger.info("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
 
     def accept_taxi(self, taxi_aid):
         reply = ACLMessage()
@@ -145,6 +163,7 @@ class PassengerStrategyBehaviour(OneShotBehaviour):
         }
         reply.setContent(json.dumps(content))
         self.myAgent.send(reply)
+        self.myAgent.taxi_assigned = taxi_aid.getName()
         self.logger.debug("Passenger {} accepted proposal from taxi {}".format(self.myAgent.agent_id,
                                                                                taxi_aid.getName()))
 

@@ -26,6 +26,7 @@ class TaxiAgent(Agent):
         self.current_passenger = None
         self.current_passenger_orig = None
         self.current_passenger_dest = None
+        self.num_assignments = 0
 
     def _setup(self):
         self.port = unused_port("127.0.0.1")
@@ -107,6 +108,9 @@ class TaxiAgent(Agent):
             "dest": self.dest,
             "status": self.status,
             "path": self.path,
+            "passenger": self.current_passenger.getName() if self.current_passenger else None,
+            "assignments": self.num_assignments,
+            "distance": self.distance,
             "url": "http://127.0.0.1:{port}".format(port=self.port)
         }
 
@@ -133,6 +137,7 @@ class TaxiStrategyBehaviour(Behaviour):
         self.myAgent.current_passenger_dest = dest
         self.myAgent.move_to(self.myAgent.current_passenger_orig)
         self.myAgent.send(reply)
+        self.myAgent.num_assignments += 1
 
     def send_proposal(self, passenger_id, content=None):
         if content is None:

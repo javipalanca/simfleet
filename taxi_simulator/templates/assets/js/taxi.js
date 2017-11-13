@@ -18,10 +18,15 @@ var backend_port = $("#backport").val();
 $("#generate-btn").on("click", function (e) {
     var numtaxis = $("#numtaxis").val();
     var numpassengers = $("#numpassengers").val();
-    if (numtaxis === "") { numtaxis = 0;}
-    if (numpassengers === "") { numpassengers = 0;}
-    $.getJSON("http://127.0.0.1:" + backend_port + "/generate/taxis/"+numtaxis+"/passengers/"+numpassengers,
-        function (data) {});
+    if (numtaxis === "") {
+        numtaxis = 0;
+    }
+    if (numpassengers === "") {
+        numpassengers = 0;
+    }
+    $.getJSON("http://127.0.0.1:" + backend_port + "/generate/taxis/" + numtaxis + "/passengers/" + numpassengers,
+        function (data) {
+        });
 });
 
 $("#play-btn").on("click", function (e) {
@@ -29,8 +34,8 @@ $("#play-btn").on("click", function (e) {
 });
 
 function request_url(url) {
-    $.getJSON(url, function(result) {
-        if(!result.finished) {
+    $.getJSON(url, function (result) {
+        if (!result.finished) {
             setTimeout(request_url, 2000);
         }
     });
@@ -45,10 +50,33 @@ var PASSENGER_WAITING = 20;
 var PASSENGER_IN_TAXI = 21;
 var PASSENGER_IN_DEST = 22;
 
+var statuses = {
+    10: "TAXI_WAITING",
+    11: "TAXI_MOVING_TO_PASSENGER",
+    12: "TAXI_IN_PASSENGER_PLACE",
+    13: "TAXI_MOVING_TO_DESTINY",
+    14: "TAXI_WAITING_FOR_APPROVAL"
+};
+
 color = {
     11: "blue",
     13: "green"
 };
+
+function gen_passenger_popup(passenger) {
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + passenger.id + "</td></tr>" +
+        "<tr><th>TAXI</th><td>" + passenger.taxi + "</td></tr>" +
+        "<tr><th>WAITING</th><td>" + passenger.waiting + "</td></tr>" +
+        "</table>"
+}
+
+function gen_taxi_popup(taxi) {
+        return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" +
+        "<tr><th>PASSENGER</th><td>" + taxi.passenger + "</td></tr>" +
+        "<tr><th>ASSIGNMENTS</th><td>" + taxi.assignments + "</td></tr>" +
+        "<tr><th>DISTANCE</th><td>" + taxi.distance + "</td></tr>" +
+        "</table>"
+}
 
 var intervalID = setInterval(function () {
     $.getJSON("/entities", function (data) {
@@ -56,14 +84,15 @@ var intervalID = setInterval(function () {
         var count = data.taxis.length;
         for (var i = 0; i < count; i++) {
             var taxi = data.taxis[i];
-            if (!(taxi.id in taxis))
-            {
+            if (!(taxi.id in taxis)) {
                 var marker = L.animatedMarker([taxi.position], {
                     icon: taxiIcon,
                     distance: 600,  // meters
-                    interval: 1000 // milliseconds
+                    interval: 1000, // milliseconds
+                    clickable: true
                 });
                 map.addLayer(marker);
+                marker.bindPopup("");
                 taxi.marker = marker;
                 taxis[taxi.id] = taxi;
             }
@@ -81,7 +110,9 @@ var intervalID = setInterval(function () {
                 });
                 map.addLayer(marker);
                 passenger.marker = marker;
+                passenger.marker.bindPopup(gen_passenger_popup(passenger));
                 passengers[passenger.id] = passenger;
+                localpassenger = passengers[passenger.id];
             }
             else {
                 localpassenger = passengers[passenger.id];
@@ -89,6 +120,7 @@ var intervalID = setInterval(function () {
                     map.removeLayer(localpassenger.marker);
                 }
             }
+            localpassenger.marker._popup.setContent(gen_passenger_popup(passenger))
         }
     });
 }, 1000);
@@ -108,6 +140,7 @@ var updateTaxi = function (taxi) {
         localtaxi.marker = L.animatedMarker(polyline.getLatLngs(), {
             icon: taxiIcon,
             autoStart: true,
+            clickable: true,
             onEnd: function () {
                 var _polyline = paths.get(this);
                 map.removeLayer(_polyline);
@@ -117,6 +150,7 @@ var updateTaxi = function (taxi) {
                 urls.put(this, undefined);
             }
         });
+        localtaxi.marker.bindPopup(gen_taxi_popup(taxi));
         map.addLayer(localtaxi.marker);
         paths.put(localtaxi.marker, polyline);
         urls.put(localtaxi.marker, localtaxi.url);
@@ -131,4 +165,5 @@ var updateTaxi = function (taxi) {
             request_url(url);
         }
     }
+    localtaxi.marker._popup.setContent(gen_taxi_popup(taxi));
 };

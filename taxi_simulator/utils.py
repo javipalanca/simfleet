@@ -1,8 +1,11 @@
 import os
+import sys
 import json
 import logging
 import random
 import socket
+from importlib import import_module
+
 import requests
 from geopy.distance import vincenty
 
@@ -90,8 +93,9 @@ def request_path(ori, dest):
 
 
 def load_class(class_path):
+    sys.path.append(os.getcwd())
     module_path, class_name = class_path.rsplit(".", 1)
-    mod = __import__(module_path, fromlist=[class_name])
+    mod = import_module(module_path)
     return getattr(mod, class_name)
 
 

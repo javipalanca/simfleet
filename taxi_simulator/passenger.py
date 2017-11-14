@@ -4,7 +4,7 @@ import time
 
 from spade.ACLMessage import ACLMessage
 from spade.Agent import Agent
-from spade.Behaviour import OneShotBehaviour, ACLTemplate, MessageTemplate, Behaviour
+from spade.Behaviour import ACLTemplate, MessageTemplate, Behaviour
 
 from utils import unused_port, random_position, PASSENGER_WAITING, coordinator_aid, REQUEST_PROTOCOL, \
     REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, PASSENGER_IN_DEST, TAXI_MOVING_TO_PASSENGER, PASSENGER_IN_TAXI, \

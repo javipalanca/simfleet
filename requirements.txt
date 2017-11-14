@@ -1,6 +1,6 @@
 Click>=6.0
 SPADE>=2.3
 factory_boy==2.9.2
-requests
+requests==2.18.4
 geopy
 flask

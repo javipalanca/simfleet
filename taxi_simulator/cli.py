@@ -28,7 +28,7 @@ logger = logging.getLogger()
               help='Passenger strategy class (default: AcceptFirstRequestTaxiBehaviour).')
 @click.option('-c', '--coordinator', default="taxi_simulator.strategies.DelegateRequestTaxiBehaviour",
               help='Coordinator strategy class (default: DelegateRequestTaxiBehaviour).')
-@click.option('-p', '--port', default=9000, help="Web interface port (default: 9000).")
+@click.option('--port', default=9000, help="Web interface port (default: 9000).")
 @click.option('-nt', '--num-taxis', default=0, help="Number of initial taxis to create (default: 0).")
 @click.option('-np', '--num-passengers', default=0, help="Number of initial passengers to create (default: 0).")
 @click.option('--name', default="coordinator",

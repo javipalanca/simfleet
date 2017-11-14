@@ -63,6 +63,10 @@ var usgsImagery = L.layerGroup([L.tileLayer("http://basemap.nationalmap.gov/arcg
     attribution: "Aerial Imagery courtesy USGS"
 })]);
 
+var Esri_WorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+});
+
 
 map = L.map("map", {
     zoom: 14,
@@ -107,7 +111,8 @@ if (document.body.clientWidth <= 767) {
 
 var baseLayers = {
     "Street Map": cartoLight,
-    "Aerial Imagery": usgsImagery
+    //"Aerial Imagery": usgsImagery
+    "Aerial Map": Esri_WorldImagery
 };
 
 

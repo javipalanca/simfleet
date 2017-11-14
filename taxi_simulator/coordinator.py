@@ -63,6 +63,9 @@ class CoordinatorAgent(Agent):
         self.coordinator_strategy = load_class(coordinator_strategy)
         self.taxi_strategy = load_class(taxi_strategy)
         self.passenger_strategy = load_class(passenger_strategy)
+        logger.debug("Loaded strategy classes: {}, {} and {}".format(self.coordinator_strategy,
+                                                                     self.taxi_strategy,
+                                                                     self.passenger_strategy))
 
     def run_simulation(self):
         if not self.simulation_running:

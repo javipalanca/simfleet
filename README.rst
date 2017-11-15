@@ -30,6 +30,7 @@ Features
 
 * Strategy pattern
 * Continuous simulator
+* Load scenarios
 * Multi-agent system built with SPADE_
 * XMPP communications
 

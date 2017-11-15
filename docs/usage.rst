@@ -20,6 +20,8 @@ To use Taxi Simulator in a project::
                                      0).
       -np, --num-passengers INTEGER  Number of initial passengers to create
                                      (default: 0).
+      --scenario TEXT                Filename of JSON file with initial scenario
+                                     description.
       --name TEXT                    Coordinator agent name (default:
                                      coordinator).
       --passwd TEXT                  Coordinator agent password (default:

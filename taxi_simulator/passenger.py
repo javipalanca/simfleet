@@ -63,6 +63,13 @@ class PassengerAgent(Agent):
     def get_position(self):
         return self.current_pos
 
+    def set_target_position(self, coords=None):
+        if coords:
+            self.dest = coords
+        else:
+            self.dest = random_position()
+        logger.debug("Passenger {} target position is {}".format(self.agent_id, self.dest))
+
     def total_time(self):
         if self.init_time and self.end_time:
             return self.end_time - self.init_time
@@ -166,7 +173,7 @@ class PassengerStrategyBehaviour(Behaviour):
         msg.setPerformative(REQUEST_PERFORMATIVE)
         msg.setContent(json.dumps(content))
         self.myAgent.send(msg)
-        self.logger.info("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
+        self.logger.debug("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
 
     def accept_taxi(self, taxi_aid):
         """

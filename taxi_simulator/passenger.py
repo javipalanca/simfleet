@@ -126,6 +126,15 @@ class PassengerStrategyBehaviour(Behaviour):
         self.myAgent.init_time = time.time()
 
     def timeout_receive(self, timeout=5):
+        """
+        Waits for a message until timeout is done.
+        If a message is received the method returns immediately.
+        If the time has passed and no message has been received, it returns None.
+        :param timeout: number of seconds to wait for a message
+        :type timeout: :class:`int`
+        :return: a message or None
+        :rtype: :class:`ACLMessage` or None
+        """
         init_time = time.time()
         while (time.time() - init_time) < timeout:
             msg = self._receive(block=False)
@@ -135,6 +144,14 @@ class PassengerStrategyBehaviour(Behaviour):
         return None
 
     def send_request(self, content=None):
+        """
+        Sends an :class:`ACLMessage` to the coordinator to request a taxi.
+        It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
+        If no content is set a default content with the passenger_id,
+        origin and target coordinates is used.
+        :param content: Optional content dictionary
+        :type content: :class:`dict`
+        """
         if content is None or len(content) == 0:
             content = {
                 "passenger_id": self.myAgent.agent_id,
@@ -152,6 +169,12 @@ class PassengerStrategyBehaviour(Behaviour):
         self.logger.info("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
 
     def accept_taxi(self, taxi_aid):
+        """
+        Sends an :class:`ACLMessage` to a taxi to accept a travel proposal.
+        It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
+        :param taxi_aid: The AgentID of the taxi
+        :type taxi_aid: :class:`spade.AID.aid`
+        """
         reply = ACLMessage()
         reply.addReceiver(taxi_aid)
         reply.setProtocol(REQUEST_PROTOCOL)
@@ -169,6 +192,12 @@ class PassengerStrategyBehaviour(Behaviour):
         self.myAgent.status = PASSENGER_ASSIGNED
 
     def refuse_taxi(self, taxi_aid):
+        """
+        Sends an ACLMessage to a taxi to refuse a travel proposal.
+        It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
+        :param taxi_aid: The AgentID of the taxi
+        :type taxi_aid: :class:`spade.AID.aid`
+        """
         reply = ACLMessage()
         reply.addReceiver(taxi_aid)
         reply.setProtocol(REQUEST_PROTOCOL)

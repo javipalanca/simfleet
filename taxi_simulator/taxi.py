@@ -137,6 +137,17 @@ class TaxiStrategyBehaviour(Behaviour):
         self.logger.debug("Strategy {} started in taxi {}".format(type(self).__name__, self.myAgent.agent_id))
 
     def pick_up_passenger(self, passenger_id, origin, dest):
+        """
+        Starts a TRAVEL_PROTOCOL to pick up a passenger and get him to his destiny.
+        It automatically launches all the graphical process until the passenger is
+        delivered.
+        :param passenger_id: the id of the passenger
+        :type passenger_id: :class:`str`
+        :param origin: the coordinates of the current location of the passenger
+        :type origin: :class:`list`
+        :param dest: the coordinates of the target destiny of the passenger
+        :type dest: :class:`list`
+        """
         self.logger.info("Taxi {} on route to passenger {}".format(self.myAgent.agent_id, passenger_id))
         passenger_aid = build_aid(passenger_id)
         reply = ACLMessage()
@@ -156,6 +167,14 @@ class TaxiStrategyBehaviour(Behaviour):
         self.myAgent.num_assignments += 1
 
     def send_proposal(self, passenger_id, content=None):
+        """
+        Send an :class:`ACLMessage` with a proposal to a passenger to pick up him.
+        If the content is empty the proposal is sent without content.
+        :param passenger_id: the id of the passenger
+        :type passenger_id: :class:`str`
+        :param content: the optional content of the message
+        :type content: :class:`dict`
+        """
         if content is None:
             content = {}
         passenger_aid = build_aid(passenger_id)
@@ -168,6 +187,14 @@ class TaxiStrategyBehaviour(Behaviour):
         self.myAgent.send(reply)
 
     def cancel_proposal(self, passenger_id, content=None):
+        """
+        Send an :class:`ACLMessage` to cancel a proposal.
+        If the content is empty the proposal is sent without content.
+        :param passenger_id: the id of the passenger
+        :type passenger_id: :class:`str`
+        :param content: the optional content of the message
+        :type content: :class:`dict`
+        """
         if content is None:
             content = {}
         passenger_aid = build_aid(passenger_id)

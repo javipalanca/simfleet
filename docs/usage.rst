@@ -15,7 +15,7 @@ To use Taxi Simulator in a project::
                                      AcceptFirstRequestTaxiBehaviour).
       -c, --coordinator TEXT         Coordinator strategy class (default:
                                      DelegateRequestTaxiBehaviour).
-      -p, --port INTEGER             Web interface port (default: 9000).
+      --port INTEGER                 Web interface port (default: 9000).
       -nt, --num-taxis INTEGER       Number of initial taxis to create (default:
                                      0).
       -np, --num-passengers INTEGER  Number of initial passengers to create
@@ -40,6 +40,7 @@ To develop new strategies:
 
             def send_proposal(self, passenger_id, content=None)
             def cancel_proposal(self, passenger_id, content=None)
+            def pick_up_passenger(self, passenger_id, origin, dest)
 
    * Passenger strategies must inherit from `PassengerStrategyBehaviour`
         * Helper functions::
@@ -50,3 +51,11 @@ To develop new strategies:
             def timeout_receive(self, timeout=5)
 
    * Coordinator strategies must inherit from `CoordinatorStrategyBehaviour`
+
+
+Load simulator with your custom strategies::
+
+ $ taxi_simulator --taxi my_strategy_file.MyTaxiStrategyClass
+                  --passenger my_strategy_file.MyPassengerStrategyClass
+                  --coordinator my_strategy_file.MyCoordinatorStrategyClass
+

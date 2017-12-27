@@ -7,6 +7,7 @@ import threading
 import os
 
 import faker
+import time
 from spade.Agent import Agent
 from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate
 
@@ -18,6 +19,7 @@ logger = logging.getLogger("CoordinatorAgent")
 class CoordinatorAgent(Agent):
     def __init__(self, agentjid, password, debug, http_port, backend_port, debug_level):
         self.simulation_running = False
+        self.simulation_time = None
         self.kill_simulator = threading.Event()
         self.kill_simulator.clear()
         self.lock = threading.RLock()
@@ -67,7 +69,13 @@ class CoordinatorAgent(Agent):
                 passenger.add_strategy(self.passenger_strategy)
 
             self.simulation_running = True
+            self.simulation_time = time.time()
             logger.info("Simulation started.")
+
+    def get_simulation_time(self):
+        if not self.simulation_time:
+            return 0
+        return time.time() - self.simulation_time
 
     def add_strategy(self, strategy_class):
         tpl = ACLTemplate()

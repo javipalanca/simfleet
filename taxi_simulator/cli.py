@@ -26,29 +26,37 @@ logger = logging.getLogger()
 
 
 @click.command()
+@click.option('-n', '--name', help="Name of the simulation execution.")
+@click.option('-o', '--output', help="Filename to save simulation results.")
+@click.option('-mt', '--max-time', help="Maximum simulation time (in seconds).", type=int)
+@click.option('-r', '--autorun', help="Run simulation as soon as the agents are ready.", is_flag=True)
 @click.option('-t', '--taxi', default="taxi_simulator.strategies.AcceptAlwaysStrategyBehaviour",
               help='Taxi strategy class (default: AcceptAlwaysStrategyBehaviour).')
 @click.option('-p', '--passenger', default="taxi_simulator.strategies.AcceptFirstRequestTaxiBehaviour",
-              help='Passenger strategy class (default: AcceptFirstRequestTaxiBehaviour).')
+              help="Passenger strategy class (default: AcceptFirstRequestTaxiBehaviour).")
 @click.option('-c', '--coordinator', default="taxi_simulator.strategies.DelegateRequestTaxiBehaviour",
-              help='Coordinator strategy class (default: DelegateRequestTaxiBehaviour).')
+              help="Coordinator strategy class (default: DelegateRequestTaxiBehaviour).")
 @click.option('--port', default=9000, help="Web interface port (default: 9000).")
 @click.option('-nt', '--num-taxis', default=0, help="Number of initial taxis to create (default: 0).")
 @click.option('-np', '--num-passengers', default=0, help="Number of initial passengers to create (default: 0).")
 @click.option('--scenario', help="Filename of JSON file with initial scenario description.")
-@click.option('--name', default="coordinator",
+@click.option('-cn', '--coordinator-name', default="coordinator",
               help="Coordinator agent name (default: coordinator).")
 @click.option('--passwd', default="coordinator_passwd",
               help="Coordinator agent password (default: coordinator_passwd).")
 @click.option('-bp', '--backend-port', default=5000, help="Backend port (default: 5000).")
 @click.option('-v', '--verbose', count=True,
               help="Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4")
-def main(taxi, passenger, coordinator, port, num_taxis, num_passengers, scenario, name, passwd, backend_port, verbose):
+def main(name, output, max_time, autorun, taxi, passenger, coordinator, port, num_taxis, num_passengers, scenario,
+         coordinator_name, passwd, backend_port, verbose):
     """Console script for taxi_simulator."""
     if verbose > 0:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
+
+    pretty_name = "({})".format(name) if name else ""
+    logger.info("Running Taxi Simulator {}".format(pretty_name))
 
     # generate config
     if not os.path.exists("spade.xml") or not os.path.exists("xmppd.xml"):
@@ -62,13 +70,13 @@ def main(taxi, passenger, coordinator, port, num_taxis, num_passengers, scenario
     s = Server(cfgfile="xmppd.xml", cmd_options={'enable_debug': debug_level,
                                                  'enable_psyco': False})
     thread.start_new_thread(s.run, tuple())
-    logger.info("XMPP server running.")
+    logger.debug("XMPP server running.")
     platform = spade_backend.SpadeBackend(s, "spade.xml")
     platform.start()
-    logger.info("Running SPADE platform.")
+    logger.debug("Running SPADE platform.")
 
     debug_level = ['always'] if verbose > 1 else []
-    coordinator_agent = CoordinatorAgent(name + "@127.0.0.1", password=passwd, debug=debug_level,
+    coordinator_agent = CoordinatorAgent(coordinator_name + "@127.0.0.1", password=passwd, debug=debug_level,
                                          http_port=port, backend_port=backend_port, debug_level=debug_level)
     coordinator_agent.set_strategies(coordinator, taxi, passenger)
     coordinator_agent.start()
@@ -97,9 +105,13 @@ def main(taxi, passenger, coordinator, port, num_taxis, num_passengers, scenario
                                                                                   backend_port, False])
     web_backend_process.start()
 
-    while True:
+    if autorun:
+        coordinator_agent.run_simulation()
+        logger.info("Simulation has started!")
+
+    while not is_simulation_finished(coordinator_agent, max_time):
         try:
-            time.sleep(1)
+            time.sleep(0.5)
             if not command_queue.empty():
                 ntaxis, npassengers = command_queue.get()
                 logger.info("Creating {} taxis and {} passengers.".format(ntaxis, npassengers))
@@ -108,7 +120,9 @@ def main(taxi, passenger, coordinator, port, num_taxis, num_passengers, scenario
         except KeyboardInterrupt:
             break
 
-    click.echo("\nTerminating...")
+    simulation_time = coordinator_agent.get_simulation_time()
+
+    click.echo("\nTerminating... ({0:.1f} seconds elapsed)".format(simulation_time))
 
     web_backend_process.terminate()
 
@@ -117,6 +131,12 @@ def main(taxi, passenger, coordinator, port, num_taxis, num_passengers, scenario
     platform.shutdown()
     s.shutdown("")
     sys.exit(0)
+
+
+def is_simulation_finished(coordinator, maxtime):
+    if maxtime is None:
+        return False
+    return coordinator.get_simulation_time() > maxtime or coordinator.is_simulation_finished()
 
 
 def _worker(command_queue, host, port, debug):

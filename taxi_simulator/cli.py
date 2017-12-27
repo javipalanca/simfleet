@@ -7,9 +7,12 @@ import logging
 import thread
 import sys
 import os
+import time
 import cPickle as pickle
 
 from flask import Flask
+from multiprocessing import Process
+from multiprocessing.queues import SimpleQueue
 
 from spade import spade_backend
 from xmppd.xmppd import Server
@@ -39,7 +42,7 @@ logger = logging.getLogger()
               help="Coordinator agent password (default: coordinator_passwd).")
 @click.option('-bp', '--backend-port', default=5000, help="Backend port (default: 5000).")
 @click.option('-v', '--verbose', count=True,
-              help='Show verbose debug.')
+              help="Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4")
 def main(taxi, passenger, coordinator, port, num_taxis, num_passengers, scenario, name, passwd, backend_port, verbose):
     """Console script for taxi_simulator."""
     if verbose > 0:
@@ -80,6 +83,7 @@ def main(taxi, passenger, coordinator, port, num_taxis, num_passengers, scenario
             scenario = json.load(f)
             for taxi in scenario["taxis"]:
                 agent = create_agent(TaxiAgent, taxi["name"], taxi["password"], taxi["position"], None, debug_level)
+                agent.set_speed(taxi["speed"])
                 coordinator_agent.taxi_agents[taxi["name"]] = agent
                 agent.start()
             for passenger in scenario["passengers"]:
@@ -88,25 +92,50 @@ def main(taxi, passenger, coordinator, port, num_taxis, num_passengers, scenario
                 coordinator_agent.passenger_agents[passenger["name"]] = agent
                 agent.start()
 
-    app = Flask(__name__)
+    command_queue = SimpleQueue()
+    web_backend_process = Process(None, _worker, "async web interface listener", [command_queue, "127.0.0.1",
+                                                                                  backend_port, False])
+    web_backend_process.start()
 
-    @app.route("/generate/taxis/<int:ntaxis>/passengers/<int:npassengers>")
-    @crossdomain(origin='*')
-    def generate(ntaxis, npassengers):
-        logger.info("Creating {} taxis and {} passengers.".format(ntaxis, npassengers))
-        create_agents_batch("taxi", ntaxis, coordinator_agent)
-        create_agents_batch("passenger", npassengers, coordinator_agent)
-        return ""
-
-    app.run(host="127.0.0.1", port=backend_port)
+    while True:
+        try:
+            time.sleep(1)
+            if not command_queue.empty():
+                ntaxis, npassengers = command_queue.get()
+                logger.info("Creating {} taxis and {} passengers.".format(ntaxis, npassengers))
+                create_agents_batch("taxi", ntaxis, coordinator_agent)
+                create_agents_batch("passenger", npassengers, coordinator_agent)
+        except KeyboardInterrupt:
+            break
 
     click.echo("\nTerminating...")
+
+    web_backend_process.terminate()
 
     coordinator_agent.stop_agents()
     coordinator_agent.stop()
     platform.shutdown()
     s.shutdown("")
     sys.exit(0)
+
+
+def _worker(command_queue, host, port, debug):
+    FlaskBackend(command_queue, host, port, debug)
+
+
+class FlaskBackend(object):
+    def __init__(self, command_queue, host='0.0.0.0', port=5000, debug=False):
+        self.command_queue = command_queue
+        self.app = Flask('FlaskBackend')
+        log = logging.getLogger('werkzeug')
+        log.setLevel(logging.ERROR)
+        self.app.add_url_rule("/generate/taxis/<int:ntaxis>/passengers/<int:npassengers>", "generate", self.generate)
+        self.app.run(host=host, port=port, debug=debug, use_reloader=debug)
+
+    @crossdomain(origin='*')
+    def generate(self, ntaxis, npassengers):
+        self.command_queue.put((ntaxis, npassengers))
+        return ""
 
 
 def create_agents_batch(type_, number, coordinator):

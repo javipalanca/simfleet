@@ -42,6 +42,10 @@ PASSENGER_LOCATION = 23
 PASSENGER_ASSIGNED = 24
 
 
+class PathRequestException(Exception):
+    pass
+
+
 def build_aid(agent_id):
     return aid(name=agent_id + "@127.0.0.1", addresses=["xmpp://" + agent_id + "@127.0.0.1"])
 
@@ -62,6 +66,10 @@ def random_position():
 
 def are_close(coord1, coord2, tolerance=10):
     return vincenty(coord1, coord2).meters < tolerance
+
+
+def distance_in_meters(coord1, coord2):
+    return vincenty(coord1, coord2).meters
 
 
 def unused_port(hostname):
@@ -86,10 +94,43 @@ def request_path(ori, dest):
         path = [[point[1], point[0]] for point in path]
         duration = result["routes"][0]["duration"]
         distance = result["routes"][0]["distance"]
+        if path[-1] != dest:
+            path.append(dest)
         return path, distance, duration
     except Exception as e:
         logger.error("Error requesting route: {}".format(e))
     return None, None, None
+
+
+def chunk_path(path, speed_in_kmh):
+    meters_per_second = kmh_to_ms(speed_in_kmh)
+    length = len(path)
+    chunked_lat_lngs = []
+
+    for i in range(1, length):
+        _cur = path[i - 1]
+        _next = path[i]
+        distance = distance_in_meters(_cur, _next)
+        factor = meters_per_second / distance
+        diff_lat = factor * (_next[0] - _cur[0])
+        diff_lng = factor * (_next[1] - _cur[1])
+
+        if distance > meters_per_second:
+            while distance > meters_per_second:
+                _cur = [_cur[0] + diff_lat, _cur[1] + diff_lng]
+                distance = distance_in_meters(_cur, _next)
+                chunked_lat_lngs.append(_cur)
+        else:
+            chunked_lat_lngs.append(_cur)
+
+    chunked_lat_lngs.append(path[length - 1])
+
+    return chunked_lat_lngs
+
+
+def kmh_to_ms(speed_in_kmh):
+    meters_per_second = speed_in_kmh * 1000 / 3600
+    return meters_per_second
 
 
 def load_class(class_path):
@@ -140,3 +181,5 @@ def crossdomain(origin=None, methods=None, headers=None,
         return update_wrapper(wrapped_function, f)
 
     return decorator
+
+

@@ -6,7 +6,7 @@ from spade.ACLMessage import ACLMessage
 from spade.Agent import Agent
 from spade.Behaviour import ACLTemplate, MessageTemplate, Behaviour
 
-from utils import unused_port, random_position, PASSENGER_WAITING, coordinator_aid, REQUEST_PROTOCOL, \
+from utils import random_position, PASSENGER_WAITING, coordinator_aid, REQUEST_PROTOCOL, \
     REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, PASSENGER_IN_DEST, TAXI_MOVING_TO_PASSENGER, PASSENGER_IN_TAXI, \
     TAXI_IN_PASSENGER_PLACE, TRAVEL_PROTOCOL, PASSENGER_LOCATION, REFUSE_PERFORMATIVE, PASSENGER_ASSIGNED
 
@@ -28,11 +28,6 @@ class PassengerAgent(Agent):
         self.end_time = None
 
     def _setup(self):
-        self.port = unused_port("127.0.0.1")
-        self.wui.setPort(self.port)
-        self.wui.start()
-        self.wui.registerController("update_position", self.update_position_controller)
-
         tpl = ACLTemplate()
         tpl.setProtocol(TRAVEL_PROTOCOL)
         template = MessageTemplate(tpl)
@@ -43,12 +38,6 @@ class PassengerAgent(Agent):
         tpl.setProtocol(REQUEST_PROTOCOL)
         template = MessageTemplate(tpl)
         self.addBehaviour(strategyClass(), template)
-
-    def update_position_controller(self, lat, lon):
-        coords = [float(lat), float(lon)]
-        self.set_position(coords)
-
-        return None, {}
 
     def set_id(self, agent_id):
         self.agent_id = agent_id
@@ -69,6 +58,9 @@ class PassengerAgent(Agent):
         else:
             self.dest = random_position()
         logger.debug("Passenger {} target position is {}".format(self.agent_id, self.dest))
+
+    def is_in_destination(self):
+        return self.status == PASSENGER_IN_DEST or self.get_position() == self.dest
 
     def total_time(self):
         if self.init_time and self.end_time:
@@ -106,7 +98,8 @@ class PassengerAgent(Agent):
 class TravelBehaviour(Behaviour):
     def _process(self):
         msg = self._receive(block=True)
-        content = json.loads(msg.getContent())
+        content = json.loads(msg.getContent().replace("'", '"'))
+        logger.debug("Passenger {} informed of: {}".format(self.myAgent.agent_id, content))
         if "status" in content:
             status = content["status"]
             if status == TAXI_MOVING_TO_PASSENGER:

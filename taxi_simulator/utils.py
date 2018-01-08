@@ -1,12 +1,16 @@
 import os
 import sys
+import time
 import logging
 import socket
 from importlib import import_module
+from abc import ABCMeta
 
 from datetime import timedelta
 from flask import make_response, request, current_app
 from functools import update_wrapper
+
+from spade.Behaviour import Behaviour
 
 from helpers import distance_in_meters, kmh_to_ms
 
@@ -23,6 +27,37 @@ PASSENGER_IN_TAXI = 21
 PASSENGER_IN_DEST = 22
 PASSENGER_LOCATION = 23
 PASSENGER_ASSIGNED = 24
+
+
+class StrategyBehaviour(Behaviour):
+    __metaclass__ = ABCMeta
+
+    def store_value(self, key, value):
+        self.myAgent.store_value(key, value)
+
+    def get_value(self, key):
+        return self.myAgent.get_value(key)
+
+    def has_value(self, key):
+        return self.myAgent.has_value(key)
+
+    def timeout_receive(self, timeout=5):
+        """
+        Waits for a message until timeout is done.
+        If a message is received the method returns immediately.
+        If the time has passed and no message has been received, it returns None.
+        :param timeout: number of seconds to wait for a message
+        :type timeout: :class:`int`
+        :return: a message or None
+        :rtype: :class:`ACLMessage` or None
+        """
+        init_time = time.time()
+        while (time.time() - init_time) < timeout:
+            msg = self._receive(block=False)
+            if msg is not None:
+                return msg
+            time.sleep(0.1)
+        return None
 
 
 def unused_port(hostname):
@@ -108,5 +143,3 @@ def crossdomain(origin=None, methods=None, headers=None,
         return update_wrapper(wrapped_function, f)
 
     return decorator
-
-

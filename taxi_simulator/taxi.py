@@ -3,10 +3,10 @@ import logging
 
 from spade.ACLMessage import ACLMessage
 from spade.Agent import Agent
-from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate, PeriodicBehaviour
+from spade.Behaviour import ACLTemplate, MessageTemplate, PeriodicBehaviour
 
 from utils import TAXI_WAITING, TAXI_MOVING_TO_PASSENGER, TAXI_IN_PASSENGER_PLACE, TAXI_MOVING_TO_DESTINY, \
-    PASSENGER_IN_DEST, PASSENGER_LOCATION, chunk_path
+    PASSENGER_IN_DEST, PASSENGER_LOCATION, chunk_path, StrategyBehaviour
 from protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
 from helpers import build_aid, random_position, distance_in_meters, request_path, kmh_to_ms, PathRequestException
 
@@ -33,6 +33,17 @@ class TaxiAgent(Agent):
         self.current_passenger_orig = None
         self.current_passenger_dest = None
         self.num_assignments = 0
+
+        self.knowledge_base = {}
+
+    def store_value(self, key, value):
+        self.knowledge_base[key] = value
+
+    def get_value(self, key):
+        return self.knowledge_base.get(key)
+
+    def has_value(self, key):
+        return key in self.knowledge_base
 
     def add_strategy(self, strategy_class):
         tpl = ACLTemplate()
@@ -160,7 +171,7 @@ class TaxiAgent(Agent):
                 self.myAgent.removeBehaviour(self)
 
 
-class TaxiStrategyBehaviour(Behaviour):
+class TaxiStrategyBehaviour(StrategyBehaviour):
     def onStart(self):
         self.logger = logging.getLogger("TaxiAgent")
         self.logger.debug("Strategy {} started in taxi {}".format(type(self).__name__, self.myAgent.agent_id))

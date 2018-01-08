@@ -7,9 +7,9 @@ import os
 
 import time
 from spade.Agent import Agent
-from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate
+from spade.Behaviour import ACLTemplate, MessageTemplate
 
-from utils import load_class
+from utils import load_class, StrategyBehaviour
 from protocol import REQUEST_PROTOCOL
 
 logger = logging.getLogger("CoordinatorAgent")
@@ -33,7 +33,18 @@ class CoordinatorAgent(Agent):
         self.backend_port = backend_port
         self.debug_level = debug_level
 
+        self.knowledge_base = {}
+
         Agent.__init__(self, agentjid=agentjid, password=password, debug=debug)
+
+    def store_value(self, key, value):
+        self.knowledge_base[key] = value
+
+    def get_value(self, key):
+        return self.knowledge_base.get(key)
+
+    def has_value(self, key):
+        return key in self.knowledge_base
 
     def _setup(self):
         logger.info("Coordinator agent running")
@@ -157,7 +168,7 @@ class CoordinatorAgent(Agent):
         return all([passenger.is_in_destination() for passenger in self.passenger_agents.values()])
 
 
-class CoordinatorStrategyBehaviour(Behaviour):
+class CoordinatorStrategyBehaviour(StrategyBehaviour):
     def onStart(self):
         self.logger = logging.getLogger("CoordinatorAgent")
         self.logger.debug("Strategy {} started in coordinator".format(type(self).__name__))

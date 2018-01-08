@@ -7,7 +7,7 @@ from spade.Agent import Agent
 from spade.Behaviour import ACLTemplate, MessageTemplate, Behaviour
 
 from utils import PASSENGER_WAITING, PASSENGER_IN_DEST, TAXI_MOVING_TO_PASSENGER, PASSENGER_IN_TAXI, \
-    TAXI_IN_PASSENGER_PLACE, PASSENGER_LOCATION, PASSENGER_ASSIGNED
+    TAXI_IN_PASSENGER_PLACE, PASSENGER_LOCATION, PASSENGER_ASSIGNED, StrategyBehaviour
 from protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
 from helpers import coordinator_aid, random_position
 
@@ -27,6 +27,17 @@ class PassengerAgent(Agent):
         self.waiting_time = None
         self.pick_up_time = None
         self.end_time = None
+
+        self.knowledge_base = {}
+
+    def store_value(self, key, value):
+        self.knowledge_base[key] = value
+
+    def get_value(self, key):
+        return self.knowledge_base.get(key)
+
+    def has_value(self, key):
+        return key in self.knowledge_base
 
     def _setup(self):
         tpl = ACLTemplate()
@@ -120,29 +131,11 @@ class TravelBehaviour(Behaviour):
                 self.myAgent.set_position(coords)
 
 
-class PassengerStrategyBehaviour(Behaviour):
+class PassengerStrategyBehaviour(StrategyBehaviour):
     def onStart(self):
         self.logger = logging.getLogger("PassengerAgent")
         self.logger.debug("Strategy {} started in passenger {}".format(type(self).__name__, self.myAgent.agent_id))
         self.myAgent.init_time = time.time()
-
-    def timeout_receive(self, timeout=5):
-        """
-        Waits for a message until timeout is done.
-        If a message is received the method returns immediately.
-        If the time has passed and no message has been received, it returns None.
-        :param timeout: number of seconds to wait for a message
-        :type timeout: :class:`int`
-        :return: a message or None
-        :rtype: :class:`ACLMessage` or None
-        """
-        init_time = time.time()
-        while (time.time() - init_time) < timeout:
-            msg = self._receive(block=False)
-            if msg is not None:
-                return msg
-            time.sleep(0.1)
-        return None
 
     def send_request(self, content=None):
         """

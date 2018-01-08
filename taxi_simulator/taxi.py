@@ -5,10 +5,10 @@ from spade.ACLMessage import ACLMessage
 from spade.Agent import Agent
 from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate, PeriodicBehaviour
 
-from utils import TAXI_WAITING, random_position, request_path, PROPOSE_PERFORMATIVE, INFORM_PERFORMATIVE, \
-    TAXI_MOVING_TO_PASSENGER, TAXI_IN_PASSENGER_PLACE, TAXI_MOVING_TO_DESTINY, \
-    PASSENGER_IN_DEST, REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PASSENGER_LOCATION, build_aid, CANCEL_PERFORMATIVE, \
-    chunk_path, distance_in_meters, kmh_to_ms, PathRequestException
+from utils import TAXI_WAITING, TAXI_MOVING_TO_PASSENGER, TAXI_IN_PASSENGER_PLACE, TAXI_MOVING_TO_DESTINY, \
+    PASSENGER_IN_DEST, PASSENGER_LOCATION, chunk_path
+from protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
+from helpers import build_aid, random_position, distance_in_meters, request_path, kmh_to_ms, PathRequestException
 
 logger = logging.getLogger("TaxiAgent")
 

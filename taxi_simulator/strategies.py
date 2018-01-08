@@ -1,11 +1,10 @@
-import json
-
 from coordinator import CoordinatorStrategyBehaviour
 from passenger import PassengerStrategyBehaviour
 from taxi import TaxiStrategyBehaviour
-from utils import TAXI_WAITING, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, coordinator_aid, \
-    TAXI_WAITING_FOR_APPROVAL, REFUSE_PERFORMATIVE, PASSENGER_WAITING, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, \
-    TAXI_MOVING_TO_PASSENGER, PathRequestException
+from utils import TAXI_WAITING, TAXI_WAITING_FOR_APPROVAL, PASSENGER_WAITING, TAXI_MOVING_TO_PASSENGER
+from protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
+    CANCEL_PERFORMATIVE
+from helpers import coordinator_aid, PathRequestException, content_to_json
 
 
 ################################################################
@@ -31,7 +30,7 @@ class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
 class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
     def _process(self):
         msg = self._receive(block=True)
-        content = json.loads(msg.getContent())
+        content = content_to_json(msg)
         performative = msg.getPerformative()
 
         self.logger.debug("Taxi {} received request protocol from passenger {}.".format(self.myAgent.agent_id,

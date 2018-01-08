@@ -5,7 +5,7 @@ import faker
 
 from passenger import PassengerAgent
 from taxi import TaxiAgent
-from utils import random_position
+from helpers import random_position
 
 logger = logging.getLogger()
 

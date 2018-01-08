@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 """Main module."""
-import json
 import logging
 import threading
 import os
@@ -10,7 +9,8 @@ import time
 from spade.Agent import Agent
 from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate
 
-from utils import REQUEST_PROTOCOL, load_class
+from utils import load_class
+from protocol import REQUEST_PROTOCOL
 
 logger = logging.getLogger("CoordinatorAgent")
 

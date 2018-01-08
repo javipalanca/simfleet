@@ -6,7 +6,6 @@ import logging
 import threading
 import os
 
-import faker
 import time
 from spade.Agent import Agent
 from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate
@@ -30,8 +29,6 @@ class CoordinatorAgent(Agent):
         self.taxi_strategy = None
         self.passenger_strategy = None
 
-        self.faker = faker.Factory.create()
-
         self.http_port = http_port
         self.backend_port = backend_port
         self.debug_level = debug_level
@@ -51,6 +48,12 @@ class CoordinatorAgent(Agent):
         self.wui.registerController("entities", self.entities_controller)
         self.wui.registerController("run", self.run_controller)
         self.wui.registerController("clean", self.clean_controller)
+
+    def add_taxi(self, agent):
+        self.taxi_agents[agent.getName()] = agent
+
+    def add_passenger(self, agent):
+        self.passenger_agents[agent.getName()] = agent
 
     def set_strategies(self, coordinator_strategy, taxi_strategy, passenger_strategy):
         self.coordinator_strategy = load_class(coordinator_strategy)

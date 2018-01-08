@@ -189,7 +189,7 @@ class PassengerStrategyBehaviour(Behaviour):
         self.myAgent.taxi_assigned = taxi_aid.getName()
         self.logger.debug("Passenger {} accepted proposal from taxi {}".format(self.myAgent.agent_id,
                                                                                taxi_aid.getName()))
-        self.myAgent.status = PASSENGER_ASSIGNED
+        self.myAgent.status = PASSENGER_ASSIGNED  # TODO: extract
 
     def refuse_taxi(self, taxi_aid):
         """

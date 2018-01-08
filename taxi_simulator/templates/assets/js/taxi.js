@@ -73,6 +73,7 @@ color = {
 function gen_passenger_popup(passenger) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + passenger.id + "</td></tr>" +
         "<tr><th>STATUS</th><td>" + statuses[passenger.status] + "</td></tr>" +
+        "<tr><th>POSITION</th><td>" + passenger.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + passenger.dest + "</td></tr>" +
         "<tr><th>TAXI</th><td>" + passenger.taxi + "</td></tr>" +
         "<tr><th>WAITING</th><td>" + passenger.waiting + "</td></tr>" +
@@ -83,6 +84,7 @@ function gen_taxi_popup(taxi) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" +
         "<tr><th>STATUS</th><td>" + statuses[taxi.status] + "</td></tr>" +
         "<tr><th>PASSENGER</th><td>" + taxi.passenger + "</td></tr>" +
+        "<tr><th>POSITION</th><td>" + taxi.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + taxi.dest + "</td></tr>" +
         "<tr><th>ASSIGNMENTS</th><td>" + taxi.assignments + "</td></tr>" +
         "<tr><th>SPEED</th><td>" + taxi.speed + "</td></tr>" +

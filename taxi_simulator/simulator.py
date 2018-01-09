@@ -4,7 +4,7 @@ import pandas as pd
 from tabulate import tabulate
 import thread
 import os
-
+import json
 import pickle
 
 from multiprocessing import Process
@@ -162,7 +162,7 @@ class Simulator(object):
         return self.df_avg, self.passenger_df, self.taxi_df
 
     def print_stats(self):
-        if not self.df_avg:
+        if self.df_avg is None:
             self.collect_stats()
 
         print("Simulation Results")
@@ -171,6 +171,32 @@ class Simulator(object):
         print(tabulate(self.passenger_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
         print("Taxi stats")
         print(tabulate(self.taxi_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
+
+    def write_file(self, filename, fileformat="json"):
+        if self.df_avg is None:
+            self.collect_stats()
+        if fileformat == "json":
+            self.write_json(filename)
+        elif fileformat == "excel":
+            self.write_excel(filename)
+
+    def write_json(self, filename):
+        data = {
+            "simulation": json.loads(self.df_avg.to_json(orient="index"))["0"],
+            "passengers": json.loads(self.passenger_df.to_json(orient="index")),
+            "taxis": json.loads(self.taxi_df.to_json(orient="index"))
+        }
+
+        with open(filename, 'w') as f:
+            f.seek(0)
+            json.dump(data, f, indent=4)
+
+    def write_excel(self, filename):
+        writer = pd.ExcelWriter(filename)
+        self.df_avg.to_excel(writer, 'Simulation')
+        self.passenger_df.to_excel(writer, 'Passengers')
+        self.taxi_df.to_excel(writer, 'Taxis')
+        writer.save()
 
 
 def _worker(command_queue, host, port, debug):

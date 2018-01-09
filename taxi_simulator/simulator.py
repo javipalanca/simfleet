@@ -129,6 +129,11 @@ class Simulator(object):
                                          "Avg Total Time": [stats["totaltime"]],
                                          "Simulation Finished": [stats["finished"]]
                                          })
+        columns = ["Avg Waiting Time", "Avg Total Time", "Simulation Finished"]
+        if self.config.simulation_name:
+            df_avg["Simulation Name"] = self.config.simulation_name
+            columns = ["Simulation Name"] + columns
+        df_avg = df_avg[columns]
 
         self.coordinator_agent.stop_agents()
 

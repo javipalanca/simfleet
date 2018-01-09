@@ -1,4 +1,7 @@
 import logging
+
+import pandas as pd
+from tabulate import tabulate
 import thread
 import os
 
@@ -119,7 +122,24 @@ class Simulator(object):
 
         self.web_backend_process.terminate()
 
+        passenger_df = self.coordinator_agent.get_passenger_stats()
+        taxi_df = self.coordinator_agent.get_taxi_stats()
+        stats = self.coordinator_agent.get_stats()
+        df_avg = pd.DataFrame.from_dict({"Avg Waiting Time": [stats["waiting"]],
+                                         "Avg Total Time": [stats["totaltime"]],
+                                         "Simulation Finished": [stats["finished"]]
+                                         })
+
         self.coordinator_agent.stop_agents()
+
+        print("Simulation Results")
+        print(tabulate(df_avg, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print("Passenger stats")
+        print(tabulate(passenger_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print("Taxi stats")
+        taxi_df = taxi_df[["name", "assignments", "distance", "status"]]
+        print(tabulate(taxi_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
+
         self.coordinator_agent.stop()
         self.platform.shutdown()
         self.xmpp_server.shutdown("")

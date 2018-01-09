@@ -5,11 +5,12 @@ import logging
 import threading
 import os
 
+import pandas as pd
 import time
 from spade.Agent import Agent
 from spade.Behaviour import ACLTemplate, MessageTemplate
 
-from utils import load_class, StrategyBehaviour
+from utils import load_class, StrategyBehaviour, status_to_str
 from protocol import REQUEST_PROTOCOL
 
 logger = logging.getLogger("CoordinatorAgent")
@@ -163,6 +164,23 @@ class CoordinatorAgent(Agent):
             "totaltime": "{0:.2f}".format(total),
             "finished": self.is_simulation_finished()
         }
+
+    def get_passenger_stats(self):
+        names, waitings, totals, statuses = zip(*[(p.getName(), p.get_waiting_time(),
+                                                   p.total_time(), status_to_str(p.status))
+                                                  for p in self.passenger_agents.values()])
+
+        df = pd.DataFrame.from_dict({"name": names, "waiting_time": waitings, "totaltime": totals, "status": statuses})
+        return df
+
+    def get_taxi_stats(self):
+        names, assignments, distances, statuses = zip(*[(t.getName(), t.num_assignments,
+                                                         "{0:.2f}".format(sum(t.distances)),
+                                                         status_to_str(t.status))
+                                                        for t in self.taxi_agents.values()])
+
+        df = pd.DataFrame.from_dict({"name": names, "assignments": assignments, "distance": distances, "status": statuses})
+        return df
 
     def is_simulation_finished(self):
         return all([passenger.is_in_destination() for passenger in self.passenger_agents.values()])

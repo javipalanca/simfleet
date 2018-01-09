@@ -24,7 +24,7 @@ class TaxiAgent(Agent):
         self.dest = None
         self.path = None
         self.chunked_path = None
-        self.speed_in_kmh = 1000
+        self.speed_in_kmh = 2000
         self.animation_speed = ONESECOND_IN_MS
         self.distances = []
         self.durations = []

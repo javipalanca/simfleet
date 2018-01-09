@@ -24,7 +24,8 @@ class Scenario(object):
             for taxi in scenario["taxis"]:
                 password = taxi["password"] if "password" in taxi else faker_factory.password()
                 agent = self.create_agent(TaxiAgent, taxi["name"], password, taxi["position"], None, debug_level)
-                agent.set_speed(taxi["speed"])
+                if "speed" in taxi.keys():
+                    agent.set_speed(taxi["speed"])
                 self.taxis.append(agent)
 
             for passenger in scenario["passengers"]:

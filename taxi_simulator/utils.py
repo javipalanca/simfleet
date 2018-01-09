@@ -29,6 +29,22 @@ PASSENGER_LOCATION = 23
 PASSENGER_ASSIGNED = 24
 
 
+def status_to_str(status_code):
+    statuses = {
+        10: "TAXI_WAITING",
+        11: "TAXI_MOVING_TO_PASSENGER",
+        12: "TAXI_IN_PASSENGER_PLACE",
+        13: "TAXI_MOVING_TO_DESTINY",
+        14: "TAXI_WAITING_FOR_APPROVAL",
+        20: "PASSENGER_WAITING",
+        21: "PASSENGER_IN_TAXI",
+        22: "PASSENGER_IN_DEST",
+        23: "PASSENGER_LOCATION",
+        24: "PASSENGER_ASSIGNED"
+    }
+    return statuses[status_code]
+
+
 class StrategyBehaviour(Behaviour):
     __metaclass__ = ABCMeta
 

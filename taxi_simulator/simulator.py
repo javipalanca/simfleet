@@ -1,4 +1,7 @@
 import logging
+
+import pandas as pd
+from tabulate import tabulate
 import thread
 import os
 
@@ -41,9 +44,15 @@ class Simulator(object):
         self.pretty_name = "({})".format(self.config.simulation_name) if self.config.simulation_name else ""
         self.verbose = self.config.verbose
 
+        self.simulation_time = 0
+
         self.coordinator_agent = None
 
         self.command_queue = SimpleQueue()
+
+        self.df_avg = None
+        self.passenger_df = None
+        self.taxi_df = None
 
         # generate config
         if not os.path.exists("spade.xml") or not os.path.exists("xmppd.xml"):
@@ -113,16 +122,55 @@ class Simulator(object):
             Scenario.create_agents_batch("passenger", npassengers, self.coordinator_agent)
 
     def stop(self):
-        simulation_time = self.coordinator_agent.get_simulation_time()
+        self.simulation_time = self.coordinator_agent.get_simulation_time()
 
-        logger.info("\nTerminating... ({0:.1f} seconds elapsed)".format(simulation_time))
+        logger.info("\nTerminating... ({0:.1f} seconds elapsed)".format(self.simulation_time))
 
         self.web_backend_process.terminate()
 
         self.coordinator_agent.stop_agents()
+
+        self.print_stats()
+
         self.coordinator_agent.stop()
         self.platform.shutdown()
         self.xmpp_server.shutdown("")
+
+    def collect_stats(self):
+        passenger_df = self.coordinator_agent.get_passenger_stats()
+        self.passenger_df = passenger_df[["name", "waiting_time", "total_time", "status"]]
+        taxi_df = self.coordinator_agent.get_taxi_stats()
+        self.taxi_df = taxi_df[["name", "assignments", "distance", "status"]]
+        stats = self.coordinator_agent.get_stats()
+        df_avg = pd.DataFrame.from_dict({"Avg Waiting Time": [stats["waiting"]],
+                                         "Avg Total Time": [stats["totaltime"]],
+                                         "Simulation Finished": [stats["finished"]],
+                                         "Simulation Time": [self.simulation_time]
+                                         })
+        columns = []
+        if self.config.simulation_name:
+            df_avg["Simulation Name"] = self.config.simulation_name
+            columns = ["Simulation Name"]
+        columns += ["Avg Waiting Time", "Avg Total Time", "Simulation Time"]
+        if self.config.max_time:
+            df_avg["Max Time"] = self.config.max_time
+            columns += ["Max Time"]
+        columns += ["Simulation Finished"]
+        self.df_avg = df_avg[columns]
+
+    def get_stats(self):
+        return self.df_avg, self.passenger_df, self.taxi_df
+
+    def print_stats(self):
+        if not self.df_avg:
+            self.collect_stats()
+
+        print("Simulation Results")
+        print(tabulate(self.df_avg, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print("Passenger stats")
+        print(tabulate(self.passenger_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print("Taxi stats")
+        print(tabulate(self.taxi_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
 
 
 def _worker(command_queue, host, port, debug):

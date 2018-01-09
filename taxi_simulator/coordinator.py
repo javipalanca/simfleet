@@ -170,7 +170,7 @@ class CoordinatorAgent(Agent):
                                                    p.total_time(), status_to_str(p.status))
                                                   for p in self.passenger_agents.values()])
 
-        df = pd.DataFrame.from_dict({"name": names, "waiting_time": waitings, "totaltime": totals, "status": statuses})
+        df = pd.DataFrame.from_dict({"name": names, "waiting_time": waitings, "total_time": totals, "status": statuses})
         return df
 
     def get_taxi_stats(self):

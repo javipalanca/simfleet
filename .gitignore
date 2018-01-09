@@ -67,3 +67,6 @@ spade.xml
 xmppd.xml
 roomdb.xml
 user_db.xml
+
+# PyCharm Idea directory
+.idea

@@ -48,11 +48,15 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
                 self.logger.debug("Taxi {} got accept from {}".format(self.myAgent.agent_id,
                                                                       content["passenger_id"]))
                 try:
+                    self.myAgent.status = TAXI_MOVING_TO_PASSENGER
                     self.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])
-                    self.myAgent.status = TAXI_MOVING_TO_PASSENGER # A VECES NO SE LLEGA AQUI Y EL TAXI NO SE MUEVE
                 except PathRequestException:
+                    self.logger.error("Taxi {} could not get a path to passenger {}. Cancelling..."
+                                      .format(self.myAgent.getName(), content["passenger_id"]))
                     self.myAgent.status = TAXI_WAITING
                     self.cancel_proposal(content["passenger_id"], {})
+                except Exception as e:
+                    self.logger.error("Unexpected error in taxi {}: {}".format(self.myAgent.getName(), e))
             else:
                 self.cancel_proposal(content["passenger_id"], {})
 

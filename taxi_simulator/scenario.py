@@ -23,12 +23,14 @@ class Scenario(object):
             scenario = json.load(f)
             for taxi in scenario["taxis"]:
                 password = taxi["password"] if "password" in taxi else faker_factory.password()
-                agent = self.create_agent(TaxiAgent, taxi["name"], password, taxi["position"], None, debug_level)
-                agent.set_speed(taxi["speed"])
+                agent = Scenario.create_agent(TaxiAgent, taxi["name"], password, taxi["position"], None, debug_level)
+                if "speed" in taxi.keys():
+                    agent.set_speed(taxi["speed"])
                 self.taxis.append(agent)
 
             for passenger in scenario["passengers"]:
-                agent = self.create_agent(PassengerAgent, passenger["name"], passenger["password"],
+                password = passenger["password"] if "password" in passenger else faker_factory.password()
+                agent = Scenario.create_agent(PassengerAgent, passenger["name"], password,
                                           passenger["position"],
                                           passenger["dest"], debug_level)
                 self.passengers.append(agent)

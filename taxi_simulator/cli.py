@@ -14,6 +14,8 @@ logger = logging.getLogger()
 @click.command()
 @click.option('-n', '--name', help="Name of the simulation execution.")
 @click.option('-o', '--output', help="Filename to save simulation results.")
+@click.option('-of', '--oformat', help="Output format used to save simulation results. (default: json)",
+              type=click.Choice(['json', 'excel']), default="json")
 @click.option('-mt', '--max-time', help="Maximum simulation time (in seconds).", type=int)
 @click.option('-r', '--autorun', help="Run simulation as soon as the agents are ready.", is_flag=True)
 @click.option('-t', '--taxi', default="taxi_simulator.strategies.AcceptAlwaysStrategyBehaviour",
@@ -33,8 +35,8 @@ logger = logging.getLogger()
 @click.option('-bp', '--backend-port', default=5000, help="Backend port (default: 5000).")
 @click.option('-v', '--verbose', count=True,
               help="Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4")
-def main(name, output, max_time, autorun, taxi, passenger, coordinator, port, num_taxis, num_passengers, scenario,
-         coordinator_name, passwd, backend_port, verbose):
+def main(name, output, oformat, max_time, autorun, taxi, passenger, coordinator, port, num_taxis, num_passengers,
+         scenario, coordinator_name, passwd, backend_port, verbose):
     """Console script for taxi_simulator."""
     if verbose > 0:
         logging.basicConfig(level=logging.DEBUG)
@@ -69,6 +71,8 @@ def main(name, output, max_time, autorun, taxi, passenger, coordinator, port, nu
             break
 
     simulator.stop()
+    if output:
+        simulator.write_file(output, oformat)
 
     sys.exit(0)
 

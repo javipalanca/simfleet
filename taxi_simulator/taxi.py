@@ -24,7 +24,7 @@ class TaxiAgent(Agent):
         self.dest = None
         self.path = None
         self.chunked_path = None
-        self.speed_in_kmh = 1000
+        self.speed_in_kmh = 2000
         self.animation_speed = ONESECOND_IN_MS
         self.distances = []
         self.durations = []
@@ -110,7 +110,11 @@ class TaxiAgent(Agent):
             raise PathRequestException
 
         self.path = path
-        self.chunked_path = chunk_path(path, self.speed_in_kmh)
+        try:
+            self.chunked_path = chunk_path(path, self.speed_in_kmh)
+        except Exception as e:
+            logger.error("Exception chunking path {}: {}".format(path, e))
+            raise PathRequestException
         self.dest = dest
         self.distances.append(distance)
         self.durations.append(duration)
@@ -202,7 +206,6 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         self.myAgent.current_passenger_orig = origin
         self.myAgent.current_passenger_dest = dest
         self.myAgent.move_to(self.myAgent.current_passenger_orig)
-        self.myAgent.status = TAXI_MOVING_TO_PASSENGER  # TODO: extract
         self.myAgent.send(reply)
         self.myAgent.num_assignments += 1
 

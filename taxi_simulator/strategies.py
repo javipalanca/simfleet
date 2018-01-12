@@ -49,17 +49,18 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
                                                                       content["passenger_id"]))
                 try:
                     self.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])
-                    self.myAgent.status = TAXI_MOVING_TO_PASSENGER
+                    self.myAgent.status = TAXI_MOVING_TO_PASSENGER # A VECES NO SE LLEGA AQUI Y EL TAXI NO SE MUEVE
                 except PathRequestException:
-                    self.cancel_proposal(content["passenger_id"], {})
                     self.myAgent.status = TAXI_WAITING
+                    self.cancel_proposal(content["passenger_id"], {})
             else:
                 self.cancel_proposal(content["passenger_id"], {})
 
         elif performative == REFUSE_PERFORMATIVE:
             self.logger.debug("Taxi {} got refusal from {}".format(self.myAgent.agent_id,
                                                                    content["passenger_id"]))
-            self.myAgent.status = TAXI_WAITING
+            if self.myAgent.status == TAXI_WAITING_FOR_APPROVAL:
+                self.myAgent.status = TAXI_WAITING
 
 
 ################################################################

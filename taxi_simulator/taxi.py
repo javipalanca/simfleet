@@ -99,6 +99,8 @@ class TaxiAgent(Agent):
         return self.dest == self.get_position()
 
     def move_to(self, dest):
+        if self.current_pos == dest:
+            return
         counter = 5
         path = None
         distance, duration = 0, 0

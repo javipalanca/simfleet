@@ -93,8 +93,10 @@ def chunk_path(path, speed_in_kmh):
     for i in range(1, length):
         _cur = path[i - 1]
         _next = path[i]
+        if _cur == _next:
+            continue
         distance = distance_in_meters(_cur, _next)
-        factor = meters_per_second / distance
+        factor = meters_per_second / distance if distance else 0
         diff_lat = factor * (_next[0] - _cur[0])
         diff_lng = factor * (_next[1] - _cur[1])
 

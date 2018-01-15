@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
@@ -13,11 +13,12 @@
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css">
+    <!--link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css">
     <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/MarkerCluster.css">
     <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/MarkerCluster.Default.css">
     <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.43.0/L.Control.Locate.css">
-    <link rel="stylesheet" href="assets/leaflet-groupedlayercontrol/leaflet.groupedlayercontrol.css">
+    <link rel="stylesheet" href="assets/leaflet-groupedlayercontrol/leaflet.groupedlayercontrol.css"-->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css "/>
     <link rel="stylesheet" href="assets/css/bootstrap-treeview.min.css">
     <link rel="stylesheet" href="assets/css/app.css">
 
@@ -26,89 +27,82 @@
     <link rel="apple-touch-icon" sizes="152x152" href="assets/img/favicon-152.png">
     <link rel="icon" sizes="196x196" href="assets/img/favicon-196.png">
     <link rel="icon" type="image/x-icon" href="assets/img/favicon.ico">
-      <style>
-          .navbar.navbar-inverse {
-              background-color: #f7b731;
-              border-color: #f7b731;
-          }
-          .navbar-inverse .navbar-nav>li>a {
-              color: white;
-          }
-          .bodycontainer { max-height: 100%; overflow-y: auto; }
-          .table-scrollable { margin: 0; padding: 0; }
-      </style>
-  </head>
+    <style>
+        .navbar.navbar-inverse {
+            background-color: #f7b731;
+            border-color: #f7b731;
+        }
 
-  <body>
-    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-      <div class="container-fluid">
+        .navbar-inverse .navbar-nav > li > a {
+            color: white;
+        }
+
+        .bodycontainer {
+            max-height: 100%;
+            overflow-y: auto;
+        }
+
+        .table-scrollable {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container-fluid">
         <div class="navbar-header">
-          <div class="navbar-icon-container">
-            <a href="#" class="navbar-icon pull-right visible-xs" id="nav-btn"><i class="fa fa-bars fa-lg white"></i></a>
-            <a href="#" class="navbar-icon pull-right visible-xs" id="sidebar-toggle-btn"><i class="fa fa-search fa-lg white"></i></a>
-          </div>
-          <a class="navbar-brand" href="#"><i class="fa fa-taxi" aria-hidden="true"></i> Taxi Simulator</a>
+            <div class="navbar-icon-container">
+                <a href="#" class="navbar-icon pull-right visible-xs" id="nav-btn"><i
+                    class="fa fa-bars fa-lg white"></i></a>
+                <a href="#" class="navbar-icon pull-right visible-xs" id="sidebar-toggle-btn"><i
+                    class="fa fa-search fa-lg white"></i></a>
+            </div>
+            <a class="navbar-brand" href="#"><i class="fa fa-taxi" aria-hidden="true"></i> Taxi Simulator</a>
         </div>
         <div class="navbar-collapse collapse">
-          <ul class="nav navbar-nav">
-            <li class="hidden-xs"><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in" id="list-btn"><i class="fa fa-gears white"></i>&nbsp;&nbsp;Control Panel</a></li>
-          </ul>
+            <ul class="nav navbar-nav">
+                <li class="hidden-xs"><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in"
+                                         id="list-btn"><i class="fa fa-gears white"></i>&nbsp;&nbsp;Control Panel</a>
+                </li>
+            </ul>
         </div><!--/.navbar-collapse -->
-      </div>
     </div>
+</div>
 
-    <div id="container">
-      <div id="sidebar" class="bodycontainer table-scrollable">
-        <div class="sidebar-wrapper">
-          <div class="panel panel-default" id="features">
-            <div class="panel-heading">
-              <h3 class="panel-title">Control Panel
-              <button type="button" class="btn btn-xs btn-default pull-right" id="sidebar-hide-btn"><i class="fa fa-chevron-left"></i></button></h3>
-            </div>
-            <div class="panel-body">
-              <table class="table table-hover" id="feature-list">
-                <thead class="">
-                  <tr>
-                    <th><input type="number" class="form-control" id="numtaxis" placeholder="Taxis" /></th>
-                  <tr>
-                  <tr>
-                    <th><input type="number" class="form-control" id="numpassengers" placeholder="Passengers" /></th>
-                  <tr>
-                  <tr>
-                    <th><button type="button" class="btn btn-primary" data-sort="feature-name" id="generate-btn"><i class="fa fa-legal"></i>&nbsp;&nbsp;Add</button></th>
-                  <tr>
-                  <tr>
-                      <th><button type="button" class="btn btn-primary" data-sort="feature-name" id="play-btn"><i class="fa fa-play"></i>&nbsp;&nbsp;Run</button></th>
-                  <tr>
-                </thead>
-                <tbody class="list">
-                    <tr><th>Waiting Time</th><td id="waiting"></td></tr>
-                    <tr><th>Total Time</th><td id="total"></td></tr>
-                    <tr><td colspan="2"><div class="" id="tree"></div></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="map"></div>
-        <input type="hidden"id="backport" value="@!port!@" >
-    </div>
+<div id="container">
+
+        <sidebar-component></sidebar-component>
 
 
+        <v-map :zoom="zoom" :center="center">
+            <v-tilelayer :url="url"></v-tilelayer>
+        </v-map>
 
-    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.10.5/typeahead.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/3.0.3/handlebars.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.1.1/list.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js"></script>
-    <script src="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/leaflet.markercluster.js"></script>
-    <script src="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.43.0/L.Control.Locate.min.js"></script>
-    <script src="assets/leaflet-groupedlayercontrol/leaflet.groupedlayercontrol.js"></script>
-    <script src="assets/js/AnimatedMarker.js"></script>
-    <script src="assets/js/bootstrap-treeview.min.js"></script>
-    <script src="assets/js/app.js"></script>
-    <script src="assets/js/taxi.js"></script>
-  </body>
+    <input type="hidden" id="backport" value="@!port!@">
+</div>
+
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<!--script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.10.5/typeahead.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/3.0.3/handlebars.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.1.1/list.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js"></script>
+<script src="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/leaflet.markercluster.js"></script>
+<script src="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.43.0/L.Control.Locate.min.js"></script>
+<script src="assets/leaflet-groupedlayercontrol/leaflet.groupedlayercontrol.js"></script>
+<script src="assets/js/AnimatedMarker.js"></script-->
+<script src="https://unpkg.com/vue@2.2.4"></script>
+<script src="https://unpkg.com/vuex"></script>
+<script src="https://unpkg.com/leaflet@1.0.3"></script>
+<script src="https://unpkg.com/vue2-leaflet@0.0.45"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+<script src="assets/js/bootstrap-treeview.min.js"></script>
+<!--script src="assets/js/app.js"></script>
+<script src="assets/js/taxi.js"></script-->
+<script type="module" src="assets/js/main.js"></script>
+</body>
 </html>

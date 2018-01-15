@@ -6,9 +6,10 @@ from spade.ACLMessage import ACLMessage
 from spade.Agent import Agent
 from spade.Behaviour import ACLTemplate, MessageTemplate, Behaviour
 
-from utils import unused_port, random_position, PASSENGER_WAITING, coordinator_aid, REQUEST_PROTOCOL, \
-    REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, PASSENGER_IN_DEST, TAXI_MOVING_TO_PASSENGER, PASSENGER_IN_TAXI, \
-    TAXI_IN_PASSENGER_PLACE, TRAVEL_PROTOCOL, PASSENGER_LOCATION, REFUSE_PERFORMATIVE, PASSENGER_ASSIGNED
+from utils import PASSENGER_WAITING, PASSENGER_IN_DEST, TAXI_MOVING_TO_PASSENGER, PASSENGER_IN_TAXI, \
+    TAXI_IN_PASSENGER_PLACE, PASSENGER_LOCATION, PASSENGER_ASSIGNED, StrategyBehaviour
+from protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
+from helpers import coordinator_aid, random_position
 
 logger = logging.getLogger("PassengerAgent")
 
@@ -27,12 +28,18 @@ class PassengerAgent(Agent):
         self.pick_up_time = None
         self.end_time = None
 
-    def _setup(self):
-        self.port = unused_port("127.0.0.1")
-        self.wui.setPort(self.port)
-        self.wui.start()
-        self.wui.registerController("update_position", self.update_position_controller)
+        self.knowledge_base = {}
 
+    def store_value(self, key, value):
+        self.knowledge_base[key] = value
+
+    def get_value(self, key):
+        return self.knowledge_base.get(key)
+
+    def has_value(self, key):
+        return key in self.knowledge_base
+
+    def _setup(self):
         tpl = ACLTemplate()
         tpl.setProtocol(TRAVEL_PROTOCOL)
         template = MessageTemplate(tpl)
@@ -43,12 +50,6 @@ class PassengerAgent(Agent):
         tpl.setProtocol(REQUEST_PROTOCOL)
         template = MessageTemplate(tpl)
         self.addBehaviour(strategyClass(), template)
-
-    def update_position_controller(self, lat, lon):
-        coords = [float(lat), float(lon)]
-        self.set_position(coords)
-
-        return None, {}
 
     def set_id(self, agent_id):
         self.agent_id = agent_id
@@ -69,6 +70,9 @@ class PassengerAgent(Agent):
         else:
             self.dest = random_position()
         logger.debug("Passenger {} target position is {}".format(self.agent_id, self.dest))
+
+    def is_in_destination(self):
+        return self.status == PASSENGER_IN_DEST or self.get_position() == self.dest
 
     def total_time(self):
         if self.init_time and self.end_time:
@@ -106,7 +110,8 @@ class PassengerAgent(Agent):
 class TravelBehaviour(Behaviour):
     def _process(self):
         msg = self._receive(block=True)
-        content = json.loads(msg.getContent())
+        content = json.loads(msg.getContent().replace("'", '"'))
+        logger.debug("Passenger {} informed of: {}".format(self.myAgent.agent_id, content))
         if "status" in content:
             status = content["status"]
             if status == TAXI_MOVING_TO_PASSENGER:
@@ -126,29 +131,11 @@ class TravelBehaviour(Behaviour):
                 self.myAgent.set_position(coords)
 
 
-class PassengerStrategyBehaviour(Behaviour):
+class PassengerStrategyBehaviour(StrategyBehaviour):
     def onStart(self):
         self.logger = logging.getLogger("PassengerAgent")
         self.logger.debug("Strategy {} started in passenger {}".format(type(self).__name__, self.myAgent.agent_id))
         self.myAgent.init_time = time.time()
-
-    def timeout_receive(self, timeout=5):
-        """
-        Waits for a message until timeout is done.
-        If a message is received the method returns immediately.
-        If the time has passed and no message has been received, it returns None.
-        :param timeout: number of seconds to wait for a message
-        :type timeout: :class:`int`
-        :return: a message or None
-        :rtype: :class:`ACLMessage` or None
-        """
-        init_time = time.time()
-        while (time.time() - init_time) < timeout:
-            msg = self._receive(block=False)
-            if msg is not None:
-                return msg
-            time.sleep(0.1)
-        return None
 
     def send_request(self, content=None):
         """
@@ -196,7 +183,7 @@ class PassengerStrategyBehaviour(Behaviour):
         self.myAgent.taxi_assigned = taxi_aid.getName()
         self.logger.debug("Passenger {} accepted proposal from taxi {}".format(self.myAgent.agent_id,
                                                                                taxi_aid.getName()))
-        self.myAgent.status = PASSENGER_ASSIGNED
+        self.myAgent.status = PASSENGER_ASSIGNED  # TODO: extract
 
     def refuse_taxi(self, taxi_aid):
         """

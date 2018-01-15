@@ -1,33 +1,20 @@
 import os
 import sys
-import json
+import time
 import logging
-import random
 import socket
 from importlib import import_module
-
-import requests
-from geopy.distance import vincenty
+from abc import ABCMeta
 
 from datetime import timedelta
 from flask import make_response, request, current_app
 from functools import update_wrapper
 
-from spade.AID import aid
+from spade.Behaviour import Behaviour
+
+from helpers import distance_in_meters, kmh_to_ms
 
 logger = logging.getLogger()
-
-REGISTER_PROTOCOL = "REGISTER"
-CREATE_PROTOCOL = "CREATE"
-REQUEST_PROTOCOL = "REQUEST"
-TRAVEL_PROTOCOL = "INFORM"
-
-REQUEST_PERFORMATIVE = "request"
-ACCEPT_PERFORMATIVE = "accept"
-REFUSE_PERFORMATIVE = "refuse"
-PROPOSE_PERFORMATIVE = "propose"
-CANCEL_PERFORMATIVE = "cancel"
-INFORM_PERFORMATIVE = "inform"
 
 TAXI_WAITING = 10
 TAXI_MOVING_TO_PASSENGER = 11
@@ -42,26 +29,51 @@ PASSENGER_LOCATION = 23
 PASSENGER_ASSIGNED = 24
 
 
-def build_aid(agent_id):
-    return aid(name=agent_id + "@127.0.0.1", addresses=["xmpp://" + agent_id + "@127.0.0.1"])
+def status_to_str(status_code):
+    statuses = {
+        10: "TAXI_WAITING",
+        11: "TAXI_MOVING_TO_PASSENGER",
+        12: "TAXI_IN_PASSENGER_PLACE",
+        13: "TAXI_MOVING_TO_DESTINY",
+        14: "TAXI_WAITING_FOR_APPROVAL",
+        20: "PASSENGER_WAITING",
+        21: "PASSENGER_IN_TAXI",
+        22: "PASSENGER_IN_DEST",
+        23: "PASSENGER_LOCATION",
+        24: "PASSENGER_ASSIGNED"
+    }
+    return statuses[status_code]
 
 
-coordinator_aid = build_aid("coordinator")
+class StrategyBehaviour(Behaviour):
+    __metaclass__ = ABCMeta
 
+    def store_value(self, key, value):
+        self.myAgent.store_value(key, value)
 
-def random_position():
-    path = os.path.dirname(__file__) + os.sep + "templates" + os.sep + "data" + os.sep + "taxi_stations.json"
-    with open(path) as f:
-        stations = json.load(f)["features"]
-        pos = random.choice(stations)
-        coords = [pos["geometry"]["coordinates"][1], pos["geometry"]["coordinates"][0]]
-        lat = float("{0:.6f}".format(coords[0]))
-        lng = float("{0:.6f}".format(coords[1]))
-        return [lat, lng]
+    def get_value(self, key):
+        return self.myAgent.get_value(key)
 
+    def has_value(self, key):
+        return self.myAgent.has_value(key)
 
-def are_close(coord1, coord2, tolerance=10):
-    return vincenty(coord1, coord2).meters < tolerance
+    def timeout_receive(self, timeout=5):
+        """
+        Waits for a message until timeout is done.
+        If a message is received the method returns immediately.
+        If the time has passed and no message has been received, it returns None.
+        :param timeout: number of seconds to wait for a message
+        :type timeout: :class:`int`
+        :return: a message or None
+        :rtype: :class:`ACLMessage` or None
+        """
+        init_time = time.time()
+        while (time.time() - init_time) < timeout:
+            msg = self._receive(block=False)
+            if msg is not None:
+                return msg
+            time.sleep(0.1)
+        return None
 
 
 def unused_port(hostname):
@@ -73,23 +85,32 @@ def unused_port(hostname):
     return port
 
 
-def request_path(ori, dest):
-    if ori[0] == dest[0] and ori[1] == dest[1]:
-        return [[ori[1], ori[0]]], 0, 0
-    try:
-        url = "http://osrm.gti-ia.upv.es/route/v1/car/{src1},{src2};{dest1},{dest2}?geometries=geojson&overview=full"
-        src1, src2, dest1, dest2 = ori[1], ori[0], dest[1], dest[0]
-        url = url.format(src1=src1, src2=src2, dest1=dest1, dest2=dest2)
-        result = requests.get(url)
-        result = json.loads(result.content)
-        path = result["routes"][0]["geometry"]["coordinates"]
-        path = [[point[1], point[0]] for point in path]
-        duration = result["routes"][0]["duration"]
-        distance = result["routes"][0]["distance"]
-        return path, distance, duration
-    except Exception as e:
-        logger.error("Error requesting route: {}".format(e))
-    return None, None, None
+def chunk_path(path, speed_in_kmh):
+    meters_per_second = kmh_to_ms(speed_in_kmh)
+    length = len(path)
+    chunked_lat_lngs = []
+
+    for i in range(1, length):
+        _cur = path[i - 1]
+        _next = path[i]
+        if _cur == _next:
+            continue
+        distance = distance_in_meters(_cur, _next)
+        factor = meters_per_second / distance if distance else 0
+        diff_lat = factor * (_next[0] - _cur[0])
+        diff_lng = factor * (_next[1] - _cur[1])
+
+        if distance > meters_per_second:
+            while distance > meters_per_second:
+                _cur = [_cur[0] + diff_lat, _cur[1] + diff_lng]
+                distance = distance_in_meters(_cur, _next)
+                chunked_lat_lngs.append(_cur)
+        else:
+            chunked_lat_lngs.append(_cur)
+
+    chunked_lat_lngs.append(path[length - 1])
+
+    return chunked_lat_lngs
 
 
 def load_class(class_path):

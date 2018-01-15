@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 
 """Main module."""
-import json
 import logging
 import threading
 import os
 
-import faker
-from spade.ACLMessage import ACLMessage
+import pandas as pd
+import time
 from spade.Agent import Agent
-from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate
+from spade.Behaviour import ACLTemplate, MessageTemplate
 
-from passenger import PassengerAgent
-from taxi import TaxiAgent
-from utils import random_position, coordinator_aid, CREATE_PROTOCOL, REQUEST_PROTOCOL, REQUEST_PERFORMATIVE, load_class
+from utils import load_class, StrategyBehaviour, status_to_str
+from protocol import REQUEST_PROTOCOL
 
 logger = logging.getLogger("CoordinatorAgent")
 
@@ -21,6 +19,7 @@ logger = logging.getLogger("CoordinatorAgent")
 class CoordinatorAgent(Agent):
     def __init__(self, agentjid, password, debug, http_port, backend_port, debug_level):
         self.simulation_running = False
+        self.simulation_time = None
         self.kill_simulator = threading.Event()
         self.kill_simulator.clear()
         self.lock = threading.RLock()
@@ -31,13 +30,22 @@ class CoordinatorAgent(Agent):
         self.taxi_strategy = None
         self.passenger_strategy = None
 
-        self.faker = faker.Factory.create()
-
         self.http_port = http_port
         self.backend_port = backend_port
         self.debug_level = debug_level
 
+        self.knowledge_base = {}
+
         Agent.__init__(self, agentjid=agentjid, password=password, debug=debug)
+
+    def store_value(self, key, value):
+        self.knowledge_base[key] = value
+
+    def get_value(self, key):
+        return self.knowledge_base.get(key)
+
+    def has_value(self, key):
+        return key in self.knowledge_base
 
     def _setup(self):
         logger.info("Coordinator agent running")
@@ -50,14 +58,14 @@ class CoordinatorAgent(Agent):
 
         self.wui.registerController("app", self.index_controller)
         self.wui.registerController("entities", self.entities_controller)
-        self.wui.registerController("generate", self.generate_controller)
         self.wui.registerController("run", self.run_controller)
         self.wui.registerController("clean", self.clean_controller)
 
-        # tpl = ACLTemplate()
-        # tpl.setProtocol(CREATE_PROTOCOL)
-        # template = MessageTemplate(tpl)
-        # self.addBehaviour(CreateAgentBehaviour(), template)
+    def add_taxi(self, agent):
+        self.taxi_agents[agent.getName()] = agent
+
+    def add_passenger(self, agent):
+        self.passenger_agents[agent.getName()] = agent
 
     def set_strategies(self, coordinator_strategy, taxi_strategy, passenger_strategy):
         self.coordinator_strategy = load_class(coordinator_strategy)
@@ -76,7 +84,13 @@ class CoordinatorAgent(Agent):
                 passenger.add_strategy(self.passenger_strategy)
 
             self.simulation_running = True
+            self.simulation_time = time.time()
             logger.info("Simulation started.")
+
+    def get_simulation_time(self):
+        if not self.simulation_time:
+            return 0
+        return time.time() - self.simulation_time
 
     def add_strategy(self, strategy_class):
         tpl = ACLTemplate()
@@ -100,14 +114,6 @@ class CoordinatorAgent(Agent):
         }
         return None, result
 
-    def generate_controller(self, taxis=1, passengers=1):
-        taxis = int(taxis) if taxis is not None else 0
-        passengers = int(passengers) if passengers is not None else 0
-        logger.info("Creating {} taxis and {} passengers.".format(taxis, passengers))
-        self.create_agent("taxi", number=taxis)
-        self.create_agent("passenger", number=passengers)
-        return None, {"status": "done"}
-
     def clean_controller(self):
         self.stop_agents()
         self.taxi_agents = {}
@@ -124,18 +130,6 @@ class CoordinatorAgent(Agent):
             for name, agent in self.passenger_agents.items():
                 logger.info("Stopping passenger {}".format(name))
                 agent.stop()
-
-    def create_agent(self, type_, number=1):
-        msg = ACLMessage()
-        msg.addReceiver(coordinator_aid)
-        msg.setProtocol(CREATE_PROTOCOL)
-        msg.setPerformative(REQUEST_PERFORMATIVE)
-        content = {
-            "type": type_,
-            "number": number
-        }
-        msg.setContent(json.dumps(content))
-        self.send(msg)
 
     def generate_tree(self):
         tree = [
@@ -159,52 +153,40 @@ class CoordinatorAgent(Agent):
         return tree
 
     def get_stats(self):
-        def avg(l):
-            fl = filter(None, l)
-            return (sum(fl, 0.0) / len(fl)) if len(fl) > 0 else 0.0
+        def avg(array):
+            array_wo_nones = filter(None, array)
+            return (sum(array_wo_nones, 0.0) / len(array_wo_nones)) if len(array_wo_nones) > 0 else 0.0
 
         waiting = avg([passenger.get_waiting_time() for passenger in self.passenger_agents.values()])
         total = avg([passenger.total_time() for passenger in self.passenger_agents.values()])
         return {
             "waiting": "{0:.2f}".format(waiting),
-            "totaltime": "{0:.2f}".format(total)
+            "totaltime": "{0:.2f}".format(total),
+            "finished": self.is_simulation_finished()
         }
 
+    def get_passenger_stats(self):
+        names, waitings, totals, statuses = zip(*[(p.getName(), p.get_waiting_time(),
+                                                   p.total_time(), status_to_str(p.status))
+                                                  for p in self.passenger_agents.values()])
 
-class CreateAgentBehaviour(Behaviour):
-    def _process(self):
-        msg = self._receive(block=True)
-        content = json.loads(msg.content)
-        type_ = content["type"]
-        number = content["number"]
-        if type_ == "taxi":
-            cls = TaxiAgent
-            store = self.myAgent.taxi_agents
-            strategy = self.myAgent.taxi_strategy
-        else:  # type_ == "passenger":
-            cls = PassengerAgent
-            store = self.myAgent.passenger_agents
-            strategy = self.myAgent.passenger_strategy
+        df = pd.DataFrame.from_dict({"name": names, "waiting_time": waitings, "total_time": totals, "status": statuses})
+        return df
 
-        for _ in range(number):
-            with self.myAgent.lock:
-                if self.myAgent.kill_simulator.isSet():
-                    break
-                position = random_position()
-                name = self.myAgent.faker.user_name()
-                password = self.myAgent.faker.password()
-                jid = name + "@127.0.0.1"
-                agent = cls(jid, password, debug=self.myAgent.debug_level)
-                agent.set_id(name)
-                agent.set_position(position)
-                store[name] = agent
-                agent.start()
-                if self.myAgent.simulation_running:
-                    agent.add_strategy(strategy)
-                logger.debug("Created {} {} at position {}".format(type_, name, position))
+    def get_taxi_stats(self):
+        names, assignments, distances, statuses = zip(*[(t.getName(), t.num_assignments,
+                                                         "{0:.2f}".format(sum(t.distances)),
+                                                         status_to_str(t.status))
+                                                        for t in self.taxi_agents.values()])
+
+        df = pd.DataFrame.from_dict({"name": names, "assignments": assignments, "distance": distances, "status": statuses})
+        return df
+
+    def is_simulation_finished(self):
+        return all([passenger.is_in_destination() for passenger in self.passenger_agents.values()])
 
 
-class CoordinatorStrategyBehaviour(Behaviour):
+class CoordinatorStrategyBehaviour(StrategyBehaviour):
     def onStart(self):
         self.logger = logging.getLogger("CoordinatorAgent")
         self.logger.debug("Strategy {} started in coordinator".format(type(self).__name__))

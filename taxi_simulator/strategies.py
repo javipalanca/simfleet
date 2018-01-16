@@ -40,9 +40,6 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
                 self.send_proposal(content["passenger_id"], {})
                 self.myAgent.status = TAXI_WAITING_FOR_APPROVAL
 
-                self.logger.debug("Taxi {} sent proposal to passenger {}.".format(self.myAgent.agent_id,
-                                                                                  content["passenger_id"]))
-
         elif performative == ACCEPT_PERFORMATIVE:
             if self.myAgent.status == TAXI_WAITING_FOR_APPROVAL:
                 self.logger.debug("Taxi {} got accept from {}".format(self.myAgent.agent_id,
@@ -83,8 +80,8 @@ class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
             if performative == PROPOSE_PERFORMATIVE:
                 taxi_aid = msg.getSender()
                 if self.myAgent.status == PASSENGER_WAITING:
-                    self.logger.debug("Passenger {} received proposal from {}".format(self.myAgent.agent_id,
-                                                                                      taxi_aid.getName()))
+                    self.logger.debug("Passenger {} received proposal from taxi {}".format(self.myAgent.agent_id,
+                                                                                           taxi_aid.getName()))
                     self.accept_taxi(taxi_aid)
                 else:
                     self.refuse_taxi(taxi_aid)

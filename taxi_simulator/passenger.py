@@ -24,8 +24,8 @@ class PassengerAgent(Agent):
         self.port = None
         self.taxi_assigned = None
         self.init_time = None
-        self.waiting_time = None
-        self.pick_up_time = None
+        self.waiting_for_pickup_time = None
+        self.pickup_time = None
         self.end_time = None
 
         self.knowledge_base = {}
@@ -82,16 +82,16 @@ class PassengerAgent(Agent):
 
     def get_waiting_time(self):
         if self.init_time:
-            if self.pick_up_time:
-                t = self.pick_up_time - self.init_time
+            if self.pickup_time:
+                t = self.pickup_time - self.init_time
             else:
                 t = time.time() - self.init_time
             return t
         return None
 
-    def get_pick_up_time(self):
-        if self.pick_up_time:
-            return self.pick_up_time - self.waiting_time
+    def get_pickup_time(self):
+        if self.pickup_time:
+            return self.pickup_time - self.waiting_for_pickup_time
         return None
 
     def to_json(self):
@@ -115,7 +115,7 @@ class TravelBehaviour(Behaviour):
         if "status" in content:
             status = content["status"]
             if status == TAXI_MOVING_TO_PASSENGER:
-                self.myAgent.status = PASSENGER_ASSIGNED
+                # self.myAgent.status = PASSENGER_ASSIGNED
                 self.myAgent.waiting_time = time.time()
             elif status == TAXI_IN_PASSENGER_PLACE:
                 self.myAgent.status = PASSENGER_IN_TAXI

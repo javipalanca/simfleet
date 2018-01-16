@@ -29,10 +29,9 @@ new Vue({
     methods: {
         loadEntities: function () {
             axios.get("http://localhost:9000/entities")
-                .then(function (data) {
-                    this.$store.state.taxis = data.data.taxis;
-                    this.$store.state.passengers = data.data.passengers;
-                    console.log(this.taxis);
+                .then(data => {
+                    this.$store.commit('addTaxis', data.data.taxis);
+                    this.$store.commit('addPassengers', data.data.passengers);
                 })
         }
     },

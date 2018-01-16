@@ -68,3 +68,7 @@ def kmh_to_ms(speed_in_kmh):
 
 class PathRequestException(Exception):
     pass
+
+
+class AlreadyInDestination(Exception):
+    pass

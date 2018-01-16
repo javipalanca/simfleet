@@ -8,7 +8,8 @@ from spade.Behaviour import ACLTemplate, MessageTemplate, PeriodicBehaviour
 from utils import TAXI_WAITING, TAXI_MOVING_TO_PASSENGER, TAXI_IN_PASSENGER_PLACE, TAXI_MOVING_TO_DESTINY, \
     PASSENGER_IN_DEST, PASSENGER_LOCATION, chunk_path, StrategyBehaviour
 from protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
-from helpers import build_aid, random_position, distance_in_meters, request_path, kmh_to_ms, PathRequestException
+from helpers import build_aid, random_position, distance_in_meters, request_path, kmh_to_ms, PathRequestException, \
+    AlreadyInDestination
 
 logger = logging.getLogger("TaxiAgent")
 
@@ -59,19 +60,24 @@ class TaxiAgent(Agent):
             except PathRequestException:
                 self.cancel_passenger()
                 self.status = TAXI_WAITING
+            except AlreadyInDestination:
+                self.drop_passenger()
             else:
                 self.inform_passenger(TAXI_IN_PASSENGER_PLACE)
                 self.status = TAXI_MOVING_TO_DESTINY
                 logger.info(
                     "Taxi {} has picked up the passenger {}.".format(self.agent_id, self.current_passenger.getName()))
         elif self.status == TAXI_MOVING_TO_DESTINY:
-            self.inform_passenger(PASSENGER_IN_DEST)
-            self.status = TAXI_WAITING
-            logger.info("Taxi {} has taken the passenger {} to his destination.".format(self.agent_id,
-                                                                                        self.current_passenger.getName()))
-            self.current_passenger = None
+            self.drop_passenger()
 
         return None, {}
+
+    def drop_passenger(self):
+        self.inform_passenger(PASSENGER_IN_DEST)
+        self.status = TAXI_WAITING
+        logger.info("Taxi {} has dropped the passenger {} in destination.".format(self.agent_id,
+                                                                                  self.current_passenger.getName()))
+        self.current_passenger = None
 
     def set_id(self, agent_id):
         self.agent_id = agent_id
@@ -100,7 +106,7 @@ class TaxiAgent(Agent):
 
     def move_to(self, dest):
         if self.current_pos == dest:
-            return
+            raise AlreadyInDestination
         counter = 5
         path = None
         distance, duration = 0, 0
@@ -207,9 +213,12 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         self.myAgent.current_passenger = passenger_aid
         self.myAgent.current_passenger_orig = origin
         self.myAgent.current_passenger_dest = dest
-        self.myAgent.move_to(self.myAgent.current_passenger_orig)
         self.myAgent.send(reply)
         self.myAgent.num_assignments += 1
+        try:
+            self.myAgent.move_to(self.myAgent.current_passenger_orig)
+        except AlreadyInDestination:
+            self.myAgent.arrived_to_destination()
 
     def send_proposal(self, passenger_id, content=None):
         """

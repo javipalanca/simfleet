@@ -1,6 +1,6 @@
 import {store} from './store.js'
 
-import SidebarComponent from './SidebarComponent.js'
+import SidebarComponent from './SidebarComponent.vue'
 
 new Vue({
     el: '#container',

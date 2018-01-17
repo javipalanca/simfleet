@@ -78,6 +78,19 @@
 
         <v-map :zoom="zoom" :center="center">
             <v-tilelayer :url="url"></v-tilelayer>
+            <span v-for="taxi in taxis">
+                <v-marker :lat-lng="taxi.latlng" :icon="taxiIcon">
+                    <v-popup :content="taxi.popup"></v-popup>
+                </v-marker>
+            </span>
+            <span v-for="passenger in passengers">
+                <v-marker :lat-lng="passenger.latlng" :icon="passengerIcon">
+                    <v-popup :content="passenger.popup"></v-popup>
+                </v-marker>
+            </span>
+            <span v-for="path in paths">
+                <v-polyline :lat-lngs="path.latlngs" :color="path.color"></v-polyline>
+            </span>
         </v-map>
 
     <input type="hidden" id="backport" value="@!port!@">
@@ -101,9 +114,6 @@
 <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
 <script src="assets/js/bootstrap-treeview.min.js"></script>
-<!--script src="assets/js/app.js"></script>
-<script src="assets/js/taxi.js"></script-->
-<!--script type="module" src="assets/js/main.js"></script-->
 <script type="module" src="assets/js/dist/build.js"></script>
 </body>
 </html>

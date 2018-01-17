@@ -6,9 +6,9 @@ include README.rst
 include requirements.txt
 
 recursive-include tests *
+recursive-exclude taxi_simulator/templates/assets/js/node_modules *
 recursive-include taxi_simulator/templates *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
-recursive-exclude taxi_simulator/templates/assets/js/node_modules *
 
 recursive-include docs *.rst conf.py Makefile make.bat *.jpg *.png *.gif

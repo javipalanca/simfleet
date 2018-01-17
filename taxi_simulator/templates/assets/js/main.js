@@ -25,10 +25,10 @@ new Vue({
         }
     },
     mounted() {
-        this.loadEntities();
-           setInterval(function () {
-                this.loadEntities();
-           }.bind(this), 500);
+       this.loadEntities();
+       setInterval(function () {
+            this.loadEntities();
+       }.bind(this), 100);
     },
     methods: {
         loadEntities: function () {
@@ -36,7 +36,11 @@ new Vue({
                 .then(data => {
                     this.$store.commit('addTaxis', data.data.taxis);
                     this.$store.commit('addPassengers', data.data.passengers);
-                })
+                }).catch(error => {});
+        },
+        markerMoved: function (event, item) {
+            //console.log(this.$refs.taxi[0]);
+            //console.log(item);
         }
     },
     computed: {

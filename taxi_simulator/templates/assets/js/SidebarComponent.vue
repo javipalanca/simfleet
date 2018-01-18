@@ -49,7 +49,6 @@
                         </tr>
                         <tr>
                             <td colspan="2">
-                                <span>TreeView</span>
                                 <slot></slot>
                             </td>
                         </tr>

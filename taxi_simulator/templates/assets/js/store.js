@@ -32,6 +32,9 @@ export const store = new Vuex.Store({
             if (is_finished) {
                 state.simulation_status = false;
             }
+        },
+        update_tree: (state, payload) => {
+            state.treedata = payload;
         }
     },
     getters: {
@@ -52,6 +55,9 @@ export const store = new Vuex.Store({
         },
         status: (state) => {
             return state.simulation_status;
+        },
+        tree: (state) => {
+            return state.treedata;
         }
     }
 });

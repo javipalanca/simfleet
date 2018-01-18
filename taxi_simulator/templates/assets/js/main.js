@@ -1,6 +1,6 @@
 import {store} from './store.js'
 
-import SidebarComponent from './SidebarComponent'
+import SidebarComponent from './SidebarComponent.vue'
 import TreeView from './TreeView'
 
 new Vue({
@@ -40,6 +40,7 @@ new Vue({
                     this.$store.state.waiting_time = data.data.stats.waiting;
                     this.$store.state.total_time = data.data.stats.totaltime;
                     this.$store.commit('update_simulation_status', data.data.stats.finished);
+                    this.$store.commit("update_tree", data.data.tree);
                 }).catch(error => {});
         },
         set_speed: function (event, item) {
@@ -57,34 +58,7 @@ new Vue({
             return this.$store.getters.get_paths;
         },
         treeData() {
-            return {
-                name: 'My Tree',
-                children: [
-                    {name: 'hello'},
-                    {name: 'wat'},
-                    {
-                        name: 'child folder',
-                        children: [
-                            {
-                                name: 'child folder',
-                                children: [
-                                    {name: 'hello'},
-                                    {name: 'wat'}
-                                ]
-                            },
-                            {name: 'hello'},
-                            {name: 'wat'},
-                            {
-                                name: 'child folder',
-                                children: [
-                                    {name: 'hello'},
-                                    {name: 'wat'}
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            }
+            return this.$store.getters.tree;
         }
     }
 });

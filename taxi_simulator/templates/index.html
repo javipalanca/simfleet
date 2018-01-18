@@ -69,9 +69,11 @@
 <div id="container">
 
         <sidebar-component>
-            <ul id="treeview-ul">
-              <tree-view class="item" :model="treeData"></tree-view>
-            </ul>
+            <div class="treeview">
+                <ul id="treeview-ul" class="list-group" style="list-style-type: none;">
+                  <tree-view class="item" :model="treeData"></tree-view>
+                </ul>
+            </div>
         </sidebar-component>
 
 

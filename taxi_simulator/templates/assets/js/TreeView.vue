@@ -1,8 +1,16 @@
 <template>
   <li>
-    <div :class="{bold: isFolder}" @click="toggle">
+    <div v-show="model.name !== 'Agents'"
+      :class="{bold: isFolder}"
+      class="list-group-item"
+      @click="toggle">
+      <span class="icon expand-icon glyphicon"
+            v-if="isFolder"
+            :class="{'glyphicon-chevron-down': open, 'glyphicon-chevron-right': !open}">
+      </span>
+      <span v-if="!isFolder" class="fa" :class="model.icon"></span>
       {{model.name}}
-      <span v-if="isFolder">[{{open ? '-' : '+'}}]</span>
+      <span class="badge" v-if="isFolder">{{model.count}}</span>
     </div>
     <ul v-show="open" v-if="isFolder">
       <tree-view
@@ -22,13 +30,12 @@
         },
         data: function () {
             return {
-              open: false
+              open: true
             }
         },
         computed: {
             isFolder: function () {
-              return this.model.children &&
-                this.model.children.length
+              return this.model.children
             }
         },
         methods: {
@@ -49,8 +56,20 @@
   font-weight: bold;
 }
 ul {
-  padding-left: 1em;
-  line-height: 1.5em;
-  list-style-type: dot;
+  /*padding-left: 1em;
+  line-height: 1.5em;*/
+  -webkit-padding-start: 0;
+  list-style-type: none;
+}
+
+.list-group-item{
+    border-radius: 0;
+
+    position: relative;
+    display: block;
+    padding: 10px 15px;
+    margin-bottom: -2px;
+    background-color: #fff;
+    border: 1px solid #ddd;
 }
 </style>

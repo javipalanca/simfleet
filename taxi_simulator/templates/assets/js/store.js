@@ -5,7 +5,11 @@ export const store = new Vuex.Store({
     state: {
         taxis: [],
         passengers: [],
-        paths: []
+        paths: [],
+        waiting_time: 0,
+        total_time: 0,
+        simulation_status: false,
+        treedata: {}
     },
     mutations: {
         addTaxis: (state, payload) => {
@@ -23,6 +27,11 @@ export const store = new Vuex.Store({
             for (let i = 0; i < payload.length; i++) {
                 update_item_in_collection(state.passengers, payload[i], passenger_popup);
             }
+        },
+        update_simulation_status: (state, is_finished) => {
+            if (is_finished) {
+                state.simulation_status = false;
+            }
         }
     },
     getters: {
@@ -34,6 +43,15 @@ export const store = new Vuex.Store({
         },
         get_paths: (state) => {
             return state.paths;
+        },
+        get_waiting_time: (state) => {
+            return state.waiting_time;
+        },
+        get_total_time: (state) => {
+            return state.total_time;
+        },
+        status: (state) => {
+            return state.simulation_status;
         }
     }
 });

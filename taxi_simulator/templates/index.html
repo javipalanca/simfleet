@@ -13,11 +13,6 @@
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
-    <!--link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css">
-    <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/MarkerCluster.css">
-    <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/MarkerCluster.Default.css">
-    <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.43.0/L.Control.Locate.css">
-    <link rel="stylesheet" href="assets/leaflet-groupedlayercontrol/leaflet.groupedlayercontrol.css"-->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css "/>
     <link rel="stylesheet" href="assets/css/bootstrap-treeview.min.css">
     <link rel="stylesheet" href="assets/css/app.css">
@@ -73,7 +68,11 @@
 
 <div id="container">
 
-        <sidebar-component></sidebar-component>
+        <sidebar-component>
+            <ul id="treeview-ul">
+              <tree-view class="item" :model="treeData"></tree-view>
+            </ul>
+        </sidebar-component>
 
 
         <v-map :zoom="zoom" :center="center" ref="map">

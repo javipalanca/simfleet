@@ -1,6 +1,7 @@
 import {store} from './store.js'
 
-import SidebarComponent from './SidebarComponent.vue'
+import SidebarComponent from './SidebarComponent'
+import TreeView from './TreeView'
 
 new Vue({
     el: '#container',
@@ -11,7 +12,8 @@ new Vue({
         'v-marker': Vue2Leaflet.Marker,
         'v-polyline': Vue2Leaflet.Polyline,
         'v-popup': Vue2Leaflet.Popup,
-        SidebarComponent: SidebarComponent
+        SidebarComponent: SidebarComponent,
+        'tree-view': TreeView
     },
     data() {
         return {
@@ -35,6 +37,9 @@ new Vue({
                 .then(data => {
                     this.$store.commit('addTaxis', data.data.taxis);
                     this.$store.commit('addPassengers', data.data.passengers);
+                    this.$store.state.waiting_time = data.data.stats.waiting;
+                    this.$store.state.total_time = data.data.stats.totaltime;
+                    this.$store.commit('update_simulation_status', data.data.stats.finished);
                 }).catch(error => {});
         },
         set_speed: function (event, item) {
@@ -50,6 +55,36 @@ new Vue({
         },
         paths() {
             return this.$store.getters.get_paths;
+        },
+        treeData() {
+            return {
+                name: 'My Tree',
+                children: [
+                    {name: 'hello'},
+                    {name: 'wat'},
+                    {
+                        name: 'child folder',
+                        children: [
+                            {
+                                name: 'child folder',
+                                children: [
+                                    {name: 'hello'},
+                                    {name: 'wat'}
+                                ]
+                            },
+                            {name: 'hello'},
+                            {name: 'wat'},
+                            {
+                                name: 'child folder',
+                                children: [
+                                    {name: 'hello'},
+                                    {name: 'wat'}
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
         }
     }
 });

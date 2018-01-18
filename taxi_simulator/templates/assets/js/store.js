@@ -12,6 +12,7 @@ export const store = new Vuex.Store({
             let new_paths = [];
             for (let i = 0; i < payload.length; i++) {
                 update_item_in_collection(state.taxis, payload[i], taxi_popup);
+
                 if (payload[i].path) {
                     new_paths.push({latlngs: payload[i].path, color: get_color(payload[i].status)})
                 }
@@ -42,11 +43,14 @@ let update_item_in_collection = function(collection, item, get_popup) {
     if (p === false) {
         item.latlng = L.latLng(item.position[0], item.position[1]);
         item.popup = get_popup(item);
+        item.visible = true;
         collection.push(item)
     }
     else {
         collection[p].latlng = L.latLng(item.position[0], item.position[1]);
         collection[p].popup = get_popup(item);
+        collection[p].speed = item.speed;
+        collection[p].visible = item.status !== 21 && item.status !== 22 && item.status !== 23
     }
 };
 

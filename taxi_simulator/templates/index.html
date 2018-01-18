@@ -76,15 +76,15 @@
         <sidebar-component></sidebar-component>
 
 
-        <v-map :zoom="zoom" :center="center">
+        <v-map :zoom="zoom" :center="center" ref="map">
             <v-tilelayer :url="url"></v-tilelayer>
             <span v-for="taxi in taxis">
-                <v-marker :lat-lng="taxi.latlng" :icon="taxiIcon" ref="taxi" @l-move="markerMoved($event, taxi)">
+                <v-marker :lat-lng="taxi.latlng" :icon="taxiIcon" @l-move="set_speed($event, taxi)">
                     <v-popup :content="taxi.popup"></v-popup>
                 </v-marker>
             </span>
             <span v-for="passenger in passengers">
-                <v-marker :lat-lng="passenger.latlng" :icon="passengerIcon">
+                <v-marker :lat-lng="passenger.latlng" :icon="passengerIcon" :visible="passenger.visible">
                     <v-popup :content="passenger.popup"></v-popup>
                 </v-marker>
             </span>
@@ -99,14 +99,6 @@
 
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-<!--script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.10.5/typeahead.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/3.0.3/handlebars.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.1.1/list.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js"></script>
-<script src="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/leaflet.markercluster.js"></script>
-<script src="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.43.0/L.Control.Locate.min.js"></script>
-<script src="assets/leaflet-groupedlayercontrol/leaflet.groupedlayercontrol.js"></script>
-<script src="assets/js/AnimatedMarker.js"></script-->
 <script src="https://unpkg.com/vue@2.2.4/dist/vue.js"></script>
 <script src="https://unpkg.com/vuex"></script>
 <script src="https://unpkg.com/leaflet@1.0.3"></script>

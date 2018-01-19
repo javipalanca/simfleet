@@ -1,11 +1,14 @@
 <template>
-    <div id="sidebar" class="bodycontainer table-scrollable">
+    <transition name="slide">
+    <div id="sidebar" class="bodycontainer table-scrollable" v-if="!hideSidebar">
         <div class="sidebar-wrapper">
             <div class="panel panel-default" id="features">
                 <div class="panel-heading">
                     <h3 class="panel-title">Control Panel
-                        <button type="button" class="btn btn-xs btn-default pull-right" id="sidebar-hide-btn"><i
-                            class="fa fa-chevron-left"></i></button>
+                        <button type="button" class="btn btn-xs btn-default pull-right"
+                                id="sidebar-hide-btn" @click="hideSidebar=!hideSidebar">
+                            <i class="fa fa-chevron-left"></i>
+                        </button>
                     </h3>
                 </div>
                 <div class="panel-body">
@@ -70,6 +73,7 @@
             </div>
         </div>
     </div>
+    </transition>
 </template>
 
 <script>
@@ -77,7 +81,8 @@
         data() {
             return {
                 numtaxis: 0,
-                numpassengers: 0
+                numpassengers: 0,
+                hideSidebar: false
             }
         },
         computed: {
@@ -102,3 +107,15 @@
         }
     }
 </script>
+
+<style>
+    .slide-enter-active, .slide-leave-active {
+        transition: 350ms;
+    }
+    .slide-enter, .slide-leave {
+        transform: translate(-100%, 0);
+    }
+    .slide-leave-to {
+      transform: translate(-100%, 0);
+    }
+</style>

@@ -4,7 +4,7 @@ import SidebarComponent from './SidebarComponent.vue'
 import TreeView from './TreeView'
 
 new Vue({
-    el: '#container',
+    el: '#app',
     store: store,
     components: {
         'v-map': Vue2Leaflet.Map,
@@ -45,6 +45,9 @@ new Vue({
         },
         set_speed: function (event, item) {
             event.target._icon.style[L.DomUtil.TRANSITION] = ('all ' + item.speed + 'ms linear');
+        },
+        showSidebar: function () {
+            this.$refs.sidebar.hideSidebar = !this.$refs.sidebar.hideSidebar
         }
     },
     computed: {

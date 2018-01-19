@@ -33,13 +33,13 @@ new Vue({
     },
     methods: {
         loadEntities: function () {
-            axios.get("http://localhost:9000/entities")
+            axios.get("/entities")
                 .then(data => {
                     this.$store.commit('addTaxis', data.data.taxis);
                     this.$store.commit('addPassengers', data.data.passengers);
                     this.$store.state.waiting_time = data.data.stats.waiting;
                     this.$store.state.total_time = data.data.stats.totaltime;
-                    this.$store.commit('update_simulation_status', data.data.stats.finished);
+                    this.$store.commit('update_simulation_status', data.data.stats.is_running, data.data.stats.finished);
                     this.$store.commit("update_tree", data.data.tree);
                 }).catch(error => {});
         },

@@ -170,7 +170,8 @@ class CoordinatorAgent(Agent):
         return {
             "waiting": "{0:.2f}".format(waiting),
             "totaltime": "{0:.2f}".format(total),
-            "finished": self.is_simulation_finished()
+            "finished": self.is_simulation_finished(),
+            "is_running": self.simulation_running
         }
 
     def get_passenger_stats(self):

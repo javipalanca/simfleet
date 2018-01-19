@@ -20,7 +20,6 @@ new Vue({
             zoom: 14,
             center: [39.47, -0.37],
             url: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
-            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://cartodb.com/attributions">CartoDB</a>',
             taxiIcon: L.icon({iconUrl: 'assets/img/taxi.png', iconSize: [38, 55]}),
             passengerIcon: L.icon({iconUrl: 'assets/img/passenger.png', iconSize: [38, 40]})
         }

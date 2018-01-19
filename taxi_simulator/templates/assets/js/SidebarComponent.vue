@@ -1,5 +1,7 @@
 <template>
-    <transition name="slide">
+    <transition name="slide"
+                enter-active-class="animated slideInLeft"
+                leave-active-class="animated slideOutLeft">
     <div id="sidebar" class="bodycontainer table-scrollable" v-if="!hideSidebar">
         <div class="sidebar-wrapper">
             <div class="panel panel-default" id="features">
@@ -107,15 +109,3 @@
         }
     }
 </script>
-
-<style>
-    .slide-enter-active, .slide-leave-active {
-        transition: 350ms;
-    }
-    .slide-enter, .slide-leave {
-        transform: translate(-100%, 0);
-    }
-    .slide-leave-to {
-      transform: translate(-100%, 0);
-    }
-</style>

@@ -28,10 +28,10 @@ export const store = new Vuex.Store({
                 update_item_in_collection(state.passengers, payload[i], passenger_popup);
             }
         },
-        update_simulation_status: (state, is_running, finished) => {
-            if(!is_running) state.simulation_status = false;
+        update_simulation_status: (state, stats) => {
+            if(!stats.is_running) state.simulation_status = false;
             else {
-                state.simulation_status = !finished;
+                state.simulation_status = !stats.finished;
             }
         },
         update_tree: (state, payload) => {

@@ -12,10 +12,7 @@
       {{model.name}}
       <span class="badge" v-if="isFolder">{{model.count}}</span>
     </div>
-    <transition name="child"
-                enter-active-class="animated fadeInDown"
-                leave-active-class="animated fadeOutUp"
-    >
+    <transition name="child">
     <ul v-show="open" v-if="isFolder">
       <tree-view
         class="item"

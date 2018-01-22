@@ -75,6 +75,7 @@ let update_item_in_collection = function(collection, item, get_popup) {
         collection[p].latlng = L.latLng(item.position[0], item.position[1]);
         collection[p].popup = get_popup(item);
         collection[p].speed = item.speed;
+        collection[p].status = item.status;
         collection[p].visible = item.status !== 21 && item.status !== 22 && item.status !== 23
     }
 };

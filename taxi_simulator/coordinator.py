@@ -140,9 +140,10 @@ class CoordinatorAgent(Agent):
                     "count": "{}".format(len(self.taxi_agents)),
                     "children": [
                         {
-                            "name": " {}".format(i),
+                            "name": " {}".format(i.getName().split("@")[0]),
+                            "status": i.status,
                             "icon": "fa-taxi"
-                        } for i in self.taxi_agents.keys()
+                        } for i in self.taxi_agents.values()
                     ]
                 },
                 {
@@ -150,9 +151,10 @@ class CoordinatorAgent(Agent):
                     "count": "{}".format(len(self.passenger_agents)),
                     "children": [
                         {
-                            "name": " {}".format(i),
+                            "name": " {}".format(i.getName().split("@")[0]),
+                            "status": i.status,
                             "icon": "fa-user"
-                        } for i in self.passenger_agents.keys()
+                        } for i in self.passenger_agents.values()
                     ]
                 },
 

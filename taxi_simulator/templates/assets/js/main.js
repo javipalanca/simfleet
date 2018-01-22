@@ -3,6 +3,8 @@ import {store} from './store.js'
 import SidebarComponent from './SidebarComponent.vue'
 import TreeView from './TreeView'
 
+Vue.use(vueDirectiveTooltip);
+
 new Vue({
     el: '#app',
     store: store,
@@ -13,7 +15,7 @@ new Vue({
         'v-polyline': Vue2Leaflet.Polyline,
         'v-popup': Vue2Leaflet.Popup,
         SidebarComponent: SidebarComponent,
-        'tree-view': TreeView
+        'tree-view': TreeView,
     },
     data() {
         return {

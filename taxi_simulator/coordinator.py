@@ -132,24 +132,34 @@ class CoordinatorAgent(Agent):
                 agent.stop()
 
     def generate_tree(self):
-        tree = [
-            {
-                "text": "Taxis",
-                "tags": ["{}".format(len(self.taxi_agents))],
-                "nodes": [{
-                    "text": " {}".format(i),
-                    "icon": "fa fa-taxi"
-                } for i in self.taxi_agents.keys()]
-            },
-            {
-                "text": "Passengers",
-                "tags": ["{}".format(len(self.passenger_agents))],
-                "nodes": [{
-                    "text": " {}".format(i),
-                    "icon": "fa fa-user"
-                } for i in self.passenger_agents.keys()]
-            }
-        ]
+        tree = {
+            "name": 'Agents',
+            "children": [
+                {
+                    "name": "Taxis",
+                    "count": "{}".format(len(self.taxi_agents)),
+                    "children": [
+                        {
+                            "name": " {}".format(i.getName().split("@")[0]),
+                            "status": i.status,
+                            "icon": "fa-taxi"
+                        } for i in self.taxi_agents.values()
+                    ]
+                },
+                {
+                    "name": "Passengers",
+                    "count": "{}".format(len(self.passenger_agents)),
+                    "children": [
+                        {
+                            "name": " {}".format(i.getName().split("@")[0]),
+                            "status": i.status,
+                            "icon": "fa-user"
+                        } for i in self.passenger_agents.values()
+                    ]
+                },
+
+            ]
+        }
         return tree
 
     def get_stats(self):
@@ -162,7 +172,8 @@ class CoordinatorAgent(Agent):
         return {
             "waiting": "{0:.2f}".format(waiting),
             "totaltime": "{0:.2f}".format(total),
-            "finished": self.is_simulation_finished()
+            "finished": self.is_simulation_finished(),
+            "is_running": self.simulation_running
         }
 
     def get_passenger_stats(self):

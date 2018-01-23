@@ -1,7 +1,8 @@
 from coordinator import CoordinatorStrategyBehaviour
 from passenger import PassengerStrategyBehaviour
 from taxi import TaxiStrategyBehaviour
-from utils import TAXI_WAITING, TAXI_WAITING_FOR_APPROVAL, PASSENGER_WAITING, TAXI_MOVING_TO_PASSENGER
+from utils import TAXI_WAITING, TAXI_WAITING_FOR_APPROVAL, PASSENGER_WAITING, TAXI_MOVING_TO_PASSENGER, \
+    PASSENGER_ASSIGNED
 from protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
     CANCEL_PERFORMATIVE
 from helpers import coordinator_aid, PathRequestException, content_to_json
@@ -86,6 +87,7 @@ class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
                     self.logger.debug("Passenger {} received proposal from {}".format(self.myAgent.agent_id,
                                                                                       taxi_aid.getName()))
                     self.accept_taxi(taxi_aid)
+                    self.myAgent.status = PASSENGER_ASSIGNED
                 else:
                     self.refuse_taxi(taxi_aid)
 

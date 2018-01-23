@@ -53,6 +53,7 @@ class TaxiAgent(Agent):
 
     def arrived_to_destination(self):
         self.path = None
+        self.chunked_path = None
         if self.status == TAXI_MOVING_TO_PASSENGER:
             try:
                 self.move_to(self.current_passenger_dest)
@@ -62,8 +63,8 @@ class TaxiAgent(Agent):
             else:
                 self.inform_passenger(TAXI_IN_PASSENGER_PLACE)
                 self.status = TAXI_MOVING_TO_DESTINY
-                logger.info(
-                    "Taxi {} has picked up the passenger {}.".format(self.agent_id, self.current_passenger.getName()))
+                logger.info("Taxi {} has picked up the passenger {}."
+                            .format(self.agent_id, self.current_passenger.getName()))
         elif self.status == TAXI_MOVING_TO_DESTINY:
             self.inform_passenger(PASSENGER_IN_DEST)
             self.status = TAXI_WAITING
@@ -222,13 +223,13 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         """
         if content is None:
             content = {}
+        self.logger.info("Taxi {} sent proposal to passenger {}".format(self.myAgent.agent_id, passenger_id))
         passenger_aid = build_aid(passenger_id)
         reply = ACLMessage()
         reply.addReceiver(passenger_aid)
         reply.setProtocol(REQUEST_PROTOCOL)
         reply.setPerformative(PROPOSE_PERFORMATIVE)
         reply.setContent(content)
-        self.logger.debug("Taxi {} sent proposal to passenger {}".format(self.myAgent.agent_id, passenger_id))
         self.myAgent.send(reply)
 
     def cancel_proposal(self, passenger_id, content=None):
@@ -242,13 +243,13 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         """
         if content is None:
             content = {}
+        self.logger.info("Taxi {} sent cancel proposal to passenger {}".format(self.myAgent.agent_id, passenger_id))
         passenger_aid = build_aid(passenger_id)
         reply = ACLMessage()
         reply.addReceiver(passenger_aid)
         reply.setProtocol(REQUEST_PROTOCOL)
         reply.setPerformative(CANCEL_PERFORMATIVE)
         reply.setContent(json.dumps(content))
-        self.logger.debug("Taxi {} sent cancel proposal to passenger {}".format(self.myAgent.agent_id, passenger_id))
         self.myAgent.send(reply)
 
     def _process(self):

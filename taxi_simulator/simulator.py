@@ -14,6 +14,7 @@ from spade import spade_backend
 from xmppd.xmppd import Server
 from flask import Flask
 
+from taxi_simulator.route import RouteAgent
 from utils import crossdomain
 from coordinator import CoordinatorAgent
 from scenario import Scenario
@@ -43,6 +44,8 @@ class Simulator(object):
         self.config = config
         self.pretty_name = "({})".format(self.config.simulation_name) if self.config.simulation_name else ""
         self.verbose = self.config.verbose
+
+        self.host = "127.0.0.1"
 
         self.simulation_time = 0
 
@@ -74,7 +77,7 @@ class Simulator(object):
         logger.debug("Running SPADE platform.")
 
         debug_level = ['always'] if self.verbose > 1 else []
-        self.coordinator_agent = CoordinatorAgent(config.coordinator_name + "@127.0.0.1",
+        self.coordinator_agent = CoordinatorAgent("{}@{}".format(config.coordinator_name, self.host),
                                                   password=config.coordinator_password,
                                                   debug=debug_level,
                                                   http_port=config.http_port,
@@ -84,6 +87,9 @@ class Simulator(object):
                                               config.taxi_strategy,
                                               config.passenger_strategy)
         self.coordinator_agent.start()
+
+        self.route_agent = RouteAgent("route@{}".format(self.host), "r0utepassw0rd", debug_level)
+        self.route_agent.start()
 
         logger.info("Creating {} taxis and {} passengers.".format(config.num_taxis, config.num_passengers))
         Scenario.create_agents_batch("taxi", config.num_taxis, self.coordinator_agent)
@@ -132,6 +138,7 @@ class Simulator(object):
 
         self.print_stats()
 
+        self.route_agent.stop()
         self.coordinator_agent.stop()
         self.platform.shutdown()
         self.xmpp_server.shutdown("")

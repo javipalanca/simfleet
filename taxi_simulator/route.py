@@ -5,7 +5,7 @@ import requests
 from collections import defaultdict
 from requests.adapters import HTTPAdapter
 from spade.Agent import Agent
-from spade.Behaviour import Behaviour
+from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate
 from urllib3 import Retry
 
 from helpers import content_to_json
@@ -21,11 +21,16 @@ class RouteAgent(Agent):
         self.route_cache = defaultdict(dict)
 
     def _setup(self):
-        self.addBehaviour(self.RequestRouteBehaviour())
+        template = ACLTemplate()
+        template.setPerformative("ROUTE")
+        t = MessageTemplate(template)
+        self.addBehaviour(self.RequestRouteBehaviour(), t)
+        logger.info("Route agent running")
 
     def get_route(self, origin, destination):
         try:
             item = self.route_cache[origin][destination]
+            logger.debug("Got route from cache")
         except KeyError:
             logger.debug("Requesting new route from server ({},{}).".format(origin, destination))
             path, distance, duration = self.request_route_to_server(origin, destination)
@@ -44,13 +49,13 @@ class RouteAgent(Agent):
                 logger.warn("Could not persist cache.")
 
     def load_cache(self):
-        with open("route_cache.json", 'r') as f:
-            try:
+        try:
+            with open("route_cache.json", 'r') as f:
                 self.route_cache = json.load(f)
-                logger.debug("Cache loaded.")
-            except:
-                logger.warn("Could not load cache file.")
-                self.route_cache = {}
+            logger.debug("Cache loaded.")
+        except:
+            logger.warn("Could not load cache file.")
+            self.route_cache = {}
 
     @staticmethod
     def request_route_to_server(origin, destination):
@@ -73,7 +78,7 @@ class RouteAgent(Agent):
             if path[-1] != destination:
                 path.append(destination)
             return path, distance, duration
-        except Exception as e:
+        except Exception:
             return None, None, None
 
     class RequestRouteBehaviour(Behaviour):
@@ -85,16 +90,20 @@ class RouteAgent(Agent):
             self.myAgent.persist_cache()
 
         def _process(self):
+            logger.debug("Wait for new route request message.")
             msg = self._receive(block=True)
+            logger.debug("Got route request message. {}".format(msg.getContent()))
 
             try:
                 content = content_to_json(msg)
                 reply_content = self.myAgent.get_route(content["origin"], content["destination"])
                 reply_content["type"] = "success"
             except Exception as e:
+                logger.error("Error requesting route: {}".format(e))
                 reply_content = {"type": "error", "body": str(e)}
 
             if reply_content["path"] is None:
+                logger.error("Could not retrieve route.")
                 reply_content = {"type": "error", "body": "Could not retrieve route."}
 
             reply = msg.createReply()

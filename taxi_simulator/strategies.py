@@ -52,11 +52,13 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
                     self.logger.error("Taxi {} could not get a path to passenger {}. Cancelling..."
                                       .format(self.myAgent.getName(), content["passenger_id"]))
                     self.myAgent.status = TAXI_WAITING
-                    self.cancel_proposal(content["passenger_id"], {})
+                    self.cancel_proposal(content["passenger_id"])
                 except Exception as e:
                     self.logger.error("Unexpected error in taxi {}: {}".format(self.myAgent.getName(), e))
+                    self.cancel_proposal(content["passenger_id"])
+                    self.myAgent.status = TAXI_WAITING
             else:
-                self.cancel_proposal(content["passenger_id"], {})
+                self.cancel_proposal(content["passenger_id"])
 
         elif performative == REFUSE_PERFORMATIVE:
             self.logger.debug("Taxi {} got refusal from {}".format(self.myAgent.agent_id,
@@ -78,8 +80,8 @@ class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
 
         if msg:
             performative = msg.getPerformative()
+            taxi_aid = msg.getSender()
             if performative == PROPOSE_PERFORMATIVE:
-                taxi_aid = msg.getSender()
                 if self.myAgent.status == PASSENGER_WAITING:
                     self.logger.debug("Passenger {} received proposal from taxi {}".format(self.myAgent.agent_id,
                                                                                            taxi_aid.getName()))
@@ -89,4 +91,7 @@ class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
                     self.refuse_taxi(taxi_aid)
 
             elif performative == CANCEL_PERFORMATIVE:
-                self.myAgent.status = PASSENGER_WAITING
+                if self.myAgent.taxi_assigned == taxi_aid.getName():
+                    self.logger.warn("Passenger {} received a CANCEL performative from Taxi {}."
+                                     .format(self.myAgent.agent_id, taxi_aid.getName()))
+                    self.myAgent.status = PASSENGER_WAITING

@@ -5,7 +5,9 @@ import random
 
 import requests
 from geopy.distance import vincenty
+from requests.adapters import HTTPAdapter
 from spade.AID import aid
+from urllib3 import Retry
 
 logger = logging.getLogger()
 
@@ -47,8 +49,14 @@ def request_path(ori, dest):
         url = "http://osrm.gti-ia.upv.es/route/v1/car/{src1},{src2};{dest1},{dest2}?geometries=geojson&overview=full"
         src1, src2, dest1, dest2 = ori[1], ori[0], dest[1], dest[0]
         url = url.format(src1=src1, src2=src2, dest1=dest1, dest2=dest2)
-        result = requests.get(url)
+
+        session = requests.Session()
+        retry = Retry(connect=3, backoff_factor=1.0)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount(url, adapter)
+        result = session.get(url)
         result = json.loads(result.content)
+
         path = result["routes"][0]["geometry"]["coordinates"]
         path = [[point[1], point[0]] for point in path]
         duration = result["routes"][0]["duration"]

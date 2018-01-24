@@ -116,7 +116,7 @@ class TaxiAgent(Agent):
             path, distance, duration = request_path(self.current_pos, dest)
             counter -= 1
         if path is None:
-            raise PathRequestException
+            raise PathRequestException("Error requesting route.")
 
         self.path = path
         try:
@@ -158,8 +158,8 @@ class TaxiAgent(Agent):
         reply.setProtocol(REQUEST_PROTOCOL)
         reply.setPerformative(CANCEL_PERFORMATIVE)
         reply.setContent(json.dumps(data))
-        logger.debug("Taxi {} sent cancel proposal to passenger {}".format(self.agent_id,
-                                                                           self.current_passenger.getName()))
+        logger.info("Taxi {} sent cancel proposal to passenger {}".format(self.agent_id,
+                                                                          self.current_passenger.getName()))
         self.send(reply)
 
     def to_json(self):

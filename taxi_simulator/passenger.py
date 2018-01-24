@@ -40,10 +40,17 @@ class PassengerAgent(Agent):
         return key in self.knowledge_base
 
     def _setup(self):
-        tpl = ACLTemplate()
-        tpl.setProtocol(TRAVEL_PROTOCOL)
-        template = MessageTemplate(tpl)
-        self.addBehaviour(TravelBehaviour(), template)
+        try:
+            tpl = ACLTemplate()
+            tpl.setProtocol(TRAVEL_PROTOCOL)
+            template = MessageTemplate(tpl)
+            travel_behaviour = TravelBehaviour()
+            self.addBehaviour(travel_behaviour, template)
+            while not self.hasBehaviour(travel_behaviour):
+                logger.warn("Passenger {} could not create TravelBehaviour. Retrying...".format(self.agent_id))
+                self.addBehaviour(travel_behaviour, template)
+        except Exception as e:
+            logger.error("EXCEPTION creating TravelBehaviour in Passenger {}: {}".format(self.agent_id, e))
 
     def add_strategy(self, strategyClass):
         tpl = ACLTemplate()
@@ -108,32 +115,37 @@ class PassengerAgent(Agent):
 
 
 class TravelBehaviour(Behaviour):
+    def onStart(self):
+        logger.debug("Passenger {} started TravelBehavior.".format(self.myAgent.agent_id))
+
     def _process(self):
         try:
             msg = self._receive(block=True)
-            content = content_to_json(msg)
-            logger.debug("Passenger {} informed of: {}".format(self.myAgent.agent_id, content))
-            if "status" in content:
-                status = content["status"]
-                if status != 23:
-                    logger.info("Passenger {} informed of status: {}".format(self.myAgent.agent_id, status))
-                if status == TAXI_MOVING_TO_PASSENGER:
-                    logger.info("Passenger {} waiting for taxi.".format(self.myAgent.agent_id))
-                    self.myAgent.waiting_time = time.time()
-                elif status == TAXI_IN_PASSENGER_PLACE:
-                    self.myAgent.status = PASSENGER_IN_TAXI
-                    logger.info("Passenger {} in taxi.".format(self.myAgent.agent_id))
-                    self.myAgent.pick_up_time = time.time()
-                elif status == PASSENGER_IN_DEST:
-                    self.myAgent.status = PASSENGER_IN_DEST
-                    self.myAgent.end_time = time.time()
-                    logger.info("Passenger {} arrived to destiny after {} seconds.".format(self.myAgent.agent_id,
-                                                                                           self.myAgent.total_time()))
-                elif status == PASSENGER_LOCATION:
-                    coords = content["location"]
-                    self.myAgent.set_position(coords)
+            if msg:
+                content = content_to_json(msg)
+                logger.debug("Passenger {} informed of: {}".format(self.myAgent.agent_id, content))
+                if "status" in content:
+                    status = content["status"]
+                    if status != 23:
+                        logger.info("Passenger {} informed of status: {}".format(self.myAgent.agent_id, status))
+                    if status == TAXI_MOVING_TO_PASSENGER:
+                        logger.info("Passenger {} waiting for taxi.".format(self.myAgent.agent_id))
+                        self.myAgent.waiting_time = time.time()
+                    elif status == TAXI_IN_PASSENGER_PLACE:
+                        self.myAgent.status = PASSENGER_IN_TAXI
+                        logger.info("Passenger {} in taxi.".format(self.myAgent.agent_id))
+                        self.myAgent.pick_up_time = time.time()
+                    elif status == PASSENGER_IN_DEST:
+                        self.myAgent.status = PASSENGER_IN_DEST
+                        self.myAgent.end_time = time.time()
+                        logger.info("Passenger {} arrived to destiny after {} seconds.".format(self.myAgent.agent_id,
+                                                                                               self.myAgent.total_time()))
+                    elif status == PASSENGER_LOCATION:
+                        coords = content["location"]
+                        self.myAgent.set_position(coords)
         except Exception as e:
             logger.error("EXCEPTION in Travel Behaviour of Passenger {}: {}".format(self.myAgent.agent_id, e))
+
 
 class PassengerStrategyBehaviour(StrategyBehaviour):
     def onStart(self):

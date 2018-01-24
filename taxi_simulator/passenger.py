@@ -9,7 +9,7 @@ from spade.Behaviour import ACLTemplate, MessageTemplate, Behaviour
 from utils import PASSENGER_WAITING, PASSENGER_IN_DEST, TAXI_MOVING_TO_PASSENGER, PASSENGER_IN_TAXI, \
     TAXI_IN_PASSENGER_PLACE, PASSENGER_LOCATION, PASSENGER_ASSIGNED, StrategyBehaviour
 from protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
-from helpers import coordinator_aid, random_position
+from helpers import coordinator_aid, random_position, content_to_json
 
 logger = logging.getLogger("PassengerAgent")
 
@@ -109,27 +109,31 @@ class PassengerAgent(Agent):
 
 class TravelBehaviour(Behaviour):
     def _process(self):
-        msg = self._receive(block=True)
-        content = json.loads(msg.getContent().replace("'", '"'))
-        logger.debug("Passenger {} informed of: {}".format(self.myAgent.agent_id, content))
-        if "status" in content:
-            status = content["status"]
-            if status == TAXI_MOVING_TO_PASSENGER:
-                # self.myAgent.status = PASSENGER_ASSIGNED
-                self.myAgent.waiting_time = time.time()
-            elif status == TAXI_IN_PASSENGER_PLACE:
-                self.myAgent.status = PASSENGER_IN_TAXI
-                logger.info("Passenger {} in taxi.".format(self.myAgent.agent_id))
-                self.myAgent.pick_up_time = time.time()
-            elif status == PASSENGER_IN_DEST:
-                self.myAgent.status = PASSENGER_IN_DEST
-                self.myAgent.end_time = time.time()
-                logger.info("Passenger {} arrived to destiny after {} seconds.".format(self.myAgent.agent_id,
-                                                                                       self.myAgent.total_time()))
-            elif status == PASSENGER_LOCATION:
-                coords = content["location"]
-                self.myAgent.set_position(coords)
-
+        try:
+            msg = self._receive(block=True)
+            content = content_to_json(msg)
+            logger.debug("Passenger {} informed of: {}".format(self.myAgent.agent_id, content))
+            if "status" in content:
+                status = content["status"]
+                if status != 23:
+                    logger.info("Passenger {} informed of status: {}".format(self.myAgent.agent_id, status))
+                if status == TAXI_MOVING_TO_PASSENGER:
+                    logger.info("Passenger {} waiting for taxi.".format(self.myAgent.agent_id))
+                    self.myAgent.waiting_time = time.time()
+                elif status == TAXI_IN_PASSENGER_PLACE:
+                    self.myAgent.status = PASSENGER_IN_TAXI
+                    logger.info("Passenger {} in taxi.".format(self.myAgent.agent_id))
+                    self.myAgent.pick_up_time = time.time()
+                elif status == PASSENGER_IN_DEST:
+                    self.myAgent.status = PASSENGER_IN_DEST
+                    self.myAgent.end_time = time.time()
+                    logger.info("Passenger {} arrived to destiny after {} seconds.".format(self.myAgent.agent_id,
+                                                                                           self.myAgent.total_time()))
+                elif status == PASSENGER_LOCATION:
+                    coords = content["location"]
+                    self.myAgent.set_position(coords)
+        except Exception as e:
+            logger.error("EXCEPTION in Travel Behaviour of Passenger {}: {}".format(self.myAgent.agent_id, e))
 
 class PassengerStrategyBehaviour(StrategyBehaviour):
     def onStart(self):
@@ -160,7 +164,7 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
         msg.setPerformative(REQUEST_PERFORMATIVE)
         msg.setContent(json.dumps(content))
         self.myAgent.send(msg)
-        self.logger.debug("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
+        self.logger.info("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
 
     def accept_taxi(self, taxi_aid):
         """
@@ -181,9 +185,8 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
         reply.setContent(json.dumps(content))
         self.myAgent.send(reply)
         self.myAgent.taxi_assigned = taxi_aid.getName()
-        self.logger.debug("Passenger {} accepted proposal from taxi {}".format(self.myAgent.agent_id,
+        self.logger.info("Passenger {} accepted proposal from taxi {}".format(self.myAgent.agent_id,
                                                                                taxi_aid.getName()))
-        self.myAgent.status = PASSENGER_ASSIGNED  # TODO: extract
 
     def refuse_taxi(self, taxi_aid):
         """
@@ -203,7 +206,7 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
         }
         reply.setContent(json.dumps(content))
         self.myAgent.send(reply)
-        self.logger.debug("Passenger {} refused proposal from taxi {}".format(self.myAgent.agent_id,
+        self.logger.info("Passenger {} refused proposal from taxi {}".format(self.myAgent.agent_id,
                                                                               taxi_aid.getName()))
 
     def _process(self):

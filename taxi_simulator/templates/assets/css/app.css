@@ -26,6 +26,12 @@ input[type="radio"], input[type="checkbox"] {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
+#container .vue2leaflet-map {
+    width: auto;
+    height: 100%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
 #loading {
     position: absolute;
     width: 220px;

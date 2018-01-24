@@ -6,7 +6,13 @@ include README.rst
 include requirements.txt
 
 recursive-include tests *
-recursive-include taxi_simulator/templates *
+recursive-include taxi_simulator/templates/ *.html
+recursive-include taxi_simulator/templates/data *
+recursive-include taxi_simulator/templates/assets/js *
+recursive-include taxi_simulator/templates/assets/css *
+recursive-include taxi_simulator/templates/assets/img *
+exclude taxi_simulator/templates/node_modules/ *
+
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 

@@ -67,4 +67,3 @@ class Scenario(object):
                 agent.start()
                 if coordinator.simulation_running:
                     agent.add_strategy(strategy)
-                logger.debug("Created {} {} at position {}".format(type_, name, position))

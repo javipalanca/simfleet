@@ -90,8 +90,8 @@ let getitem = function (collection, item) {
 };
 
 let color = {
-    11: "blue",
-    13: "green"
+    11: "rgb(255, 170, 0)",
+    13: "rgb(0, 149, 255)"
 };
 
 function get_color(status) {

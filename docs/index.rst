@@ -9,6 +9,7 @@ Contents:
    readme
    installation
    usage
+   develop
    modules
    contributing
    authors

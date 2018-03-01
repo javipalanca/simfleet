@@ -10,7 +10,7 @@ import time
 from spade.Agent import Agent
 from spade.Behaviour import ACLTemplate, MessageTemplate
 
-from utils import load_class, StrategyBehaviour, status_to_str
+from utils import load_class, StrategyBehaviour, status_to_str, request_path
 from protocol import REQUEST_PROTOCOL
 
 logger = logging.getLogger("CoordinatorAgent")
@@ -98,6 +98,9 @@ class CoordinatorAgent(Agent):
         template = MessageTemplate(tpl)
         self.addBehaviour(strategy_class(), template)
 
+    def request_path(self, origin, destination):
+        return request_path(self, origin, destination)
+
     def index_controller(self):
         return "index.html", {"port": self.backend_port}
 
@@ -167,8 +170,12 @@ class CoordinatorAgent(Agent):
             array_wo_nones = filter(None, array)
             return (sum(array_wo_nones, 0.0) / len(array_wo_nones)) if len(array_wo_nones) > 0 else 0.0
 
-        waiting = avg([passenger.get_waiting_time() for passenger in self.passenger_agents.values()])
-        total = avg([passenger.total_time() for passenger in self.passenger_agents.values()])
+        if len(self.passenger_agents) > 0:
+            waiting = avg([passenger.get_waiting_time() for passenger in self.passenger_agents.values()])
+            total = avg([passenger.total_time() for passenger in self.passenger_agents.values()])
+        else:
+            waiting, total = 0, 0
+
         return {
             "waiting": "{0:.2f}".format(waiting),
             "totaltime": "{0:.2f}".format(total),
@@ -177,19 +184,24 @@ class CoordinatorAgent(Agent):
         }
 
     def get_passenger_stats(self):
-        names, waitings, totals, statuses = zip(*[(p.getName(), p.get_waiting_time(),
-                                                   p.total_time(), status_to_str(p.status))
-                                                  for p in self.passenger_agents.values()])
+        try:
+            names, waitings, totals, statuses = zip(*[(p.getName(), p.get_waiting_time(),
+                                                       p.total_time(), status_to_str(p.status))
+                                                      for p in self.passenger_agents.values()])
+        except ValueError:
+            names, waitings, totals, statuses = [], [], [], []
 
         df = pd.DataFrame.from_dict({"name": names, "waiting_time": waitings, "total_time": totals, "status": statuses})
         return df
 
     def get_taxi_stats(self):
-        names, assignments, distances, statuses = zip(*[(t.getName(), t.num_assignments,
-                                                         "{0:.2f}".format(sum(t.distances)),
-                                                         status_to_str(t.status))
-                                                        for t in self.taxi_agents.values()])
-
+        try:
+            names, assignments, distances, statuses = zip(*[(t.getName(), t.num_assignments,
+                                                             "{0:.2f}".format(sum(t.distances)),
+                                                             status_to_str(t.status))
+                                                            for t in self.taxi_agents.values()])
+        except ValueError:
+            names, assignments, distances, statuses = [], [], [], []
         df = pd.DataFrame.from_dict({"name": names, "assignments": assignments, "distance": distances, "status": statuses})
         return df
 

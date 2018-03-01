@@ -1,8 +1,10 @@
+import json
 import os
 import sys
 import time
 import logging
 import socket
+import uuid
 from importlib import import_module
 from abc import ABCMeta
 
@@ -10,16 +12,17 @@ from datetime import timedelta
 from flask import make_response, request, current_app
 from functools import update_wrapper
 
-from spade.Behaviour import Behaviour
+from spade.ACLMessage import ACLMessage
+from spade.Behaviour import Behaviour, OneShotBehaviour, ACLTemplate, MessageTemplate
 
-from helpers import distance_in_meters, kmh_to_ms
+from helpers import distance_in_meters, kmh_to_ms, build_aid, content_to_json
 
 logger = logging.getLogger()
 
 TAXI_WAITING = 10
 TAXI_MOVING_TO_PASSENGER = 11
 TAXI_IN_PASSENGER_PLACE = 12
-TAXI_MOVING_TO_DESTINY = 13
+TAXI_MOVING_TO_DESTINATION = 13
 TAXI_WAITING_FOR_APPROVAL = 14
 
 PASSENGER_WAITING = 20
@@ -45,6 +48,16 @@ def status_to_str(status_code):
     return statuses[status_code]
 
 
+def timeout_receive(agent, timeout):
+    init_time = time.time()
+    while (time.time() - init_time) < timeout:
+        msg = agent._receive(block=False)
+        if msg is not None:
+            return msg
+        time.sleep(0.1)
+    return None
+
+
 class StrategyBehaviour(Behaviour):
     __metaclass__ = ABCMeta
 
@@ -67,13 +80,59 @@ class StrategyBehaviour(Behaviour):
         :return: a message or None
         :rtype: :class:`ACLMessage` or None
         """
-        init_time = time.time()
-        while (time.time() - init_time) < timeout:
-            msg = self._receive(block=False)
-            if msg is not None:
-                return msg
-            time.sleep(0.1)
-        return None
+        return timeout_receive(self, timeout)
+
+
+class RequestRouteBehaviour(OneShotBehaviour):
+    def __init__(self, msg, origin, destination):
+        self.origin = origin
+        self.destination = destination
+        self._msg = msg
+        self.result = {"path": None, "distance": None, "duration": None}
+        OneShotBehaviour.__init__(self)
+
+    def _process(self):
+        try:
+            self._msg.addReceiver(build_aid("route"))
+            self._msg.setPerformative("route")
+
+            content = {"origin": self.origin, "destination": self.destination}
+            self._msg.setContent(json.dumps(content))
+
+            self.myAgent.send(self._msg)
+            logger.debug("RequestRouteBehaviour sent message.")
+            msg = timeout_receive(self, 20)
+            logger.debug("RequestRouteBehaviour received message: {}".format(msg))
+            if msg is None:
+                logger.warn("There was an error requesting the route (timeout)")
+                self.result = {"type": "error"}
+                return
+
+            self.result = content_to_json(msg)
+
+        except Exception, e:
+            logger.error("Exception requesting route: " + str(e))
+
+
+def request_path(agent, origin, destination):
+    if origin[0] == destination[0] and origin[1] == destination[1]:
+        return [[origin[1], origin[0]]], 0, 0
+
+    msg = ACLMessage()
+    template = ACLTemplate()
+    template.setConversationId(msg.getConversationId())
+    r = str(uuid.uuid4()).replace("-", "")
+    msg.setReplyWith(r)
+    template.setInReplyTo(r)
+    t = MessageTemplate(template)
+    b = RequestRouteBehaviour(msg, origin, destination)
+    agent.addBehaviour(b, t)
+    b.join()
+
+    if b.result is {} or "type" in b.result and b.result["type"] == "error":
+        return None, None, None
+    else:
+        return b.result["path"], b.result["distance"], b.result["duration"]
 
 
 def unused_port(hostname):

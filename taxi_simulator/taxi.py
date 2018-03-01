@@ -5,10 +5,10 @@ from spade.ACLMessage import ACLMessage
 from spade.Agent import Agent
 from spade.Behaviour import ACLTemplate, MessageTemplate, PeriodicBehaviour
 
-from utils import TAXI_WAITING, TAXI_MOVING_TO_PASSENGER, TAXI_IN_PASSENGER_PLACE, TAXI_MOVING_TO_DESTINY, \
-    PASSENGER_IN_DEST, PASSENGER_LOCATION, chunk_path, StrategyBehaviour
+from utils import TAXI_WAITING, TAXI_MOVING_TO_PASSENGER, TAXI_IN_PASSENGER_PLACE, TAXI_MOVING_TO_DESTINATION, \
+    PASSENGER_IN_DEST, PASSENGER_LOCATION, chunk_path, request_path, StrategyBehaviour
 from protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
-from helpers import build_aid, random_position, distance_in_meters, request_path, kmh_to_ms, PathRequestException, \
+from helpers import build_aid, random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
     AlreadyInDestination
 
 logger = logging.getLogger("TaxiAgent")
@@ -65,10 +65,10 @@ class TaxiAgent(Agent):
                 self.drop_passenger()
             else:
                 self.inform_passenger(TAXI_IN_PASSENGER_PLACE)
-                self.status = TAXI_MOVING_TO_DESTINY
+                self.status = TAXI_MOVING_TO_DESTINATION
                 logger.info("Taxi {} has picked up the passenger {}."
                             .format(self.agent_id, self.current_passenger.getName()))
-        elif self.status == TAXI_MOVING_TO_DESTINY:
+        elif self.status == TAXI_MOVING_TO_DESTINATION:
             self.drop_passenger()
 
         return None, {}
@@ -80,6 +80,9 @@ class TaxiAgent(Agent):
                                                                                   self.current_passenger.getName()))
         self.current_passenger = None
 
+    def request_path(self, origin, destination):
+        return request_path(self, origin, destination)
+
     def set_id(self, agent_id):
         self.agent_id = agent_id
 
@@ -90,7 +93,7 @@ class TaxiAgent(Agent):
             self.current_pos = random_position()
 
         logger.debug("Taxi {} position is {}".format(self.agent_id, self.current_pos))
-        if self.status == TAXI_MOVING_TO_DESTINY:
+        if self.status == TAXI_MOVING_TO_DESTINATION:
             self.inform_passenger(PASSENGER_LOCATION, {"location": self.current_pos})
         if self.is_in_destination():
             logger.info("Taxi {} has arrived to destination.".format(self.agent_id))
@@ -113,7 +116,7 @@ class TaxiAgent(Agent):
         distance, duration = 0, 0
         while counter > 0 and path is None:
             logger.debug("Requesting path from {} to {}".format(self.current_pos, dest))
-            path, distance, duration = request_path(self.current_pos, dest)
+            path, distance, duration = self.request_path(self.current_pos, dest)
             counter -= 1
         if path is None:
             raise PathRequestException("Error requesting route.")
@@ -191,14 +194,14 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
 
     def pick_up_passenger(self, passenger_id, origin, dest):
         """
-        Starts a TRAVEL_PROTOCOL to pick up a passenger and get him to his destiny.
+        Starts a TRAVEL_PROTOCOL to pick up a passenger and get him to his destination.
         It automatically launches all the graphical process until the passenger is
         delivered.
         :param passenger_id: the id of the passenger
         :type passenger_id: :class:`str`
         :param origin: the coordinates of the current location of the passenger
         :type origin: :class:`list`
-        :param dest: the coordinates of the target destiny of the passenger
+        :param dest: the coordinates of the target destination of the passenger
         :type dest: :class:`list`
         """
         self.logger.info("Taxi {} on route to passenger {}".format(self.myAgent.agent_id, passenger_id))

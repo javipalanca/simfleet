@@ -7,7 +7,7 @@ from spade.Agent import Agent
 from spade.Behaviour import ACLTemplate, MessageTemplate, Behaviour
 
 from utils import PASSENGER_WAITING, PASSENGER_IN_DEST, TAXI_MOVING_TO_PASSENGER, PASSENGER_IN_TAXI, \
-    TAXI_IN_PASSENGER_PLACE, PASSENGER_LOCATION, PASSENGER_ASSIGNED, StrategyBehaviour
+    TAXI_IN_PASSENGER_PLACE, PASSENGER_LOCATION, StrategyBehaviour, request_path
 from protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
 from helpers import coordinator_aid, random_position, content_to_json
 
@@ -81,6 +81,9 @@ class PassengerAgent(Agent):
     def is_in_destination(self):
         return self.status == PASSENGER_IN_DEST or self.get_position() == self.dest
 
+    def request_path(self, origin, destination):
+        return request_path(self, origin, destination)
+
     def total_time(self):
         if self.init_time and self.end_time:
             return self.end_time - self.init_time
@@ -138,8 +141,8 @@ class TravelBehaviour(Behaviour):
                     elif status == PASSENGER_IN_DEST:
                         self.myAgent.status = PASSENGER_IN_DEST
                         self.myAgent.end_time = time.time()
-                        logger.info("Passenger {} arrived to destiny after {} seconds.".format(self.myAgent.agent_id,
-                                                                                               self.myAgent.total_time()))
+                        logger.info("Passenger {} arrived to destination after {} seconds."
+                                    .format(self.myAgent.agent_id, self.myAgent.total_time()))
                     elif status == PASSENGER_LOCATION:
                         coords = content["location"]
                         self.myAgent.set_position(coords)

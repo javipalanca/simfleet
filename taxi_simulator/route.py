@@ -22,21 +22,22 @@ class RouteAgent(Agent):
 
     def _setup(self):
         template = ACLTemplate()
-        template.setPerformative("ROUTE")
+        template.setPerformative("route")
         t = MessageTemplate(template)
         self.addBehaviour(self.RequestRouteBehaviour(), t)
         logger.info("Route agent running")
 
     def get_route(self, origin, destination):
+        key = ",".join([str(origin), str(destination)])
         try:
-            item = self.route_cache[origin][destination]
+            item = self.route_cache[key]
             logger.debug("Got route from cache")
         except KeyError:
             logger.debug("Requesting new route from server ({},{}).".format(origin, destination))
             path, distance, duration = self.request_route_to_server(origin, destination)
             item = {"path": path, "distance": distance, "duration": duration}
             if path is not None:
-                self.route_cache[origin][destination] = item
+                self.route_cache[key] = item
 
         return item
 

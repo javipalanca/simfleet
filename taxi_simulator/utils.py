@@ -88,23 +88,25 @@ class RequestRouteBehaviour(OneShotBehaviour):
         self.origin = origin
         self.destination = destination
         self._msg = msg
-        self.result = {None, None, None}
+        self.result = {"path": None, "distance": None, "duration": None}
         OneShotBehaviour.__init__(self)
 
     def _process(self):
         try:
             self._msg.addReceiver(build_aid("route"))
-            self._msg.setPerformative("ROUTE")
+            self._msg.setPerformative("route")
 
             content = {"origin": self.origin, "destination": self.destination}
             self._msg.setContent(json.dumps(content))
 
             self.myAgent.send(self._msg)
-
-            msg = timeout_receive(self.myAgent, 20)
+            logger.debug("RequestRouteBehaviour sent message.")
+            msg = timeout_receive(self, 20)
+            logger.debug("RequestRouteBehaviour received message: {}".format(msg))
             if msg is None:
                 logger.warn("There was an error requesting the route (timeout)")
-                return {}
+                self.result = {"type": "error"}
+                return
 
             self.result = content_to_json(msg)
 
@@ -125,9 +127,7 @@ def request_path(agent, origin, destination):
     t = MessageTemplate(template)
     b = RequestRouteBehaviour(msg, origin, destination)
     agent.addBehaviour(b, t)
-    logger.debug("FUEGO EL PRE-JOIN")
     b.join()
-    logger.debug("FUEGO EL POST-JOIN")
 
     if b.result is {} or "type" in b.result and b.result["type"] == "error":
         return None, None, None

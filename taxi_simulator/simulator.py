@@ -14,10 +14,10 @@ from spade import spade_backend
 from xmppd.xmppd import Server
 from flask import Flask
 
-from taxi_simulator.route import RouteAgent
 from utils import crossdomain
-from coordinator import CoordinatorAgent
 from scenario import Scenario
+from coordinator import CoordinatorAgent
+from route import RouteAgent
 
 logger = logging.getLogger()
 

@@ -1,5 +1,5 @@
 Welcome to Taxi Simulator's documentation!
-======================================
+==========================================
 
 Contents:
 

@@ -46,12 +46,11 @@ Description (and image) of Request Protocol (how some messages change agents' st
 
 
 
-How to implement your own strategies
-====================================
-Taxi simulator is designed to allow students to implement and test new strategies that lead to system optimization. The
-architecture of the simulator is built on a multi-agent system platform called SPADE. Although it is not necessary to
-build new agents in order to develop new negotiation strategies (the simulator provides all the necessary agents), it
-is interesting to know how they work and what methods they provide for the creation of negotiation strategies.
+Agent Foundations
+=================
+The architecture of Taxi Simulator is built on top of a multi-agent system platform called SPADE. Although it is not necessary to
+build new agents in order to develop new coordination strategies (the simulator provides all the necessary agents), it
+is interesting to know how they work and what methods they provide for the creation of coordination strategies.
 
 Next we will present the SPADE platform and its main features. For more documentation you can visit their website
 https://github.com/javipalanca/spade.
@@ -151,7 +150,9 @@ The content is a string-based body of the message. The performative and protocol
 conversation. They are usually used to represent the action and the rules that determine how the agents are going to
 communicate in a specific semantic context.
 
-.. note:: It's usually recommended to use a representation language for the content of the message. There are semantic languages like OWL or RDF, but in the case of this simulator we use JSON representation for ease of use.
+.. note::
+    It's usually recommended to use a representation language for the content of the message. There are semantic
+    languages like OWL or RDF, but in the case of this simulator we use JSON representation for ease of use.
 
 All these fields have a getter and setter function. An example is shown next::
 
@@ -166,7 +167,9 @@ All these fields have a getter and setter function. An example is shown next::
     msg.setBody("{'a_key': 'a_value'}")
 
 
-.. note:: Other fields that can be filled in the message are the content language (:func:`setLanguage`), the ontology (:func:`setOntology`) and so on.
+.. note::
+    Other fields that can be filled in the message are the content language (:func:`setLanguage`), the ontology
+    (:func:`setOntology`) and so on.
 
 The next step is to send the message. This is done with the :func:`send` method provided by a :class:`Behaviour`.
 See an example::
@@ -182,14 +185,14 @@ See an example::
                 receiver = spade.AID.aid(name="receiver@127.0.0.1",
                                          addresses=["xmpp://127.0.0.1"])
 
-                self.msg = spade.ACLMessage.ACLMessage()
-                self.msg.setPerformative("inform")
-                self.msg.setOntology("myOntology")
-                self.msg.setLanguage("OWL-S")
-                self.msg.addReceiver(receiver)
-                self.msg.setContent("Hello World")
+                msg = spade.ACLMessage.ACLMessage()
+                msg.setPerformative("inform")
+                msg.setOntology("myOntology")
+                msg.setLanguage("OWL-S")
+                msg.addReceiver(receiver)
+                msg.setContent("Hello World")
 
-                self.send(self.msg)  # send the message
+                self.send(msg)  # send the message
 
         def _setup(self):
             print "MyAgent starting..."
@@ -197,10 +200,124 @@ See an example::
             self.addBehaviour(behav)
 
 
-Only behaviours can receive messages
+Since only behaviours can receive messages SPADE provides a mechanism to configure which behavior must receive each type
+of message. This is done with `ACLTemplates`. When an agent receives a new message it checks if the message matches each
+of the behaviors using a template with which they where registered. If there is a match, the message is delivered to the
+mailbox of the corresponding behavior and will be read when the behavior executes the :func:`receive` method. Otherwise,
+the message will be delivered to a default behaviour if it was registered (the default behavior is registered with the
+:func:`setDefaultBehaviour` method instead of :func:`addBehaviour`).
+
+.. note::
+    The :func:`receive` method accepts an optional parameter: **timeout=seconds** to be a blocking method until the
+    specified number of seconds has elapsed. If timeout is reached without a message, then ``None`` is returned. If timeout
+    is 0, then the :func:`receive` function is non-blocking and returns a :class:`spade.ACLMessage.ACLMessage` or ``None``.
+
+An :class:`spade.Behaviour.ACLTemplate` is created using the same API of :class:`spade.Behaviour.ACLMessage`::
+
+    import spade
+    template = spade.Behaviour.ACLTemplate()
+    template.setOntology("myOntology")
+
+
+`ACLTemplates` must be wrapped with the :class:`spade.Behavior.MessageTemplate` to be registered with a behavior.
+
+.. note::
+    A :class:`spade.Behavior.MessageTemplate` accepts boolean operators to combine `ACLTemplates`
+    (e.g. ``my_tpl = Message Template( template1 & template2)``)
+
+At this point we can already see how to build an agent that registers a behavior with a template and receives messages
+that match that template::
+
+    import spade
+    import time
+
+    class RecvAgent(spade.Agent.Agent):
+        class ReceiveBehav(spade.Behaviour.Behaviour):
+
+            def _process(self):
+                msg = self.receive(block=True, timeout=10)
+
+                # Check wether the message arrived
+                if msg is not None:
+                    assert "myOntology" == msg.getOntology()
+                    print("I got a message with the ontology 'myOntology'")
+                else:
+                    print("I waited 10 seconds but got no message")
+                    time.sleep(1)
+
+        def _setup(self):
+            recv_behav = self.ReceiveBehav()
+            template = spade.Behaviour.ACLTemplate()
+            template.setOntology("myOntology")
+            msg_tplt = spade.Behaviour.MessageTemplate(template)
+
+            self.addBehaviour(recv_behav, msg_tplt)
+
+
+These are the basics of SPADE programming. To use `Taxi Simulator` you would not need to create all these structures,
+templates and classes. But it is always better to know the foundations before we get down to business.
+
+How to implement your own strategies
+====================================
+
+Taxi simulator is designed to allow students to implement and test new strategies that lead to system optimization. The
+goal of this educational simulator is to maker easier for students to work with new coordination strategies without going
+down to the mud. With this purpose, Taxi Simulator implements the Strategy design pattern, which allows students to test
+new coordination strategies without having to make major modifications in the application.
 
 The Strategy Pattern
 --------------------
+
+The **Strategy pattern** is a design pattern that enables selecting an algorithm at runtime. When in an application we
+have to implement different versions of an algorithm and we want to select at runtime a specific version of the
+algorithm, then the Strategy Pattern is the best choice for that purpose. With this pattern you can define a separate
+strategy in an object that encapsulates the algorithm. The application that executes the algorithm **must** define an
+interface that every implementation of the strategy will follow, as can be viewed in next figure:
+
+.. figure:: images/strategy.png
+    :align: center
+    :alt: The Strategy Pattern UML
+
+    The Strategy Pattern UML
+
+Following this implementation the context object can call the current strategy implementation without knowing how the
+algorithm was implemented. This design pattern was created among others by a group of authors commonly known as the
+**Gang of Four** (E. Gamma, R. Helm, R. Johnson and J. Vlissides) and is well presented in [GangOfFour95]_.
+
+Taxi Simulator uses the *Strategy Pattern* to allow students to implement three different strategies (one for the
+coordinator agent, one for the taxi agent and one for the passenger agent) without having to develop new agents or
+entering in the complexity of the simulator. Thanks to this pattern students can develop their strategies in an external
+file and pass it as an argument when the simulator is run.
+
+Taxi Simulator implements three interfaces for these agents and each interface provides also some helper functions that
+intend to make easier some common actions that each subclassed agent usually has to do. These three interfaces inherit
+from the :class:`StrategyBehaviour` class and are called: :class:`CoordinatorStrategyBehaviour`,
+:class:`TaxiStrategyBehaviour` and :class:`PassengerStrategyBehaviour`.
+
+.. figure:: images/strategybehavior.png
+    :align: center
+    :alt: The StrategyBehaviour class and their inherited interfaces
+
+    The StrategyBehaviour class and their inherited interfaces
+
+
+The Strategy Behaviour
+----------------------
+
+The :class:`StrategyBehaviour` is the metaclass from which interfaces are created for the strategies of each agent in
+the simulator. It inherits from a :class:`spade.Behaviour.Behaviour` class, so when implementing it you will have to
+overload the :func:`_process` method that will run cyclically endlessly until the agent stops.
+
+It also provides some helper functions that are widely useful for any kind of agent in the simulator. We have already
+read about the :func:`send` and :func:`receive` functions, that allow agents to comunicate with each other. The rest of
+the helper functions allow to store and retrieve information in the agent.
+
+.. warning::
+    Don't store information in the Behaviour itself since it is a cyclic behaviour and is run by calling repeteadly the
+    :func:`_process` function, so the context of the function is not persisted.
+
+The :func:`store_value`, :func:`get_value` and :func:`has_value` functions allow to store persistent information in the
+agent and to recover it at any moment. The store uses a *key-value* interface to store your data.
 
 
 Description of Coordinator Agent
@@ -262,3 +379,6 @@ Load simulator with your custom strategies::
 
 
 
+
+
+.. [GangOfFour95] E. Gamma, R. Helm, R. Johnson, and J. Vlissides. Design Patterns, Elements of Reusable Object Oriented Software. Addison-Wesley, 1995.

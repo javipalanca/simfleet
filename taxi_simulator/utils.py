@@ -71,6 +71,10 @@ class StrategyBehaviour(Behaviour):
         return self.myAgent.has_value(key)
 
     def timeout_receive(self, timeout=5):
+
+        return self.receive(timeout)
+
+    def receive(self, timeout=5):
         """
         Waits for a message until timeout is done.
         If a message is received the method returns immediately.
@@ -81,6 +85,15 @@ class StrategyBehaviour(Behaviour):
         :rtype: :class:`ACLMessage` or None
         """
         return timeout_receive(self, timeout)
+
+    def send(self, message):
+        """
+        Sends an :class:`spade.ACLMessage.ACLMessage`
+        :param msg: the message to be sent
+        :type msg: :class:`spade.ACLMessage.ACLMessage`
+        :return: None
+        """
+        self.myAgent.send(message)
 
 
 class RequestRouteBehaviour(OneShotBehaviour):

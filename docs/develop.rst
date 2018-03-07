@@ -96,7 +96,9 @@ a perception of the keyboard input, reasons on it and executes an action, indefi
 To build a behavior you must inherit from the type of behavior you want (in the case of this example the cyclic
 behaviour is implemented in the class :class:`spade.Behaviour.Behaviour`) and overload the method :func:`_process`
 where the body of the behavior is implemented. If needed you can also overload the :func:`onStart` and :func:`onEnd`
-methods to perform actions on the initialization or shutdown of a behavior::
+methods to perform actions on the initialization or shutdown of a behavior
+
+.. code-block:: python
 
     import spade
     import datetime
@@ -321,7 +323,7 @@ Helpers
 
 The Strategy Behaviour provides also some helper functions that are widely useful for any kind of agent in the simulator.
 We have already read about the :func:`send` and :func:`receive` functions, that allow agents to comunicate with each
-other. The rest of the helper functions allow to store and retrieve information in the agent.
+other. The rest of the helper functions allow to store and retrieve information in the agent and to log messages.
 
 .. code-block:: python
 

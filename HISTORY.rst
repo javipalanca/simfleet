@@ -2,6 +2,15 @@
 History
 =======
 
+0.3 ()
+------------------
+
+* Documentation highly improved.
+* Helper functions added and refined.
+* Javascript framework included: VueJS
+* Routes centralized with a Route agent.
+* UI improved.
+
 0.2 (2017-11-15)
 ------------------
 

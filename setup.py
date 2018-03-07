@@ -26,7 +26,7 @@ test_requirements = [
 
 setup(
     name='taxi_simulator',
-    version='0.2.0',
+    version='0.3.0',
     description="Agent-based taxi simulator to test strategies",
     long_description=readme + '\n\n' + history,
     author="Javi Palanca",

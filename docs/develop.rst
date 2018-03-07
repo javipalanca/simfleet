@@ -316,11 +316,24 @@ The :class:`StrategyBehaviour` is the metaclass from which interfaces are create
 the simulator. It inherits from a :class:`spade.Behaviour.Behaviour` class, so when implementing it you will have to
 overload the :func:`_process` method that will run cyclically endlessly until the agent stops.
 
-It also provides some helper functions that are widely useful for any kind of agent in the simulator. We have already
-read about the :func:`send` and :func:`receive` functions, that allow agents to comunicate with each other. The rest of
-the helper functions allow to store and retrieve information in the agent.
+Helpers
+~~~~~~~
 
-.. warning::
+The Strategy Behaviour provides also some helper functions that are widely useful for any kind of agent in the simulator.
+We have already read about the :func:`send` and :func:`receive` functions, that allow agents to comunicate with each
+other. The rest of the helper functions allow to store and retrieve information in the agent.
+
+.. code-block:: python
+
+    def receive(self, timeout=5)
+    def send(self, message)
+
+    def store_value(self, key, value)
+    def get_value(self, key)
+    def has_value(self, key)
+
+
+.. danger::
     Don't store information in the Behaviour itself since it is a cyclic behaviour and is run by calling repeteadly the
     :func:`_process` function, so the context of the function is not persisted.
 
@@ -371,13 +384,13 @@ Helpers
 To make it easier for the student, the coordinator agent has two helper functions that allow her to recover a list of
 all the taxi agents and passenger agents registered in the system. These functions are:
 
-:func:`get_taxi_agents`
-"""""""""""""""""""""""
-Returns a list of the taxi agents.
+* :func:`get_taxi_agents`
 
-:func:`get_passenger_agents`
-""""""""""""""""""""""""""""
-Returns a list of the passenger agents.
+    Returns a list of the taxi agents.
+
+* :func:`get_passenger_agents`
+
+    Returns a list of the passenger agents.
 
 Developing the Taxi Agent Strategy
 ----------------------------------
@@ -390,7 +403,7 @@ The taxi strategy is intended to receive requests from passengers, forwarded by 
 to that passengers in order to be selected by the corresponding passenger. If the taxi proposal is accepted, then it
 begins the process of going to the passenger's place, picking her up and taking her to the requested destination.
 
-.. danger::
+.. warning::
     The process that implies a taxi movement is out of the scope of the strategy and should not be addressed by the
     strategy implementation. This pasenger transfer process is automatically triggered when the strategy executes the
     helper function :func:`pick_up_passenger` (which is supposed to be the last action of a taxi strategy).
@@ -474,48 +487,190 @@ In the example below there are some helper functions that are specific for the t
 
 Let's present each one of them.
 
-:func:`send_proposal`
-"""""""""""""""""""""
-This helper function simplifies the composition and sending of a message to a passenger with a proposal. It sends an
-:class:`ACLMessage` to ``passenger_id`` using the **REQUEST_PROTOCOL** and a **PROPOSE_PERFORMATIVE**. It optionally
-accepts a `content` parameter where you can include any information you may want the receiver to analyze.
+* :func:`send_proposal`
 
-:func:`cancel_proposal`
-"""""""""""""""""""""
-This helper function simplifies the composition and sending of a message to a passenger to cancel a proposal. It sends an
-:class:`ACLMessage` to ``passenger_id`` using the **REQUEST_PROTOCOL** and a **CANCEL_PERFORMATIVE**. It optionally
-accepts a `content` parameter where you can include any information you may want the receiver to analyze.
+    This helper function simplifies the composition and sending of a message to a passenger with a proposal. It sends an
+    :class:`ACLMessage` to ``passenger_id`` using the **REQUEST_PROTOCOL** and a **PROPOSE_PERFORMATIVE**. It optionally
+    accepts a `content` parameter where you can include any information you may want the receiver to analyze.
 
-:func:`pick_up_passenger`
-"""""""""""""""""""""""""
-This helper function triggers the **TRAVEL_PROTOCOL** of a taxi, which is the protocol that is used to transfer a
-passenger from its origin to its destination. This is an important function since it is usually the last action that a
-taxi strategy does, since from this point an alternative behaviour of the agent to transport the passenger begins and
-the strategy has finished its purpose (until the taxi is free again and receives a new request from a new passenger).
+* :func:`cancel_proposal`
 
-The :func:`pick_up_passenger` helper function receives as parameters the id of the passenger and the coordinates of the
-passenger's current position (``origin``) and its destination (``dest``).
+    This helper function simplifies the composition and sending of a message to a passenger to cancel a proposal. It sends an
+    :class:`ACLMessage` to ``passenger_id`` using the **REQUEST_PROTOCOL** and a **CANCEL_PERFORMATIVE**. It optionally
+    accepts a `content` parameter where you can include any information you may want the receiver to analyze.
+
+* :func:`pick_up_passenger`
+
+    This helper function triggers the **TRAVEL_PROTOCOL** of a taxi, which is the protocol that is used to transfer a
+    passenger from its origin to its destination. This is an important function since it is usually the last action that a
+    taxi strategy does, since from this point an alternative behaviour of the agent to transport the passenger begins and
+    the strategy has finished its purpose (until the taxi is free again and receives a new request from a new passenger).
+
+    The :func:`pick_up_passenger` helper function receives as parameters the id of the passenger and the coordinates of the
+    passenger's current position (``origin``) and its destination (``dest``).
 
 
 Developing the Passenger Agent Strategy
 ---------------------------------------
 
+To develop a new strategy for the Passenger Agent you need to create a class that inherits
+:class:`PassengerStrategyBehaviour`. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
+that inherits from the :class:`StrategyBehaviour`, it has all the previously presented helper functions for
+communication and storing data inside the agent.
+
+The passenger strategy is intended to ask for a taxi to the coordinator agent, then wait for taxi proposals and, after
+evaluating them, choosing a taxi proposal to be taken to her destination.
+
+The place in the code where your passenger strategy must be coded is the :func:`_process` function. This
+function is executed in an infinite loop until the agent stops. In addition, you may overload also the :func:`onStart`
+and the :func:`onEnd` functions to execute code before the creation of the strategy or after its destruction.
+
+
 Code
 ~~~~
-Passenger strategies must inherit from :class:`PassengerStrategyBehaviour`
+The default strategy of a Passenger agent is a dummy strategy that accepts the first proposal it receives.
+As an example, this is the code of the default passenger strategy :class:`AcceptFirstRequestTaxiBehaviour`:
+
+.. code-block:: python
+
+    from taxi_simulator.passenger import PassengerStrategyBehaviour
+
+    class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
+        def _process(self):
+            # If I'm waiting then send a new request
+            if self.myAgent.status == PASSENGER_WAITING:
+                self.send_request(content={})
+
+            # wait 5 seconds for a proposal
+            msg = self.timeout_receive(timeout=5)
+
+            if msg:
+                performative = msg.getPerformative()
+                taxi_aid = msg.getSender()
+
+                # If I got a proposal then I blindly accept it
+                if performative == PROPOSE_PERFORMATIVE:
+                    # But I accept it only if I was waiting for a proposal
+                    if self.myAgent.status == PASSENGER_WAITING:
+                        self.logger.debug("Passenger {} received proposal from taxi {}"
+                                          .format(self.myAgent.agent_id, taxi_aid.getName()))
+                        self.accept_taxi(taxi_aid)
+                        self.myAgent.status = PASSENGER_ASSIGNED
+                    else:
+                        # Otherwise I refuse the proposal (since I wasn't waiting for it)
+                        self.refuse_taxi(taxi_aid)
+
+                # If I receive a CANCEL performative it means my taxi has given up and I'm waiting again
+                elif performative == CANCEL_PERFORMATIVE:
+                    if self.myAgent.taxi_assigned == taxi_aid.getName():
+                        self.logger.warn("Passenger {} received a CANCEL performative from Taxi {}."
+                                         .format(self.myAgent.agent_id, taxi_aid.getName()))
+                        self.myAgent.status = PASSENGER_WAITING
 
 Helpers
 ~~~~~~~
-::
+In the example below there are some helper functions that are specific for the passenger strategy. These are:
 
-            def send_request(self, content=None)
-            def accept_taxi(self, taxi_aid)
-            def refuse_taxi(self, taxi_aid)
-            def timeout_receive(self, timeout=5)
+.. code-block:: python
+
+    def send_request(self, content=None)
+    def accept_taxi(self, taxi_aid)
+    def refuse_taxi(self, taxi_aid)
+
+
+Let's present each one of them.
+
+* :func:`send_request`
+
+    This helper is useful to make a new request without building the whole message (the helper functions makes it for you).
+    It creates an `ACLMessage` with a **REQUEST** performative and sends it to the coordinator agent. In addition you can
+    append a content to the request message to be used by the coordinator agent or the taxi agents (e.g. your origin
+    coordinates or your destination coordinates).
+
+* :func:`accept_taxi`
+
+    This is a helper function to quickly send an acceptance message to a ``taxi_id``. It sends an `ACLMessage` with an
+    **ACCEPT** performative to the selected taxi.
+
+* :func:`refuse_taxi`
+
+    This is a helper function to quickly refuse a proposal from a ``taxi_id``. It sends an `ACLMessage` with an **REFUSE**
+    performative to the taxi whose proposal is being refused.
 
 Other Helpers
 -------------
+Taxi Simulator comes also with a :mod:`helpers` module to provide some transversal support methods that may be useful
+for any agent. In this section we are showing each one of them.
 
+* :func:`build_aid`
+
+
+    This function helps to create an :class:`spade.AID.aid` object using the name of an agent as a parameter. This helps to
+    create a structure that is very used when working with spade agents. It accepts a string with the name of the agent
+    (e.g. "coordinator") and returns a :class:`spade.AID.aid` instance to be used in a :class:`spade.ACLMessage.ACLMessage`.
+
+    Example:
+
+    .. code-block:: python
+
+        taxi_aid = build_aid("taxi_1234")
+
+        assert taxi_aid.getName() == "taxi_1234@127.0.0.1"
+        assert taxi_aid.getAddresses() == ["xmpp://taxi_1234@127.0.0.1"]
+
+
+* :const:`coordinator_aid`
+
+    Since the coordinator agent is a very common agent and needed by almost every passenger and taxi agent, the
+    :mod:`helpers` module provides a static :class:`spade.AID.aid` instance to communicate with the coordinator agent.
+
+* :func:`content_to_json`
+
+    Taxi Simulator uses the `JSON <https://www.json.org>`_ data-interchange format to use as the content language of the
+    messages (however, you can use the language you want, like RDF, XML, OWL, etc.). To facilitate the use of the JSON
+    format we provide this helper function that receives a :class:`spade.ACLMessage.ACLMessage` and returns the content
+    of the message if JSON format (which is actually a :obj:`dict` object in Python).
+
+    Example:
+
+    .. code-block:: python
+
+        msg = self.receive()
+
+        assert msg.getContent() == "{'my_coords': [39.253, -0.341]}"
+        assert content_to_json(msg) == {"my_coords": [39.253, -0.341]}
+
+* :func:`random_position`
+
+    This helper function returns a random position in the map for being used if you need to create a new coordinate.
+
+    Example:
+
+    .. code-block:: python
+
+        assert random_position() == [39.253, -0.341]
+
+* :func:`are_close`
+
+    This helper function facilitates working with distances in maps. This helper function accepts two coordinates
+    (:attr:`coord1` and :attr:`coord2`) and an optional parameter to set the tolerance in meters. It returns ``True`` if
+    both coordinates are closer than the tolerance in meters (10 meters by default). Otherwise it returns ``False``.
+
+    Example:
+
+    .. code-block:: python
+
+        assert are_close([39.253, -0.341], [39.351, -0.333], 1000) == True
+
+* :func:`distance_in_meters`
+
+    This helper function returns the distance in meters between two points.
+
+    Example:
+
+    .. code-block:: python
+
+        assert distance_in_meters([-0.37565, 39.44447], [-0.40392, 39.45293]) == 3264.7134341427977
 
 
 How to Implement New Strategies (Level 1) -- Recommendations
@@ -532,3 +687,4 @@ Load simulator with your custom strategies::
 
 
 .. [GangOfFour95] E. Gamma, R. Helm, R. Johnson, and J. Vlissides. Design Patterns, Elements of Reusable Object Oriented Software. Addison-Wesley, 1995.
+

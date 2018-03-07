@@ -50,11 +50,15 @@ def status_to_str(status_code):
 
 def timeout_receive(agent, timeout):
     init_time = time.time()
-    while (time.time() - init_time) < timeout:
-        msg = agent._receive(block=False)
-        if msg is not None:
-            return msg
-        time.sleep(0.1)
+    msg = agent._receive(block=False)
+    if msg is not None:
+        return msg
+    if timeout:
+        while (time.time() - init_time) < timeout:
+            msg = agent._receive(block=False)
+            if msg is not None:
+                return msg
+            time.sleep(0.1)
     return None
 
 

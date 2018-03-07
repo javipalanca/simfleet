@@ -15,9 +15,9 @@ from helpers import coordinator_aid, PathRequestException, content_to_json
 ################################################################
 class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
     def _process(self):
-        msg = self._receive(block=True)
+        msg = self.receive(timeout=60)
         msg.removeReceiver(coordinator_aid)
-        for taxi in self.myAgent.taxi_agents.values():
+        for taxi in self.get_taxi_agents():
             msg.addReceiver(taxi.getAID())
             self.logger.debug("Coordinator sent request to taxi {}".format(taxi.getName()))
         self.myAgent.send(msg)

@@ -214,5 +214,11 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
         self.logger = logging.getLogger("CoordinatorAgent")
         self.logger.debug("Strategy {} started in coordinator".format(type(self).__name__))
 
+    def get_taxi_agents(self):
+        return self.myAgent.taxi_agents.values()
+
+    def get_passenger_agents(self):
+        return self.myAgent.passenger_agents.values()
+
     def _process(self):
         raise NotImplementedError

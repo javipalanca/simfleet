@@ -3,6 +3,8 @@
 Developing new strategies
 =========================
 
+.. contents:: Table of Contents
+
 Introduction
 ============
 It is possible to change the behavior of three different agent "types" inside Taxi Simulator: Coordinator, Taxi and Passenger.
@@ -150,11 +152,13 @@ The content is a string-based body of the message. The performative and protocol
 conversation. They are usually used to represent the action and the rules that determine how the agents are going to
 communicate in a specific semantic context.
 
-.. note::
+.. tip::
     It's usually recommended to use a representation language for the content of the message. There are semantic
     languages like OWL or RDF, but in the case of this simulator we use JSON representation for ease of use.
 
-All these fields have a getter and setter function. An example is shown next::
+All these fields have a getter and setter function. An example is shown next:
+
+.. code-block:: python
 
     import spade
 
@@ -166,14 +170,14 @@ All these fields have a getter and setter function. An example is shown next::
     msg.setProtocol("my_custom_protocol")
     msg.setBody("{'a_key': 'a_value'}")
 
-
-.. note::
+.. hint::
     Other fields that can be filled in the message are the content language (:func:`setLanguage`), the ontology
     (:func:`setOntology`) and so on.
 
 The next step is to send the message. This is done with the :func:`send` method provided by a :class:`Behaviour`.
-See an example::
+See an example:
 
+.. code-block:: python
 
     import spade
 
@@ -212,7 +216,9 @@ the message will be delivered to a default behaviour if it was registered (the d
     specified number of seconds has elapsed. If timeout is reached without a message, then ``None`` is returned. If timeout
     is 0, then the :func:`receive` function is non-blocking and returns a :class:`spade.ACLMessage.ACLMessage` or ``None``.
 
-An :class:`spade.Behaviour.ACLTemplate` is created using the same API of :class:`spade.Behaviour.ACLMessage`::
+An :class:`spade.Behaviour.ACLTemplate` is created using the same API of :class:`spade.Behaviour.ACLMessage`:
+
+.. code-block:: python
 
     import spade
     template = spade.Behaviour.ACLTemplate()
@@ -226,7 +232,9 @@ An :class:`spade.Behaviour.ACLTemplate` is created using the same API of :class:
     (e.g. ``my_tpl = Message Template( template1 & template2)``)
 
 At this point we can already see how to build an agent that registers a behavior with a template and receives messages
-that match that template::
+that match that template:
+
+.. code-block:: python
 
     import spade
     import time
@@ -235,7 +243,7 @@ that match that template::
         class ReceiveBehav(spade.Behaviour.Behaviour):
 
             def _process(self):
-                msg = self.receive(block=True, timeout=10)
+                msg = self.receive(timeout=10)
 
                 # Check wether the message arrived
                 if msg is not None:
@@ -320,35 +328,177 @@ The :func:`store_value`, :func:`get_value` and :func:`has_value` functions allow
 agent and to recover it at any moment. The store uses a *key-value* interface to store your data.
 
 
-Description of Coordinator Agent
---------------------------------
+Developing the Coordinator Agent Strategy
+-----------------------------------------
+
+To develop a new strategy for the Coordinator Agent you need to create a class that inherits
+:class:`CoordinatorStrategyBehaviour`. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
+that inherits from the :class:`StrategyBehaviour`, it has all the previously presented helper functions for
+communication and storing data inside the agent.
+
+Following the *REQUEST* protocol, the Coordinator agent is supposed to receive every request for a taxi from passengers
+and to carry out the action that your strategy determines (remember that in the default strategy
+:class:`DelegateRequestTaxiBehaviour` the coordinator delegates the decision to all the taxis by redirecting all
+requests to all taxis without any previous or or further reasoning).
+
+The place in the code where your coordinator strategy must be coded is the :func:`_process` function. This
+function is executed in an infinite loop until the agent stops. In addition, you may overload also the :func:`onStart`
+and the :func:`onEnd` functions to execute code before the creation of the strategy or after its destruction.
 
 Code
 ~~~~
-Coordinator strategies must inherit from :class:`CoordinatorStrategyBehaviour`
+As an example, this is the code of the default coordinator strategy :class:`DelegateRequestTaxiBehaviour`:
+
+.. code-block:: python
+
+    from taxi_simulator.coordinator import CoordinatorStrategyBehaviour
+    from taxi_simulator.helpers import coordinator_aid
+
+    class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
+        def _process(self):
+            msg = self.receive(timeout=60)
+            if msg:
+                msg.removeReceiver(coordinator_aid)
+                for taxi in self.get_taxi_agents():
+                    msg.addReceiver(taxi.getAID())
+                    self.logger.debug("Coordinator sent request to taxi {}".format(taxi.getName()))
+                self.send(msg)
+
 
 Helpers
 ~~~~~~~
 
+To make it easier for the student, the coordinator agent has two helper functions that allow her to recover a list of
+all the taxi agents and passenger agents registered in the system. These functions are:
 
-Description of Taxi Agent
--------------------------
+:func:`get_taxi_agents`
+"""""""""""""""""""""""
+Returns a list of the taxi agents.
+
+:func:`get_passenger_agents`
+""""""""""""""""""""""""""""
+Returns a list of the passenger agents.
+
+Developing the Taxi Agent Strategy
+----------------------------------
+To develop a new strategy for the Taxi Agent you need to create a class that inherits
+:class:`TaxiStrategyBehaviour`. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
+that inherits from the :class:`StrategyBehaviour`, it has all the previously presented helper functions for
+communication and storing data inside the agent.
+
+The taxi strategy is intended to receive requests from passengers, forwarded by the coordinator agent, and to send proposals
+to that passengers in order to be selected by the corresponding passenger. If the taxi proposal is accepted, then it
+begins the process of going to the passenger's place, picking her up and taking her to the requested destination.
+
+.. danger::
+    The process that implies a taxi movement is out of the scope of the strategy and should not be addressed by the
+    strategy implementation. This pasenger transfer process is automatically triggered when the strategy executes the
+    helper function :func:`pick_up_passenger` (which is supposed to be the last action of a taxi strategy).
+
+The place in the code where your taxi strategy must be coded is the :func:`_process` function. This
+function is executed in an infinite loop until the agent stops. In addition, you may overload also the :func:`onStart`
+and the :func:`onEnd` functions to execute code before the creation of the strategy or after its destruction.
 
 Code
 ~~~~
-Taxi strategies must inherit from :class:`TaxiStrategyBehaviour`
+The default strategy of a taxi is to accept every passenger's requests if the taxi is not assigned to any other passenger
+or waiting a confirmation from any passenger.
+As an example, this is the code of the default taxi strategy :class:`AcceptAlwaysStrategyBehaviour`:
 
+.. code-block:: python
+
+    from taxi_simulator.taxi import TaxiStrategyBehaviour
+
+    class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
+        def _process(self):
+            # wait for a message
+            msg = self.receive(timeout=60)
+            if not msg:
+                # return if no new message
+                return
+            content = content_to_json(msg)  # deserialize string content to JSON
+            performative = msg.getPerformative()
+
+            self.logger.debug("Taxi {} received request protocol from passenger {}."
+                              .format(self.myAgent.agent_id, content["passenger_id"]))
+            # a new request from a passenger has arrived
+            if performative == REQUEST_PERFORMATIVE:
+                if self.myAgent.status == TAXI_WAITING:
+                    # send a proposal with an empty content and wait for approval
+                    self.send_proposal(content["passenger_id"], {})
+                    self.myAgent.status = TAXI_WAITING_FOR_APPROVAL
+
+            # my proposal has been accepted (Hooray!)
+            elif performative == ACCEPT_PERFORMATIVE:
+                # I should only receive an ACCEPT if I was waiting for it
+                if self.myAgent.status == TAXI_WAITING_FOR_APPROVAL:
+                    self.logger.debug("Taxi {} got accept from {}"
+                                      .format(self.myAgent.agent_id, content["passenger_id"]))
+                    try:
+                        # Change my status to MOVING and trigger pick_up_passenger. Strategy is done.
+                        self.myAgent.status = TAXI_MOVING_TO_PASSENGER
+                        self.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])
+
+                    except PathRequestException:
+                        # If taxi is not able to get a path to the passenger, then it is forced to cancel
+                        self.logger.error("Taxi {} could not get a path to passenger {}. Cancelling..."
+                                          .format(self.myAgent.getName(), content["passenger_id"]))
+                        self.myAgent.status = TAXI_WAITING
+                        self.cancel_proposal(content["passenger_id"])
+
+                    except Exception as e:
+                        self.logger.error("Unexpected error in taxi {name}: {exception}"
+                                          .format(name=self.myAgent.getName(), exception=e))
+                        self.cancel_proposal(content["passenger_id"])
+                        self.myAgent.status = TAXI_WAITING
+
+                else:  # If I was not waiting for an ACCEPT then cancel proposal with the passenger
+                    self.cancel_proposal(content["passenger_id"])
+
+            # my proposal has been refused. Don't worry, return to WAITING status and get over it.
+            elif performative == REFUSE_PERFORMATIVE:
+                self.logger.debug("Taxi {} got refusal from {}".format(self.myAgent.agent_id,
+                                                                       content["passenger_id"]))
+                self.myAgent.status = TAXI_WAITING
 Helpers
 ~~~~~~~
-::
+
+In the example below there are some helper functions that are specific for the taxi strategy. These are:
+
+.. code-block:: python
 
             def send_proposal(self, passenger_id, content=None)
             def cancel_proposal(self, passenger_id, content=None)
             def pick_up_passenger(self, passenger_id, origin, dest)
 
 
-Description of Passenger Agent
-------------------------------
+Let's present each one of them.
+
+:func:`send_proposal`
+"""""""""""""""""""""
+This helper function simplifies the composition and sending of a message to a passenger with a proposal. It sends an
+:class:`ACLMessage` to ``passenger_id`` using the **REQUEST_PROTOCOL** and a **PROPOSE_PERFORMATIVE**. It optionally
+accepts a `content` parameter where you can include any information you may want the receiver to analyze.
+
+:func:`cancel_proposal`
+"""""""""""""""""""""
+This helper function simplifies the composition and sending of a message to a passenger to cancel a proposal. It sends an
+:class:`ACLMessage` to ``passenger_id`` using the **REQUEST_PROTOCOL** and a **CANCEL_PERFORMATIVE**. It optionally
+accepts a `content` parameter where you can include any information you may want the receiver to analyze.
+
+:func:`pick_up_passenger`
+"""""""""""""""""""""""""
+This helper function triggers the **TRAVEL_PROTOCOL** of a taxi, which is the protocol that is used to transfer a
+passenger from its origin to its destination. This is an important function since it is usually the last action that a
+taxi strategy does, since from this point an alternative behaviour of the agent to transport the passenger begins and
+the strategy has finished its purpose (until the taxi is free again and receives a new request from a new passenger).
+
+The :func:`pick_up_passenger` helper function receives as parameters the id of the passenger and the coordinates of the
+passenger's current position (``origin``) and its destination (``dest``).
+
+
+Developing the Passenger Agent Strategy
+---------------------------------------
 
 Code
 ~~~~

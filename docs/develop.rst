@@ -340,6 +340,23 @@ other. The rest of the helper functions allow to store and retrieve information 
 The :func:`store_value`, :func:`get_value` and :func:`has_value` functions allow to store persistent information in the
 agent and to recover it at any moment. The store uses a *key-value* interface to store your data.
 
+There is also a very useful helper function which is the **logger**. This is not really a function but a system of logs
+which can be used to generate debug information at different levels. There are four levels of logging which are, in
+order of importance, the following:
+
+* **DEBUG**
+    Used with ``self.logger.debug("my debug message")``. These messages are only shown when the simulator is
+    called with the ``-v`` option. This is usually superfluous information.
+* **INFO**
+    Used with ``self.logger.info("my info message")``. These messages are always shown and are the regular
+    information shown in logs.
+* **WARNING**
+    Used with ``self.logger.warn("my warning message")``. These messages are always shown and are used to
+    show warnings to the user.
+* **ERROR**
+    Used with ``self.logger.error("my error message")``. These messages are always shown are are used to show
+    errors to the user.
+
 
 Developing the Coordinator Agent Strategy
 -----------------------------------------
@@ -676,15 +693,62 @@ for any agent. In this section we are showing each one of them.
 How to Implement New Strategies (Level 1) -- Recommendations
 ============================================================
 
-Load simulator with your custom strategies::
+At this point is time for you to implement your own strategies to optimize the problem of dispatching taxis to passengers.
+In this chapter we have shown you the tools to create these strategies. You have to create a file (in this example we
+are using ``my_strategy_file.py``) and develop the strategies to be tested following the next template:
 
- $ taxi_simulator --taxi my_strategy_file.MyTaxiStrategyClass
-                  --passenger my_strategy_file.MyPassengerStrategyClass
-                  --coordinator my_strategy_file.MyCoordinatorStrategyClass
+.. code-block:: python
+
+    from taxi_simulator.coordinator import CoordinatorStrategyBehaviour
+    from taxi_simulator.passenger import PassengerStrategyBehaviour
+    from taxi_simulator.taxi import TaxiStrategyBehaviour
+
+    ################################################################
+    #                                                              #
+    #                     Coordinator Strategy                     #
+    #                                                              #
+    ################################################################
+    class MyCoordinatorStrategy(CoordinatorStrategyBehaviour):
+        def _process(self):
+           # Your code here
+
+    ################################################################
+    #                                                              #
+    #                         Taxi Strategy                        #
+    #                                                              #
+    ################################################################
+    class MyTaxiStrategy(TaxiStrategyBehaviour):
+        def _process(self):
+           # Your code here
+
+    ################################################################
+    #                                                              #
+    #                       Passenger Strategy                     #
+    #                                                              #
+    ################################################################
+    class MyPassengerStrategy(PassengerStrategyBehaviour):
+        def _process(self):
+           # Your code here
 
 
+In this file, three strategies have been created for the three types of agent handled by the simulator. We have called
+these strategies :class:`MyCoordinatorStrategy`, :class:`MyTaxiStrategy` and :class:`MyPassengerStrategy`.
 
+To run the simulator with your new strategies the command line interface accepts three parameters with the name of the
+file (without extension) and the name of the class of each strategy.
 
+.. code-block:: bash
+
+ $ taxi_simulator --taxi my_strategy_file.MyTaxiStrategy
+                  --passenger my_strategy_file.MyPassengerStrategy
+                  --coordinator my_strategy_file.MyCoordinatorStrategy
+
+.. warning::
+    The file must be in the current working directory and it must be referenced *without* the extension (if the file is
+    named ``my_strategy_file.py`` use ``my_strategy_file`` when calling the simulator.
+
+Once run the simulator you can test your strategies using the graphical web interface or by inspecting the output of the
+logs in the command line.
 
 .. [GangOfFour95] E. Gamma, R. Helm, R. Johnson, and J. Vlissides. Design Patterns, Elements of Reusable Object Oriented Software. Addison-Wesley, 1995.
 

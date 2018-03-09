@@ -492,6 +492,7 @@ As an example, this is the code of the default taxi strategy :class:`AcceptAlway
                 self.logger.debug("Taxi {} got refusal from {}".format(self.myAgent.agent_id,
                                                                        content["passenger_id"]))
                 self.myAgent.status = TAXI_WAITING
+
 Helpers
 ~~~~~~~
 

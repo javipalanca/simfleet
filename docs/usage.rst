@@ -310,4 +310,89 @@ On the other hand, a blue path indicates that the taxi is taking the passenger t
 Loading Scenarios
 =================
 
+Adding agents using both the graphical interface and command line is convenient and fast, but if you want to perform
+repeatable experiments where you choose where agents appear and what the destinations of the passengers are (rather than
+random data) then you need the mechanism of the **scenarios**.
+
+The ability to load scenarios to Taxi Simulator allows us to repeat the same experiment as many times as we want with
+the same initial conditions. Taxi Simulator supports to load a *scenario* file that defines all the fields that you need
+to load the same information repeatedly. A scenario file must be coded in JSON format.
+
+The fields that the scenario file must include are a passengers list and a taxis list. Each passenger must include the
+following fields:
+
++-----------+--------------------------------------------------------------------+
+|  Field    |  Description                                                       |
++===========+====================================================================+
+| position  |     Initial coordinates of the passenger                           |
++-----------+--------------------------------------------------------------------+
+| dest      |    Destination coordinates of the passenger                        |
++-----------+--------------------------------------------------------------------+
+| name      |    Name of the passenger                                           |
++-----------+--------------------------------------------------------------------+
+| password  | Password for registering the passenger in the platform (optional)  |
++-----------+--------------------------------------------------------------------+
+
+For taxis the fields are as follows:
+
++-----------+--------------------------------------------------------------------+
+|  Field    |  Description                                                       |
++===========+====================================================================+
+|position   |   Initial coordinates of the taxi                                  |
++-----------+--------------------------------------------------------------------+
+|name       |   Name of the taxi                                                 |
++-----------+--------------------------------------------------------------------+
+|password   |   Password for registering the taxi in the platform (optional)     |
++-----------+--------------------------------------------------------------------+
+|speed      |   Speed of the taxi (in meters per second)                         |
++-----------+--------------------------------------------------------------------+
+
+An example of a scenario file with two passengers and two taxis:
+
+.. code-block:: json
+
+    {
+        "passengers": [
+            {
+                "dest": [ 39.463356, -0.376463 ],
+                "position": [ 39.460568, -0.352529 ],
+                "name": "michaelstewart",
+                "password": "T3TnmjuI(m"
+            },
+            {
+                "dest": [ 39.49529, -0.401478 ],
+                "position": [ 39.49529, -0.401478 ],
+                "name": "ghiggins",
+                "password": "@5wPA$Mx#O"
+            }
+        ],
+        "taxis": [
+            {
+                "position": [ 39.462618, -0.364888 ],
+                "name": "taxi1",
+                "password": "$JM!Zcwh0R",
+                "speed": 2000
+            },
+            {
+                "position": [ 39.478458, -0.406736 ],
+                "password": "_bx1TBEiu8",
+                "name": "taxi2",
+                "speed": 2000
+            }
+        ]
+    }
+
+
+Finally, to load a scenario in a simulation use the ``--scenario`` option with the filename of the JSON file:
+
+.. code-block:: console
+
+    $ taxi_simulator --scenario my_scenario.json
+
+    INFO:root:Starting Taxi Simulator
+    INFO:CoordinatorAgent:Coordinator agent running
+    INFO:CoordinatorAgent:Web interface running at http://127.0.0.1:9000/app
+    INFO:root:Creating 0 taxis and 0 passengers.
+    INFO:root:Loading scenario my_scenario.json
+    INFO:RouteAgent:Route agent running
 

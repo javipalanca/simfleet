@@ -1,9 +1,9 @@
-=====
-Usage
-=====
-
+==========
 Quickstart
 ==========
+
+Usage
+=====
 
 Using Taxi Simulator is as easy as running the application in a command line. There are two use modes: a command-line
 interface and a graphical web-based view. You can run simulations using only the command line or using the more easy and
@@ -216,12 +216,98 @@ shown).
 
 Graphical User Interface
 ========================
+A much more user-friendly way to use Taxi Simulator is through the built-in graphical user interface. This interface is
+accessed via any web browser. Just look at the address shown on the screen when you run the simulator and access that
+website.
+
+.. hint::
+    The Coordinator agent is who raises the GUI and shows the address in the debug:
+
+    .. code-block:: console
+
+        INFO:CoordinatorAgent:Web interface running at http://127.0.0.1:9000/app
+
+    This address is (in most cases): `http://127.0.0.1:9000/app <http://127.0.0.1:9000/app>`_
+
+Once you visit the GUI address you see an interface like this:
+
+.. figure:: images/screen1.png
+    :align: center
+    :alt: GUI at startup
+
+    GUI at startup
+
+In the GUI you can see a map of the city on the right and a Control Panel with various options on the left:
+
+#. Two selectors to set the number of taxis and passengers and an **Add** button. When this button is pressed the number of taxis and passengers that are in the input boxes are created in random positions inside the map. This form is very similar to the command line option, except that you can add Taxi and Passenger agents at any time during the simulation.
+
+#. A **Run** button that starts the simulation.
+
+#. Stats of the waiting time and total time of the simulation in real time.
+
+#. A collapsable tree view with the taxis and passengers that are included in the simulation, with a color bullet that indicates their current status.
+
+If the **Run** buttons is pressed the simulation shows how the taxis move to the passengers and deliver them to their
+destinations.
+
+.. figure:: images/screen2.png
+    :align: center
+    :alt: Simulation in progress
+
+    Simulation in progress
+
+Notice that when a taxi picks up a passenger, the passenger's icon disappears from the map view (since it
+is inside the taxi) and is no longer viewed (it's also not shown when it arrives to its desination). However, you can
+check at any time your passengers status in the tree view of the Control Panel.
+
+The code colors in the tree view indicate the status of a taxi or a passenger. The legend of colors is as follows:
+
++--------------------------------------+---------------------------------+
+|                Taxis                 |             Passengers          |
++--------------+-----------------------+---------------+-----------------+
+|  Bullet      |     Status            |  Bullet       |     Status      |
++==============+=======================+===============+=================+
+| |positive|   | WAITING               | |active|      |  WAITING        |
++--------------+-----------------------+---------------+-----------------+
+| |inter|      | WAITING FOR APPROVAL  | |inter|       |  ASSIGNED       |
++--------------+-----------------------+---------------+-----------------+
+| |interpulse| | MOVING TO PASSENGER   | |activepulse| |  IN TAXI        |
++--------------+-----------------------+---------------+-----------------+
+| |activepulse|| MOVING TO DESTINATION | |positive|    |  IN DESTINATION |
++--------------+-----------------------+---------------+-----------------+
 
 
-Advanced Features
-=================
+
+.. |positive| image:: images/positive2.png
+                :width: 36px
+
+.. |inter| image:: images/inter2.png
+                :width: 36px
+
+.. |interpulse| image:: images/interpulse2.png
+                :width: 36px
+
+.. |activepulse| image:: images/activepulse2.png
+                :width: 36px
+
+.. |active| image:: images/active2.png
+                :width: 36px
+
+.. hint::
+    Every time than a bullet is pulsing means that the agent is moving.
+
+
+When a taxi is moving it's also shown in the GUI the path that the taxi is folowing. The color of the path indicates the
+type of movement than the taxi is doing. A yellow path indicates that the taxi is going to pick up the passenger.
+On the other hand, a blue path indicates that the taxi is taking the passenger to his destination.
+
+
+.. note::
+    A simulation is finished when all taxis are free (and waiting for new passengers) and all passengers are in their
+    destinations (i.e. all bullets are green).
 
 
 Loading Scenarios
------------------
+=================
+
 

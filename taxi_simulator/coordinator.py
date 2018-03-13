@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-"""Main module."""
 import logging
 import threading
 import os

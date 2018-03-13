@@ -14,6 +14,10 @@ logger = logging.getLogger("RouteAgent")
 
 
 class RouteAgent(Agent):
+    """
+    The RouteAgent receives request for paths, queries an OSRM server and returns the information.
+    It also caches the queries to avoid overloading the OSRM server.
+    """
 
     def __init__(self, agentjid, password, debug):
         Agent.__init__(self, agentjid, password, debug=debug)
@@ -28,6 +32,16 @@ class RouteAgent(Agent):
         logger.info("Route agent running")
 
     def get_route(self, origin, destination):
+        """
+        Checks the cache for a path, if not found then it queries the OSRM server.
+
+        Args:
+            origin (list): origin coordinate (longitude, latitude)
+            destination (list): target coordinate (longitude, latitude)
+
+        Returns:
+            dict: a dict with three keys: path, distance and duration
+        """
         key = ",".join([str(origin), str(destination)])
         try:
             item = self.route_cache[key]
@@ -42,6 +56,9 @@ class RouteAgent(Agent):
         return item
 
     def persist_cache(self):
+        """
+        Persists the cache to a JSON file.
+        """
         with open("route_cache.json", 'w') as f:
             try:
                 json.dump(self.route_cache, f)
@@ -50,6 +67,9 @@ class RouteAgent(Agent):
                 logger.warn("Could not persist cache.")
 
     def load_cache(self):
+        """
+        Loads the cache from file.
+        """
         try:
             with open("route_cache.json", 'r') as f:
                 self.route_cache = json.load(f)
@@ -60,6 +80,16 @@ class RouteAgent(Agent):
 
     @staticmethod
     def request_route_to_server(origin, destination):
+        """
+        Queries the OSRM for a path.
+
+        Args:
+            origin (list): origin coordinate (longitude, latitude)
+            destination (list): target coordinate (longitude, latitude)
+
+        Returns:
+            list, float, float = the path, the distance of the path and the estimated duration
+        """
         try:
             url = "http://osrm.gti-ia.upv.es/route/v1/car/{src1},{src2};{dest1},{dest2}?geometries=geojson&overview=full"
             src1, src2, dest1, dest2 = origin[1], origin[0], destination[1], destination[0]
@@ -83,6 +113,10 @@ class RouteAgent(Agent):
             return None, None, None
 
     class RequestRouteBehaviour(Behaviour):
+        """
+        This cyclic behaviour listens for route requests from other agents.
+        When a message is received it answers with the path.
+        """
 
         def onStart(self):
             self.myAgent.load_cache()

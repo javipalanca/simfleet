@@ -1,19 +1,19 @@
-var taxiIcon = L.icon({
+const taxiIcon = L.icon({
     iconUrl: 'assets/img/taxi.png',
     iconSize: [38, 55], // size of the icon
 });
-var passengerIcon = L.icon({
+const passengerIcon = L.icon({
     iconUrl: 'assets/img/passenger.png',
     iconSize: [38, 40], // size of the icon
 });
 
-var passenger2Icon = L.icon({
+const passenger2Icon = L.icon({
     iconUrl: 'assets/img/passenger2.png',
     iconSize: [38, 40], // size of the icon
     className: "fadeOut",
 });
 
-var backend_port = $("#backport").val();
+const backend_port = $("#backport").val();
 
 $("#generate-btn").on("click", function (e) {
     var numtaxis = $("#numtaxis").val();
@@ -41,21 +41,21 @@ function request_url(url) {
     });
 }
 
-var taxis = {};
-var passengers = {};
-var paths = new HashTable();
-var urls = new HashTable();
+let taxis = {};
+let passengers = {};
+let paths = new HashTable();
+let urls = new HashTable();
 
-var PASSENGER_WAITING = 20;
-var PASSENGER_IN_TAXI = 21;
-var PASSENGER_IN_DEST = 22;
-var PASSENGER_ASSIGNED = 24;
+const PASSENGER_WAITING = 20;
+const PASSENGER_IN_TAXI = 21;
+const PASSENGER_IN_DEST = 22;
+const PASSENGER_ASSIGNED = 24;
 
-var statuses = {
+const statuses = {
     10: "TAXI_WAITING",
     11: "TAXI_MOVING_TO_PASSENGER",
     12: "TAXI_IN_PASSENGER_PLACE",
-    13: "TAXI_MOVING_TO_DESTINY",
+    13: "TAXI_MOVING_TO_DESTINATION",
     14: "TAXI_WAITING_FOR_APPROVAL",
     //
     20: "PASSENGER_WAITING",

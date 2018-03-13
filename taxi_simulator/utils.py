@@ -33,15 +33,24 @@ PASSENGER_ASSIGNED = 24
 
 
 def status_to_str(status_code):
+    """
+    Translates an int status code to a string that represents the status
+
+    Args:
+        status_code (int): the code of the status
+
+    Returns:
+        str: the string that represents the status
+    """
     statuses = {
         10: "TAXI_WAITING",
         11: "TAXI_MOVING_TO_PASSENGER",
         12: "TAXI_IN_PASSENGER_PLACE",
-        13: "TAXI_MOVING_TO_DESTINY",
+        13: "TAXI_MOVING_TO_DESTINATION",
         14: "TAXI_WAITING_FOR_APPROVAL",
         20: "PASSENGER_WAITING",
         21: "PASSENGER_IN_TAXI",
-        22: "PASSENGER_IN_DEST",
+        22: "PASSENGER_IN_DESTINATION",
         23: "PASSENGER_LOCATION",
         24: "PASSENGER_ASSIGNED"
     }
@@ -49,6 +58,16 @@ def status_to_str(status_code):
 
 
 def timeout_receive(agent, timeout):
+    """
+    makes an agent to wait for a message until a timeout
+
+    Args:
+        agent: the agent who is receiving the message
+        timeout (int): the number of seconds to wait for the message
+
+    Returns:
+        :obj:`spade.ACLMessage.ACLMessage`: a received message or :data:`None`
+    """
     init_time = time.time()
     msg = agent._receive(block=False)
     if msg is not None:
@@ -63,15 +82,47 @@ def timeout_receive(agent, timeout):
 
 
 class StrategyBehaviour(Behaviour):
+    """
+    The behaviour that all parent strategies must inherit from. It complies with the Strategy Pattern.
+    """
     __metaclass__ = ABCMeta
 
     def store_value(self, key, value):
+        """
+        Stores a value (named by a key) in the agent's knowledge base that runs the behaviour.
+        This allows the strategy to have persistent values between loops.
+
+        Args:
+            key (str): the name of the value
+            value (object): The object to be stored
+        """
         self.myAgent.store_value(key, value)
 
     def get_value(self, key):
+        """
+        Returns a stored value from the agent's knowledge base.
+
+        Args:
+            key (str): the name of the value
+
+        Returns:
+             object: the object stored with key
+
+        Raises:
+             KeyError: if the key is not in the knowledge base
+        """
         return self.myAgent.get_value(key)
 
     def has_value(self, key):
+        """
+        Checks if a key is registered in the agent's knowledge base
+
+        Args:
+            key (str): the name of the value to be checked
+
+        Returns:
+             bool: if the key is in the agent's knowledge base
+        """
         return self.myAgent.has_value(key)
 
     def timeout_receive(self, timeout=5):
@@ -83,24 +134,29 @@ class StrategyBehaviour(Behaviour):
         Waits for a message until timeout is done.
         If a message is received the method returns immediately.
         If the time has passed and no message has been received, it returns None.
-        :param timeout: number of seconds to wait for a message
-        :type timeout: :class:`int`
-        :return: a message or None
-        :rtype: :class:`ACLMessage` or None
+
+        Args:
+            timeout (int optional): number of seconds to wait for a message
+
+        Returns:
+            :class:`spade.ACLMessage.ACLMessage` or :data:`None`: a message or None
         """
         return timeout_receive(self, timeout)
 
     def send(self, message):
         """
         Sends an :class:`spade.ACLMessage.ACLMessage`
-        :param msg: the message to be sent
-        :type msg: :class:`spade.ACLMessage.ACLMessage`
-        :return: None
+
+        Args:
+            message (:class:`spade.ACLMessage.ACLMessage`): the message to be sent
         """
         self.myAgent.send(message)
 
 
 class RequestRouteBehaviour(OneShotBehaviour):
+    """
+    A one-shot behaviour that is executed to request for a new route to the route agent.
+    """
     def __init__(self, msg, origin, destination):
         self.origin = origin
         self.destination = destination
@@ -132,6 +188,17 @@ class RequestRouteBehaviour(OneShotBehaviour):
 
 
 def request_path(agent, origin, destination):
+    """
+    Sends a message to the RouteAgent to request a path
+
+    Args:
+        agent: the agent who is requesting the path
+        origin (list): a list with the origin coordinates [longitude, latitude]
+        destination (list): a list with the target coordinates [longitude, latitude]
+
+    Returns:
+        list, float, float: a list of points (longitude and latitude) representing the path, the distance of the path in meters, a estimation of the duration of the path
+    """
     if origin[0] == destination[0] and origin[1] == destination[1]:
         return [[origin[1], origin[0]]], 0, 0
 
@@ -162,6 +229,16 @@ def unused_port(hostname):
 
 
 def chunk_path(path, speed_in_kmh):
+    """
+    Splits the path into smaller chunks taking into account the speed.
+
+    Args:
+        path (list): the original path. A list of points (lon, lat)
+        speed_in_kmh (float): the speed in km per hour at which the path is being traveled.
+
+    Returns:
+        list: a new path equivalent (to the first one), that has at least the same number of points.
+    """
     meters_per_second = kmh_to_ms(speed_in_kmh)
     length = len(path)
     chunked_lat_lngs = []
@@ -190,6 +267,15 @@ def chunk_path(path, speed_in_kmh):
 
 
 def load_class(class_path):
+    """
+    Tricky method that imports a class form a string.
+
+    Args:
+        class_path (str): the path where the class to be imported is.
+
+    Returns:
+        class: the class imported and ready to be instantiated.
+    """
     sys.path.append(os.getcwd())
     module_path, class_name = class_path.rsplit(".", 1)
     mod = import_module(module_path)
@@ -199,6 +285,9 @@ def load_class(class_path):
 def crossdomain(origin=None, methods=None, headers=None,
                 max_age=21600, attach_to_all=True,
                 automatic_options=True):
+    """
+    Decorator to allow the cross-domain situation in web requests.
+    """
     if methods is not None:
         methods = ', '.join(sorted(x.upper() for x in methods))
     if headers is not None and not isinstance(headers, basestring):

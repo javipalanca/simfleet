@@ -1,3 +1,7 @@
+"""
+protocol and performative constants
+"""
+
 REGISTER_PROTOCOL = "REGISTER"
 CREATE_PROTOCOL = "CREATE"
 REQUEST_PROTOCOL = "REQUEST"

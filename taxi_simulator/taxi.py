@@ -38,21 +38,73 @@ class TaxiAgent(Agent):
         self.knowledge_base = {}
 
     def store_value(self, key, value):
+        """
+        Stores a value (named by a key) in the agent's knowledge base that runs the behaviour.
+        This allows the strategy to have persistent values between loops.
+
+        Args:
+            key (:obj:`str`): the name of the value.
+            value (:obj:`object`): The object to be stored.
+        """
         self.knowledge_base[key] = value
 
     def get_value(self, key):
+        """
+        Returns a stored value from the agent's knowledge base.
+
+        Args:
+            key (:obj:`str`): the name of the value
+
+        Returns:
+            :data:`object`: The object stored with the key
+
+        Raises:
+            KeyError: if the key is not in the knowledge base
+        """
         return self.knowledge_base.get(key)
 
     def has_value(self, key):
+        """
+        Checks if a key is registered in the agent's knowledge base
+
+        Args:
+            key (:obj:`str`): the name of the value to be checked
+
+        Returns:
+            bool: whether the knowledge base has or not the key
+        """
         return key in self.knowledge_base
 
     def add_strategy(self, strategy_class):
+        """
+        Sets the strategy for the taxi agent.
+
+        Args:
+            strategy_class (:class:`TaxiStrategyBehaviour`): The class to be used. Must inherit from :class:`TaxiStrategyBehaviour`
+        """
         tpl = ACLTemplate()
         tpl.setProtocol(REQUEST_PROTOCOL)
         template = MessageTemplate(tpl)
         self.addBehaviour(strategy_class(), template)
 
+    def set_id(self, agent_id):
+        """
+        Sets the agent identifier
+        Args:
+            agent_id (:obj:`str`): The new Agent Id
+        """
+        self.agent_id = agent_id
+
     def arrived_to_destination(self):
+        """
+        MVC view executed when the taxi has arrived to its destination.
+        It recomputes the new destination and path if picking up a passenger
+        or drops it and goes to WAITING status again.
+
+        Returns:
+            :data:`None`, :obj:`dict`: an empty template and data.
+                This view is a JSON request, so it does not render any new template.
+        """
         self.path = None
         self.chunked_path = None
         if self.status == TAXI_MOVING_TO_PASSENGER:
@@ -74,6 +126,9 @@ class TaxiAgent(Agent):
         return None, {}
 
     def drop_passenger(self):
+        """
+        Drops the passenger that the taxi is carring in the current location.
+        """
         self.inform_passenger(PASSENGER_IN_DEST)
         self.status = TAXI_WAITING
         logger.info("Taxi {} has dropped the passenger {} in destination.".format(self.agent_id,
@@ -81,12 +136,29 @@ class TaxiAgent(Agent):
         self.current_passenger = None
 
     def request_path(self, origin, destination):
+        """
+        Requests a path between two points (origin and destination) using the RouteAgent service.
+
+        Args:
+            origin (:obj:`list`): the coordinates of the origin of the requested path
+            destination (:obj:`list`): the coordinates of the end of the requested path
+
+        Returns:
+            list, float, float: A list of points that represent the path from origin to destination, the distance and the estimated duration
+
+        Examples:
+            >>> self.request_path([0,0], [1,1])
+            [[0,0], [0,1], [1,1]], 2.0, 3.24
+        """
         return request_path(self, origin, destination)
 
-    def set_id(self, agent_id):
-        self.agent_id = agent_id
-
     def set_position(self, coords=None):
+        """
+        Sets the position of the taxi. If no position is provided it is located in a random position.
+
+        Args:
+            coords (:obj:`list`): a list coordinates (longitude and latitude)
+        """
         if coords:
             self.current_pos = coords
         else:
@@ -100,15 +172,42 @@ class TaxiAgent(Agent):
             self.arrived_to_destination()
 
     def get_position(self):
+        """
+        Returns the current position of the passenger.
+
+        Returns:
+            list: the coordinates of the current position of the passenger (lon, lat)
+        """
         return self.current_pos
 
     def set_speed(self, speed_in_kmh):
+        """
+        Sets the speed of the taxi.
+
+        Args:
+            speed_in_kmh (float): the speed of the taxi in km per hour
+        """
         self.speed_in_kmh = speed_in_kmh
 
     def is_in_destination(self):
+        """
+        Checks if the taxi has arrived to its destination.
+
+        Returns:
+            bool: whether the taxi is at its destination or not
+        """
         return self.dest == self.get_position()
 
     def move_to(self, dest):
+        """
+        Moves the taxi to a new destination.
+
+        Args:
+            dest (:obj:`list`): the coordinates of the new destination (in lon, lat format)
+
+        Raises:
+             AlreadyInDestination: if the taxi is already in the destination coordinates.
+        """
         if self.current_pos == dest:
             raise AlreadyInDestination
         counter = 5
@@ -134,6 +233,9 @@ class TaxiAgent(Agent):
         self.addBehaviour(behav)
 
     def step(self):
+        """
+        Advances one step in the simulation
+        """
         if self.chunked_path:
             _next = self.chunked_path.pop(0)
             distance = distance_in_meters(self.get_position(), _next)
@@ -141,6 +243,13 @@ class TaxiAgent(Agent):
             self.set_position(_next)
 
     def inform_passenger(self, status, data=None):
+        """
+        Sends a message to the current assigned passenger to inform her about a new status.
+
+        Args:
+            status (int): The new status code
+            data (dict optional): complementary info about the status
+        """
         if data is None:
             data = {}
         msg = ACLMessage()
@@ -152,6 +261,12 @@ class TaxiAgent(Agent):
         self.send(msg)
 
     def cancel_passenger(self, data=None):
+        """
+        Sends a message to the current assigned passenger to cancel the assignment.
+
+        Args:
+            data (dict optional): Complementary info about the cancellation
+        """
         logger.error("Taxi {} could not get a path to passenger {}.".format(self.agent_id,
                                                                             self.current_passenger.getName()))
         if data is None:
@@ -166,20 +281,47 @@ class TaxiAgent(Agent):
         self.send(reply)
 
     def to_json(self):
+        """
+        Serializes the main information of a taxi agent to a JSON format.
+        It includes the id of the agent, its current position, the destination coordinates of the agent,
+        the current status, the speed of the taxi (in km/h), the path it is following (if any), the passenger that it
+        has assigned (if any), the number of assignments if has done and the distance that the taxi has traveled.
+
+        Returns:
+            dict: a JSON doc with the main information of the taxi.
+
+            Example::
+
+                {
+                    "id": "cphillips",
+                    "position": [ 39.461327, -0.361839 ],
+                    "dest": [ 39.460599, -0.335041 ],
+                    "status": 24,
+                    "speed": 1000,
+                    "path": [[0,0], [0,1], [1,0], [1,1], ...],
+                    "passenger": "ghiggins@127.0.0.1",
+                    "assignments": 2,
+                    "distance": 3481.34
+                }
+        """
         return {
             "id": self.agent_id,
             "position": self.current_pos,
-            "speed": float("{0:.2f}".format(self.animation_speed)) if self.animation_speed else None,
             "dest": self.dest,
             "status": self.status,
+            "speed": float("{0:.2f}".format(self.animation_speed)) if self.animation_speed else None,
             "path": self.path,
             "passenger": self.current_passenger.getName() if self.current_passenger else None,
             "assignments": self.num_assignments,
             "distance": "{0:.2f}".format(sum(self.distances)),
-            "url": "http://127.0.0.1:{port}".format(port=self.port)
         }
 
     class MovingBehaviour(PeriodicBehaviour):
+        """
+        This is the internal behaviour that manages the movement of the taxi.
+        It is triggered when the taxi has a new destination and the periodic tick
+        is recomputed at every step to show a fine animation.
+        """
         def _onTick(self):
             self.myAgent.step()
             self.setPeriod(self.myAgent.animation_speed / ONESECOND_IN_MS)
@@ -188,6 +330,15 @@ class TaxiAgent(Agent):
 
 
 class TaxiStrategyBehaviour(StrategyBehaviour):
+    """
+    Class from which to inherit to create a taxi strategy.
+    You must overload the :func:`_process` method
+
+    Helper functions:
+    * :func:`pick_up_passenger`
+    * :func:`send_proposal`
+    * :func:`cancel_proposal`
+    """
     def onStart(self):
         self.logger = logging.getLogger("TaxiAgent")
         self.logger.debug("Strategy {} started in taxi {}".format(type(self).__name__, self.myAgent.agent_id))
@@ -197,12 +348,11 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         Starts a TRAVEL_PROTOCOL to pick up a passenger and get him to his destination.
         It automatically launches all the graphical process until the passenger is
         delivered.
-        :param passenger_id: the id of the passenger
-        :type passenger_id: :class:`str`
-        :param origin: the coordinates of the current location of the passenger
-        :type origin: :class:`list`
-        :param dest: the coordinates of the target destination of the passenger
-        :type dest: :class:`list`
+
+        Args:
+            passenger_id (str): the id of the passenger
+            origin (list): the coordinates of the current location of the passenger
+            dest (list): the coordinates of the target destination of the passenger
         """
         self.logger.info("Taxi {} on route to passenger {}".format(self.myAgent.agent_id, passenger_id))
         passenger_aid = build_aid(passenger_id)
@@ -228,10 +378,10 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         """
         Send an :class:`ACLMessage` with a proposal to a passenger to pick up him.
         If the content is empty the proposal is sent without content.
-        :param passenger_id: the id of the passenger
-        :type passenger_id: :class:`str`
-        :param content: the optional content of the message
-        :type content: :class:`dict`
+
+        Args:
+            passenger_id (str): the id of the passenger
+            content (dict optional): the optional content of the message
         """
         if content is None:
             content = {}
@@ -248,10 +398,10 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         """
         Send an :class:`ACLMessage` to cancel a proposal.
         If the content is empty the proposal is sent without content.
-        :param passenger_id: the id of the passenger
-        :type passenger_id: :class:`str`
-        :param content: the optional content of the message
-        :type content: :class:`dict`
+
+        Args:
+            passenger_id (str): the id of the passenger
+            content (dict optional): the optional content of the message
         """
         if content is None:
             content = {}

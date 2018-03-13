@@ -2,6 +2,8 @@
 Quickstart
 ==========
 
+.. contents:: Table of Contents
+
 Usage
 =====
 

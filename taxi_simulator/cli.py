@@ -37,7 +37,9 @@ logger = logging.getLogger()
               help="Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4")
 def main(name, output, oformat, max_time, autorun, taxi, passenger, coordinator, port, num_taxis, num_passengers,
          scenario, coordinator_name, passwd, backend_port, verbose):
-    """Console script for taxi_simulator."""
+    """
+    Console script for taxi_simulator.
+    """
     if verbose > 0:
         logging.basicConfig(level=logging.DEBUG)
     else:

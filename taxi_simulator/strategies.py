@@ -14,6 +14,9 @@ from helpers import coordinator_aid, PathRequestException, content_to_json
 #                                                              #
 ################################################################
 class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
+    """
+    The default strategy for the Coordinator agent. By default it delegates all requests to all taxis.
+    """
     def _process(self):
         msg = self.receive(timeout=60)
         msg.removeReceiver(coordinator_aid)
@@ -29,6 +32,9 @@ class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
 #                                                              #
 ################################################################
 class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
+    """
+    The default strategy for the Taxi agent. By default it accepts every request it receives if available.
+    """
     def _process(self):
         msg = self._receive(block=True)
         content = content_to_json(msg)
@@ -72,6 +78,9 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
 #                                                              #
 ################################################################
 class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
+    """
+    The default strategy for the Passenger agent. By default it accepts the first proposal it receives.
+    """
     def _process(self):
         if self.myAgent.status == PASSENGER_WAITING:
             self.send_request(content={})

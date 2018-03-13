@@ -23,6 +23,9 @@ logger = logging.getLogger()
 
 
 class SimulationConfig(object):
+    """
+    Dataclass to store the :class:`Simulator` config
+    """
     def __init__(self):
         self.simulation_name = None
         self.max_time = None
@@ -40,6 +43,18 @@ class SimulationConfig(object):
 
 
 class Simulator(object):
+    """
+    The Simulator. It manages all the simulation processes.
+    Tasks done by the simulator at initialization:
+        #. Create the XMPP server
+        #. Run the SPADE backend
+        #. Run the coordinator and route agents.
+        #. Create agents passed as parameters (if any).
+        #. Create agents defined in scenario (if any).
+        #. Create a backend web server (:class:`FlaskBackend`) to listen for async commands.
+
+    After these tasks are done in the Simulator constructor, the simulation is started when the :func:`run` method is called.
+    """
     def __init__(self, config):
         self.config = config
         self.pretty_name = "({})".format(self.config.simulation_name) if self.config.simulation_name else ""
@@ -110,17 +125,38 @@ class Simulator(object):
         self.web_backend_process.start()
 
     def is_simulation_finished(self):
+        """
+        Checks if the simulation is finished.
+        A simulation is finished if the max simulation time has been reached or when the coordinator says it.
+
+        Returns:
+            bool: whether the simulation is finished or not.
+        """
         if self.config.max_time is None:
             return False
         return self.time_is_out() or self.coordinator_agent.is_simulation_finished()
 
     def time_is_out(self):
+        """
+        Checks if the max simulation time has been reached.
+
+        Returns:
+            bool: whether the max simulation time has been reached or not.
+        """
         return self.coordinator_agent.get_simulation_time() > self.config.max_time
 
     def run(self):
+        """
+        Starts the simulation (tells the coordinator agent to start the simulation).
+        """
         self.coordinator_agent.run_simulation()
 
     def process_queue(self):
+        """
+        Queries the command queue if there is any command to execute. If true, runs the command.
+
+        At the moment the only command available is to create new taxis and passengers.
+        """
         if not self.command_queue.empty():
             ntaxis, npassengers = self.command_queue.get()
             logger.info("Creating {} taxis and {} passengers.".format(ntaxis, npassengers))
@@ -128,6 +164,17 @@ class Simulator(object):
             Scenario.create_agents_batch("passenger", npassengers, self.coordinator_agent)
 
     def stop(self):
+        """
+        Finishes the simulation and prints simulation stats.
+        Tasks done when a simulation is stopped:
+            #. Terminate web backend.
+            #. Stop participant agents.
+            #. Print stats.
+            #. Stop Route agent.
+            #. Stop Coordinator agent.
+            #. Shutdown SPADE backend.
+            #. Shutdown XMPP server.
+        """
         self.simulation_time = self.coordinator_agent.get_simulation_time()
 
         logger.info("\nTerminating... ({0:.1f} seconds elapsed)".format(self.simulation_time))
@@ -144,6 +191,9 @@ class Simulator(object):
         self.xmpp_server.shutdown("")
 
     def collect_stats(self):
+        """
+        Collects stats from all participant agents and from the simulation and stores it in three dataframes.
+        """
         passenger_df = self.coordinator_agent.get_passenger_stats()
         self.passenger_df = passenger_df[["name", "waiting_time", "total_time", "status"]]
         taxi_df = self.coordinator_agent.get_taxi_stats()
@@ -166,9 +216,18 @@ class Simulator(object):
         self.df_avg = df_avg[columns]
 
     def get_stats(self):
+        """
+        Returns the dataframes collected by :func:`collect_stats`
+
+        Returns:
+            :obj:`pandas.DataFrame`, :obj:`pandas.DataFrame`, :obj:`pandas.DataFrame`: average df, passengers df and taxi df
+        """
         return self.df_avg, self.passenger_df, self.taxi_df
 
     def print_stats(self):
+        """
+        Prints the dataframes collected by :func:`collect_stats`.
+        """
         if self.df_avg is None:
             self.collect_stats()
 
@@ -180,6 +239,13 @@ class Simulator(object):
         print(tabulate(self.taxi_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
 
     def write_file(self, filename, fileformat="json"):
+        """
+        Writes the dataframes collected by :func:`collect_stats` in JSON or Excel format.
+
+        Args:
+            filename (str): name of the output file to be written.
+            fileformat (str): format of the output file. Choices: json or excel
+        """
         if self.df_avg is None:
             self.collect_stats()
         if fileformat == "json":
@@ -188,6 +254,12 @@ class Simulator(object):
             self.write_excel(filename)
 
     def write_json(self, filename):
+        """
+        Writes the collected data by :func:`collect_stats` in a json file.
+
+        Args:
+            filename (str): name of the json file.
+        """
         data = {
             "simulation": json.loads(self.df_avg.to_json(orient="index"))["0"],
             "passengers": json.loads(self.passenger_df.to_json(orient="index")),
@@ -199,6 +271,12 @@ class Simulator(object):
             json.dump(data, f, indent=4)
 
     def write_excel(self, filename):
+        """
+        Writes the collected data by :func:`collect_stats` in an excel file.
+
+        Args:
+            filename (str): name of the excel file.
+        """
         writer = pd.ExcelWriter(filename)
         self.df_avg.to_excel(writer, 'Simulation')
         self.passenger_df.to_excel(writer, 'Passengers')

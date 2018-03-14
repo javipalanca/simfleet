@@ -198,6 +198,15 @@ def request_path(agent, origin, destination):
 
     Returns:
         list, float, float: a list of points (longitude and latitude) representing the path, the distance of the path in meters, a estimation of the duration of the path
+
+    Examples:
+        >>> path, distance, duration = request_path(an_agent, origin=[0,0], destination=[1,1])
+        >>> print(path)
+        [[0,0], [0,1], [1,1]]
+        >>> print(distance)
+        2.0
+        >>> print(duration)
+        3.24
     """
     if origin[0] == destination[0] and origin[1] == destination[1]:
         return [[origin[1], origin[0]]], 0, 0

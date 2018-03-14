@@ -156,10 +156,6 @@ class PassengerAgent(Agent):
 
         Returns:
             list, float, float: A list of points that represent the path from origin to destination, the distance and the estimated duration
-
-        Examples:
-            >>> self.request_path([0,0], [1,1])
-            [[0,0], [0,1], [1,1]], 2.0, 3.24
         """
         return request_path(self, origin, destination)
 

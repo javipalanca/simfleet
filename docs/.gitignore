@@ -1,3 +1,6 @@
 /taxi_simulator.rst
 /taxi_simulator.*.rst
 /modules.rst
+api/taxi_simulator.rst
+api/taxi_simulator.*.rst
+api/modules.rst

@@ -90,6 +90,7 @@ class TaxiAgent(Agent):
     def set_id(self, agent_id):
         """
         Sets the agent identifier
+
         Args:
             agent_id (:obj:`str`): The new Agent Id
         """
@@ -102,8 +103,7 @@ class TaxiAgent(Agent):
         or drops it and goes to WAITING status again.
 
         Returns:
-            :data:`None`, :obj:`dict`: an empty template and data.
-                This view is a JSON request, so it does not render any new template.
+            :data:`None`, :obj:`dict`: an empty template and data. This view is a JSON request, so it does not render any new template.
         """
         self.path = None
         self.chunked_path = None
@@ -147,8 +147,13 @@ class TaxiAgent(Agent):
             list, float, float: A list of points that represent the path from origin to destination, the distance and the estimated duration
 
         Examples:
-            >>> self.request_path([0,0], [1,1])
-            [[0,0], [0,1], [1,1]], 2.0, 3.24
+            >>> path, distance, duration = self.request_path(origin=[0,0], destination=[1,1])
+            >>> print(path)
+            [[0,0], [0,1], [1,1]]
+            >>> print(distance)
+            2.0
+            >>> print(duration)
+            3.24
         """
         return request_path(self, origin, destination)
 
@@ -321,6 +326,8 @@ class TaxiAgent(Agent):
         This is the internal behaviour that manages the movement of the taxi.
         It is triggered when the taxi has a new destination and the periodic tick
         is recomputed at every step to show a fine animation.
+        This moving behaviour includes to update the taxi coordinates as it
+        moves along the path at the specified speed.
         """
         def _onTick(self):
             self.myAgent.step()
@@ -335,9 +342,9 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
     You must overload the :func:`_process` method
 
     Helper functions:
-    * :func:`pick_up_passenger`
-    * :func:`send_proposal`
-    * :func:`cancel_proposal`
+        * :func:`pick_up_passenger`
+        * :func:`send_proposal`
+        * :func:`cancel_proposal`
     """
     def onStart(self):
         self.logger = logging.getLogger("TaxiAgent")
@@ -346,8 +353,9 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
     def pick_up_passenger(self, passenger_id, origin, dest):
         """
         Starts a TRAVEL_PROTOCOL to pick up a passenger and get him to his destination.
-        It automatically launches all the graphical process until the passenger is
-        delivered.
+        It automatically launches all the travelling process until the passenger is
+        delivered. This travelling process includes to update the taxi coordinates as it
+        moves along the path at the specified speed.
 
         Args:
             passenger_id (str): the id of the passenger

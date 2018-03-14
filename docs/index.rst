@@ -10,7 +10,7 @@ Contents:
    installation
    usage
    develop
-   modules
+   api
    contributing
    authors
    history

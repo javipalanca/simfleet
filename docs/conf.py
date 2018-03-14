@@ -281,7 +281,7 @@ def run_apidoc(_):
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     module = os.path.join(cur_dir, "..", "taxi_simulator")
-    main(['-e', '-o', cur_dir, module, '--force'])
+    main(['-e', '-o', cur_dir + "/api", module, '--force'])
 
 
 def setup(app):

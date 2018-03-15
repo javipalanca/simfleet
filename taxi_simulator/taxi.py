@@ -1,6 +1,7 @@
 import json
 import logging
 
+from collections import defaultdict
 from spade.ACLMessage import ACLMessage
 from spade.Agent import Agent
 from spade.Behaviour import ACLTemplate, MessageTemplate, PeriodicBehaviour
@@ -19,23 +20,25 @@ ONESECOND_IN_MS = 1000
 class TaxiAgent(Agent):
     def __init__(self, agentjid, password, debug):
         Agent.__init__(self, agentjid, password, debug=debug)
+        self.knowledge_base = {}
+        self.__observers = defaultdict(list)
+
         self.agent_id = None
         self.status = TAXI_WAITING
-        self.current_pos = None
+        self.store_value("current_pos", None)
         self.dest = None
-        self.path = None
+        self.store_value("path", None)
         self.chunked_path = None
-        self.speed_in_kmh = 2000
+        self.store_value("speed_in_kmh", 2000)
         self.animation_speed = ONESECOND_IN_MS
         self.distances = []
         self.durations = []
         self.port = None
-        self.current_passenger = None
+        self.store_value("current_passenger", None)
         self.current_passenger_orig = None
         self.current_passenger_dest = None
+        self.store_value("passenger_in_taxi", None)
         self.num_assignments = 0
-
-        self.knowledge_base = {}
 
     def store_value(self, key, value):
         """
@@ -46,7 +49,13 @@ class TaxiAgent(Agent):
             key (:obj:`str`): the name of the value.
             value (:obj:`object`): The object to be stored.
         """
+
+        old = self.knowledge_base.get(key)
         self.knowledge_base[key] = value
+
+        if key in self.__observers:
+            for cb in self.__observers[key]:
+                cb(old, value)
 
     def get_value(self, key):
         """
@@ -74,6 +83,16 @@ class TaxiAgent(Agent):
             bool: whether the knowledge base has or not the key
         """
         return key in self.knowledge_base
+
+    def watch_value(self, key, callback):
+        """
+        Registers an observer callback to be run when a value is changed
+
+        Args:
+            key (str): the name of the value
+            callback (function): a function to be called when the value changes. It receives two arguments: the old and the new value.
+        """
+        self.__observers[key].append(callback)
 
     def add_strategy(self, strategy_class):
         """
@@ -105,11 +124,12 @@ class TaxiAgent(Agent):
         Returns:
             :data:`None`, :obj:`dict`: an empty template and data. This view is a JSON request, so it does not render any new template.
         """
-        self.path = None
+        self.store_value("path", None)
         self.chunked_path = None
-        if self.status == TAXI_MOVING_TO_PASSENGER:
+        if not self.is_passenger_in_taxi():  # self.status == TAXI_MOVING_TO_PASSENGER:
             try:
                 self.move_to(self.current_passenger_dest)
+                self.store_value("passenger_in_taxi", self.get_value("current_passenger"))
             except PathRequestException:
                 self.cancel_passenger()
                 self.status = TAXI_WAITING
@@ -119,11 +139,17 @@ class TaxiAgent(Agent):
                 self.inform_passenger(TAXI_IN_PASSENGER_PLACE)
                 self.status = TAXI_MOVING_TO_DESTINATION
                 logger.info("Taxi {} has picked up the passenger {}."
-                            .format(self.agent_id, self.current_passenger.getName()))
-        elif self.status == TAXI_MOVING_TO_DESTINATION:
+                            .format(self.agent_id, self.get_value("current_passenger").getName()))
+        else:  # elif self.status == TAXI_MOVING_TO_DESTINATION:
             self.drop_passenger()
 
         return None, {}
+
+    def is_passenger_in_taxi(self):
+        return self.get_value("passenger_in_taxi") is not None
+
+    def is_free(self):
+        return self.get_value("current_passenger") is None
 
     def drop_passenger(self):
         """
@@ -132,8 +158,10 @@ class TaxiAgent(Agent):
         self.inform_passenger(PASSENGER_IN_DEST)
         self.status = TAXI_WAITING
         logger.info("Taxi {} has dropped the passenger {} in destination.".format(self.agent_id,
-                                                                                  self.current_passenger.getName()))
-        self.current_passenger = None
+                                                                                  self.get_value("current_passenger")
+                                                                                  .getName()))
+        self.store_value("current_passenger", None)
+        self.store_value("passenger_in_taxi", None)
 
     def request_path(self, origin, destination):
         """
@@ -165,13 +193,13 @@ class TaxiAgent(Agent):
             coords (:obj:`list`): a list coordinates (longitude and latitude)
         """
         if coords:
-            self.current_pos = coords
+            self.store_value("current_pos", coords)
         else:
-            self.current_pos = random_position()
+            self.store_value("current_pos", random_position())
 
-        logger.debug("Taxi {} position is {}".format(self.agent_id, self.current_pos))
+        logger.debug("Taxi {} position is {}".format(self.agent_id, self.get_value("current_pos")))
         if self.status == TAXI_MOVING_TO_DESTINATION:
-            self.inform_passenger(PASSENGER_LOCATION, {"location": self.current_pos})
+            self.inform_passenger(PASSENGER_LOCATION, {"location": self.get_value("current_pos")})
         if self.is_in_destination():
             logger.info("Taxi {} has arrived to destination.".format(self.agent_id))
             self.arrived_to_destination()
@@ -183,7 +211,7 @@ class TaxiAgent(Agent):
         Returns:
             list: the coordinates of the current position of the passenger (lon, lat)
         """
-        return self.current_pos
+        return self.get_value("current_pos")
 
     def set_speed(self, speed_in_kmh):
         """
@@ -192,7 +220,7 @@ class TaxiAgent(Agent):
         Args:
             speed_in_kmh (float): the speed of the taxi in km per hour
         """
-        self.speed_in_kmh = speed_in_kmh
+        self.store_value("speed_in_kmh", speed_in_kmh)
 
     def is_in_destination(self):
         """
@@ -213,21 +241,21 @@ class TaxiAgent(Agent):
         Raises:
              AlreadyInDestination: if the taxi is already in the destination coordinates.
         """
-        if self.current_pos == dest:
+        if self.get_value("current_pos") == dest:
             raise AlreadyInDestination
         counter = 5
         path = None
         distance, duration = 0, 0
         while counter > 0 and path is None:
-            logger.debug("Requesting path from {} to {}".format(self.current_pos, dest))
-            path, distance, duration = self.request_path(self.current_pos, dest)
+            logger.debug("Requesting path from {} to {}".format(self.get_value("current_pos"), dest))
+            path, distance, duration = self.request_path(self.get_value("current_pos"), dest)
             counter -= 1
         if path is None:
             raise PathRequestException("Error requesting route.")
 
-        self.path = path
+        self.store_value("path", path)
         try:
-            self.chunked_path = chunk_path(path, self.speed_in_kmh)
+            self.chunked_path = chunk_path(path, self.get_value("speed_in_kmh"))
         except Exception as e:
             logger.error("Exception chunking path {}: {}".format(path, e))
             raise PathRequestException
@@ -244,7 +272,7 @@ class TaxiAgent(Agent):
         if self.chunked_path:
             _next = self.chunked_path.pop(0)
             distance = distance_in_meters(self.get_position(), _next)
-            self.animation_speed = distance / kmh_to_ms(self.speed_in_kmh) * ONESECOND_IN_MS
+            self.animation_speed = distance / kmh_to_ms(self.get_value("speed_in_kmh")) * ONESECOND_IN_MS
             self.set_position(_next)
 
     def inform_passenger(self, status, data=None):
@@ -258,7 +286,7 @@ class TaxiAgent(Agent):
         if data is None:
             data = {}
         msg = ACLMessage()
-        msg.addReceiver(self.current_passenger)
+        msg.addReceiver(self.get_value("current_passenger"))
         msg.setProtocol(TRAVEL_PROTOCOL)
         msg.setPerformative(INFORM_PERFORMATIVE)
         data["status"] = status
@@ -273,16 +301,18 @@ class TaxiAgent(Agent):
             data (dict optional): Complementary info about the cancellation
         """
         logger.error("Taxi {} could not get a path to passenger {}.".format(self.agent_id,
-                                                                            self.current_passenger.getName()))
+                                                                            self.get_value("current_passenger")
+                                                                            .getName()))
         if data is None:
             data = {}
         reply = ACLMessage()
-        reply.addReceiver(self.current_passenger)
+        reply.addReceiver(self.get_value("current_passenger"))
         reply.setProtocol(REQUEST_PROTOCOL)
         reply.setPerformative(CANCEL_PERFORMATIVE)
         reply.setContent(json.dumps(data))
         logger.info("Taxi {} sent cancel proposal to passenger {}".format(self.agent_id,
-                                                                          self.current_passenger.getName()))
+                                                                          self.get_value("current_passenger")
+                                                                          .getName()))
         self.send(reply)
 
     def to_json(self):
@@ -311,12 +341,12 @@ class TaxiAgent(Agent):
         """
         return {
             "id": self.agent_id,
-            "position": self.current_pos,
+            "position": self.get_value("current_pos"),
             "dest": self.dest,
             "status": self.status,
             "speed": float("{0:.2f}".format(self.animation_speed)) if self.animation_speed else None,
-            "path": self.path,
-            "passenger": self.current_passenger.getName() if self.current_passenger else None,
+            "path": self.get_value("path"),
+            "passenger": self.get_value("current_passenger").getName() if self.get_value("current_passenger") else None,
             "assignments": self.num_assignments,
             "distance": "{0:.2f}".format(sum(self.distances)),
         }
@@ -372,7 +402,7 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
             "status": TAXI_MOVING_TO_PASSENGER
         }
         reply.setContent(json.dumps(content))
-        self.myAgent.current_passenger = passenger_aid
+        self.myAgent.store_value("current_passenger", passenger_aid)
         self.myAgent.current_passenger_orig = origin
         self.myAgent.current_passenger_dest = dest
         self.myAgent.send(reply)

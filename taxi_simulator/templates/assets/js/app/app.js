@@ -698,6 +698,7 @@ function applyToTag (styleElement, obj) {
                 case 24:
                     return 'PASSENGER_ASSIGNED';
             }
+            return status;
         }
     },
     components: {
@@ -878,7 +879,7 @@ let update_item_in_collection = function (collection, item, get_popup) {
         collection[p].popup = get_popup(item);
         collection[p].speed = item.speed;
         collection[p].status = item.status;
-        collection[p].visible = item.status !== 21 && item.status !== 22 && item.status !== 23;
+        collection[p].visible = item.status !== "PASSENGER_IN_TAXI" && item.status !== "PASSENGER_IN_DEST" && item.status !== "PASSENGER_LOCATION";
     }
 };
 
@@ -893,7 +894,9 @@ let getitem = function (collection, item) {
 
 let color = {
     11: "rgb(255, 170, 0)",
-    13: "rgb(0, 149, 255)"
+    13: "rgb(0, 149, 255)",
+    "TAXI_MOVING_TO_PASSENGER": "rgb(255, 170, 0)",
+    "TAXI_MOVING_TO_DESTINATION": "rgb(0, 149, 255)"
 };
 
 function get_color(status) {
@@ -915,11 +918,11 @@ let statuses = {
 };
 
 function passenger_popup(passenger) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + passenger.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + statuses[passenger.status] + "</td></tr>" + "<tr><th>POSITION</th><td>" + passenger.position + "</td></tr>" + "<tr><th>DEST</th><td>" + passenger.dest + "</td></tr>" + "<tr><th>TAXI</th><td>" + passenger.taxi + "</td></tr>" + "<tr><th>WAITING</th><td>" + passenger.waiting + "</td></tr>" + "</table>";
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + passenger.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + passenger.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + passenger.position + "</td></tr>" + "<tr><th>DEST</th><td>" + passenger.dest + "</td></tr>" + "<tr><th>TAXI</th><td>" + passenger.taxi + "</td></tr>" + "<tr><th>WAITING</th><td>" + passenger.waiting + "</td></tr>" + "</table>";
 }
 
 function taxi_popup(taxi) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + statuses[taxi.status] + "</td></tr>" + "<tr><th>PASSENGER</th><td>" + taxi.passenger + "</td></tr>" + "<tr><th>POSITION</th><td>" + taxi.position + "</td></tr>" + "<tr><th>DEST</th><td>" + taxi.dest + "</td></tr>" + "<tr><th>ASSIGNMENTS</th><td>" + taxi.assignments + "</td></tr>" + "<tr><th>SPEED</th><td>" + taxi.speed + "</td></tr>" + "<tr><th>DISTANCE</th><td>" + taxi.distance + "</td></tr>" + "</table>";
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + taxi.status + "</td></tr>" + "<tr><th>PASSENGER</th><td>" + taxi.passenger + "</td></tr>" + "<tr><th>POSITION</th><td>" + taxi.position + "</td></tr>" + "<tr><th>DEST</th><td>" + taxi.dest + "</td></tr>" + "<tr><th>ASSIGNMENTS</th><td>" + taxi.assignments + "</td></tr>" + "<tr><th>SPEED</th><td>" + taxi.speed + "</td></tr>" + "<tr><th>DISTANCE</th><td>" + taxi.distance + "</td></tr>" + "</table>";
 }
 
 /***/ }),
@@ -973,7 +976,7 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_TreeView_vue__ = __webpack_require__(4);
 /* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_67246ad3_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_abc6a0e0_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__ = __webpack_require__(18);
 function injectStyle (ssrContext) {
   __webpack_require__(11)
 }
@@ -988,12 +991,12 @@ var __vue_template_functional__ = false
 /* styles */
 var __vue_styles__ = injectStyle
 /* scopeId */
-var __vue_scopeId__ = "data-v-67246ad3"
+var __vue_scopeId__ = "data-v-abc6a0e0"
 /* moduleIdentifier (server only) */
 var __vue_module_identifier__ = null
 var Component = normalizeComponent(
   __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_TreeView_vue__["a" /* default */],
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_67246ad3_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__["a" /* default */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_abc6a0e0_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__["a" /* default */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
@@ -1014,7 +1017,7 @@ var content = __webpack_require__(12);
 if(typeof content === 'string') content = [[module.i, content, '']];
 if(content.locals) module.exports = content.locals;
 // add the styles to the DOM
-var update = __webpack_require__(3)("7788fc90", content, true);
+var update = __webpack_require__(3)("5d098929", content, true);
 
 /***/ }),
 /* 12 */
@@ -1025,7 +1028,7 @@ exports = module.exports = __webpack_require__(2)(false);
 
 
 // module
-exports.push([module.i, ".item[data-v-67246ad3]{cursor:pointer}.bold[data-v-67246ad3]{font-weight:700}ul[data-v-67246ad3]{-webkit-padding-start:0;list-style-type:none}.list-group-item[data-v-67246ad3]{border-radius:0;position:relative;display:block;padding:10px 15px;margin-bottom:-2px;background-color:#fff;border:1px solid #ddd}.status-indicator[data-v-67246ad3]{float:right}", ""]);
+exports.push([module.i, ".item[data-v-abc6a0e0]{cursor:pointer}.bold[data-v-abc6a0e0]{font-weight:700}ul[data-v-abc6a0e0]{-webkit-padding-start:0;list-style-type:none}.list-group-item[data-v-abc6a0e0]{border-radius:0;position:relative;display:block;padding:10px 15px;margin-bottom:-2px;background-color:#fff;border:1px solid #ddd}.status-indicator[data-v-abc6a0e0]{float:right}", ""]);
 
 // exports
 
@@ -1142,7 +1145,7 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"list-group",staticStyle:{"list-style-type":"none"},attrs:{"id":"treeview-ul"}},[_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleTaxi}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openTaxi, 'glyphicon-chevron-right': !_vm.openTaxi}}),_vm._v("\n          Taxis\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.taxis.length))])])]),_vm._v(" "),_vm._l((_vm.taxis),function(o){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openTaxi),expression:"openTaxi"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(o.status), delay:100}),expression:"{content: status2str(o.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('span',{staticClass:"fa fa-taxi"}),_vm._v("  "+_vm._s(o.id)+"\n          "),(o.status == 10)?_c('status-indicator',{attrs:{"positive":""}}):(o.status == 14)?_c('status-indicator',{attrs:{"intermediary":""}}):(o.status == 11)?_c('status-indicator',{attrs:{"intermediary":"","pulse":""}}):(o.status == 13)?_c('status-indicator',{attrs:{"active":"","pulse":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.togglePass}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openPass, 'glyphicon-chevron-right': !_vm.openPass}}),_vm._v("\n          Passengers\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.passengers.length))])])]),_vm._v(" "),_vm._l((_vm.passengers),function(passenger){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openPass),expression:"openPass"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(passenger.status), delay:100}),expression:"{content: status2str(passenger.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('span',{staticClass:"fa fa-user"}),_vm._v("  "+_vm._s(passenger.id)+"\n          "),(passenger.status == 20)?_c('status-indicator'):(passenger.status == 24)?_c('status-indicator',{attrs:{"intermediary":""}}):(passenger.status == 21)?_c('status-indicator',{attrs:{"active":"","pulse":""}}):(passenger.status == 22)?_c('status-indicator',{attrs:{"positive":""}}):_vm._e()],1)])})],2)}
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"list-group",staticStyle:{"list-style-type":"none"},attrs:{"id":"treeview-ul"}},[_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleTaxi}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openTaxi, 'glyphicon-chevron-right': !_vm.openTaxi}}),_vm._v("\n          Taxis\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.taxis.length))])])]),_vm._v(" "),_vm._l((_vm.taxis),function(o){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openTaxi),expression:"openTaxi"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(o.status), delay:100}),expression:"{content: status2str(o.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('span',{staticClass:"fa fa-taxi"}),_vm._v("  "+_vm._s(o.id)+"\n          "),(o.status == 'TAXI_WAITING')?_c('status-indicator',{attrs:{"positive":""}}):(o.status == 'TAXI_WAITING_FOR_APPROVAL')?_c('status-indicator',{attrs:{"intermediary":""}}):(o.status == 'TAXI_MOVING_TO_PASSENGER')?_c('status-indicator',{attrs:{"intermediary":"","pulse":""}}):(o.status == 'TAXI_MOVING_TO_DESTINATION')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.togglePass}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openPass, 'glyphicon-chevron-right': !_vm.openPass}}),_vm._v("\n          Passengers\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.passengers.length))])])]),_vm._v(" "),_vm._l((_vm.passengers),function(passenger){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openPass),expression:"openPass"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(passenger.status), delay:100}),expression:"{content: status2str(passenger.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('span',{staticClass:"fa fa-user"}),_vm._v("  "+_vm._s(passenger.id)+"\n          "),(passenger.status == 'PASSENGER_WAITING')?_c('status-indicator'):(passenger.status == 'PASSENGER_ASSIGNED')?_c('status-indicator',{attrs:{"intermediary":""}}):(passenger.status == 'PASSENGER_IN_TAXI')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):(passenger.status == 'PASSENGER_IN_DEST')?_c('status-indicator',{attrs:{"positive":""}}):_vm._e()],1)])})],2)}
 var staticRenderFns = []
 var esExports = { render: render, staticRenderFns: staticRenderFns }
 /* harmony default export */ __webpack_exports__["a"] = (esExports);

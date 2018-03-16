@@ -128,14 +128,17 @@ Moving Behaviour
 ~~~~~~~~~~~~~~~~
 This behavior makes the Taxi agent to move to the current location of the Passenger agent with which it has reached
 an agreement to perform a taxi service. After picking the Passenger agent up, the Taxi will then transport it to
-its destination.
+its destination. During that travel, the behavior informs the Passenger agent of where the Taxi is and what it is
+doing (going to pick up the Passenger, taking the Passenger to its destination, reaching the destination, etc.). All
+this is performed by sending the Passenger agent some messages which belong of another, dedicated protocol
+called `TRAVEL_PROTOCOL`.
 
-Once in the Passenger agent's destination, the Passenger agent is informed, and then the state of the Taxi agent
-is again changed to `TAXI_WAITING`, indicating that it is now free again, and it may start receiving new requests
-from other Passenger agents.
+Once the Taxi reaches the Passenger agent's destination and the Passenger agent is informed about it, the state of
+the Taxi agent (of the strategy behavior) is here changed to `TAXI_WAITING`, indicating that it is now free,
+and hence making the Taxi agent available again to receiving new requests from other Passenger agents.
 
 WARNING: This behavior is internal and automatic, and it is not intended to be modified while developing
-new negotiation strategies.
+new negotiation strategies. The same applies to the `TRAVEL_PROTOCOL` protocol.
 
 
 
@@ -154,7 +157,7 @@ Strategy Behaviour
 In the course of the `REQUEST` protocol, the request of a taxi service made by a Passenger agent is answered
 by one (or several) Taxi agents, each of which offering the Passenger their conditions to perform such service.
 The goal of the strategy behavior of a Passenger agent is to select the best of these taxi service proposals,
-according to its needs or preferences (e.g., to be picked up faster, to get the nearest available taxi,
+according to its needs and/or preferences (e.g., to be picked up faster, to get the nearest available taxi,
 to get the cheapest service, etc.).
 
 
@@ -189,11 +192,19 @@ The semantics of each state are now described:
 
 Travel Behaviour
 ~~~~~~~~~~~~~~~~
-Goals, Actions, States.
 
+This behavior is activated (in the Passenger agent) when a Taxi agent decides to pick up the Passenger agent, by
+means of a message sent by the Taxi (inside the Taxi agent's helper function `pick_up_passenger`). This message,
+as well as other messages sent by the Taxi agent to this behavior, belongs to a protocol called the `TRAVEL_PROTOCOL`.
 
+The messages of the `TRAVEL_PROTOCOL` drive the transitions between the different states of this behavior, in
+the same way that the `REQUEST_PROTOCOL` does for the strategy behavior. In particular, the states of this behavior
+are: `PASSENGER_IN_TAXI`, when the Taxi agent has reached the Passenger agent's position and has picked it up; and
+`PASSENGER_IN_DEST`, when the Taxi agent has reached the Passenger agent's destination. This would be the final state
+of the Passenger agent.
 
-
+WARNING: This behavior is internal and automatic, and it is not intended to be modified while developing
+new negotiation strategies. The same applies to the `TRAVEL_PROTOCOL` protocol.
 
 
 

@@ -84,16 +84,16 @@ now described.
 Strategy Behaviour (`AcceptAlwaysStrategyBehaviour`)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The goal of the strategy behavior of a Taxi agent is to negotiate with Passenger agents requesting a taxi service
+The goal of the strategy behavior of a Taxi agent is to negotiate with Passenger agents which are requesting a taxi service
 the conditions of the service offered by the Taxi, in order to achieve an agreement with these Passenger agents.
 When an agreement is reached between a particular Passenger and Taxi agents, then the Taxi agent picks up the
-Passenger agent and transport it to its destination (see Moving Behavior below).
+Passenger agent and transport it to its destination (and starts the Moving Behavior, described below).
 
 The currently implemented, default strategy behavior is called `AcceptAlwaysStrategyBehaviour`, and has a direct
 relation with the `REQUEST` protocol explained above. In particular, the behavior can be thought of as a finite-state
 machine with some different states specifying the statuses of the Taxi agent regarding the strategy behavior, and
-some transitions between states, wich are triggered by messages (of the `REQUEST` protocol) received by the Taxi agent
-or by some other program conditions. This is depicted in the following diagram:
+some transitions between states, wich are triggered either by messages (of the `REQUEST` protocol) received by the
+Taxi agent, or by some other program conditions. This is depicted in the following diagram:
 
 .. figure:: Taxi_FSM.png
    :scale: 40 %
@@ -120,7 +120,8 @@ The semantics of each state are now described:
   service, and then the Taxi agent starts to travel to the Passenger location in order to pick it up. This is
   the final state of the negotiation between the Taxi and a certain Passenger agent. In this state, the Taxi agent
   executes the helper function `pick_up_passenger`, which automatically starts the so-called Moving Behavior
-  in the Taxi agent, described below.
+  in the Taxi agent, described below. It also sends a message to the Travel Behavior of the Passenger agent, which
+  starts that behavior (this is explained in the next section).
 
 
 Moving Behaviour
@@ -133,7 +134,7 @@ Once in the Passenger agent's destination, the Passenger agent is informed, and 
 is again changed to `TAXI_WAITING`, indicating that it is now free again, and it may start receiving new requests
 from other Passenger agents.
 
-This behavior is internal and automatic, and it is not intended to be modified while developing
+WARNING: This behavior is internal and automatic, and it is not intended to be modified while developing
 new negotiation strategies.
 
 
@@ -141,8 +142,26 @@ new negotiation strategies.
 Description of the Passenger Agents
 -----------------------------------
 
+The Passenger agents represent people that need to go from one location of the city (their "current location") to
+another (their "destination"), and for doing so, they request a taxi service. Each Passenger agent requires a single
+taxi service and so, once transported to its destination, it reaches its final state and ends its execution. During
+that execution, Passenger agents incorporate two behaviors: the strategy behavior and the travel behavior, now described.
+
+
 Strategy Behaviour
 ~~~~~~~~~~~~~~~~~~
+
+In the course of the `REQUEST` protocol, the request of a taxi service made by a Passenger agent is answered
+by one (or several) Taxi agents, each of which offering the Passenger their conditions to perform such service.
+The goal of the strategy behavior of a Passenger agent is to select the best of these taxi service proposals,
+according to its needs or preferences (e.g., to be picked up faster, to get the nearest available taxi,
+to get the cheapest service, etc.).
+
+
+The currently implemented, default strategy behavior is called `AcceptFirstRequestTaxiBehaviour`. As in the
+strategy behavior of the Taxi agents above, here we can also consider the strategy as a finite-state machine related to
+the messages (of the `REQUEST` protocol) received by the Passenger agent, as depicted below:
+
 
 .. figure:: Passenger_FSM.png
    :scale: 40 %
@@ -150,18 +169,65 @@ Strategy Behaviour
 
    States and transitions of the strategy behavior of a Passenger agent.
 
+The semantics of each state are now described:
+
+* `PASSENGER_WAITING`: In this state, the Passenger agent requires a taxi service and, periodically, sends a
+  request for that service until one (or many) Taxi agent proposals (`PROPOSE_PERFORMATIVE`) are received.
+  When the Passenger accepts a particular proposal (in the current implementation, always the first one it
+  receives while in this state) then it communicates so to the proposing Taxi agent, and changes its own status
+  to `PASSENGER_ASSIGNED`.
 
 
-Which are its goals. What it does. Possible states and semantics of each state.
+* `PASSENGER_ASSIGNED`: In this state, the Passenger agent has been assigned to a particular taxi, and the taxi service
+  is being produced. The Passenger side of the taxi service is implemented by activating the Travel Behavior, described
+  below, which is started by a message sent by the Taxi agent (in its helper function `pick_up_passenger`).
+  If something goes wrong (for example, an exception is raised during the taxi service) or the Taxi agent voluntarily
+  wants to cancel the service, then the Taxi agent sends a `CANCEL_PERFORMATIVE` to the Passenger agent, which
+  would then change its status back to `PASSENGER_WAITING`, initiating the request process again.
+
+
 
 Travel Behaviour
 ~~~~~~~~~~~~~~~~
 Goals, Actions, States.
 
 
-How agents interact in the default strategies
----------------------------------------------
-Description (and image) of Request Protocol (how some messages change agents' status)
+
+
+
+
+
+The Negotiation Process between Taxi and Passenger Agents
+---------------------------------------------------------
+
+After separately explaining the strategy behavior of Taxi and Passenger agents, this section tries to relate both behaviors.
+This is important to understand how these two agent types interact with each other in order to coordinate and reach the overall
+goals of the simulation.
+
+In particular, there are three key aspects (embedded within the strategy behaviors) which influence the overall
+coordination process implemented in the simulator, as now described:
+
+* The conditions of a taxi service proposal. The current implementation does not consider any special condition other
+than the Taxi agent being free (available to perform the service). Some aspects that could be included in a taxi proposal
+would be, for example, the current location of the taxi, the proposed fare, the route to take the Passenger agent to its
+destination, etc.
+
+* The preferences of passengers in order to select a particular taxi proposal. In the current implementation, the
+Passenger agents always accept the first proposal received from a Taxi agent. In a more sophisticated negotiation,
+some internal goals/conditions of the Passenger agent could be taken into account in order to select a "better" proposal.
+These might include, for example, the expected waiting time until the Taxi agent arrives, the amount of money that
+the service is expected to cost, the brand of the Taxi vehicle, etc.
+
+* The possibility of a taxi to voluntarily cancel an ongoing taxi service after a proposal has been accepted by a passenger.
+This may happen only before the pasenger has been picked up, that is, while the taxi is moving from its initial position
+to the location where the passenger is waiting for it. In the current implementation, a taxi service cancellation can
+only be produced if some exception is raised while the service is being produced (for example, if the software calculating
+a route for the Taxi agent fails to produce a valid route). Since new Passenger (and maybe Taxi) agents can appear at
+any time while the simulation is running, a voluntary cancellation of taxi services could improve the overall
+transportation of passengers throughout the simulation, allowing for a "dynamic reallocation" of passengers
+to taxis, even when taxi services where already committed.
+
+
 
 
 

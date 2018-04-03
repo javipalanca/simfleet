@@ -21,8 +21,8 @@ protocol, which comprises the types of messages exchanged among the three agent 
 The following diagram presents the protocol in the typical FIPA format, where agents types are depicted as vertical lines
 and the exchanged message types (or "performatives") in horizontal arrows:
 
-.. image:: images/Request_protocol.png
-   :scale: 40 %
+.. image:: images/request_protocolv2.png
+   :scale: 100 %
    :align: center
 
 This chapter introduces first the current, default strategy of each agent type (Coordinator, Taxi and Passenger) and

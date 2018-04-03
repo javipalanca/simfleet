@@ -68,3 +68,6 @@ xmppd.xml
 roomdb.xml
 user_db.xml
 /taxi_simulator/templates/assets/node_modules/
+
+# PyCharm Idea directory
+.idea

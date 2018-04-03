@@ -69,7 +69,8 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
         elif performative == REFUSE_PERFORMATIVE:
             self.logger.debug("Taxi {} got refusal from {}".format(self.myAgent.agent_id,
                                                                    content["passenger_id"]))
-            self.myAgent.status = TAXI_WAITING
+            if self.myAgent.status == TAXI_WAITING_FOR_APPROVAL:
+                self.myAgent.status = TAXI_WAITING
 
 
 ################################################################

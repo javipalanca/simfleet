@@ -52,7 +52,7 @@ passenger_in_taxi_event = threading.Event()
 
 
 def passenger_in_taxi_callback(old, new):
-    if not passenger_in_taxi_event.is_set():
+    if not passenger_in_taxi_event.is_set() and new is None:
         passenger_in_taxi_event.set()
 
 

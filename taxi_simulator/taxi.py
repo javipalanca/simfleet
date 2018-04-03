@@ -128,8 +128,8 @@ class TaxiAgent(Agent):
         self.chunked_path = None
         if not self.is_passenger_in_taxi():  # self.status == TAXI_MOVING_TO_PASSENGER:
             try:
-                self.move_to(self.current_passenger_dest)
                 self.store_value("passenger_in_taxi", self.get_value("current_passenger"))
+                self.move_to(self.current_passenger_dest)
             except PathRequestException:
                 self.cancel_passenger()
                 self.status = TAXI_WAITING

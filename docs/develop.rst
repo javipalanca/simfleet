@@ -19,7 +19,7 @@ protocol, which comprises the types of messages exchanged among the three agent 
 The following diagram presents the protocol in the typical FIPA format, where agents types are depicted as vertical lines
 and the exchanged message types (or "performatives") in horizontal arrows:
 
-.. image:: Request_protocol.png
+.. image:: images/Request_protocol.png
    :scale: 40 %
    :align: center
 
@@ -95,7 +95,7 @@ machine with some different states specifying the statuses of the Taxi agent reg
 some transitions between states, wich are triggered either by messages (of the `REQUEST` protocol) received by the
 Taxi agent, or by some other program conditions. This is depicted in the following diagram:
 
-.. figure:: Taxi_FSM.png
+.. figure:: images/Taxi_FSM.png
    :scale: 40 %
    :align: center
 
@@ -166,7 +166,7 @@ strategy behavior of the Taxi agents above, here we can also consider the strate
 the messages (of the `REQUEST` protocol) received by the Passenger agent, as depicted below:
 
 
-.. figure:: Passenger_FSM.png
+.. figure:: images/Passenger_FSM.png
    :scale: 40 %
    :align: center
 

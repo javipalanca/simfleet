@@ -137,8 +137,9 @@ Once the Taxi reaches the Passenger agent's destination and the Passenger agent 
 the Taxi agent (of the strategy behavior) is here changed to `TAXI_WAITING`, indicating that it is now free,
 and hence making the Taxi agent available again to receiving new requests from other Passenger agents.
 
-WARNING: This behavior is internal and automatic, and it is not intended to be modified while developing
-new negotiation strategies. The same applies to the `TRAVEL_PROTOCOL` protocol.
+.. warning::
+  This behavior is internal and automatic, and it is not intended to be modified while developing
+  new negotiation strategies. The same applies to the `TRAVEL_PROTOCOL` protocol.
 
 
 
@@ -203,8 +204,9 @@ are: `PASSENGER_IN_TAXI`, when the Taxi agent has reached the Passenger agent's 
 `PASSENGER_IN_DEST`, when the Taxi agent has reached the Passenger agent's destination. This would be the final state
 of the Passenger agent.
 
-WARNING: This behavior is internal and automatic, and it is not intended to be modified while developing
-new negotiation strategies. The same applies to the `TRAVEL_PROTOCOL` protocol.
+.. warning::
+  This behavior is internal and automatic, and it is not intended to be modified while developing
+  new negotiation strategies. The same applies to the `TRAVEL_PROTOCOL` protocol.
 
 
 

@@ -3,4 +3,4 @@ SPADE>=2.3
 factory_boy==2.9.2
 requests==2.18.4
 geopy==1.11.0
-flask==0.12.2
+flask==1.0.2

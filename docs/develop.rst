@@ -408,7 +408,7 @@ For example:
             self.addBehaviour(behav)
 
 The reception of messages is particular in SPADE, since messages can only be received by behaviors, and so
-Thus, SPADE provides each behavior executed by any agent with its own mailbox, and defines a mechanism in
+SPADE provides each behavior executed by any agent with its own mailbox, and defines a mechanism in
 order to configure the particular behavior that must receive each message, according to the message type.
 This mechanism is carried out with `ACLTemplates`. When an agent receives a new message it checks if the message matches each
 of the behaviors using a template with which they where registered. If there is a match, the message is delivered to the

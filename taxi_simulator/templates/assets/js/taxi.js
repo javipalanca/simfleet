@@ -46,10 +46,15 @@ let passengers = {};
 let paths = new HashTable();
 let urls = new HashTable();
 
-const PASSENGER_WAITING = 20;
+/*const PASSENGER_WAITING = 20;
 const PASSENGER_IN_TAXI = 21;
 const PASSENGER_IN_DEST = 22;
 const PASSENGER_ASSIGNED = 24;
+*/
+const PASSENGER_WAITING = "PASSENGER_WAITING";
+const PASSENGER_IN_TAXI = "PASSENGER_IN_TAXI";
+const PASSENGER_IN_DEST = "PASSENGER_IN_DEST";
+const PASSENGER_ASSIGNED = "PASSENGER_ASSIGNED";
 
 const statuses = {
     10: "TAXI_WAITING",
@@ -67,12 +72,14 @@ const statuses = {
 
 color = {
     11: "blue",
-    13: "green"
+    13: "green",
+    "TAXI_MOVING_TO_PASSENGER": "blue",
+    "TAXI_MOVING_TO_DESTINATION": "green",
 };
 
 function gen_passenger_popup(passenger) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + passenger.id + "</td></tr>" +
-        "<tr><th>STATUS</th><td>" + statuses[passenger.status] + "</td></tr>" +
+        "<tr><th>STATUS</th><td>" + passenger.status + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + passenger.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + passenger.dest + "</td></tr>" +
         "<tr><th>TAXI</th><td>" + passenger.taxi + "</td></tr>" +
@@ -82,7 +89,7 @@ function gen_passenger_popup(passenger) {
 
 function gen_taxi_popup(taxi) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" +
-        "<tr><th>STATUS</th><td>" + statuses[taxi.status] + "</td></tr>" +
+        "<tr><th>STATUS</th><td>" + taxi.status + "</td></tr>" +
         "<tr><th>PASSENGER</th><td>" + taxi.passenger + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + taxi.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + taxi.dest + "</td></tr>" +

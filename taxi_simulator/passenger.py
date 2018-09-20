@@ -245,7 +245,7 @@ class TravelBehaviour(Behaviour):
                 logger.debug("Passenger {} informed of: {}".format(self.myAgent.agent_id, content))
                 if "status" in content:
                     status = content["status"]
-                    if status != 23:
+                    if status != PASSENGER_LOCATION:
                         logger.info("Passenger {} informed of status: {}".format(self.myAgent.agent_id,
                                                                                  status_to_str(status)))
                     if status == TAXI_MOVING_TO_PASSENGER:

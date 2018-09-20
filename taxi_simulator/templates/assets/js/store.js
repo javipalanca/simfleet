@@ -28,7 +28,7 @@ export const store = new Vuex.Store({
             }
         },
         update_simulation_status: (state, stats) => {
-            if(!stats.is_running) state.simulation_status = false;
+            if (!stats.is_running) state.simulation_status = false;
             else {
                 state.simulation_status = !stats.finished;
             }
@@ -62,7 +62,7 @@ export const store = new Vuex.Store({
     }
 });
 
-let update_item_in_collection = function(collection, item, get_popup) {
+let update_item_in_collection = function (collection, item, get_popup) {
     let p = getitem(collection, item);
     if (p === false) {
         item.latlng = L.latLng(item.position[0], item.position[1]);
@@ -75,7 +75,9 @@ let update_item_in_collection = function(collection, item, get_popup) {
         collection[p].popup = get_popup(item);
         collection[p].speed = item.speed;
         collection[p].status = item.status;
-        collection[p].visible = item.status !== 21 && item.status !== 22 && item.status !== 23
+        collection[p].visible = item.status !== "PASSENGER_IN_TAXI" &&
+                                item.status !== "PASSENGER_IN_DEST" &&
+                                item.status !== "PASSENGER_LOCATION";
     }
 };
 
@@ -90,11 +92,13 @@ let getitem = function (collection, item) {
 
 let color = {
     11: "rgb(255, 170, 0)",
-    13: "rgb(0, 149, 255)"
+    13: "rgb(0, 149, 255)",
+    "TAXI_MOVING_TO_PASSENGER": "rgb(255, 170, 0)",
+    "TAXI_MOVING_TO_DESTINATION": "rgb(0, 149, 255)",
 };
 
 function get_color(status) {
-        return color[status];
+    return color[status];
 }
 
 let statuses = {
@@ -114,7 +118,7 @@ let statuses = {
 
 function passenger_popup(passenger) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + passenger.id + "</td></tr>" +
-        "<tr><th>STATUS</th><td>" + statuses[passenger.status] + "</td></tr>" +
+        "<tr><th>STATUS</th><td>" + passenger.status + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + passenger.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + passenger.dest + "</td></tr>" +
         "<tr><th>TAXI</th><td>" + passenger.taxi + "</td></tr>" +
@@ -124,7 +128,7 @@ function passenger_popup(passenger) {
 
 function taxi_popup(taxi) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" +
-        "<tr><th>STATUS</th><td>" + statuses[taxi.status] + "</td></tr>" +
+        "<tr><th>STATUS</th><td>" + taxi.status + "</td></tr>" +
         "<tr><th>PASSENGER</th><td>" + taxi.passenger + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + taxi.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + taxi.dest + "</td></tr>" +

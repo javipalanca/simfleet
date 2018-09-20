@@ -1,6 +1,6 @@
 Click>=6.0
 SPADE>=2.3
 factory_boy==2.11.1
-requests==2.18.4
-geopy==1.11.0
+requests==2.19.1
+geopy==1.17.0
 flask==0.12.2

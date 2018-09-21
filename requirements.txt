@@ -1,5 +1,5 @@
 Click>=6.0
-SPADE>=2.3.3
+spade>=3.0.4
 pandas==0.22.0
 tabulate==0.8.2
 openpyxl==2.4.9

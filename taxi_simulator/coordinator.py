@@ -6,11 +6,11 @@ import os
 
 import pandas as pd
 import time
-from spade.Agent import Agent
-from spade.Behaviour import ACLTemplate, MessageTemplate
+from spade.agent import Agent
+from spade.template import Template
 
-from utils import load_class, StrategyBehaviour, status_to_str, request_path
-from protocol import REQUEST_PROTOCOL
+from .utils import load_class, StrategyBehaviour, status_to_str, request_path
+from .protocol import REQUEST_PROTOCOL
 
 logger = logging.getLogger("CoordinatorAgent")
 
@@ -19,7 +19,8 @@ class CoordinatorAgent(Agent):
     """
     Coordinator agent that manages the requests between taxis and passengers
     """
-    def __init__(self, agentjid, password, debug, http_port, backend_port, debug_level):
+
+    def __init__(self, agentjid, password, http_port, backend_port):
         self.simulation_running = False
         self.simulation_time = None
         self.kill_simulator = threading.Event()
@@ -32,66 +33,25 @@ class CoordinatorAgent(Agent):
 
         self.http_port = http_port
         self.backend_port = backend_port
-        self.debug_level = debug_level
+        self.template_path = os.path.dirname(__file__) + os.sep + "templates"
 
         self.knowledge_base = {}
 
-        self.store_value("taxi_agents", {})
-        self.store_value("passenger_agents", {})
+        self.set("taxi_agents", {})
+        self.set("passenger_agents", {})
 
-        Agent.__init__(self, agentjid=agentjid, password=password, debug=debug)
+        super().__init__(jid=agentjid, password=password)
 
-    def store_value(self, key, value):
-        """
-        Stores a value (named by a key) in the agent's knowledge base that runs the behaviour.
-        This allows the strategy to have persistent values between loops.
-
-        Args:
-            key (:obj:`str`): the name of the value.
-            value (:obj:`object`): The object to be stored.
-        """
-        self.knowledge_base[key] = value
-
-    def get_value(self, key):
-        """
-        Returns a stored value from the agent's knowledge base.
-
-        Args:
-            key (:obj:`str`): the name of the value
-
-        Returns:
-            :data:`object`: The object stored with the key
-
-        Raises:
-            KeyError: if the key is not in the knowledge base
-        """
-        return self.knowledge_base.get(key)
-
-    def has_value(self, key):
-        """
-        Checks if a key is registered in the agent's knowledge base
-
-        Args:
-            key (:obj:`str`): the name of the value to be checked
-
-        Returns:
-            bool: whether the knowledge base has or not the key
-        """
-        return key in self.knowledge_base
-
-    def _setup(self):
+    def setup(self):
         logger.info("Coordinator agent running")
-        self.wui.setPort(self.http_port)
-        self.wui.start()
-        logger.info("Web interface running at http://127.0.0.1:{}/app".format(self.wui.port))
+        self.web.start(port=self.http_port, templates_path=self.template_path)
+        logger.info("Web interface running at http://127.0.0.1:{}/app".format(self.http_port))
 
-        self.template_path = os.path.dirname(__file__) + os.sep + "templates"
-        self.wui.setTemplatePath(self.template_path)
-
-        self.wui.registerController("app", self.index_controller)
-        self.wui.registerController("entities", self.entities_controller)
-        self.wui.registerController("run", self.run_controller)
-        self.wui.registerController("clean", self.clean_controller)
+        self.web.add_get("app", self.index_controller, "index.html")
+        self.web.add_get("entities", self.entities_controller, None)
+        self.web.add_get("run", self.run_controller, None)
+        self.web.add_get("clean", self.clean_controller, None)
+        self.web.add_get("/generate/taxis/<int:ntaxis>/passengers/<int:npassengers>", self.generate_controller, None)
 
     @property
     def taxi_agents(self):
@@ -99,9 +59,9 @@ class CoordinatorAgent(Agent):
         Gets the list of registered taxis
 
         Returns:
-            list: a list of :obj:`TaxiAgent`
+            list: a list of ``TaxiAgent``
         """
-        return self.get_value("taxi_agents")
+        return self.get("taxi_agents")
 
     @property
     def passenger_agents(self):
@@ -109,27 +69,27 @@ class CoordinatorAgent(Agent):
         Gets the list of registered passengers
 
         Returns:
-            list: a list of :obj:`PassengerAgent`
+            list: a list of ``PassengerAgent``
         """
-        return self.get_value("passenger_agents")
+        return self.get("passenger_agents")
 
     def add_taxi(self, agent):
         """
-        Adds a new :class:`TaxiAgent` to the store.
+        Adds a new ``TaxiAgent`` to the store.
 
         Args:
-            agent (:obj:`TaxiAgent`): the instance of the TaxiAgent to be added
+            agent (``TaxiAgent``): the instance of the TaxiAgent to be added
         """
-        self.get_value("taxi_agents")[agent.getName()] = agent
+        self.get("taxi_agents")[agent.name] = agent
 
     def add_passenger(self, agent):
         """
         Adds a new :class:`PassengerAgent` to the store.
 
         Args:
-            agent (:obj:`PassengerAgent`): the instance of the PassengerAgent to be added
+            agent (``PassengerAgent``): the instance of the PassengerAgent to be added
         """
-        self.get_value("passenger_agents")[agent.getName()] = agent
+        self.get("passenger_agents")[agent.name] = agent
 
     def set_strategies(self, coordinator_strategy, taxi_strategy, passenger_strategy):
         """
@@ -178,16 +138,15 @@ class CoordinatorAgent(Agent):
     def add_strategy(self, strategy_class):
         """
         Injects the strategy by instantiating the ``strategy_class``.
-        Since the ``strategy_class`` inherits from :class:`spade.Behaviour.Behaviour`,
+        Since the ``strategy_class`` inherits from ``spade.Behaviour.Behaviour``,
         the new strategy is added as a behaviour to the agent.
 
         Args:
             strategy_class (class): the class to be instantiated.
         """
-        tpl = ACLTemplate()
-        tpl.setProtocol(REQUEST_PROTOCOL)
-        template = MessageTemplate(tpl)
-        self.addBehaviour(strategy_class(), template)
+        template = Template()
+        template.set_metadata("protocol", REQUEST_PROTOCOL)
+        self.add_behaviour(strategy_class(), template)
 
     def request_path(self, origin, destination):
         """
@@ -202,26 +161,29 @@ class CoordinatorAgent(Agent):
         """
         return request_path(self, origin, destination)
 
-    def index_controller(self):
+    async def index_controller(self, request):
         """
         Web controller that returns the index page of the simulator.
 
         Returns:
-            :obj:`str`, :obj:`dict`: the name of the template, the data to be pre-processed in the template
+            dict: the name of the template, the data to be pre-processed in the template
         """
-        return "index.html", {"port": self.backend_port}
+        return {"port": self.backend_port}
 
-    def run_controller(self):
+    async def run_controller(self, request):
         """
         Web controller that starts the simulator.
 
         Returns:
-            :data:`None`, :obj:`dict`: no template is returned since this is an AJAX controller, an empty data dict is returned
+            dict: no template is returned since this is an AJAX controller, an empty data dict is returned
         """
         self.run_simulation()
-        return None, {}
+        return {}
 
-    def entities_controller(self):
+    async def generate_controller(self, request):
+        pass
+
+    async def entities_controller(self, request):
         """
         Web controller that returns a dict with the entities of the simulator and their statuses.
 
@@ -280,7 +242,7 @@ class CoordinatorAgent(Agent):
             }
 
         Returns:
-            :data:`None`, :obj:`dict`:  no template is returned since this is an AJAX controller, a dict with the list of taxis, the list of passengers, the tree view to be showed in the sidebar and the stats of the simulation.
+            dict:  no template is returned since this is an AJAX controller, a dict with the list of taxis, the list of passengers, the tree view to be showed in the sidebar and the stats of the simulation.
         """
         result = {
             "taxis": [taxi.to_json() for taxi in self.taxi_agents.values()],
@@ -288,19 +250,19 @@ class CoordinatorAgent(Agent):
             "tree": self.generate_tree(),
             "stats": self.get_stats()
         }
-        return None, result
+        return result
 
-    def clean_controller(self):
+    def clean_controller(self, request):
         """
         Web controller that resets the simulator to a clean state.
 
         Returns:
-            :data:`None`, :obj:`dict`: no template is returned since this is an AJAX controller, a dict with status=done
+            dict: no template is returned since this is an AJAX controller, a dict with status=done
         """
         self.stop_agents()
-        self.store_value("taxi_agents", {})
-        self.store_value("passenger_agents", {})
-        return None, {"status": "done"}
+        self.set("taxi_agents", {})
+        self.set("passenger_agents", {})
+        return {"status": "done"}
 
     def stop_agents(self):
         """
@@ -370,6 +332,7 @@ class CoordinatorAgent(Agent):
             dict: a dict with the total time, waiting time, is_running and finished values
 
         """
+
         def avg(array):
             """
             Makes the average of an array without Nones.
@@ -401,7 +364,7 @@ class CoordinatorAgent(Agent):
         The dataframe includes for each passenger its name, waiting time, total time and status.
 
         Returns:
-            :obj:`pandas.DataFrame`: the dataframe with the passengers stats.
+            ``pandas.DataFrame``: the dataframe with the passengers stats.
         """
         try:
             names, waitings, totals, statuses = zip(*[(p.getName(), p.get_waiting_time(),
@@ -419,7 +382,7 @@ class CoordinatorAgent(Agent):
         The dataframe includes for each taxi its name, assignments, traveled distance and status.
 
         Returns:
-            :obj:`pandas.DataFrame`: the dataframe with the taxis stats.
+            ``pandas.DataFrame``: the dataframe with the taxis stats.
         """
         try:
             names, assignments, distances, statuses = zip(*[(t.getName(), t.num_assignments,
@@ -428,7 +391,10 @@ class CoordinatorAgent(Agent):
                                                             for t in self.taxi_agents.values()])
         except ValueError:
             names, assignments, distances, statuses = [], [], [], []
-        df = pd.DataFrame.from_dict({"name": names, "assignments": assignments, "distance": distances, "status": statuses})
+        df = pd.DataFrame.from_dict({"name": names,
+                                     "assignments": assignments,
+                                     "distance": distances,
+                                     "status": statuses})
         return df
 
     def is_simulation_finished(self):
@@ -451,8 +417,9 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
         * :func:`get_taxi_agents`
         * :func:`get_passenger_agents`
     """
-    def onStart(self):
-        self.logger = logging.getLogger("CoordinatorAgent")
+
+    async def on_start(self):
+        self.logger = logging.getLogger("CoordinatorStrategy")
         self.logger.debug("Strategy {} started in coordinator".format(type(self).__name__))
 
     def get_taxi_agents(self):
@@ -460,18 +427,18 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
         Gets the list of registered taxis
 
         Returns:
-            list: a list of :obj:`TaxiAgent`
+            list: a list of ``TaxiAgent``
         """
-        return self.get_value("taxi_agents").values()
+        return self.get("taxi_agents").values()
 
     def get_passenger_agents(self):
         """
         Gets the list of registered passengers
 
         Returns:
-            list: a list of :obj:`PassengerAgent`
+            list: a list of ``PassengerAgent``
         """
-        return self.get_value("passenger_agents").values()
+        return self.get("passenger_agents").values()
 
-    def _process(self):
+    async def run(self):
         raise NotImplementedError

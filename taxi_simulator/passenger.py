@@ -2,21 +2,22 @@ import json
 import logging
 import time
 
-from spade.ACLMessage import ACLMessage
-from spade.Agent import Agent
-from spade.Behaviour import ACLTemplate, MessageTemplate, Behaviour
+from spade.message import Message
+from spade.agent import Agent
+from spade.behaviour import CyclicBehaviour
+from spade.template import Template
 
-from utils import PASSENGER_WAITING, PASSENGER_IN_DEST, TAXI_MOVING_TO_PASSENGER, PASSENGER_IN_TAXI, \
+from .utils import PASSENGER_WAITING, PASSENGER_IN_DEST, TAXI_MOVING_TO_PASSENGER, PASSENGER_IN_TAXI, \
     TAXI_IN_PASSENGER_PLACE, PASSENGER_LOCATION, StrategyBehaviour, request_path, status_to_str
-from protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
-from helpers import coordinator_aid, random_position, content_to_json
+from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
+from .helpers import coordinator_aid, random_position
 
 logger = logging.getLogger("PassengerAgent")
 
 
 class PassengerAgent(Agent):
-    def __init__(self, agentjid, password, debug):
-        Agent.__init__(self, agentjid, password, debug=debug)
+    def __init__(self, agentjid, password):
+        super().__init__(agentjid, password)
         self.agent_id = None
         self.status = PASSENGER_WAITING
         self.current_pos = None
@@ -30,54 +31,15 @@ class PassengerAgent(Agent):
 
         self.knowledge_base = {}
 
-    def store_value(self, key, value):
-        """
-        Stores a value (named by a key) in the agent's knowledge base that runs the behaviour.
-        This allows the strategy to have persistent values between loops.
-
-        Args:
-            key (:obj:`str`): the name of the value.
-            value (:obj:`object`): The object to be stored.
-        """
-        self.knowledge_base[key] = value
-
-    def get_value(self, key):
-        """
-        Returns a stored value from the agent's knowledge base.
-
-        Args:
-            key (:obj:`str`): the name of the value
-
-        Returns:
-            :data:`object`: The object stored with the key
-
-        Raises:
-            KeyError: if the key is not in the knowledge base
-        """
-        return self.knowledge_base.get(key)
-
-    def has_value(self, key):
-        """
-        Checks if a key is registered in the agent's knowledge base
-
-        Args:
-            key (:obj:`str`): the name of the value to be checked
-
-        Returns:
-            bool: whether the knowledge base has or not the key
-        """
-        return key in self.knowledge_base
-
-    def _setup(self):
+    def setup(self):
         try:
-            tpl = ACLTemplate()
-            tpl.setProtocol(TRAVEL_PROTOCOL)
-            template = MessageTemplate(tpl)
+            template = Template()
+            template.set_metadata("protocol", TRAVEL_PROTOCOL)
             travel_behaviour = TravelBehaviour()
-            self.addBehaviour(travel_behaviour, template)
-            while not self.hasBehaviour(travel_behaviour):
-                logger.warn("Passenger {} could not create TravelBehaviour. Retrying...".format(self.agent_id))
-                self.addBehaviour(travel_behaviour, template)
+            self.add_behaviour(travel_behaviour, template)
+            while not self.has_behaviour(travel_behaviour):
+                logger.warning("Passenger {} could not create TravelBehaviour. Retrying...".format(self.agent_id))
+                self.add_behaviour(travel_behaviour, template)
         except Exception as e:
             logger.error("EXCEPTION creating TravelBehaviour in Passenger {}: {}".format(self.agent_id, e))
 
@@ -86,18 +48,17 @@ class PassengerAgent(Agent):
         Sets the strategy for the passenger agent.
 
         Args:
-            strategy_class (:class:`PassengerStrategyBehaviour`): The class to be used. Must inherit from :class:`PassengerStrategyBehaviour`
+            strategy_class (``PassengerStrategyBehaviour``): The class to be used. Must inherit from ``PassengerStrategyBehaviour``
         """
-        tpl = ACLTemplate()
-        tpl.setProtocol(REQUEST_PROTOCOL)
-        template = MessageTemplate(tpl)
-        self.addBehaviour(strategy_class(), template)
+        template = Template()
+        template.set_metadata("protocol", REQUEST_PROTOCOL)
+        self.add_behaviour(strategy_class(), template)
 
     def set_id(self, agent_id):
         """
         Sets the agent identifier
         Args:
-            agent_id (:obj:`str`): The new Agent Id
+            agent_id (str): The new Agent Id
         """
         self.agent_id = agent_id
 
@@ -106,7 +67,7 @@ class PassengerAgent(Agent):
         Sets the position of the passenger. If no position is provided it is located in a random position.
 
         Args:
-            coords (:obj:`list`): a list coordinates (longitude and latitude)
+            coords (list): a list coordinates (longitude and latitude)
         """
         if coords:
             self.current_pos = coords
@@ -129,7 +90,7 @@ class PassengerAgent(Agent):
         If no position is provided the destination is setted to a random position.
 
         Args:
-            coords (:obj:`list`): a list coordinates (longitude and latitude)
+            coords (list): a list coordinates (longitude and latitude)
         """
         if coords:
             self.dest = coords
@@ -146,18 +107,18 @@ class PassengerAgent(Agent):
         """
         return self.status == PASSENGER_IN_DEST or self.get_position() == self.dest
 
-    def request_path(self, origin, destination):
+    async def request_path(self, origin, destination):
         """
         Requests a path between two points (origin and destination) using the RouteAgent service.
 
         Args:
-            origin (:obj:`list`): the coordinates of the origin of the requested path
-            destination (:obj:`list`): the coordinates of the end of the requested path
+            origin (list): the coordinates of the origin of the requested path
+            destination (list): the coordinates of the end of the requested path
 
         Returns:
             list, float, float: A list of points that represent the path from origin to destination, the distance and the estimated duration
         """
-        return request_path(self, origin, destination)
+        return await request_path(self, origin, destination)
 
     def total_time(self):
         """
@@ -228,133 +189,135 @@ class PassengerAgent(Agent):
         }
 
 
-class TravelBehaviour(Behaviour):
+class TravelBehaviour(CyclicBehaviour):
     """
     This is the internal behaviour that manages the movement of the passenger.
     It is triggered when the taxi informs the passenger that it is going to the
     passenger's position until the passenger is droppped in its destination.
     """
-    def onStart(self):
-        logger.debug("Passenger {} started TravelBehavior.".format(self.myAgent.agent_id))
 
-    def _process(self):
+    async def on_start(self):
+        logger.debug("Passenger {} started TravelBehavior.".format(self.agent.name))
+
+    async def run(self):
         try:
-            msg = self._receive(block=True)
+            msg = await self.receive()
             if msg:
-                content = content_to_json(msg)
-                logger.debug("Passenger {} informed of: {}".format(self.myAgent.agent_id, content))
+                content = msg.body
+                logger.debug("Passenger {} informed of: {}".format(self.agent.name, content))
                 if "status" in content:
                     status = content["status"]
                     if status != PASSENGER_LOCATION:
-                        logger.info("Passenger {} informed of status: {}".format(self.myAgent.agent_id,
+                        logger.info("Passenger {} informed of status: {}".format(self.agent.name,
                                                                                  status_to_str(status)))
                     if status == TAXI_MOVING_TO_PASSENGER:
-                        logger.info("Passenger {} waiting for taxi.".format(self.myAgent.agent_id))
-                        self.myAgent.waiting_for_pickup_time = time.time()
+                        logger.info("Passenger {} waiting for taxi.".format(self.agent.name))
+                        self.agent.waiting_for_pickup_time = time.time()
                     elif status == TAXI_IN_PASSENGER_PLACE:
-                        self.myAgent.status = PASSENGER_IN_TAXI
-                        logger.info("Passenger {} in taxi.".format(self.myAgent.agent_id))
-                        self.myAgent.pickup_time = time.time()
+                        self.agent.status = PASSENGER_IN_TAXI
+                        logger.info("Passenger {} in taxi.".format(self.agent.name))
+                        self.agent.pickup_time = time.time()
                     elif status == PASSENGER_IN_DEST:
-                        self.myAgent.status = PASSENGER_IN_DEST
-                        self.myAgent.end_time = time.time()
+                        self.agent.status = PASSENGER_IN_DEST
+                        self.agent.end_time = time.time()
                         logger.info("Passenger {} arrived to destination after {} seconds."
-                                    .format(self.myAgent.agent_id, self.myAgent.total_time()))
+                                    .format(self.agent.name, self.agent.total_time()))
                     elif status == PASSENGER_LOCATION:
                         coords = content["location"]
-                        self.myAgent.set_position(coords)
+                        self.agent.set_position(coords)
         except Exception as e:
-            logger.error("EXCEPTION in Travel Behaviour of Passenger {}: {}".format(self.myAgent.agent_id, e))
+            logger.error("EXCEPTION in Travel Behaviour of Passenger {}: {}".format(self.agent.name, e))
 
 
 class PassengerStrategyBehaviour(StrategyBehaviour):
     """
     Class from which to inherit to create a taxi strategy.
-    You must overload the :func:`_process` method
+    You must overload the ``run`` coroutine
 
     Helper functions:
-        * :func:`send_request`
-        * :func:`accept_taxi`
-        * :func:`refuse_taxi`
+        * ``send_request``
+        * ``accept_taxi``
+        * ``refuse_taxi``
     """
-    def onStart(self):
+
+    async def on_start(self):
         """
         Initializes the logger and timers. Call to parent method if overloaded.
         """
-        self.logger = logging.getLogger("PassengerAgent")
-        self.logger.debug("Strategy {} started in passenger {}".format(type(self).__name__, self.myAgent.agent_id))
-        self.myAgent.init_time = time.time()
+        self.logger = logging.getLogger("PassengerStrategy")
+        self.logger.debug("Strategy {} started in passenger {}".format(type(self).__name__, self.agent.name))
+        self.agent.init_time = time.time()
 
-    def send_request(self, content=None):
+    async def send_request(self, content=None):
         """
-        Sends an :class:`ACLMessage` to the coordinator to request a taxi.
+        Sends an ``spade.message.Message`` to the coordinator to request a taxi.
         It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
         If no content is set a default content with the passenger_id,
         origin and target coordinates is used.
 
         Args:
-            content (:obj:`dict`): Optional content dictionary
+            content (dict): Optional content dictionary
         """
         if content is None or len(content) == 0:
             content = {
-                "passenger_id": self.myAgent.agent_id,
-                "origin": self.myAgent.current_pos,
-                "dest": self.myAgent.dest
+                "passenger_id": self.agent.name,
+                "origin": self.agent.current_pos,
+                "dest": self.agent.dest
             }
-        if not self.myAgent.dest:
-            self.myAgent.dest = random_position()
-        msg = ACLMessage()
-        msg.addReceiver(coordinator_aid)
-        msg.setProtocol(REQUEST_PROTOCOL)
-        msg.setPerformative(REQUEST_PERFORMATIVE)
-        msg.setContent(json.dumps(content))
-        self.myAgent.send(msg)
-        self.logger.info("Passenger {} asked for a taxi to {}.".format(self.myAgent.agent_id, self.myAgent.dest))
+        if not self.agent.dest:
+            self.agent.dest = random_position()
+        msg = Message()
+        msg.to = coordinator_aid
+        msg.set_metadata("protocol", REQUEST_PROTOCOL)
+        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+        msg.body = json.dumps(content)
+        await self.send(msg)
+        self.logger.info("Passenger {} asked for a taxi to {}.".format(self.agent.name, self.agent.dest))
 
-    def accept_taxi(self, taxi_aid):
+    async def accept_taxi(self, taxi_aid):
         """
-        Sends an :class:`ACLMessage` to a taxi to accept a travel proposal.
+        Sends a ``spade.message.Message`` to a taxi to accept a travel proposal.
         It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
 
         Args:
-            taxi_aid (:obj:`spade.AID.aid`): The AgentID of the taxi
+            taxi_aid (``aioxmpp.JID``): The Agent JID of the taxi
         """
-        reply = ACLMessage()
-        reply.addReceiver(taxi_aid)
-        reply.setProtocol(REQUEST_PROTOCOL)
-        reply.setPerformative(ACCEPT_PERFORMATIVE)
+        reply = Message()
+        reply.to = taxi_aid
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
         content = {
-            "passenger_id": self.myAgent.agent_id,
-            "origin": self.myAgent.current_pos,
-            "dest": self.myAgent.dest
+            "passenger_id": self.agent.name,
+            "origin": self.agent.current_pos,
+            "dest": self.agent.dest
         }
-        reply.setContent(json.dumps(content))
-        self.myAgent.send(reply)
-        self.myAgent.taxi_assigned = taxi_aid.getName()
-        self.logger.info("Passenger {} accepted proposal from taxi {}".format(self.myAgent.agent_id,
-                                                                              taxi_aid.getName()))
+        reply.body = json.dumps(content)
+        await self.send(reply)
+        self.agent.taxi_assigned = taxi_aid.getName()
+        self.logger.info("Passenger {} accepted proposal from taxi {}".format(self.agent.name,
+                                                                         taxi_aid.getName()))
 
-    def refuse_taxi(self, taxi_aid):
+    async def refuse_taxi(self, taxi_aid):
         """
-        Sends an ACLMessage to a taxi to refuse a travel proposal.
+        Sends an ``spade.message.Message`` to a taxi to refuse a travel proposal.
         It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
 
         Args:
-            taxi_aid (:class:`spade.AID.aid`): The AgentID of the taxi
+            taxi_aid (``aioxmpp.JID``): The Agent JID of the taxi
         """
-        reply = ACLMessage()
-        reply.addReceiver(taxi_aid)
-        reply.setProtocol(REQUEST_PROTOCOL)
-        reply.setPerformative(REFUSE_PERFORMATIVE)
+        reply = Message()
+        reply.to = taxi_aid
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", REFUSE_PERFORMATIVE)
         content = {
-            "passenger_id": self.myAgent.agent_id,
-            "origin": self.myAgent.current_pos,
-            "dest": self.myAgent.dest
+            "passenger_id": self.agent.name,
+            "origin": self.agent.current_pos,
+            "dest": self.agent.dest
         }
-        reply.setContent(json.dumps(content))
-        self.myAgent.send(reply)
-        self.logger.info("Passenger {} refused proposal from taxi {}".format(self.myAgent.agent_id,
-                                                                             taxi_aid.getName()))
+        reply.body = json.dumps(content)
+        self.agent.send(reply)
+        self.logger.info("Passenger {} refused proposal from taxi {}".format(self.agent.name,
+                                                                        taxi_aid.getName()))
 
-    def _process(self):
+    async def run(self):
         raise NotImplementedError

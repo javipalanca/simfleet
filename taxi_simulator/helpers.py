@@ -9,42 +9,25 @@ import logging
 import os
 import random
 
+import aioxmpp
 from geopy.distance import vincenty
-from spade.AID import aid
 
 logger = logging.getLogger()
 
 
 def build_aid(agent_id):
     """
-    Creates a new :class:`spade.AID.aid` from a user string.
+    Creates a new ``aioxmpp.JID`` from a user string.
     Args:
         agent_id (str): the name of the agent
 
     Returns:
-        :obj:`spade.AID.aid`: an Agent ID representing the agent.
+        ``aioxmpp.JID``: a JID representing the agent.
     """
-    return aid(name=agent_id + "@127.0.0.1", addresses=["xmpp://" + agent_id + "@127.0.0.1"])
+    return aioxmpp.JID.fromstr("{}@127.0.0.1".format(agent_id))
 
 
 coordinator_aid = build_aid("coordinator")
-
-
-def content_to_json(msg):
-    """
-    Safely convert the content of a :class:`spade.ACLMessage.ACLMessage` to a JSON format (dict).
-    The content of the message MUST be in a string representation of the JSON format.
-
-    Args:
-        msg (:obj:`spade.ACLMessage.ACLMessage`): an ACL message
-
-    Returns:
-        dict: the content of the message loaded in a dict.
-
-    Raises:
-        ValueError: if no JSON object could be decoded
-    """
-    return json.loads(msg.getContent().replace("'", '"'))
 
 
 def random_position():

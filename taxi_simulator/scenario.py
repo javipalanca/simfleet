@@ -3,9 +3,9 @@ import logging
 
 import faker
 
+from .coordinator import CoordinatorAgent
 from .passenger import PassengerAgent
 from .taxi import TaxiAgent
-from .helpers import random_position
 
 logger = logging.getLogger()
 
@@ -25,74 +25,21 @@ class Scenario(object):
         """
         self.taxis = []
         self.passengers = []
+        self.scenario = None
         with open(filename, 'r') as f:
-            logger.info("Loading scenario {}".format(filename))
-            scenario = json.load(f)
-            for taxi in scenario["taxis"]:
-                password = taxi["password"] if "password" in taxi else faker_factory.password()
-                agent = Scenario.create_agent(TaxiAgent, taxi["name"], password, taxi["position"], None)
-                if "speed" in taxi.keys():
-                    agent.set_speed(taxi["speed"])
-                self.taxis.append(agent)
+            logger.info("Reading scenario {}".format(filename))
+            self.scenario = json.load(f)
 
-            for passenger in scenario["passengers"]:
-                password = passenger["password"] if "password" in passenger else faker_factory.password()
-                agent = Scenario.create_agent(PassengerAgent, passenger["name"], password,
-                                              passenger["position"],
-                                              passenger["dest"])
-                self.passengers.append(agent)
+    def load(self, coordinator: CoordinatorAgent):
+        logger.info("Loading scenario...")
+        for taxi in self.scenario["taxis"]:
+            password = taxi["password"] if "password" in taxi else faker_factory.password()
+            speed = taxi["speed"] if "speed" in taxi else None
+            coordinator.create_agent(TaxiAgent, taxi["name"], password, taxi["position"], speed=speed)
 
-    @staticmethod
-    def create_agent(cls, name, password, position, target):
-        """
-        Create an agent of type ``cls``.
-
-        Args:
-            cls (class): class of the agent
-            name (str): name of the agent
-            password (str): password of the agent
-            position (list): initial coordinates of the agent
-            target (list optional): destination coordinates of the agent
-
-        Returns:
-            object: the created agent
-        """
-        jid = f"{name}@127.0.0.1"
-        agent = cls(jid, password)
-        agent.set_id(name)
-        agent.set_position(position)
-        if target:
-            agent.set_target_position(target)
-        return agent
-
-    @classmethod
-    def create_agents_batch(cls, type_, number, coordinator):
-        """
-        Creates a batch of agents.
-
-        Args:
-            cls (class): class of the agents
-            type_ (str): whether the agent is a "taxi" or a "passenger"
-            number (int): size of the batch
-            coordinator (``CoordinatorAgent`` ): the coordinator agent
-        """
-        if type_ == "taxi":
-            _cls = TaxiAgent
-            store = coordinator.taxi_agents
-            strategy = coordinator.taxi_strategy
-        else:  # type_ == "passenger":
-            _cls = PassengerAgent
-            store = coordinator.passenger_agents
-            strategy = coordinator.passenger_strategy
-        for _ in range(number):
-            with coordinator.lock:
-                if coordinator.kill_simulator.is_set():
-                    break
-                position = random_position()
-                name = faker_factory.user_name()
-                password = faker_factory.password()
-                agent = cls.create_agent(_cls, name, password, position, None)
-                store[name] = agent
-                agent.start()
-                if coordinator.simulation_running:
-                    agent.add_strategy(strategy)
+        for passenger in self.scenario["passengers"]:
+            password = passenger["password"] if "password" in passenger else faker_factory.password()
+            coordinator.create_agent(PassengerAgent,
+                                     passenger["name"], password,
+                                     passenger["position"],
+                                     target=passenger["dest"])

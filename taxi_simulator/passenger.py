@@ -10,15 +10,17 @@ from spade.template import Template
 from .utils import PASSENGER_WAITING, PASSENGER_IN_DEST, TAXI_MOVING_TO_PASSENGER, PASSENGER_IN_TAXI, \
     TAXI_IN_PASSENGER_PLACE, PASSENGER_LOCATION, StrategyBehaviour, request_path, status_to_str
 from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
-from .helpers import coordinator_aid, random_position
+from .helpers import random_position
 
 logger = logging.getLogger("PassengerAgent")
 
 
 class PassengerAgent(Agent):
-    def __init__(self, agentjid, password):
-        super().__init__(agentjid, password)
+    def __init__(self, agentjid, password, loop=None):
+        super().__init__(agentjid, password, loop=loop)
         self.agent_id = None
+        self.coordinator_id = None
+        self.route_id = None
         self.status = PASSENGER_WAITING
         self.current_pos = None
         self.dest = None
@@ -28,8 +30,6 @@ class PassengerAgent(Agent):
         self.waiting_for_pickup_time = None
         self.pickup_time = None
         self.end_time = None
-
-        self.knowledge_base = {}
 
     def setup(self):
         try:
@@ -62,7 +62,25 @@ class PassengerAgent(Agent):
         """
         self.agent_id = agent_id
 
-    def set_position(self, coords=None):
+    def set_coordinator(self, coordinator_id):
+        """
+        Sets the coordinator JID address
+        Args:
+            coordinator_id (str): the coordinator jid
+
+        """
+        self.coordinator_id = coordinator_id
+
+    def set_route_agent(self, route_id):
+        """
+        Sets the route agent JID address
+        Args:
+            route_id (str): the route agent jid
+
+        """
+        self.route_id = route_id
+
+    async def set_position(self, coords=None):
         """
         Sets the position of the passenger. If no position is provided it is located in a random position.
 
@@ -201,30 +219,31 @@ class TravelBehaviour(CyclicBehaviour):
 
     async def run(self):
         try:
-            msg = await self.receive()
-            if msg:
-                content = msg.body
-                logger.debug("Passenger {} informed of: {}".format(self.agent.name, content))
-                if "status" in content:
-                    status = content["status"]
-                    if status != PASSENGER_LOCATION:
-                        logger.info("Passenger {} informed of status: {}".format(self.agent.name,
-                                                                                 status_to_str(status)))
-                    if status == TAXI_MOVING_TO_PASSENGER:
-                        logger.info("Passenger {} waiting for taxi.".format(self.agent.name))
-                        self.agent.waiting_for_pickup_time = time.time()
-                    elif status == TAXI_IN_PASSENGER_PLACE:
-                        self.agent.status = PASSENGER_IN_TAXI
-                        logger.info("Passenger {} in taxi.".format(self.agent.name))
-                        self.agent.pickup_time = time.time()
-                    elif status == PASSENGER_IN_DEST:
-                        self.agent.status = PASSENGER_IN_DEST
-                        self.agent.end_time = time.time()
-                        logger.info("Passenger {} arrived to destination after {} seconds."
-                                    .format(self.agent.name, self.agent.total_time()))
-                    elif status == PASSENGER_LOCATION:
-                        coords = content["location"]
-                        self.agent.set_position(coords)
+            msg = await self.receive(timeout=5)
+            if not msg:
+                return
+            content = json.loads(msg.body)
+            logger.debug("Passenger {} informed of: {}".format(self.agent.name, content))
+            if "status" in content:
+                status = content["status"]
+                if status != PASSENGER_LOCATION:
+                    logger.info("Passenger {} informed of status: {}".format(self.agent.name,
+                                                                             status_to_str(status)))
+                if status == TAXI_MOVING_TO_PASSENGER:
+                    logger.info("Passenger {} waiting for taxi.".format(self.agent.name))
+                    self.agent.waiting_for_pickup_time = time.time()
+                elif status == TAXI_IN_PASSENGER_PLACE:
+                    self.agent.status = PASSENGER_IN_TAXI
+                    logger.info("Passenger {} in taxi.".format(self.agent.name))
+                    self.agent.pickup_time = time.time()
+                elif status == PASSENGER_IN_DEST:
+                    self.agent.status = PASSENGER_IN_DEST
+                    self.agent.end_time = time.time()
+                    logger.info("Passenger {} arrived to destination after {} seconds."
+                                .format(self.agent.name, self.agent.total_time()))
+                elif status == PASSENGER_LOCATION:
+                    coords = content["location"]
+                    await self.agent.set_position(coords)
         except Exception as e:
             logger.error("EXCEPTION in Travel Behaviour of Passenger {}: {}".format(self.agent.name, e))
 
@@ -260,64 +279,65 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
         """
         if content is None or len(content) == 0:
             content = {
-                "passenger_id": self.agent.name,
+                "passenger_id": str(self.agent.jid),
                 "origin": self.agent.current_pos,
                 "dest": self.agent.dest
             }
         if not self.agent.dest:
             self.agent.dest = random_position()
         msg = Message()
-        msg.to = coordinator_aid
+        msg.to = self.agent.coordinator_id
         msg.set_metadata("protocol", REQUEST_PROTOCOL)
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = json.dumps(content)
         await self.send(msg)
         self.logger.info("Passenger {} asked for a taxi to {}.".format(self.agent.name, self.agent.dest))
 
-    async def accept_taxi(self, taxi_aid):
+    async def accept_taxi(self, taxi_id):
         """
         Sends a ``spade.message.Message`` to a taxi to accept a travel proposal.
         It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
 
         Args:
-            taxi_aid (``aioxmpp.JID``): The Agent JID of the taxi
+            taxi_id (``aioxmpp.JID``): The Agent JID of the taxi
         """
         reply = Message()
-        reply.to = taxi_aid
+        reply.to = str(taxi_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
         content = {
-            "passenger_id": self.agent.name,
+            "passenger_id": str(self.agent.jid),
             "origin": self.agent.current_pos,
             "dest": self.agent.dest
         }
         reply.body = json.dumps(content)
         await self.send(reply)
-        self.agent.taxi_assigned = taxi_aid.getName()
+        self.agent.taxi_assigned = str(taxi_id)
         self.logger.info("Passenger {} accepted proposal from taxi {}".format(self.agent.name,
-                                                                         taxi_aid.getName()))
+                                                                              taxi_id))
 
-    async def refuse_taxi(self, taxi_aid):
+    async def refuse_taxi(self, taxi_id):
         """
         Sends an ``spade.message.Message`` to a taxi to refuse a travel proposal.
         It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
 
         Args:
-            taxi_aid (``aioxmpp.JID``): The Agent JID of the taxi
+            taxi_id (``aioxmpp.JID``): The Agent JID of the taxi
         """
         reply = Message()
-        reply.to = taxi_aid
+        reply.to = str(taxi_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", REFUSE_PERFORMATIVE)
         content = {
-            "passenger_id": self.agent.name,
+            "passenger_id": str(self.agent.jid),
             "origin": self.agent.current_pos,
             "dest": self.agent.dest
         }
         reply.body = json.dumps(content)
-        self.agent.send(reply)
+
+        await self.send(reply)
         self.logger.info("Passenger {} refused proposal from taxi {}".format(self.agent.name,
-                                                                        taxi_aid.getName()))
+                                                                             taxi_id))
 
     async def run(self):
         raise NotImplementedError

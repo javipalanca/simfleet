@@ -4,6 +4,8 @@ import pandas as pd
 from tabulate import tabulate
 import json
 
+from .passenger import PassengerAgent
+from .taxi import TaxiAgent
 from .scenario import Scenario
 from .coordinator import CoordinatorAgent
 from .route import RouteAgent
@@ -17,6 +19,7 @@ class SimulationConfig(object):
     """
 
     def __init__(self):
+        self.host = None
         self.simulation_name = None
         self.max_time = None
         self.taxi_strategy = None
@@ -26,9 +29,11 @@ class SimulationConfig(object):
         self.num_taxis = None
         self.num_passengers = None
         self.http_port = None
+        self.ip_address = None
         self.coordinator_name = None
         self.coordinator_password = None
-        self.backend_port = None
+        self.route_name = None
+        self.route_password = None
         self.verbose = None
 
 
@@ -50,7 +55,7 @@ class Simulator(object):
         self.pretty_name = "({})".format(self.config.simulation_name) if self.config.simulation_name else ""
         self.verbose = self.config.verbose
 
-        self.host = "127.0.0.1"
+        self.host = config.host
 
         self.simulation_time = 0
 
@@ -65,28 +70,25 @@ class Simulator(object):
         self.coordinator_agent = CoordinatorAgent("{}@{}".format(config.coordinator_name, self.host),
                                                   password=config.coordinator_password,
                                                   http_port=config.http_port,
-                                                  backend_port=config.backend_port)
+                                                  ip_address=config.ip_address)
 
         self.coordinator_agent.set_strategies(config.coordinator_strategy,
                                               config.taxi_strategy,
                                               config.passenger_strategy)
         self.coordinator_agent.start()
 
-        self.route_agent = RouteAgent("route@{}".format(self.host), "r0utepassw0rd")
+        route_id = "{}@{}".format(config.route_name, self.host)
+        self.route_agent = RouteAgent(route_id, config.route_password)
         self.route_agent.start()
+        self.coordinator_agent.route_id = route_id
 
         logger.info("Creating {} taxis and {} passengers.".format(config.num_taxis, config.num_passengers))
-        Scenario.create_agents_batch("taxi", config.num_taxis, self.coordinator_agent)
-        Scenario.create_agents_batch("passenger", config.num_passengers, self.coordinator_agent)
+        self.coordinator_agent.create_agents_batch(TaxiAgent, config.num_taxis)
+        self.coordinator_agent.create_agents_batch(PassengerAgent, config.num_passengers)
 
         if config.scenario:
             scenario = Scenario(config.scenario)
-            for agent in scenario.taxis:
-                self.coordinator_agent.add_taxi(agent)
-                agent.start()
-            for agent in scenario.passengers:
-                self.coordinator_agent.add_passenger(agent)
-                agent.start()
+            scenario.load(self.coordinator_agent)
 
     def is_simulation_finished(self):
         """
@@ -114,18 +116,6 @@ class Simulator(object):
         Starts the simulation (tells the coordinator agent to start the simulation).
         """
         self.coordinator_agent.run_simulation()
-
-    def process_queue(self):
-        """
-        Queries the command queue if there is any command to execute. If true, runs the command.
-
-        At the moment the only command available is to create new taxis and passengers.
-        """
-        if not self.command_queue.empty():
-            ntaxis, npassengers = self.command_queue.get()
-            logger.info("Creating {} taxis and {} passengers.".format(ntaxis, npassengers))
-            Scenario.create_agents_batch("taxi", ntaxis, self.coordinator_agent)
-            Scenario.create_agents_batch("passenger", npassengers, self.coordinator_agent)
 
     def stop(self):
         """
@@ -239,7 +229,3 @@ class Simulator(object):
         self.passenger_df.to_excel(writer, 'Passengers')
         self.taxi_df.to_excel(writer, 'Taxis')
         writer.save()
-
-
-
-

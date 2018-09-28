@@ -9,15 +9,11 @@ import uuid
 from importlib import import_module
 from abc import ABCMeta
 
-from datetime import timedelta
-from flask import make_response, request, current_app
-from functools import update_wrapper
-
 from spade.message import Message
 from spade.behaviour import CyclicBehaviour, OneShotBehaviour
 from spade.template import Template
 
-from .helpers import distance_in_meters, kmh_to_ms, build_aid, content_to_json
+from .helpers import distance_in_meters, kmh_to_ms
 
 logger = logging.getLogger()
 
@@ -73,23 +69,30 @@ class RequestRouteBehaviour(OneShotBehaviour):
     A one-shot behaviour that is executed to request for a new route to the route agent.
     """
 
-    def __init__(self, msg: Message, origin: list, destination: list):
+    def __init__(self, msg: Message, origin: list, destination: list, route_agent: str):
+        """
+        Behaviour to request a route to a route agent
+        Args:
+            msg (Message): the message to be sent
+            origin (list): origin of the route
+            destination (list): destination of the route
+            route_agent (str): name of the route agent
+        """
         self.origin = origin
         self.destination = destination
         self._msg = msg
+        self.route_agent = route_agent
         self.result = {"path": None, "distance": None, "duration": None}
         super().__init__()
 
     async def run(self):
         try:
-            self._msg.to = build_aid("route")
+            self._msg.to = self.route_agent
             self._msg.set_metadata("performative", "route")
-
             content = {"origin": self.origin, "destination": self.destination}
             self._msg.body = json.dumps(content)
-
             await self.send(self._msg)
-            logger.debug("RequestRouteBehaviour sent message.")
+            logger.debug("RequestRouteBehaviour sent message: {}".format(self._msg))
             msg = await self.receive(20)
             logger.debug("RequestRouteBehaviour received message: {}".format(msg))
             if msg is None:
@@ -97,13 +100,13 @@ class RequestRouteBehaviour(OneShotBehaviour):
                 self.exit_code = {"type": "error"}
                 return
 
-            self.exit_code = msg.body
+            self.kill(json.loads(msg.body))
 
         except Exception as e:
             logger.error("Exception requesting route: " + str(e))
 
 
-async def request_path(agent, origin, destination):
+async def request_path(agent, origin, destination, route_id):
     """
     Sends a message to the RouteAgent to request a path
 
@@ -132,10 +135,7 @@ async def request_path(agent, origin, destination):
     msg.thread = str(uuid.uuid4()).replace("-", "")
     template = Template()
     template.thread = msg.thread
-    r = str(uuid.uuid4()).replace("-", "")
-    msg.set_metadata("reply-with", r)
-    template.set_metadata("in-reply-to", r)
-    behav = RequestRouteBehaviour(msg, origin, destination)
+    behav = RequestRouteBehaviour(msg, origin, destination, route_id)
     agent.add_behaviour(behav, template)
 
     while not behav.is_killed():
@@ -208,3 +208,16 @@ def load_class(class_path):
     module_path, class_name = class_path.rsplit(".", 1)
     mod = import_module(module_path)
     return getattr(mod, class_name)
+
+
+def avg(array):
+    """
+    Makes the average of an array without Nones.
+    Args:
+        array (list): a list of floats and Nones
+
+    Returns:
+        float: the average of the list without the Nones.
+    """
+    array_wo_nones = list(filter(None, array))
+    return (sum(array_wo_nones, 0.0) / len(array_wo_nones)) if len(array_wo_nones) > 0 else 0.0

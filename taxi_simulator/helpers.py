@@ -9,25 +9,9 @@ import logging
 import os
 import random
 
-import aioxmpp
 from geopy.distance import vincenty
 
 logger = logging.getLogger()
-
-
-def build_aid(agent_id):
-    """
-    Creates a new ``aioxmpp.JID`` from a user string.
-    Args:
-        agent_id (str): the name of the agent
-
-    Returns:
-        ``aioxmpp.JID``: a JID representing the agent.
-    """
-    return aioxmpp.JID.fromstr("{}@127.0.0.1".format(agent_id))
-
-
-coordinator_aid = build_aid("coordinator")
 
 
 def random_position():

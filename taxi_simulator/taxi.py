@@ -10,7 +10,7 @@ from spade.template import Template
 from .utils import TAXI_WAITING, TAXI_MOVING_TO_PASSENGER, TAXI_IN_PASSENGER_PLACE, TAXI_MOVING_TO_DESTINATION, \
     PASSENGER_IN_DEST, PASSENGER_LOCATION, chunk_path, request_path, StrategyBehaviour
 from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
-from .helpers import build_aid, random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
+from .helpers import random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
     AlreadyInDestination
 
 logger = logging.getLogger("TaxiAgent")
@@ -19,8 +19,11 @@ ONESECOND_IN_MS = 1000
 
 
 class TaxiAgent(Agent):
-    def __init__(self, agentjid, password):
-        super().__init__(agentjid, password)
+    def __init__(self, agentjid, password, loop=None):
+        super().__init__(agentjid, password, loop=loop)
+
+        self.coordinator_id = None
+        self.route_id = None
 
         self.__observers = defaultdict(list)
         self.agent_id = None
@@ -70,14 +73,44 @@ class TaxiAgent(Agent):
         """
         self.agent_id = agent_id
 
+    def set_coordinator(self, coordinator_id):
+        """
+        Sets the coordinator JID address
+        Args:
+            coordinator_id (str): the coordinator jid
+
+        """
+        self.coordinator_id = coordinator_id
+
+    def set_route_agent(self, route_id):
+        """
+        Sets the route agent JID address
+        Args:
+            route_id (str): the route agent jid
+
+        """
+        self.route_id = route_id
+
+    async def send(self, msg):
+        if not msg.sender:
+            msg.sender = str(self.jid)
+            logger.debug(f"Adding agent's jid as sender to message: {msg}")
+        aioxmpp_msg = msg.prepare()
+        await self.client.send(aioxmpp_msg)
+        msg.sent = True
+        self.traces.append(msg, category=str(self))
+
+    def is_passenger_in_taxi(self):
+        return self.get("passenger_in_taxi") is not None
+
+    def is_free(self):
+        return self.get("current_passenger") is None
+
     async def arrived_to_destination(self):
         """
-        MVC view executed when the taxi has arrived to its destination.
+        Informs that the taxi has arrived to its destination.
         It recomputes the new destination and path if picking up a passenger
         or drops it and goes to WAITING status again.
-
-        Returns:
-            dict: an empty template and data. This view is a JSON request, so it does not render any new template.
         """
         self.set("path", None)
         self.chunked_path = None
@@ -89,101 +122,26 @@ class TaxiAgent(Agent):
                 await self.cancel_passenger()
                 self.status = TAXI_WAITING
             except AlreadyInDestination:
-                self.drop_passenger()
+                await self.drop_passenger()
             else:
                 await self.inform_passenger(TAXI_IN_PASSENGER_PLACE)
                 self.status = TAXI_MOVING_TO_DESTINATION
                 logger.info("Taxi {} has picked up the passenger {}.".format(self.agent_id,
-                                                                             self.get("current_passenger").name))
+                                                                             self.get("current_passenger")))
         else:  # elif self.status == TAXI_MOVING_TO_DESTINATION:
-            self.drop_passenger()
+            await self.drop_passenger()
 
-        return {}
-
-    def is_passenger_in_taxi(self):
-        return self.get("passenger_in_taxi") is not None
-
-    def is_free(self):
-        return self.get("current_passenger") is None
-
-    def drop_passenger(self):
+    async def drop_passenger(self):
         """
         Drops the passenger that the taxi is carring in the current location.
         """
-        self.inform_passenger(PASSENGER_IN_DEST)
+        await self.inform_passenger(PASSENGER_IN_DEST)
         self.status = TAXI_WAITING
         logger.info("Taxi {} has dropped the passenger {} in destination.".format(self.agent_id,
-                                                                                  self.get("current_passenger").name))
+                                                                                  self.get(
+                                                                                      "current_passenger")))
         self.set("current_passenger", None)
         self.set("passenger_in_taxi", None)
-
-    async def request_path(self, origin, destination):
-        """
-        Requests a path between two points (origin and destination) using the RouteAgent service.
-
-        Args:
-            origin (list): the coordinates of the origin of the requested path
-            destination (list): the coordinates of the end of the requested path
-
-        Returns:
-            list, float, float: A list of points that represent the path from origin to destination, the distance and the estimated duration
-
-        Examples:
-            >>> path, distance, duration = await self.request_path(origin=[0,0], destination=[1,1])
-            >>> print(path)
-            [[0,0], [0,1], [1,1]]
-            >>> print(distance)
-            2.0
-            >>> print(duration)
-            3.24
-        """
-        return await request_path(self, origin, destination)
-
-    async def set_position(self, coords=None):
-        """
-        Sets the position of the taxi. If no position is provided it is located in a random position.
-
-        Args:
-            coords (list): a list coordinates (longitude and latitude)
-        """
-        if coords:
-            self.set("current_pos", coords)
-        else:
-            self.set("current_pos", random_position())
-
-        logger.debug("Taxi {} position is {}".format(self.agent_id, self.get("current_pos")))
-        if self.status == TAXI_MOVING_TO_DESTINATION:
-            await self.inform_passenger(PASSENGER_LOCATION, {"location": self.get("current_pos")})
-        if self.is_in_destination():
-            logger.info("Taxi {} has arrived to destination.".format(self.agent_id))
-            await self.arrived_to_destination()
-
-    def get_position(self):
-        """
-        Returns the current position of the passenger.
-
-        Returns:
-            list: the coordinates of the current position of the passenger (lon, lat)
-        """
-        return self.get("current_pos")
-
-    def set_speed(self, speed_in_kmh):
-        """
-        Sets the speed of the taxi.
-
-        Args:
-            speed_in_kmh (float): the speed of the taxi in km per hour
-        """
-        self.set("speed_in_kmh", speed_in_kmh)
-
-    def is_in_destination(self):
-        """
-        Checks if the taxi has arrived to its destination.
-
-        Returns:
-            bool: whether the taxi is at its destination or not
-        """
-        return self.dest == self.get_position()
 
     async def move_to(self, dest):
         """
@@ -255,7 +213,7 @@ class TaxiAgent(Agent):
             data (dict, optional): Complementary info about the cancellation
         """
         logger.error("Taxi {} could not get a path to passenger {}.".format(self.agent_id,
-                                                                            self.get("current_passenger").name))
+                                                                            self.get("current_passenger")))
         if data is None:
             data = {}
         reply = Message()
@@ -264,8 +222,76 @@ class TaxiAgent(Agent):
         reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         reply.body = json.dumps(data)
         logger.info("Taxi {} sent cancel proposal to passenger {}".format(self.agent_id,
-                                                                          self.get("current_passenger").name))
+                                                                          self.get("current_passenger")))
         await self.send(reply)
+
+    async def request_path(self, origin, destination):
+        """
+        Requests a path between two points (origin and destination) using the RouteAgent service.
+
+        Args:
+            origin (list): the coordinates of the origin of the requested path
+            destination (list): the coordinates of the end of the requested path
+
+        Returns:
+            list, float, float: A list of points that represent the path from origin to destination, the distance and the estimated duration
+
+        Examples:
+            >>> path, distance, duration = await self.request_path(origin=[0,0], destination=[1,1])
+            >>> print(path)
+            [[0,0], [0,1], [1,1]]
+            >>> print(distance)
+            2.0
+            >>> print(duration)
+            3.24
+        """
+        return await request_path(self, origin, destination, self.route_id)
+
+    async def set_position(self, coords=None):
+        """
+        Sets the position of the taxi. If no position is provided it is located in a random position.
+
+        Args:
+            coords (list): a list coordinates (longitude and latitude)
+        """
+        if coords:
+            self.set("current_pos", coords)
+        else:
+            self.set("current_pos", random_position())
+
+        logger.debug("Taxi {} position is {}".format(self.agent_id, self.get("current_pos")))
+        if self.status == TAXI_MOVING_TO_DESTINATION:
+            await self.inform_passenger(PASSENGER_LOCATION, {"location": self.get("current_pos")})
+        if self.is_in_destination():
+            logger.info("Taxi {} has arrived to destination.".format(self.agent_id))
+            await self.arrived_to_destination()
+
+    def get_position(self):
+        """
+        Returns the current position of the passenger.
+
+        Returns:
+            list: the coordinates of the current position of the passenger (lon, lat)
+        """
+        return self.get("current_pos")
+
+    def set_speed(self, speed_in_kmh):
+        """
+        Sets the speed of the taxi.
+
+        Args:
+            speed_in_kmh (float): the speed of the taxi in km per hour
+        """
+        self.set("speed_in_kmh", speed_in_kmh)
+
+    def is_in_destination(self):
+        """
+        Checks if the taxi has arrived to its destination.
+
+        Returns:
+            bool: whether the taxi is at its destination or not
+        """
+        return self.dest == self.get_position()
 
     def to_json(self):
         """
@@ -298,7 +324,7 @@ class TaxiAgent(Agent):
             "status": self.status,
             "speed": float("{0:.2f}".format(self.animation_speed)) if self.animation_speed else None,
             "path": self.get("path"),
-            "passenger": self.get("current_passenger").name if self.get("current_passenger") else None,
+            "passenger": self.get("current_passenger") if self.get("current_passenger") else None,
             "assignments": self.num_assignments,
             "distance": "{0:.2f}".format(sum(self.distances)),
         }
@@ -347,16 +373,15 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
             dest (list): the coordinates of the target destination of the passenger
         """
         logger.info("Taxi {} on route to passenger {}".format(self.agent.name, passenger_id))
-        passenger_aid = build_aid(passenger_id)
         reply = Message()
-        reply.to = passenger_aid
+        reply.to = passenger_id
         reply.set_metadata("performative", INFORM_PERFORMATIVE)
         reply.set_metadata("protocol", TRAVEL_PROTOCOL)
         content = {
             "status": TAXI_MOVING_TO_PASSENGER
         }
         reply.body = json.dumps(content)
-        self.set("current_passenger", passenger_aid)
+        self.set("current_passenger", passenger_id)
         self.agent.current_passenger_orig = origin
         self.agent.current_passenger_dest = dest
         await self.send(reply)
@@ -378,12 +403,11 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         if content is None:
             content = {}
         logger.info("Taxi {} sent proposal to passenger {}".format(self.agent.name, passenger_id))
-        passenger_aid = build_aid(passenger_id)
         reply = Message()
-        reply.to = passenger_aid
+        reply.to = passenger_id
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", PROPOSE_PERFORMATIVE)
-        reply.body = content
+        reply.body = json.dumps(content)
         await self.send(reply)
 
     async def cancel_proposal(self, passenger_id, content=None):
@@ -398,9 +422,8 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         if content is None:
             content = {}
         logger.info("Taxi {} sent cancel proposal to passenger {}".format(self.agent.name, passenger_id))
-        passenger_aid = build_aid(passenger_id)
         reply = Message()
-        reply.to = passenger_aid
+        reply.to = passenger_id
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         reply.body = json.dumps(content)

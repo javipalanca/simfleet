@@ -14,6 +14,7 @@ const passenger2Icon = L.icon({
 });
 
 const backend_port = $("#backport").val();
+const ip_address = $("#ip_address").val();
 
 $("#generate-btn").on("click", function (e) {
     var numtaxis = $("#numtaxis").val();
@@ -24,7 +25,7 @@ $("#generate-btn").on("click", function (e) {
     if (numpassengers === "") {
         numpassengers = 0;
     }
-    $.getJSON("http://127.0.0.1:" + backend_port + "/generate/taxis/" + numtaxis + "/passengers/" + numpassengers,
+    $.getJSON("http://"+ ip_address +":" + backend_port + "/generate/taxis/" + numtaxis + "/passengers/" + numpassengers,
         function (data) {
         });
 });

@@ -23,7 +23,7 @@ class RouteAgent(Agent):
 
         self.route_cache = defaultdict(dict)
 
-    def _setup(self):
+    def setup(self):
         template = Template()
         template.set_metadata("performative", "route")
         self.add_behaviour(self.RequestRouteBehaviour(), template)
@@ -124,7 +124,9 @@ class RouteAgent(Agent):
 
         async def run(self):
             logger.debug("Wait for new route request message.")
-            msg = await self.receive()
+            msg = await self.receive(timeout=60)
+            if not msg:
+                return
             logger.debug("Got route request message. {}".format(msg.body))
 
             try:

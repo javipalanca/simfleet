@@ -7,7 +7,7 @@ from .utils import TAXI_WAITING, TAXI_WAITING_FOR_APPROVAL, PASSENGER_WAITING, T
     PASSENGER_ASSIGNED
 from .protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
     CANCEL_PERFORMATIVE
-from .helpers import coordinator_aid, PathRequestException
+from .helpers import PathRequestException
 
 
 ################################################################
@@ -21,11 +21,12 @@ class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
     """
 
     async def run(self):
-        msg = await self.receive(timeout=60)
-        for taxi in self.get_taxi_agents():
-            msg.to = taxi.jid
-            self.logger.debug("Coordinator sent request to taxi {}".format(taxi.name))
-        await self.send(msg)
+        msg = await self.receive(timeout=5)
+        if msg:
+            for taxi in self.get_taxi_agents():
+                msg.to = str(taxi.jid)
+                self.logger.debug("Coordinator sent request to taxi {}".format(taxi.name))
+                await self.send(msg)
 
 
 ################################################################
@@ -39,7 +40,10 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
     """
 
     async def run(self):
-        msg = await self.receive()
+        msg = await self.receive(timeout=5)
+        if not msg:
+            return
+        self.logger.info("Taxi received message: {}".format(msg))
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
 
@@ -94,18 +98,17 @@ class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
 
         if msg:
             performative = msg.get_metadata("performative")
-            taxi_jid = msg.sender
+            taxi_id = msg.sender
             if performative == PROPOSE_PERFORMATIVE:
                 if self.agent.status == PASSENGER_WAITING:
                     self.logger.debug("Passenger {} received proposal from taxi {}".format(self.agent.name,
-                                                                                           taxi_jid.name))
-                    await self.accept_taxi(taxi_jid)
+                                                                                           taxi_id))
+                    await self.accept_taxi(taxi_id)
                     self.agent.status = PASSENGER_ASSIGNED
                 else:
-                    await self.refuse_taxi(taxi_jid)
+                    await self.refuse_taxi(taxi_id)
 
             elif performative == CANCEL_PERFORMATIVE:
-                if self.agent.taxi_assigned == taxi_jid.getName():
-                    self.logger.warning("Passenger {} received a CANCEL performative from Taxi {}."
-                                        .format(self.agent.name, taxi_jid.name))
+                if self.agent.taxi_assigned == str(taxi_id):
+                    self.logger.warning("Passenger {} received a CANCEL from Taxi {}.".format(self.agent.name, taxi_id))
                     self.agent.status = PASSENGER_WAITING

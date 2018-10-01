@@ -22,7 +22,6 @@ requirements = parse_requirements("requirements.txt")
 
 setup_requirements = [
     'pytest-runner',
-    # TODO(javipalanca): put setup requirements (distutils extensions, etc.) here
 ]
 
 test_requirements = parse_requirements("requirements_dev.txt")
@@ -42,13 +41,17 @@ setup(
         ]
     },
     include_package_data=True,
+    package_data={"taxi_simulator": ["templates"]},
     install_requires=requirements,
     license="MIT license",
     zip_safe=False,
     keywords='taxi_simulator',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
+        'Intended Audience :: Education',
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         "Programming Language :: Python :: 3",

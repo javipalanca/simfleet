@@ -289,12 +289,12 @@ cyclic behavior, which repeatedly executes the same method over and over again, 
 typical behaviors that wait for a perception, reason about it and finally execute an action, and then wait for the next
 perception.
 
-The following example is a sample of an agent with a cyclic behavior (:class:`spade.Behaviour.Behaviour` type) that waits for
+The following example is a sample of an agent with a cyclic behavior (``spade.behaviour.CyclicBehaviour`` type) that waits for
 a perception from the keyboard input, reasons on it and executes an action, and continues to do so indefinitely until
 the user presses Ctrl+C. In order to build a behavior, you need to inherit from the type of behavior you want
-(in the case of this example, the cyclic behaviour is implemented in the class :class:`spade.Behaviour.Behaviour`)
-and overload the method :func:`_process` where the body of the behavior is implemented. If needed, you can also overload
-the :func:`onStart` and :func:`onEnd` methods in order to execute actions on the initialization or shutdown of a behavior,
+(in the case of this example, the cyclic behaviour is implemented in the class ``spade.behaviour.CyclicBehaviour``)
+and overload the coroutine ``run`` where the body of the behavior is implemented. If needed, you can also overload
+the ``on_start`` and ``on_end`` coroutines in order to execute actions on the initialization or shutdown of a behavior,
 respectively.
 
 .. code-block:: python
@@ -303,13 +303,13 @@ respectively.
     import datetime
     import time
 
-    class MyAgent(spade.Agent.Agent):
-        class MyBehavior(spade.Behaviour.Behaviour):
+    class MyAgent(spade.agent.Agent):
+        class MyBehavior(spade.behaviour.CyclicBehaviour):
 
-            def onStart(self):
+            async def on_start(self):
                 print("Initialization of behavior")
 
-            def _process(self):
+            async def run(self):
                 # wait for perception, raw_input is a blocking call
                 perception = raw_input("What's your birthday year?")
                 # reason about the perception
@@ -317,17 +317,17 @@ respectively.
                 # execute an action
                 print("You are " + str(age) + " years old.")
 
-            def onEnd(self):
+            async def on_end(self):
                 print("Shutdown of behavior")
 
-        def _setup(self):
+        def setup(self):
             # Create behavior
             behavior = self.MyBehavior()
             # Register behavior in agent
-            self.addBehaviour(behavior)
+            self.add_behaviour(behavior)
 
     if __name__ == "__main__":
-        a = MyAgent(agentjid="agent@127.0.0.1", password="secret")
+        a = MyAgent(jid="agent@127.0.0.1", password="secret")
         a.start()
         while True:
             try:
@@ -347,13 +347,12 @@ Communication is one of the cornerstones of any multi-agent system, and SPADE is
 messages using a simple API, and more importantly, they can receive them in certain behaviors according to templates they can
 define.
 
-A :class:`spade.ACLMessage.ACLMessage` is the class that needs to be filled in order to send a message. It follows the
-`FIPA Agent Communication Language` specifications or `FIPA ACL <http://www.fipa.org/repository/aclspecs.html>`_. An
-ACLMessage may be filled with several pieces of information, but the most important fields are the receiver, the content, the
-performative and the protocol. The receiver must be filled with an :class:`spade.AID.aid` object, which is an AgentID.
+A ``spade.message.Message`` is the class that needs to be filled in order to send a message. A
+Message may be filled with several pieces of information, but the most important fields are the receiver, the content, the
+performative and the protocol. The receiver must be filled with a `jid` address , which is a string.
 The content is the (string-based) body of the message. The performative and protocol both add semantic information to the
 message in the context of a conversation: they are normally used to represent the action and the rules that determine
-how the agents are going to communicate in a specific semantic context.
+how the agents are going to communicate in a specific semantic context and they are represented as metadata.
 
 .. tip::
     It is usually recommended to use a representation language for the content of the message. Although semantic
@@ -366,19 +365,16 @@ All these fields have a getter and setter function. An example is shown next:
 
     import spade
 
-    receiver_aid = spade.AID.aid(name="receiver_agent@127.0.0.1",
-                                 addresses=["xmpp://receiver_agent@127.0.0.1"])
-    msg = spade.ACLMessage.ACLMessage()
-    msg.addReceiver(receiver_aid)  # a message may be sent to multiple receivers
-    msg.setPerformative("request")
-    msg.setProtocol("my_custom_protocol")
-    msg.setBody("{'a_key': 'a_value'}")
+    msg = spade.message.Message()
+    msg.to = "receiver_agent@127.0.0.1"
+    msg.set_metadata("performative", "request")
+    msg.set_metadata("protocol", "my_custom_protocol")
+    msg.body = "{'a_key': 'a_value'}"
 
 .. hint::
-    Other fields that can be filled in the message are the content language (:func:`setLanguage`), the ontology
-    (:func:`setOntology`), and so on.
+    Other metadata fields that can be filled in the message are the content language, the ontology, and so on.
 
-The next step is to send the message. This is done with the :func:`send` method provided by a :class:`Behaviour`.
+The next step is to send the message. This is done with the ``send`` coroutine provided by a `Behaviour`.
 For example:
 
 .. code-block:: python
@@ -386,56 +382,49 @@ For example:
     import spade
 
 
-    class SenderAgent(spade.Agent.Agent):
-        class SendBehav(spade.Behaviour.OneShotBehaviour):
+    class SenderAgent(spade.agent.Agent):
+        class SendBehav(spade.behaviour.OneShotBehaviour):
 
-            def _process(self):
-                receiver = spade.AID.aid(name="receiver@127.0.0.1",
-                                         addresses=["xmpp://127.0.0.1"])
+            async def run(self):
+                msg = spade.message.Message()
+                msg.to = "receiver@127.0.0.1"
+                msg.set_metadata("performative", "inform")
+                msg.set_metadata("ontology", "myOntology")
+                msg.set_metadata("language", "OWL-S")
+                msg.body = "Hello World"
 
-                msg = spade.ACLMessage.ACLMessage()
-                msg.setPerformative("inform")
-                msg.setOntology("myOntology")
-                msg.setLanguage("OWL-S")
-                msg.addReceiver(receiver)
-                msg.setContent("Hello World")
+                await self.send(msg)  # send the message
 
-                self.send(msg)  # send the message
-
-        def _setup(self):
+        def setup(self):
             print "MyAgent starting..."
             behav = self.SendBehav()
-            self.addBehaviour(behav)
+            self.add_behaviour(behav)
 
 The reception of messages is particular in SPADE, since messages can only be received by behaviors, and so
 SPADE provides each behavior executed by any agent with its own mailbox, and defines a mechanism in
 order to configure the particular behavior that must receive each message, according to the message type.
-This mechanism is carried out with `ACLTemplates`. When an agent receives a new message it checks if the message matches each
+This mechanism is carried out with `Templates`. When an agent receives a new message it checks if the message matches each
 of the behaviors using a template with which they where registered. If there is a match, the message is delivered to the
-mailbox of the corresponding behavior, and will be read when the behavior executes the :func:`receive` method. Otherwise,
-the message will be delivered to a default behaviour if it was registered (the default behavior is registered with the
-:func:`setDefaultBehaviour` method instead of :func:`addBehaviour`).
+mailbox of the corresponding behavior, and will be read when the behavior executes the ``receive`` method. Otherwise,
+the message will be dropped.
 
 .. note::
-    The :func:`receive` method accepts an optional parameter: **timeout=seconds**, which allows the method to be
+    The ``receive`` coroutine accepts an optional parameter: **timeout=seconds**, which allows the coroutine to be
     blocking until the specified number of seconds have elapsed. If the timeout is reached without a message being
     received, then ``None`` is returned. If the timeout is set to 0, then the :func:`receive` function is non-blocking
-    and (immediately) returns either a :class:`spade.ACLMessage.ACLMessage` or ``None``.
+    and (immediately) returns either a ``spade.message.Message`` or ``None``.
 
-An :class:`spade.Behaviour.ACLTemplate` is created using the same API of :class:`spade.Behaviour.ACLMessage`:
+A ``spade.template.Template`` is created using the same API of ``spade.message.Message``:
 
 .. code-block:: python
 
     import spade
-    template = spade.Behaviour.ACLTemplate()
-    template.setOntology("myOntology")
-
-
-`ACLTemplates` must be wrapped with the :class:`spade.Behavior.MessageTemplate` to be registered with a behavior.
+    template = spade.template.Template()
+    template.set_metadata("ontology", "myOntology")
 
 .. note::
-    A :class:`spade.Behavior.MessageTemplate` accepts boolean operators to combine `ACLTemplates`
-    (e.g. ``my_tpl = MessageTemplate( template1 & template2)``)
+    A ``spade.template.Template`` accepts boolean operators to combine `Templates`
+    (e.g. ``my_tpl = Template( template1 & template2)``)
 
 At this point we can present a full example on how to build an agent that registers a behavior with a template and receives messages
 that match that template:
@@ -443,29 +432,28 @@ that match that template:
 .. code-block:: python
 
     import spade
-    import time
+    import asyncio
 
-    class RecvAgent(spade.Agent.Agent):
-        class ReceiveBehav(spade.Behaviour.Behaviour):
+    class RecvAgent(spade.agent.Agent):
+        class ReceiveBehav(spade.behaviour.CyclicBehaviour):
 
-            def _process(self):
-                msg = self.receive(timeout=10)
+            async def run(self):
+                await msg = self.receive(timeout=10)
 
                 # Check wether the message arrived
                 if msg is not None:
-                    assert "myOntology" == msg.getOntology()
+                    assert "myOntology" == msg.get_metadata("ontology")
                     print("I got a message with the ontology 'myOntology'")
                 else:
                     print("I waited 10 seconds but got no message")
-                    time.sleep(1)
+                    await asyncio.sleep(1)
 
-        def _setup(self):
+        def setup(self):
             recv_behav = self.ReceiveBehav()
-            template = spade.Behaviour.ACLTemplate()
-            template.setOntology("myOntology")
-            msg_tplt = spade.Behaviour.MessageTemplate(template)
+            template = spade.template.Template()
+            template.set_metadata("ontology", "myOntology")
 
-            self.addBehaviour(recv_behav, msg_tplt)
+            self.add_behaviour(recv_behav, template)
 
 
 These are the basics of SPADE programming. You will not need to create all these structures, templates and classes
@@ -522,31 +510,20 @@ The Strategy Behaviour
 ----------------------
 
 The :class:`StrategyBehaviour` is the metaclass from which interfaces are created for the strategies of each agent in
-the simulator. It inherits from a :class:`spade.Behaviour.Behaviour` class, so when implementing it, you will have to
-overload the :func:`_process` method that will run cyclically (and endlessly), until the agent stops.
+the simulator. It inherits from a ``spade.behaviour.CyclicBehaviour`` class, so when implementing it, you will have to
+overload the ``run`` coroutine that will run cyclically (and endlessly), until the agent stops.
 
 Helpers
 ~~~~~~~
 
 The Strategy Behaviour provides also some helper functions that are useful in general for any kind of agent in the simulator.
-In addition to the already discussed :func:`send` and :func:`receive` functions, by which agents can communicate with each
-other, there are some helper functions which enable agents to store and retrieve information, and also to log messages.
-
-.. code-block:: python
-
-    def receive(self, timeout=5)
-    def send(self, message)
-
-    def store_value(self, key, value)
-    def get_value(self, key)
-    def has_value(self, key)
-
 
 .. danger::
     Don't store information in the Behaviour itself since it is a cyclic behaviour and is run by calling repeteadly the
-    :func:`_process` function, so the context of the function is not persistent.
+    ``run`` coroutine, so the context of the function is not persistent. Use the agent variable that is accesible from
+    any behaviour as `self.agent`. (i.e. you can do ``self.agent.set("my_key", "my_value")`` and ``self.agent.get("my_key")``.
 
-The :func:`store_value`, :func:`get_value` and :func:`has_value` functions allow to store persistent information in the
+The ``set`` and ``get`` functions allow to store persistent information in the
 agent and to recover it at any moment. The store uses a *key-value* interface to store custom-defined data.
 
 There is also a very useful helper function which is the **logger**. This is not a single function but a system of logs
@@ -571,19 +548,19 @@ Developing the Coordinator Agent Strategy
 -----------------------------------------
 
 In order to develop a new strategy for the Coordinator Agent, you need to create a class that inherits from
-:class:`CoordinatorStrategyBehaviour`. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
-that inherits from the :class:`StrategyBehaviour`, it has all the previously presented helper functions for
+``CoordinatorStrategyBehaviour``. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
+that inherits from the ``StrategyBehaviour``, it has all the previously presented helper functions for
 communication and storing data inside the agent.
 
 Following the *REQUEST* protocol, the Coordinator agent is supposed to receive every request for a taxi service
 from passengers and to carry out the action that your strategy determines (note that, in the default strategy
-:class:`DelegateRequestTaxiBehaviour`, the coordinator delegates the decision to the taxis themselves by redirecting all
-requests to all taxis without any previous, additional reasoning). The code of the :class:`DelegateRequestTaxiBehaviour`
+``DelegateRequestTaxiBehaviour``, the coordinator delegates the decision to the taxis themselves by redirecting all
+requests to all taxis without any previous, additional reasoning). The code of the ``DelegateRequestTaxiBehaviour``
 is presented below.
 
-The place in the code where your coordinator strategy must be coded is the :func:`_process` function. This
-function is executed in an infinite loop until the agent stops. In addition, you may also overload the :func:`onStart`
-and the :func:`onEnd` functions, in order to execute code before the creation of the strategy or after its destruction,
+The place in the code where your coordinator strategy must be coded is the ``run`` coroutine. This
+function is executed in an infinite loop until the agent stops. In addition, you may also overload the ``on_start``
+and the ``on_end`` coroutines, in order to execute code before the creation of the strategy or after its destruction,
 if needed.
 
 Code
@@ -593,17 +570,16 @@ This is the code of the default coordinator strategy :class:`DelegateRequestTaxi
 .. code-block:: python
 
     from taxi_simulator.coordinator import CoordinatorStrategyBehaviour
-    from taxi_simulator.helpers import coordinator_aid
 
     class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
-        def _process(self):
-            msg = self.receive(timeout=60)
+
+        async def run(self):
+            msg = await self.receive(timeout=5)
             if msg:
-                msg.removeReceiver(coordinator_aid)
                 for taxi in self.get_taxi_agents():
-                    msg.addReceiver(taxi.getAID())
-                    self.logger.debug("Coordinator sent request to taxi {}".format(taxi.getName()))
-                self.send(msg)
+                    msg.to = str(taxi.jid)
+                    self.logger.debug("Coordinator sent request to taxi {}".format(taxi.name))
+                    await self.send(msg)
 
 
 Helpers
@@ -612,19 +588,19 @@ Helpers
 The coordinator agent incorporates two helper functions that allow the agent to recover a list of
 all the taxi agents and passenger agents registered in the system. These functions are:
 
-* :func:`get_taxi_agents`
+* ``get_taxi_agents``
 
     Returns a list of the taxi agents.
 
-* :func:`get_passenger_agents`
+* ``get_passenger_agents``
 
     Returns a list of the passenger agents.
 
 Developing the Taxi Agent Strategy
 ----------------------------------
 To develop a new strategy for the Taxi Agent, you need to create a class that inherits from
-:class:`TaxiStrategyBehaviour`. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
-that inherits from the :class:`StrategyBehaviour`, it has all the previously presented helper functions for
+``TaxiStrategyBehaviour``. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
+that inherits from the ``StrategyBehaviour``, it has all the previously presented helper functions for
 communication and storing data inside the agent.
 
 The taxi strategy is intended to receive requests from passengers, forwarded by the coordinator agent, and then to send
@@ -635,11 +611,12 @@ to the requested destination.
 .. warning::
     The process that implies a taxi movement is out of the scope of the strategy and should not be addressed by the
     strategy implementation. This pasenger-transfer process is automatically triggered when the strategy executes the
-    helper function :func:`pick_up_passenger` (which is supposed to be the last action of a taxi strategy).
+    helper coroutine ``pick_up_passenger`` (which is supposed to be the last action of a taxi strategy).
 
-The place in the code where your taxi strategy must be coded is the :func:`_process` function. This
-function is executed in an infinite loop until the agent stops. In addition, you may overload also the :func:`onStart`
-and the :func:`onEnd` functions to execute code before the creation of the strategy or after its destruction, if needed.
+The place in the code where your coordinator strategy must be coded is the ``run`` coroutine. This
+function is executed in an infinite loop until the agent stops. In addition, you may also overload the ``on_start``
+and the ``on_end`` coroutines, in order to execute code before the creation of the strategy or after its destruction,
+if needed.
 
 Code
 ~~~~
@@ -651,84 +628,74 @@ or waiting a confirmation from any passenger. This is the code of the default ta
     from taxi_simulator.taxi import TaxiStrategyBehaviour
 
     class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
-        def _process(self):
-            # wait for a message
-            msg = self.receive(timeout=60)
+
+        async def run(self):
+            msg = await self.receive(timeout=5)
             if not msg:
-                # return if no new message
                 return
-            content = content_to_json(msg)  # deserialize string content to JSON
-            performative = msg.getPerformative()
+            self.logger.info("Taxi received message: {}".format(msg))
+            content = json.loads(msg.body)
+            performative = msg.get_metadata("performative")
 
-            self.logger.debug("Taxi {} received request protocol from passenger {}."
-                              .format(self.myAgent.agent_id, content["passenger_id"]))
-            # a new request from a passenger has arrived
+            self.logger.debug("Taxi {} received request protocol from passenger {}.".format(self.agent.name,
+                                                                                            content["passenger_id"]))
             if performative == REQUEST_PERFORMATIVE:
-                if self.myAgent.status == TAXI_WAITING:
-                    # send a proposal with an empty content and wait for approval
-                    self.send_proposal(content["passenger_id"], {})
-                    self.myAgent.status = TAXI_WAITING_FOR_APPROVAL
+                if self.agent.status == TAXI_WAITING:
+                    await self.send_proposal(content["passenger_id"], {})
+                    self.agent.status = TAXI_WAITING_FOR_APPROVAL
 
-            # my proposal has been accepted (Hooray!)
             elif performative == ACCEPT_PERFORMATIVE:
-                # I should only receive an ACCEPT if I was waiting for it
-                if self.myAgent.status == TAXI_WAITING_FOR_APPROVAL:
-                    self.logger.debug("Taxi {} got accept from {}"
-                                      .format(self.myAgent.agent_id, content["passenger_id"]))
+                if self.agent.status == TAXI_WAITING_FOR_APPROVAL:
+                    self.logger.debug("Taxi {} got accept from {}".format(self.agent.name,
+                                                                          content["passenger_id"]))
                     try:
-                        # Change my status to MOVING and trigger pick_up_passenger. Strategy is done.
-                        self.myAgent.status = TAXI_MOVING_TO_PASSENGER
-                        self.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])
-
+                        self.agent.status = TAXI_MOVING_TO_PASSENGER
+                        await self.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])
                     except PathRequestException:
-                        # If taxi is not able to get a path to the passenger, then it is forced to cancel
                         self.logger.error("Taxi {} could not get a path to passenger {}. Cancelling..."
-                                          .format(self.myAgent.getName(), content["passenger_id"]))
-                        self.myAgent.status = TAXI_WAITING
-                        self.cancel_proposal(content["passenger_id"])
-
+                                          .format(self.agent.name, content["passenger_id"]))
+                        self.agent.status = TAXI_WAITING
+                        await self.cancel_proposal(content["passenger_id"])
                     except Exception as e:
-                        self.logger.error("Unexpected error in taxi {name}: {exception}"
-                                          .format(name=self.myAgent.getName(), exception=e))
-                        self.cancel_proposal(content["passenger_id"])
-                        self.myAgent.status = TAXI_WAITING
+                        self.logger.error("Unexpected error in taxi {}: {}".format(self.agent.name, e))
+                        await self.cancel_proposal(content["passenger_id"])
+                        self.agent.status = TAXI_WAITING
+                else:
+                    await self.cancel_proposal(content["passenger_id"])
 
-                else:  # If I was not waiting for an ACCEPT then cancel proposal with the passenger
-                    self.cancel_proposal(content["passenger_id"])
-
-            # my proposal has been refused. Don't worry, return to WAITING status and get over it.
             elif performative == REFUSE_PERFORMATIVE:
-                self.logger.debug("Taxi {} got refusal from {}".format(self.myAgent.agent_id,
+                self.logger.debug("Taxi {} got refusal from {}".format(self.agent.name,
                                                                        content["passenger_id"]))
-                self.myAgent.status = TAXI_WAITING
+                if self.agent.status == TAXI_WAITING_FOR_APPROVAL:
+                    self.agent.status = TAXI_WAITING
 
 Helpers
 ~~~~~~~
 
-There are some helper functions that are specific for the taxi strategy:
+There are some helper coroutines that are specific for the taxi strategy:
 
 .. code-block:: python
 
-            def send_proposal(self, passenger_id, content=None)
-            def cancel_proposal(self, passenger_id, content=None)
-            def pick_up_passenger(self, passenger_id, origin, dest)
+            async def send_proposal(self, passenger_id, content=None)
+            async def cancel_proposal(self, passenger_id, content=None)
+            async def pick_up_passenger(self, passenger_id, origin, dest)
 
 
 The definition and purpose of each of them is now introduced:
 
-* :func:`send_proposal`
+* ``send_proposal``
 
-    This helper function simplifies the composition and sending of a message containing a proposal to a passenger. It sends an
-    :class:`ACLMessage` to ``passenger_id`` using the **REQUEST_PROTOCOL** and a **PROPOSE_PERFORMATIVE**. It optionally
+    This helper function simplifies the composition and sending of a message containing a proposal to a passenger. It sends a
+    ``Message`` to ``passenger_id`` using the **REQUEST_PROTOCOL** and a **PROPOSE_PERFORMATIVE**. It optionally
     accepts a `content` parameter where you can include any additional information you may want the passenger to analyze.
 
-* :func:`cancel_proposal`
+* ``cancel_proposal``
 
-    This helper function simplifies the composition and sending of a message to a passenger to cancel a proposal. It sends an
-    :class:`ACLMessage` to ``passenger_id`` using the **REQUEST_PROTOCOL** and a **CANCEL_PERFORMATIVE**. It optionally
+    This helper function simplifies the composition and sending of a message to a passenger to cancel a proposal. It sends a
+    ``Message`` to ``passenger_id`` using the **REQUEST_PROTOCOL** and a **CANCEL_PERFORMATIVE**. It optionally
     accepts a `content` parameter where you can include any additional information you may want the passenger to analyze.
 
-* :func:`pick_up_passenger`
+* ``pick_up_passenger``
 
     This helper function triggers the **TRAVEL_PROTOCOL** of a taxi, which is the protocol that is used to transport a
     passenger from her current position to her destination. This is a very important and particular function. Invoking
@@ -736,7 +703,7 @@ The definition and purpose of each of them is now introduced:
     is accomplished (until the **TRAVEL_PROTOCOL** ends and the taxi is again free and able to receive new requests
     from some other passengers).
 
-    The :func:`pick_up_passenger` helper function receives as parameters the id of the passenger and the coordinates of the
+    The ``pick_up_passenger`` helper receives as parameters the id of the passenger and the coordinates of the
     passenger's current position (``origin``) and its destination (``dest``).
 
 
@@ -744,132 +711,90 @@ Developing the Passenger Agent Strategy
 ---------------------------------------
 
 To develop a new strategy for the Passenger Agent, you need to create a class that inherits from
-:class:`PassengerStrategyBehaviour`. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
-that inherits from the :class:`StrategyBehaviour`, it has all the previously presented helper functions for
+``PassengerStrategyBehaviour``. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
+that inherits from the ``StrategyBehaviour``, it has all the previously presented helper functions for
 communication and storing data inside the agent.
 
 The passenger strategy is intended to ask the coordinator agent for a taxi service, then wait for taxi proposals and, after
 evaluating them, choosing a particular taxi proposal which will take the passenger to her destination.
 
-The place in the code where your passenger strategy must be coded is the :func:`_process` function. This
-function is executed in an infinite loop until the agent stops. In addition, you may overload also the :func:`onStart`
-and the :func:`onEnd` functions to execute code before the creation of the strategy or after its destruction, if needed.
+The place in the code where your coordinator strategy must be coded is the ``run`` coroutine. This
+function is executed in an infinite loop until the agent stops. In addition, you may also overload the ``on_start``
+and the ``on_end`` coroutines, in order to execute code before the creation of the strategy or after its destruction,
+if needed.
 
 
 Code
 ~~~~
 The default strategy of a Passenger agent is a dummy strategy that simply accepts the first proposal it receives.
-This is the code of the default passenger strategy :class:`AcceptFirstRequestTaxiBehaviour`:
+This is the code of the default passenger strategy ``AcceptFirstRequestTaxiBehaviour``:
 
 .. code-block:: python
 
     from taxi_simulator.passenger import PassengerStrategyBehaviour
 
     class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
-        def _process(self):
-            # If I'm waiting then send a new request
-            if self.myAgent.status == PASSENGER_WAITING:
-                self.send_request(content={})
 
-            # wait 5 seconds for a proposal
-            msg = self.timeout_receive(timeout=5)
+        async def run(self):
+            if self.agent.status == PASSENGER_WAITING:
+                await self.send_request(content={})
+
+            msg = await self.receive(timeout=5)
 
             if msg:
-                performative = msg.getPerformative()
-                taxi_aid = msg.getSender()
-
-                # If I got a proposal then I blindly accept it
+                performative = msg.get_metadata("performative")
+                taxi_id = msg.sender
                 if performative == PROPOSE_PERFORMATIVE:
-                    # But I accept it only if I was waiting for a proposal
-                    if self.myAgent.status == PASSENGER_WAITING:
-                        self.logger.debug("Passenger {} received proposal from taxi {}"
-                                          .format(self.myAgent.agent_id, taxi_aid.getName()))
-                        self.accept_taxi(taxi_aid)
-                        self.myAgent.status = PASSENGER_ASSIGNED
+                    if self.agent.status == PASSENGER_WAITING:
+                        self.logger.debug("Passenger {} received proposal from taxi {}".format(self.agent.name,
+                                                                                               taxi_id))
+                        await self.accept_taxi(taxi_id)
+                        self.agent.status = PASSENGER_ASSIGNED
                     else:
-                        # Otherwise I refuse the proposal (since I wasn't waiting for it)
-                        self.refuse_taxi(taxi_aid)
+                        await self.refuse_taxi(taxi_id)
 
-                # If I receive a CANCEL performative it means my taxi has given up and I'm waiting again
                 elif performative == CANCEL_PERFORMATIVE:
-                    if self.myAgent.taxi_assigned == taxi_aid.getName():
-                        self.logger.warn("Passenger {} received a CANCEL performative from Taxi {}."
-                                         .format(self.myAgent.agent_id, taxi_aid.getName()))
-                        self.myAgent.status = PASSENGER_WAITING
+                    if self.agent.taxi_assigned == str(taxi_id):
+                        self.logger.warning("Passenger {} received a CANCEL from Taxi {}.".format(self.agent.name, taxi_id))
+                        self.agent.status = PASSENGER_WAITING
+
 
 Helpers
 ~~~~~~~
-There are some helper functions that are specific for the passenger strategy:
+There are some helper coroutines that are specific for the passenger strategy:
 
 .. code-block:: python
 
-    def send_request(self, content=None)
-    def accept_taxi(self, taxi_aid)
-    def refuse_taxi(self, taxi_aid)
+    async def send_request(self, content=None)
+    async def accept_taxi(self, taxi_aid)
+    async def refuse_taxi(self, taxi_aid)
 
 
 The definition and purpose of each of them is now introduced:
 
-* :func:`send_request`
+* ``send_request``
 
     This helper is useful to make a new request without building the entire message (the function makes it for you).
-    It creates an `ACLMessage` with a **REQUEST** performative and sends it to the coordinator agent. In addition, you can
+    It creates a ``Message`` with a **REQUEST** performative and sends it to the coordinator agent. In addition, you can
     append a content to the request message to be used by the coordinator agent or the taxi agents (e.g. your origin
     coordinates or your destination coordinates).
 
-* :func:`accept_taxi`
+* ``accept_taxi``
 
-    This is a helper function to send an acceptance message to a ``taxi_id``. It sends an `ACLMessage` with an
+    This is a helper function to send an acceptance message to a ``taxi_id``. It sends a ``Message`` with an
     **ACCEPT** performative to the selected taxi.
 
-* :func:`refuse_taxi`
+* ``refuse_taxi``
 
-    This is a helper function to refuse a proposal from a ``taxi_id``. It sends an `ACLMessage` with an **REFUSE**
+    This is a helper function to refuse a proposal from a ``taxi_id``. It sends a ``Message`` with an **REFUSE**
     performative to the taxi whose proposal is being refused.
 
 Other Helpers
 -------------
-Taxi Simulator also includes a :mod:`helpers` module which provides some general support methods that may be useful
+Taxi Simulator also includes a ``helpers`` module which provides some general support methods that may be useful
 for any agent. These functions are now introduced:
 
-* :func:`build_aid`
-
-    This function helps to create an :class:`spade.AID.aid` object using the name of an agent as a parameter. This helps to
-    create a structure that is very used when working with spade agents. It accepts a string with the name of the agent
-    (e.g. "coordinator") and returns a :class:`spade.AID.aid` instance to be used in a :class:`spade.ACLMessage.ACLMessage`.
-
-    Example:
-
-    .. code-block:: python
-
-        taxi_aid = build_aid("taxi_1234")
-
-        assert taxi_aid.getName() == "taxi_1234@127.0.0.1"
-        assert taxi_aid.getAddresses() == ["xmpp://taxi_1234@127.0.0.1"]
-
-
-* :const:`coordinator_aid`
-
-    Since the coordinator agent is a very common agent and needed by almost every passenger and taxi agent, the
-    :mod:`helpers` module provides a static :class:`spade.AID.aid` instance to communicate with the coordinator agent.
-
-* :func:`content_to_json`
-
-    Taxi Simulator uses the `JSON <https://www.json.org>`_ data-interchange format to use as the content language of the
-    messages (however, you can use the language you want, like RDF, XML, OWL, etc.). To facilitate the use of the JSON
-    format we provide this helper function that receives a :class:`spade.ACLMessage.ACLMessage` and returns the content
-    of the message if JSON format (which is actually a :obj:`dict` object in Python).
-
-    Example:
-
-    .. code-block:: python
-
-        msg = self.receive()
-
-        assert msg.getContent() == "{'my_coords': [39.253, -0.341]}"
-        assert content_to_json(msg) == {"my_coords": [39.253, -0.341]}
-
-* :func:`random_position`
+* ``random_position``
 
     This helper function returns a random position in the map for being used if you need to create a new coordinate.
 
@@ -879,10 +804,10 @@ for any agent. These functions are now introduced:
 
         assert random_position() == [39.253, -0.341]
 
-* :func:`are_close`
+* ``are_close``
 
     This helper function facilitates working with distances in maps. This helper function accepts two coordinates
-    (:attr:`coord1` and :attr:`coord2`) and an optional parameter to set the tolerance in meters. It returns ``True`` if
+    (``coord1`` and ``coord2``) and an optional parameter to set the tolerance in meters. It returns ``True`` if
     both coordinates are closer than the tolerance in meters (10 meters by default). Otherwise it returns ``False``.
 
     Example:
@@ -891,7 +816,7 @@ for any agent. These functions are now introduced:
 
         assert are_close([39.253, -0.341], [39.351, -0.333], 1000) == True
 
-* :func:`distance_in_meters`
+* ``distance_in_meters``
 
     This helper function returns the distance in meters between two points.
 
@@ -921,7 +846,7 @@ are using ``my_strategy_file.py``) and develop the strategies to be tested follo
     #                                                              #
     ################################################################
     class MyCoordinatorStrategy(CoordinatorStrategyBehaviour):
-        def _process(self):
+        async def run(self):
            # Your code here
 
     ################################################################
@@ -930,7 +855,7 @@ are using ``my_strategy_file.py``) and develop the strategies to be tested follo
     #                                                              #
     ################################################################
     class MyTaxiStrategy(TaxiStrategyBehaviour):
-        def _process(self):
+        async def run(self):
            # Your code here
 
     ################################################################
@@ -939,12 +864,12 @@ are using ``my_strategy_file.py``) and develop the strategies to be tested follo
     #                                                              #
     ################################################################
     class MyPassengerStrategy(PassengerStrategyBehaviour):
-        def _process(self):
+        async def run(self):
            # Your code here
 
 
 In this file, three strategies have been created for the three types of agent handled by the simulator. We have called
-these strategies :class:`MyCoordinatorStrategy`, :class:`MyTaxiStrategy` and :class:`MyPassengerStrategy`.
+these strategies ``MyCoordinatorStrategy``, ``MyTaxiStrategy`` and ``MyPassengerStrategy``.
 
 To run the simulator with your new strategies the command line interface accepts three parameters with the name of the
 file (without extension) and the name of the class of each strategy.

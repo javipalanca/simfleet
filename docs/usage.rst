@@ -64,20 +64,34 @@ To show these options you can enter the ``--help`` command:
     Options:
       -n, --name TEXT                Name of the simulation execution.
       -o, --output TEXT              Filename to save simulation results.
-      -of, --oformat [json|excel]    Output format used to save simulation results. (default: json)
+      -of, --oformat [json|excel]    Output format used to save simulation
+                                     results. (default: json)
       -mt, --max-time INTEGER        Maximum simulation time (in seconds).
-      -r, --autorun                  Run simulation as soon as the agents are ready.
-      -t, --taxi TEXT                Taxi strategy class (default: AcceptAlwaysStrategyBehaviour).
-      -p, --passenger TEXT           Passenger strategy class (default: AcceptFirstRequestTaxiBehaviour).
-      -c, --coordinator TEXT         Coordinator strategy class (default: DelegateRequestTaxiBehaviour).
+      -r, --autorun                  Run simulation as soon as the agents are
+                                     ready.
+      -t, --taxi TEXT                Taxi strategy class (default:
+                                     AcceptAlwaysStrategyBehaviour).
+      -p, --passenger TEXT           Passenger strategy class (default:
+                                     AcceptFirstRequestTaxiBehaviour).
+      -c, --coordinator TEXT         Coordinator strategy class (default:
+                                     DelegateRequestTaxiBehaviour).
       --port INTEGER                 Web interface port (default: 9000).
-      -nt, --num-taxis INTEGER       Number of initial taxis to create (default: 0).
-      -np, --num-passengers INTEGER  Number of initial passengers to create (default: 0).
-      --scenario TEXT                Filename of JSON file with initial scenario description.
-      -cn, --coordinator-name TEXT   Coordinator agent name (default: coordinator).
-      --passwd TEXT                  Coordinator agent password (default: coordinator_passwd).
-      -bp, --backend-port INTEGER    Backend port (default: 5000).
-      -v, --verbose                  Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4
+      -nt, --num-taxis INTEGER       Number of initial taxis to create (default:
+                                     0).
+      -np, --num-passengers INTEGER  Number of initial passengers to create
+                                     (default: 0).
+      --scenario TEXT                Filename of JSON file with initial scenario
+                                     description.
+      -cn, --coordinator-name TEXT   Coordinator agent name (default:
+                                     coordinator).
+      --coord-passwd TEXT            Coordinator agent password (default:
+                                     coordinator_passwd).
+      -rn, --route-name TEXT         Route agent name (default: route).
+      --route-passwd TEXT            Route agent password (default: route_passwd).
+      --host TEXT                    XMPP server address
+      -ip, --ip-address TEXT         IP to serve web (default: 127.0.0.1).
+      -v, --verbose                  Show verbose debug level: -v level 1, -vv
+                                     level 2, -vvv level 3, -vvvv level 4
       --help                         Show this message and exit.
 
 Running a simulation from the command-line
@@ -91,6 +105,8 @@ the map and with a random destination for each one. If you want limit the simula
 argument (or ``-mt``) to set the maximum number of seconds after which the simulation will end. Finally, the
 ``--autorun`` argument (or ``-r``) automatically runs the simulation (this argument is important when you are not using
 the graphical interface, since it is the only way to start the simulation).
+
+.. warning:: The ``--host`` argument is important to specify where your XMPP server is (localhost or external)
 
 Example:
 

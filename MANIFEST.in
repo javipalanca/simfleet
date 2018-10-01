@@ -3,9 +3,10 @@ include CONTRIBUTING.rst
 include HISTORY.rst
 include LICENSE
 include README.rst
-include requirements.txt
 
-recursive-include tests *
+include requirements.txt
+include requirements_dev.txt
+
 recursive-include taxi_simulator/templates/ *.html
 recursive-include taxi_simulator/templates/data *
 recursive-include taxi_simulator/templates/assets/js *
@@ -13,6 +14,7 @@ recursive-include taxi_simulator/templates/assets/css *
 recursive-include taxi_simulator/templates/assets/img *
 exclude taxi_simulator/templates/node_modules/ *
 
+recursive-include tests *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 

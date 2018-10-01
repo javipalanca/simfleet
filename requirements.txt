@@ -1,10 +1,9 @@
 Click>=6.0
-SPADE>=2.3.3
+spade>=3.0.7
 pandas==0.22.0
 tabulate==0.8.2
 openpyxl==2.4.9
 urllib3==1.22
-flask==1.0.2
 factory_boy==2.11.1
 requests==2.19.1
 geopy==1.17.0

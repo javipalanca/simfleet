@@ -1,54 +1,73 @@
-import threading
-import time
+import asyncio
+import json
 
-from taxi_simulator.fsm import State, StateMachine
-from taxi_simulator.helpers import content_to_json, PathRequestException
-from taxi_simulator.protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
+from spade.behaviour import State, FSMBehaviour
+
 from taxi_simulator.taxi import TaxiStrategyBehaviour
+from taxi_simulator.helpers import PathRequestException
+from taxi_simulator.protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
 from taxi_simulator.utils import TAXI_WAITING, TAXI_WAITING_FOR_APPROVAL, TAXI_MOVING_TO_PASSENGER
 
 
-class TaxiWaitingState(State):
+class TaxiWaitingState(TaxiStrategyBehaviour, State):
 
-    def run(self):
-        msg = self.receive(timeout=60)
+    async def on_start(self):
+        await super().on_start()
+        self.agent.status = TAXI_WAITING
+
+    async def run(self):
+        msg = await self.receive(timeout=60)
         if not msg:
+            self.set_next_state(TAXI_WAITING)
             return
-        self.logger.info("received: {}".format(msg.getContent()))
-        content = content_to_json(msg)
-        performative = msg.getPerformative()
+        self.logger.info("received: {}".format(msg.body))
+        content = json.loads(msg.body)
+        performative = msg.get_metadata("performative")
         if performative == REQUEST_PERFORMATIVE:
-            self.helpers.send_proposal(content["passenger_id"], {})
-            return self.transition_to(TAXI_WAITING_FOR_APPROVAL)
+            await self.send_proposal(content["passenger_id"], {})
+            self.set_next_state(TAXI_WAITING_FOR_APPROVAL)
+            return
+        else:
+            self.set_next_state(TAXI_WAITING)
+            return
 
 
-class TaxiWaitingForApprovalState(State):
+class TaxiWaitingForApprovalState(TaxiStrategyBehaviour, State):
 
-    def run(self):
-        msg = self.receive(timeout=60)
+    async def on_start(self):
+        await super().on_start()
+        self.agent.status = TAXI_WAITING_FOR_APPROVAL
+
+    async def run(self):
+        msg = await self.receive(timeout=60)
         if not msg:
             self.logger.info("No approval msg received. Still waiting.")
+            self.set_next_state(TAXI_WAITING_FOR_APPROVAL)
             return
-        content = content_to_json(msg)
-        performative = msg.getPerformative()
+        content = json.loads(msg.body)
+        performative = msg.get_metadata("performative")
         if performative == ACCEPT_PERFORMATIVE:
             try:
                 self.logger.info("Got accept. Picking up passenger.")
-                self.helpers.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])
-                return self.transition_to(TAXI_MOVING_TO_PASSENGER)
+                await self.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])
+                self.set_next_state(TAXI_MOVING_TO_PASSENGER)
+                return
             except PathRequestException:
-                self.helpers.cancel_proposal(content["passenger_id"])
-                return self.transition_to(TAXI_WAITING)
+                await self.cancel_proposal(content["passenger_id"])
+                self.set_next_state(TAXI_WAITING)
+                return
             except Exception as e:
-                self.helpers.cancel_proposal(content["passenger_id"])
-                return self.transition_to(TAXI_WAITING)
+                await self.cancel_proposal(content["passenger_id"])
+                self.set_next_state(TAXI_WAITING)
+                return
 
         elif performative == REFUSE_PERFORMATIVE:
             self.logger.info("Got refuse :(")
-            return self.transition_to(TAXI_WAITING)
+            self.set_next_state(TAXI_WAITING)
+            return
 
 
-passenger_in_taxi_event = threading.Event()
+passenger_in_taxi_event = asyncio.Event()
 
 
 def passenger_in_taxi_callback(old, new):
@@ -56,34 +75,32 @@ def passenger_in_taxi_callback(old, new):
         passenger_in_taxi_event.set()
 
 
-class TaxiMovingState(State):
-    def run(self):
+class TaxiMovingState(TaxiStrategyBehaviour, State):
+
+    async def on_start(self):
+        await super().on_start()
+        self.agent.status = TAXI_MOVING_TO_PASSENGER
+
+    async def run(self):
         passenger_in_taxi_event.clear()
-        self.behav.myAgent.watch_value("passenger_in_taxi", passenger_in_taxi_callback)
-        passenger_in_taxi_event.wait()
+        self.agent.watch_value("passenger_in_taxi", passenger_in_taxi_callback)
+        await passenger_in_taxi_event.wait()
         self.logger.info("Taxi is free again.")
-        return self.transition_to(TAXI_WAITING)
+        return self.set_next_state(TAXI_WAITING)
 
 
-class TaxiStrategy(StateMachine):
+class FSMTaxiStrategyBehaviour(FSMBehaviour):
     def setup(self):
         # Create states
-        self.register_state(TaxiWaitingState(TAXI_WAITING))
-        self.register_state(TaxiWaitingForApprovalState(TAXI_WAITING_FOR_APPROVAL))
-        self.register_state(TaxiMovingState(TAXI_MOVING_TO_PASSENGER))
+        self.add_state(TAXI_WAITING, TaxiWaitingState(), initial=True)
+        self.add_state(TAXI_WAITING_FOR_APPROVAL, TaxiWaitingForApprovalState())
+        self.add_state(TAXI_MOVING_TO_PASSENGER, TaxiMovingState())
 
-        # Initial state
-        self.set_initial_state(initial_state_name=TAXI_WAITING)
+        # Create transitions
+        self.add_transition(TAXI_WAITING, TAXI_WAITING)
+        self.add_transition(TAXI_WAITING, TAXI_WAITING_FOR_APPROVAL)
+        self.add_transition(TAXI_WAITING_FOR_APPROVAL, TAXI_MOVING_TO_PASSENGER)
+        self.add_transition(TAXI_WAITING_FOR_APPROVAL, TAXI_WAITING)
+        self.add_transition(TAXI_WAITING_FOR_APPROVAL, TAXI_WAITING_FOR_APPROVAL)
+        self.add_transition(TAXI_MOVING_TO_PASSENGER, TAXI_WAITING)
 
-
-class FSMTaxiStrategyBehaviour(TaxiStrategyBehaviour):
-
-    def onStart(self):
-        self.myAgent.fsm = TaxiStrategy(self)
-        TaxiStrategyBehaviour.onStart(self)
-
-    def _process(self):
-        while not self.myAgent.fsm.is_finished():
-            self.myAgent.fsm.step()
-        self.myAgent.fsm.current_state.run()
-        self.kill()

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import sys
@@ -8,14 +9,11 @@ import uuid
 from importlib import import_module
 from abc import ABCMeta
 
-from datetime import timedelta
-from flask import make_response, request, current_app
-from functools import update_wrapper
+from spade.message import Message
+from spade.behaviour import CyclicBehaviour, OneShotBehaviour
+from spade.template import Template
 
-from spade.ACLMessage import ACLMessage
-from spade.Behaviour import Behaviour, OneShotBehaviour, ACLTemplate, MessageTemplate
-
-from helpers import distance_in_meters, kmh_to_ms, build_aid, content_to_json
+from .helpers import distance_in_meters, kmh_to_ms
 
 logger = logging.getLogger()
 
@@ -59,137 +57,56 @@ def status_to_str(status_code):
     return status_code
 
 
-def timeout_receive(agent, timeout):
-    """
-    makes an agent to wait for a message until a timeout
-
-    Args:
-        agent: the agent who is receiving the message
-        timeout (int): the number of seconds to wait for the message
-
-    Returns:
-        :obj:`spade.ACLMessage.ACLMessage`: a received message or :data:`None`
-    """
-    init_time = time.time()
-    msg = agent._receive(block=False)
-    if msg is not None:
-        return msg
-    if timeout:
-        while (time.time() - init_time) < timeout:
-            msg = agent._receive(block=False)
-            if msg is not None:
-                return msg
-            time.sleep(0.1)
-    return None
-
-
-class StrategyBehaviour(Behaviour):
+class StrategyBehaviour(CyclicBehaviour, metaclass=ABCMeta):
     """
     The behaviour that all parent strategies must inherit from. It complies with the Strategy Pattern.
     """
-    __metaclass__ = ABCMeta
-
-    def store_value(self, key, value):
-        """
-        Stores a value (named by a key) in the agent's knowledge base that runs the behaviour.
-        This allows the strategy to have persistent values between loops.
-
-        Args:
-            key (str): the name of the value
-            value (object): The object to be stored
-        """
-        self.myAgent.store_value(key, value)
-
-    def get_value(self, key):
-        """
-        Returns a stored value from the agent's knowledge base.
-
-        Args:
-            key (str): the name of the value
-
-        Returns:
-             object: the object stored with key
-
-        Raises:
-             KeyError: if the key is not in the knowledge base
-        """
-        return self.myAgent.get_value(key)
-
-    def has_value(self, key):
-        """
-        Checks if a key is registered in the agent's knowledge base
-
-        Args:
-            key (str): the name of the value to be checked
-
-        Returns:
-             bool: if the key is in the agent's knowledge base
-        """
-        return self.myAgent.has_value(key)
-
-    def timeout_receive(self, timeout=5):
-
-        return self.receive(timeout)
-
-    def receive(self, timeout=5):
-        """
-        Waits for a message until timeout is done.
-        If a message is received the method returns immediately.
-        If the time has passed and no message has been received, it returns None.
-
-        Args:
-            timeout (int optional): number of seconds to wait for a message
-
-        Returns:
-            :class:`spade.ACLMessage.ACLMessage` or :data:`None`: a message or None
-        """
-        return timeout_receive(self, timeout)
-
-    def send(self, message):
-        """
-        Sends an :class:`spade.ACLMessage.ACLMessage`
-
-        Args:
-            message (:class:`spade.ACLMessage.ACLMessage`): the message to be sent
-        """
-        self.myAgent.send(message)
+    pass
 
 
 class RequestRouteBehaviour(OneShotBehaviour):
     """
     A one-shot behaviour that is executed to request for a new route to the route agent.
     """
-    def __init__(self, msg, origin, destination):
+
+    def __init__(self, msg: Message, origin: list, destination: list, route_agent: str):
+        """
+        Behaviour to request a route to a route agent
+        Args:
+            msg (Message): the message to be sent
+            origin (list): origin of the route
+            destination (list): destination of the route
+            route_agent (str): name of the route agent
+        """
         self.origin = origin
         self.destination = destination
         self._msg = msg
+        self.route_agent = route_agent
         self.result = {"path": None, "distance": None, "duration": None}
-        OneShotBehaviour.__init__(self)
+        super().__init__()
 
-    def _process(self):
+    async def run(self):
         try:
-            self._msg.addReceiver(build_aid("route"))
-            self._msg.setPerformative("route")
-
+            self._msg.to = self.route_agent
+            self._msg.set_metadata("performative", "route")
             content = {"origin": self.origin, "destination": self.destination}
-            self._msg.setContent(json.dumps(content))
-
-            self.myAgent.send(self._msg)
-            logger.debug("RequestRouteBehaviour sent message.")
-            msg = timeout_receive(self, 20)
+            self._msg.body = json.dumps(content)
+            await self.send(self._msg)
+            logger.debug("RequestRouteBehaviour sent message: {}".format(self._msg))
+            msg = await self.receive(20)
             logger.debug("RequestRouteBehaviour received message: {}".format(msg))
             if msg is None:
-                logger.warn("There was an error requesting the route (timeout)")
-                self.result = {"type": "error"}
+                logger.warning("There was an error requesting the route (timeout)")
+                self.exit_code = {"type": "error"}
                 return
 
-            self.result = content_to_json(msg)
+            self.kill(json.loads(msg.body))
 
-        except Exception, e:
+        except Exception as e:
             logger.error("Exception requesting route: " + str(e))
 
 
-def request_path(agent, origin, destination):
+async def request_path(agent, origin, destination, route_id):
     """
     Sends a message to the RouteAgent to request a path
 
@@ -199,7 +116,8 @@ def request_path(agent, origin, destination):
         destination (list): a list with the target coordinates [longitude, latitude]
 
     Returns:
-        list, float, float: a list of points (longitude and latitude) representing the path, the distance of the path in meters, a estimation of the duration of the path
+        list, float, float: a list of points (longitude and latitude) representing the path,
+                            the distance of the path in meters, a estimation of the duration of the path
 
     Examples:
         >>> path, distance, duration = request_path(an_agent, origin=[0,0], destination=[1,1])
@@ -213,21 +131,20 @@ def request_path(agent, origin, destination):
     if origin[0] == destination[0] and origin[1] == destination[1]:
         return [[origin[1], origin[0]]], 0, 0
 
-    msg = ACLMessage()
-    template = ACLTemplate()
-    template.setConversationId(msg.getConversationId())
-    r = str(uuid.uuid4()).replace("-", "")
-    msg.setReplyWith(r)
-    template.setInReplyTo(r)
-    t = MessageTemplate(template)
-    b = RequestRouteBehaviour(msg, origin, destination)
-    agent.addBehaviour(b, t)
-    b.join()
+    msg = Message()
+    msg.thread = str(uuid.uuid4()).replace("-", "")
+    template = Template()
+    template.thread = msg.thread
+    behav = RequestRouteBehaviour(msg, origin, destination, route_id)
+    agent.add_behaviour(behav, template)
 
-    if b.result is {} or "type" in b.result and b.result["type"] == "error":
+    while not behav.is_killed():
+        await asyncio.sleep(0.01)
+
+    if behav.exit_code is {} or "type" in behav.exit_code and behav.exit_code["type"] == "error":
         return None, None, None
     else:
-        return b.result["path"], b.result["distance"], b.result["duration"]
+        return behav.exit_code["path"], behav.exit_code["distance"], behav.exit_code["duration"]
 
 
 def unused_port(hostname):
@@ -293,47 +210,14 @@ def load_class(class_path):
     return getattr(mod, class_name)
 
 
-def crossdomain(origin=None, methods=None, headers=None,
-                max_age=21600, attach_to_all=True,
-                automatic_options=True):
+def avg(array):
     """
-    Decorator to allow the cross-domain situation in web requests.
+    Makes the average of an array without Nones.
+    Args:
+        array (list): a list of floats and Nones
+
+    Returns:
+        float: the average of the list without the Nones.
     """
-    if methods is not None:
-        methods = ', '.join(sorted(x.upper() for x in methods))
-    if headers is not None and not isinstance(headers, basestring):
-        headers = ', '.join(x.upper() for x in headers)
-    if not isinstance(origin, basestring):
-        origin = ', '.join(origin)
-    if isinstance(max_age, timedelta):
-        max_age = max_age.total_seconds()
-
-    def get_methods():
-        if methods is not None:
-            return methods
-
-        options_resp = current_app.make_default_options_response()
-        return options_resp.headers['allow']
-
-    def decorator(f):
-        def wrapped_function(*args, **kwargs):
-            if automatic_options and request.method == 'OPTIONS':
-                resp = current_app.make_default_options_response()
-            else:
-                resp = make_response(f(*args, **kwargs))
-            if not attach_to_all and request.method != 'OPTIONS':
-                return resp
-
-            h = resp.headers
-
-            h['Access-Control-Allow-Origin'] = origin
-            h['Access-Control-Allow-Methods'] = get_methods()
-            h['Access-Control-Max-Age'] = str(max_age)
-            if headers is not None:
-                h['Access-Control-Allow-Headers'] = headers
-            return resp
-
-        f.provide_automatic_options = False
-        return update_wrapper(wrapped_function, f)
-
-    return decorator
+    array_wo_nones = list(filter(None, array))
+    return (sum(array_wo_nones, 0.0) / len(array_wo_nones)) if len(array_wo_nones) > 0 else 0.0

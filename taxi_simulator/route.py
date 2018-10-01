@@ -4,11 +4,10 @@ import logging
 import requests
 from collections import defaultdict
 from requests.adapters import HTTPAdapter
-from spade.Agent import Agent
-from spade.Behaviour import Behaviour, ACLTemplate, MessageTemplate
+from spade.agent import Agent
+from spade.behaviour import CyclicBehaviour
+from spade.template import Template
 from urllib3 import Retry
-
-from helpers import content_to_json
 
 logger = logging.getLogger("RouteAgent")
 
@@ -19,16 +18,15 @@ class RouteAgent(Agent):
     It also caches the queries to avoid overloading the OSRM server.
     """
 
-    def __init__(self, agentjid, password, debug):
-        Agent.__init__(self, agentjid, password, debug=debug)
+    def __init__(self, agentjid, password):
+        super().__init__(agentjid, password)
 
         self.route_cache = defaultdict(dict)
 
-    def _setup(self):
-        template = ACLTemplate()
-        template.setPerformative("route")
-        t = MessageTemplate(template)
-        self.addBehaviour(self.RequestRouteBehaviour(), t)
+    def setup(self):
+        template = Template()
+        template.set_metadata("performative", "route")
+        self.add_behaviour(self.RequestRouteBehaviour(), template)
         logger.info("Route agent running")
 
     def get_route(self, origin, destination):
@@ -64,7 +62,7 @@ class RouteAgent(Agent):
                 json.dump(self.route_cache, f)
                 logger.debug("Cache persisted.")
             except:
-                logger.warn("Could not persist cache.")
+                logger.warning("Could not persist cache.")
 
     def load_cache(self):
         """
@@ -75,7 +73,7 @@ class RouteAgent(Agent):
                 self.route_cache = json.load(f)
             logger.debug("Cache loaded.")
         except:
-            logger.warn("Could not load cache file.")
+            logger.warning("Could not load cache file.")
             self.route_cache = {}
 
     @staticmethod
@@ -112,26 +110,28 @@ class RouteAgent(Agent):
         except Exception:
             return None, None, None
 
-    class RequestRouteBehaviour(Behaviour):
+    class RequestRouteBehaviour(CyclicBehaviour):
         """
         This cyclic behaviour listens for route requests from other agents.
         When a message is received it answers with the path.
         """
 
-        def onStart(self):
-            self.myAgent.load_cache()
+        async def on_start(self):
+            self.agent.load_cache()
 
-        def onEnd(self):
-            self.myAgent.persist_cache()
+        async def on_end(self):
+            self.agent.persist_cache()
 
-        def _process(self):
+        async def run(self):
             logger.debug("Wait for new route request message.")
-            msg = self._receive(block=True)
-            logger.debug("Got route request message. {}".format(msg.getContent()))
+            msg = await self.receive(timeout=60)
+            if not msg:
+                return
+            logger.debug("Got route request message. {}".format(msg.body))
 
             try:
-                content = content_to_json(msg)
-                reply_content = self.myAgent.get_route(content["origin"], content["destination"])
+                content = json.loads(msg.body)
+                reply_content = self.agent.get_route(content["origin"], content["destination"])
                 reply_content["type"] = "success"
             except Exception as e:
                 logger.error("Error requesting route: {}".format(e))
@@ -141,7 +141,7 @@ class RouteAgent(Agent):
                 logger.error("Could not retrieve route.")
                 reply_content = {"type": "error", "body": "Could not retrieve route."}
 
-            reply = msg.createReply()
-            reply.setContent(json.dumps(reply_content))
+            reply = msg.make_reply()
+            reply.body = json.dumps(reply_content)
 
-            self.myAgent.send(reply)
+            await self.send(reply)

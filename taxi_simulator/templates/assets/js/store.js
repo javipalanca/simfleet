@@ -12,19 +12,28 @@ export const store = new Vuex.Store({
     },
     mutations: {
         addTaxis: (state, payload) => {
-            let new_paths = [];
-            for (let i = 0; i < payload.length; i++) {
-                update_item_in_collection(state.taxis, payload[i], taxi_popup);
+            if (payload.length > 0) {
+                let new_paths = [];
+                for (let i = 0; i < payload.length; i++) {
+                    update_item_in_collection(state.taxis, payload[i], taxi_popup);
 
-                if (payload[i].path) {
-                    new_paths.push({latlngs: payload[i].path, color: get_color(payload[i].status)})
+                    if (payload[i].path) {
+                        new_paths.push({latlngs: payload[i].path, color: get_color(payload[i].status)})
+                    }
                 }
+                state.paths = new_paths;
+            } else {
+                state.taxis = [];
+                state.paths = [];
             }
-            state.paths = new_paths;
         },
         addPassengers: (state, payload) => {
-            for (let i = 0; i < payload.length; i++) {
-                update_item_in_collection(state.passengers, payload[i], passenger_popup);
+            if (payload.length > 0) {
+                for (let i = 0; i < payload.length; i++) {
+                    update_item_in_collection(state.passengers, payload[i], passenger_popup);
+                }
+            } else {
+                state.passengers = [];
             }
         },
         update_simulation_status: (state, stats) => {
@@ -54,7 +63,7 @@ export const store = new Vuex.Store({
             return state.total_time;
         },
         status: (state) => {
-            return state.simulation_status;
+            return state.simulation_status && (state.passengers.length || state.taxis.length);
         },
         tree: (state) => {
             return state.treedata;

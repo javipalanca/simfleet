@@ -40,6 +40,7 @@ class CoordinatorAgent(Agent):
         self.lock = threading.RLock()
         self.route_id = None
 
+        self.strategy = None
         self.coordinator_strategy = None
         self.taxi_strategy = None
         self.passenger_strategy = None
@@ -48,14 +49,14 @@ class CoordinatorAgent(Agent):
         self.ip_address = ip_address
         self.template_path = os.path.dirname(__file__) + os.sep + "templates"
 
-        self.set("taxi_agents", {})
-        self.set("passenger_agents", {})
+        self.clear_agents()
 
     def setup(self):
         logger.info("Coordinator agent running")
         self.web.add_get("/app", self.index_controller, "index.html")
         self.web.add_get("/entities", self.entities_controller, None)
         self.web.add_get("/run", self.run_controller, None)
+        self.web.add_get("/stop", self.stop_agents_controller, None)
         self.web.add_get("/clean", self.clean_controller, None)
         self.web.add_get("/generate/taxis/{ntaxis}/passengers/{npassengers}", self.generate_controller, None)
 
@@ -125,8 +126,11 @@ class CoordinatorAgent(Agent):
         """
         Starts the simulation
         """
+        self.clear_stopped_agents()
         if not self.simulation_running:
-            self.add_strategy(self.coordinator_strategy)
+            self.kill_simulator.clear()
+            if not self.strategy:
+                self.add_strategy(self.coordinator_strategy)
             with self.simulation_mutex:
                 for taxi in self.taxi_agents.values():
                     taxi.add_strategy(self.taxi_strategy)
@@ -149,7 +153,9 @@ class CoordinatorAgent(Agent):
         """
         if not self.simulation_time:
             return 0
-        return time.time() - self.simulation_time
+        if self.simulation_running:
+            return time.time() - self.simulation_time
+        return self.simulation_time
 
     def add_strategy(self, strategy_class):
         """
@@ -162,7 +168,8 @@ class CoordinatorAgent(Agent):
         """
         template = Template()
         template.set_metadata("protocol", REQUEST_PROTOCOL)
-        self.add_behaviour(strategy_class(), template)
+        self.strategy = strategy_class()
+        self.add_behaviour(self.strategy, template)
 
     def request_path(self, origin, destination):
         """
@@ -194,14 +201,15 @@ class CoordinatorAgent(Agent):
             dict: no template is returned since this is an AJAX controller, an empty data dict is returned
         """
         self.run_simulation()
-        return {}
+        return {"status": "ok"}
 
     async def generate_controller(self, request):
         ntaxis = request.match_info["ntaxis"]
         npassengers = request.match_info["npassengers"]
         self.create_agents_batch(TaxiAgent, int(ntaxis))
         self.create_agents_batch(PassengerAgent, int(npassengers))
-        return {}
+        self.clear_stopped_agents()
+        return {"status": "ok"}
 
     async def entities_controller(self, request):
         """
@@ -272,31 +280,48 @@ class CoordinatorAgent(Agent):
         }
         return result
 
-    def clean_controller(self, request):
+    async def clean_controller(self, request):
         """
         Web controller that resets the simulator to a clean state.
 
         Returns:
             dict: no template is returned since this is an AJAX controller, a dict with status=done
         """
+        logger.info("Stopping simulation...")
         self.stop_agents()
+        self.clear_agents()
+        return {"status": "done"}
+
+    async def stop_agents_controller(self, request):
+        self.stop_agents()
+        return {"status": "done"}
+
+    def clear_agents(self):
         self.set("taxi_agents", {})
         self.set("passenger_agents", {})
-        return {"status": "done"}
+
+    def clear_stopped_agents(self):
+        agents = self.get("taxi_agents")
+        self.set("taxi_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
+        agents = self.get("passenger_agents")
+        self.set("passenger_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
 
     def stop_agents(self):
         """
         Stops the simulator and all the agents
         """
         self.kill_simulator.set()
+        self.simulation_running = False
         with self.lock:
             for name, agent in self.taxi_agents.items():
-                logger.info("Stopping taxi {}".format(name))
+                logger.debug("Stopping taxi {}".format(name))
                 agent.stop()
+                agent.stopped = True
         with self.lock:
             for name, agent in self.passenger_agents.items():
-                logger.info("Stopping passenger {}".format(name))
+                logger.debug("Stopping passenger {}".format(name))
                 agent.stop()
+                agent.stopped = True
 
     def generate_tree(self):
         """
@@ -362,7 +387,7 @@ class CoordinatorAgent(Agent):
             "waiting": "{0:.2f}".format(waiting),
             "totaltime": "{0:.2f}".format(total),
             "finished": self.is_simulation_finished(),
-            "is_running": self.simulation_running
+            "is_running": self.simulation_running,
         }
 
     def get_passenger_stats(self):
@@ -461,6 +486,7 @@ class CoordinatorAgent(Agent):
             cls (class): class of the agent to create
             number (int): size of the batch
         """
+        number = max(number, 0)
         iterations = [20] * (number // 20)
         iterations.append(number % 20)
         for iteration in iterations:

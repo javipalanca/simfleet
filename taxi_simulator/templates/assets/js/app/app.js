@@ -257,6 +257,19 @@ module.exports = function normalizeComponent (
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["a"] = ({
     data() {
@@ -281,9 +294,14 @@ module.exports = function normalizeComponent (
         run() {
             axios.get("/run");
         },
+        stop() {
+            axios.get("/stop");
+        },
+        clean() {
+            axios.get("/clean");
+        },
         create() {
-            let backport = $("#backport").val();
-            axios.get("http://127.0.0.1:" + backport + "/generate/taxis/" + this.numtaxis + "/passengers/" + this.numpassengers);
+            axios.get("/generate/taxis/" + this.numtaxis + "/passengers/" + this.numpassengers);
         }
     }
 });
@@ -816,19 +834,28 @@ const store = new Vuex.Store({
     },
     mutations: {
         addTaxis: (state, payload) => {
-            let new_paths = [];
-            for (let i = 0; i < payload.length; i++) {
-                update_item_in_collection(state.taxis, payload[i], taxi_popup);
+            if (payload.length > 0) {
+                let new_paths = [];
+                for (let i = 0; i < payload.length; i++) {
+                    update_item_in_collection(state.taxis, payload[i], taxi_popup);
 
-                if (payload[i].path) {
-                    new_paths.push({ latlngs: payload[i].path, color: get_color(payload[i].status) });
+                    if (payload[i].path) {
+                        new_paths.push({ latlngs: payload[i].path, color: get_color(payload[i].status) });
+                    }
                 }
+                state.paths = new_paths;
+            } else {
+                state.taxis = [];
+                state.paths = [];
             }
-            state.paths = new_paths;
         },
         addPassengers: (state, payload) => {
-            for (let i = 0; i < payload.length; i++) {
-                update_item_in_collection(state.passengers, payload[i], passenger_popup);
+            if (payload.length > 0) {
+                for (let i = 0; i < payload.length; i++) {
+                    update_item_in_collection(state.passengers, payload[i], passenger_popup);
+                }
+            } else {
+                state.passengers = [];
             }
         },
         update_simulation_status: (state, stats) => {
@@ -857,7 +884,7 @@ const store = new Vuex.Store({
             return state.total_time;
         },
         status: state => {
-            return state.simulation_status;
+            return state.simulation_status && (state.passengers.length || state.taxis.length);
         },
         tree: state => {
             return state.treedata;
@@ -932,7 +959,7 @@ function taxi_popup(taxi) {
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_SidebarComponent_vue__ = __webpack_require__(1);
 /* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_6af8d394_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_SidebarComponent_vue__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_24132667_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_SidebarComponent_vue__ = __webpack_require__(9);
 var normalizeComponent = __webpack_require__(0)
 /* script */
 
@@ -949,7 +976,7 @@ var __vue_scopeId__ = null
 var __vue_module_identifier__ = null
 var Component = normalizeComponent(
   __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_SidebarComponent_vue__["a" /* default */],
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_6af8d394_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_SidebarComponent_vue__["a" /* default */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_24132667_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_SidebarComponent_vue__["a" /* default */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
@@ -964,7 +991,7 @@ var Component = normalizeComponent(
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('transition',{attrs:{"name":"slide","enter-active-class":"animated slideInLeft","leave-active-class":"animated slideOutLeft"}},[(!_vm.hideSidebar)?_c('div',{staticClass:"bodycontainer table-scrollable",attrs:{"id":"sidebar"}},[_c('div',{staticClass:"sidebar-wrapper"},[_c('div',{staticClass:"panel panel-default",attrs:{"id":"features"}},[_c('div',{staticClass:"panel-heading"},[_c('h3',{staticClass:"panel-title"},[_vm._v("Control Panel\n                    "),_c('button',{staticClass:"btn btn-xs btn-default pull-right",attrs:{"type":"button","id":"sidebar-hide-btn"},on:{"click":function($event){_vm.hideSidebar=!_vm.hideSidebar}}},[_c('i',{staticClass:"fa fa-chevron-left"})])])]),_vm._v(" "),_c('div',{staticClass:"panel-body"},[_c('table',{staticClass:"table table-hover",attrs:{"id":"feature-list"}},[_c('thead',{staticClass:"list"},[_c('tr',[_c('th',[_c('label',{attrs:{"for":"numtaxis"}},[_vm._v("Num. Taxis")]),_vm._v(" "),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.numtaxis),expression:"numtaxis"}],staticClass:"form-control",attrs:{"type":"number","id":"numtaxis","placeholder":"Taxis"},domProps:{"value":(_vm.numtaxis)},on:{"input":function($event){if($event.target.composing){ return; }_vm.numtaxis=$event.target.value}}})]),_vm._v(" "),_c('th',[_c('label',{attrs:{"for":"numpassengers"}},[_vm._v("Num. Passengers")]),_vm._v(" "),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.numpassengers),expression:"numpassengers"}],staticClass:"form-control",attrs:{"type":"number","id":"numpassengers","placeholder":"Passengers"},domProps:{"value":(_vm.numpassengers)},on:{"input":function($event){if($event.target.composing){ return; }_vm.numpassengers=$event.target.value}}})]),_vm._v(" "),_c('th',[_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name","id":"generate-btn"},on:{"click":_vm.create}},[_c('i',{staticClass:"fa fa-legal"}),_vm._v("  Add\n                            ")])])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"3"}},[(!_vm.is_running)?_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.run}},[_c('i',{staticClass:"fa fa-play"}),_vm._v("\n                                  Run\n                            ")]):_vm._e(),_vm._v(" "),(_vm.is_running)?_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name","disabled":""}},[_c('i',{staticClass:"fa fa-spinner fa-spin"}),_vm._v("\n                                  Running\n                            ")]):_vm._e()])])]),_vm._v(" "),_c('tbody',{staticClass:"list"},[_c('tr',[_c('th',{attrs:{"colspan":"2"}},[_vm._v("Waiting Time")]),_vm._v(" "),_c('td',{attrs:{"id":"waiting"}},[_vm._v(_vm._s(_vm.waiting))])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"2"}},[_vm._v("Total Time")]),_vm._v(" "),_c('td',{attrs:{"id":"total"}},[_vm._v(_vm._s(_vm.totaltime))])]),_vm._v(" "),_c('tr',[_c('td',{attrs:{"colspan":"3"}},[_vm._t("default")],2)])])])])])])]):_vm._e()])}
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('transition',{attrs:{"name":"slide","enter-active-class":"animated slideInLeft","leave-active-class":"animated slideOutLeft"}},[(!_vm.hideSidebar)?_c('div',{staticClass:"bodycontainer table-scrollable",attrs:{"id":"sidebar"}},[_c('div',{staticClass:"sidebar-wrapper"},[_c('div',{staticClass:"panel panel-default",attrs:{"id":"features"}},[_c('div',{staticClass:"panel-heading"},[_c('h3',{staticClass:"panel-title"},[_vm._v("Control Panel\n                    "),_c('button',{staticClass:"btn btn-xs btn-default pull-right",attrs:{"type":"button","id":"sidebar-hide-btn"},on:{"click":function($event){_vm.hideSidebar=!_vm.hideSidebar}}},[_c('i',{staticClass:"fa fa-chevron-left"})])])]),_vm._v(" "),_c('div',{staticClass:"panel-body"},[_c('table',{staticClass:"table table-hover",attrs:{"id":"feature-list"}},[_c('thead',{staticClass:"list"},[_c('tr',[_c('th',[_c('label',{attrs:{"for":"numtaxis"}},[_vm._v("Num. Taxis")]),_vm._v(" "),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.numtaxis),expression:"numtaxis"}],staticClass:"form-control",attrs:{"type":"number","min":"0","id":"numtaxis","placeholder":"Taxis"},domProps:{"value":(_vm.numtaxis)},on:{"input":function($event){if($event.target.composing){ return; }_vm.numtaxis=$event.target.value}}})]),_vm._v(" "),_c('th',[_c('label',{attrs:{"for":"numpassengers"}},[_vm._v("Num. Passengers")]),_vm._v(" "),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.numpassengers),expression:"numpassengers"}],staticClass:"form-control",attrs:{"type":"number","min":"0","id":"numpassengers","placeholder":"Passengers"},domProps:{"value":(_vm.numpassengers)},on:{"input":function($event){if($event.target.composing){ return; }_vm.numpassengers=$event.target.value}}})]),_vm._v(" "),_c('th',[_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name","id":"generate-btn"},on:{"click":_vm.create}},[_c('i',{staticClass:"far fa-address-book"}),_vm._v("  Add\n                            ")])])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"3"}},[(!_vm.is_running)?_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.run}},[_c('i',{staticClass:"fa fa-play"}),_vm._v("\n                                  Run\n                            ")]):_vm._e(),_vm._v(" "),(_vm.is_running)?_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name","disabled":""}},[_c('i',{staticClass:"fa fa-spinner fa-spin"}),_vm._v("\n                                  Run\n                            ")]):_vm._e(),_vm._v(" "),(_vm.is_running)?_c('button',{staticClass:"btn btn-danger",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.stop}},[_c('i',{staticClass:"fa fa-stop"}),_vm._v("\n                                  Stop\n                            ")]):_vm._e(),_vm._v(" "),_c('button',{staticClass:"btn btn-warning",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.clean}},[_c('i',{staticClass:"fa fa-trash-alt"}),_vm._v("\n                                  Clear\n                            ")])])])]),_vm._v(" "),_c('tbody',{staticClass:"list"},[_c('tr',[_c('th',{attrs:{"colspan":"2"}},[_vm._v("Waiting Time")]),_vm._v(" "),_c('td',{attrs:{"id":"waiting"}},[_vm._v(_vm._s(_vm.waiting))])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"2"}},[_vm._v("Total Time")]),_vm._v(" "),_c('td',{attrs:{"id":"total"}},[_vm._v(_vm._s(_vm.totaltime))])]),_vm._v(" "),_c('tr',[_c('td',{attrs:{"colspan":"3"}},[_vm._t("default")],2)])])])])])])]):_vm._e()])}
 var staticRenderFns = []
 var esExports = { render: render, staticRenderFns: staticRenderFns }
 /* harmony default export */ __webpack_exports__["a"] = (esExports);

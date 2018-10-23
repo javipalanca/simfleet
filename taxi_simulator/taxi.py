@@ -42,6 +42,7 @@ class TaxiAgent(Agent):
         self.current_passenger_dest = None
         self.set("passenger_in_taxi", None)
         self.num_assignments = 0
+        self.stopped = False
 
     def watch_value(self, key, callback):
         """
@@ -137,9 +138,9 @@ class TaxiAgent(Agent):
         """
         await self.inform_passenger(PASSENGER_IN_DEST)
         self.status = TAXI_WAITING
-        logger.info("Taxi {} has dropped the passenger {} in destination.".format(self.agent_id,
-                                                                                  self.get(
-                                                                                      "current_passenger")))
+        logger.debug("Taxi {} has dropped the passenger {} in destination.".format(self.agent_id,
+                                                                                   self.get(
+                                                                                       "current_passenger")))
         self.set("current_passenger", None)
         self.set("passenger_in_taxi", None)
 
@@ -221,8 +222,8 @@ class TaxiAgent(Agent):
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         reply.body = json.dumps(data)
-        logger.info("Taxi {} sent cancel proposal to passenger {}".format(self.agent_id,
-                                                                          self.get("current_passenger")))
+        logger.debug("Taxi {} sent cancel proposal to passenger {}".format(self.agent_id,
+                                                                           self.get("current_passenger")))
         await self.send(reply)
 
     async def request_path(self, origin, destination):

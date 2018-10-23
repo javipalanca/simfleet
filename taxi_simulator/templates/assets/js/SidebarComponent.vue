@@ -19,20 +19,20 @@
                         <tr>
                             <th>
                                 <label for="numtaxis">Num. Taxis</label>
-                                <input v-model="numtaxis" type="number"
+                                <input v-model="numtaxis" type="number" min="0"
                                        class="form-control" id="numtaxis"
                                        placeholder="Taxis"/>
                             </th>
                             <th>
                                 <label for="numpassengers">Num. Passengers</label>
-                                <input v-model="numpassengers" type="number"
+                                <input v-model="numpassengers" type="number" min="0"
                                        class="form-control" id="numpassengers"
                                        placeholder="Passengers"/>
                             </th>
                             <th>
                                 <button type="button" class="btn btn-primary" data-sort="feature-name"
                                         id="generate-btn" @click="create">
-                                    <i class="fa fa-legal"></i>&nbsp;&nbsp;Add
+                                    <i class="far fa-address-book"></i>&nbsp;&nbsp;Add
                                 </button>
                             </th>
                         </tr>
@@ -50,7 +50,20 @@
                                         v-if="is_running"
                                         disabled>
                                     <i class="fa fa-spinner fa-spin"></i>
-                                      Running
+                                      Run
+                                </button>
+                                <button type="button" class="btn btn-danger"
+                                        data-sort="feature-name"
+                                        @click="stop"
+                                        v-if="is_running">
+                                    <i class="fa fa-stop"></i>
+                                    &nbsp;&nbsp;Stop
+                                </button>
+                                <button type="button" class="btn btn-warning"
+                                        data-sort="feature-name"
+                                        @click="clean">
+                                    <i class="fa fa-trash-alt"></i>
+                                    &nbsp;&nbsp;Clear
                                 </button>
                             </th>
                         </tr>
@@ -102,9 +115,14 @@
             run() {
                 axios.get("/run");
             },
+            stop() {
+                axios.get("/stop");
+            },
+            clean() {
+                axios.get("/clean");
+            },
             create() {
-                let backport = $("#backport").val();
-                axios.get("http://127.0.0.1:" + backport + "/generate/taxis/" + this.numtaxis + "/passengers/" + this.numpassengers);
+                axios.get("/generate/taxis/" + this.numtaxis + "/passengers/" + this.numpassengers);
             }
         }
     }

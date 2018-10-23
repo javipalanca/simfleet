@@ -30,6 +30,7 @@ class PassengerAgent(Agent):
         self.waiting_for_pickup_time = None
         self.pickup_time = None
         self.end_time = None
+        self.stopped = False
 
     def setup(self):
         try:
@@ -160,8 +161,11 @@ class PassengerAgent(Agent):
         if self.init_time:
             if self.pickup_time:
                 t = self.pickup_time - self.init_time
-            else:
+            elif not self.stopped:
                 t = time.time() - self.init_time
+                self.waiting_for_pickup_time = t
+            else:
+                t = self.waiting_for_pickup_time
             return t
         return None
 
@@ -227,8 +231,8 @@ class TravelBehaviour(CyclicBehaviour):
             if "status" in content:
                 status = content["status"]
                 if status != PASSENGER_LOCATION:
-                    logger.info("Passenger {} informed of status: {}".format(self.agent.name,
-                                                                             status_to_str(status)))
+                    logger.debug("Passenger {} informed of status: {}".format(self.agent.name,
+                                                                              status_to_str(status)))
                 if status == TAXI_MOVING_TO_PASSENGER:
                     logger.info("Passenger {} waiting for taxi.".format(self.agent.name))
                     self.agent.waiting_for_pickup_time = time.time()
@@ -299,7 +303,7 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
         It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
 
         Args:
-            taxi_id (``aioxmpp.JID``): The Agent JID of the taxi
+            taxi_id (str): The Agent JID of the taxi
         """
         reply = Message()
         reply.to = str(taxi_id)
@@ -322,7 +326,7 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
         It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
 
         Args:
-            taxi_id (``aioxmpp.JID``): The Agent JID of the taxi
+            taxi_id (str): The Agent JID of the taxi
         """
         reply = Message()
         reply.to = str(taxi_id)

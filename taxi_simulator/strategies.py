@@ -43,7 +43,7 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
         msg = await self.receive(timeout=5)
         if not msg:
             return
-        self.logger.info("Taxi received message: {}".format(msg))
+        self.logger.debug("Taxi received message: {}".format(msg))
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
 

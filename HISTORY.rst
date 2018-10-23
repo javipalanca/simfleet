@@ -2,6 +2,12 @@
 History
 =======
 
+0.4.0 ()
+------------------
+
+* Improved the concurrent creation of agents.
+* Added stop and clear buttons to the interface.
+
 0.3.0 (2018-10-01)
 ------------------
 

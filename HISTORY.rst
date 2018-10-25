@@ -2,7 +2,7 @@
 History
 =======
 
-0.4.0 ()
+0.4.0 (2018-10-25)
 ------------------
 
 * Improved the concurrent creation of agents.

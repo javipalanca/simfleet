@@ -7,6 +7,8 @@ History
 
 * Improved the concurrent creation of agents.
 * Added stop and clear buttons to the interface.
+* Added download button for getting results in excel and json formats.
+* Documentation updated.
 
 0.3.0 (2018-10-01)
 ------------------

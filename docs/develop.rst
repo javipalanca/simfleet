@@ -304,7 +304,7 @@ respectively.
     import time
 
     class MyAgent(spade.agent.Agent):
-        class MyBehavior(spade.behaviour.CyclicBehaviour):
+        class MyBehaviour(spade.behaviour.CyclicBehaviour):
 
             async def on_start(self):
                 print("Initialization of behavior")
@@ -315,16 +315,16 @@ respectively.
                 # reason about the perception
                 age = datetime.datetime.now().year - perception
                 # execute an action
-                print("You are " + str(age) + " years old.")
+                print("You are {age} years old.".format(age=age))
 
             async def on_end(self):
                 print("Shutdown of behavior")
 
         def setup(self):
             # Create behavior
-            behavior = self.MyBehavior()
+            behaviour = self.MyBehaviour()
             # Register behavior in agent
-            self.add_behaviour(behavior)
+            self.add_behaviour(behaviour)
 
     if __name__ == "__main__":
         a = MyAgent(jid="agent@127.0.0.1", password="secret")
@@ -446,7 +446,6 @@ that match that template:
                     print("I got a message with the ontology 'myOntology'")
                 else:
                     print("I waited 10 seconds but got no message")
-                    await asyncio.sleep(1)
 
         def setup(self):
             recv_behav = self.ReceiveBehav()
@@ -621,7 +620,7 @@ if needed.
 Code
 ~~~~
 The default strategy of a taxi is to accept every passenger's requests if the taxi is not assigned to any other passenger
-or waiting a confirmation from any passenger. This is the code of the default taxi strategy :class:`AcceptAlwaysStrategyBehaviour`:
+or waiting a confirmation from any passenger. This is the code of the default taxi strategy ``AcceptAlwaysStrategyBehaviour``:
 
 .. code-block:: python
 
@@ -876,7 +875,8 @@ file (without extension) and the name of the class of each strategy.
 
 .. code-block:: bash
 
- $ taxi_simulator --taxi my_strategy_file.MyTaxiStrategy
+ $ taxi_simulator --host 127.0.0.1
+                  --taxi my_strategy_file.MyTaxiStrategy
                   --passenger my_strategy_file.MyPassengerStrategy
                   --coordinator my_strategy_file.MyCoordinatorStrategy
 

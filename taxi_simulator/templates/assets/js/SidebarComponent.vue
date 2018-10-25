@@ -78,6 +78,22 @@
                             <td id="total">{{ totaltime }}</td>
                         </tr>
                         <tr>
+                            <th colspan="3">
+                                <div class="dropdown">
+                                  <button class="btn btn-info dropdown-toggle" type="button" id="dropdownMenu1"
+                                          data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                    <i class="fa fa-download"></i>&nbsp;&nbsp;Download
+                                    <span class="caret"></span>
+                                  </button>
+                                  <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+                                    <li><a href="/download/excel/">Excel</a></li>
+                                    <li><a href="/download/json/">JSON</a></li>
+                                  </ul>
+                                </div>
+
+                            </th>
+                        </tr>
+                        <tr>
                             <td colspan="3">
                                 <slot></slot>
                             </td>

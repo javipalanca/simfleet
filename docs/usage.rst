@@ -15,13 +15,20 @@ since the application comes with a set of default strategies. Let's explore how 
 Command-line interface
 ======================
 
-After installing Taxi Simulator open a command-line and type ``taxi_simulator``. This starts a simulator without any
-options and runs the coordinator agent. The console will output the default logging information and you can terminate
-the simulator by pressing ``Ctrl+C``. When you terminate the simulator the results of the simulations are printed.
+After installing Taxi Simulator open a command-line and type ``taxi_simulator --host your_xmpp_server``. This starts a
+simulator without any options and runs the coordinator agent. The console will output the default logging
+information and you can terminate the simulator by pressing ``Ctrl+C``. When you terminate the simulator the results of
+the simulations are printed.
+
+.. warning:: Note that ``your_xmpp_server`` is a fake address. You need to have an XMPP server where the simulator
+    connects to. You can use your own XMPP server or use any of the public XMPP servers (List of public servers is
+    `here <https://list.jabber.at>`).
+
+.. hint:: To install an XMPP server visit https://xmpp.org/software/servers.html (we recommend `Prosody IM <https://prosody.im>`_)
 
 .. code-block:: console
 
-    $ taxi_simulator
+    $ taxi_simulator --host 127.0.0.1
     INFO:root:Starting Taxi Simulator
     INFO:CoordinatorAgent:Coordinator agent running
     INFO:CoordinatorAgent:Web interface running at http://127.0.0.1:9000/app
@@ -112,7 +119,7 @@ Example:
 
 .. code-block:: console
 
-    $ taxi_simulator --num-taxis 2 --num-passengers 2 --max-time 60 --autorun
+    $ taxi_simulator --host 127.0.0.1 --num-taxis 2 --num-passengers 2 --max-time 60 --autorun
     INFO:root:Starting Taxi Simulator
     INFO:CoordinatorAgent:Coordinator agent running
     INFO:CoordinatorAgent:Web interface running at http://127.0.0.1:9000/app
@@ -209,7 +216,7 @@ Example:
 
 .. code-block:: console
 
-    $ taxi_simulator --name "My Simulation" --output results.xls --oformat excel
+    $ taxi_simulator --host 127.0.0.1 --name "My Simulation" --output results.xls --oformat excel
 
 
 Advanced options
@@ -261,7 +268,11 @@ In the GUI you can see a map of the city on the right and a Control Panel with v
 
 #. A **Run** button that starts the simulation.
 
+#. A **Clear** button to stop and reset the simulation.
+
 #. Stats of the waiting time and total time of the simulation in real time.
+
+#. A **Download** button to get the stats of the simulation in excel or json format.
 
 #. A collapsable tree view with the taxis and passengers that are included in the simulation, with a color bullet that indicates their current status.
 
@@ -405,7 +416,7 @@ Finally, to load a scenario in a simulation use the ``--scenario`` option with t
 
 .. code-block:: console
 
-    $ taxi_simulator --scenario my_scenario.json
+    $ taxi_simulator --host 127.0.0.1 --scenario my_scenario.json
 
     INFO:root:Starting Taxi Simulator
     INFO:CoordinatorAgent:Coordinator agent running

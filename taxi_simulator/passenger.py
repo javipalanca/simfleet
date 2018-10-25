@@ -149,7 +149,7 @@ class PassengerAgent(Agent):
         if self.init_time and self.end_time:
             return self.end_time - self.init_time
         else:
-            return -1
+            return None
 
     def get_waiting_time(self):
         """

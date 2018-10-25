@@ -141,16 +141,9 @@ class Simulator(object):
         """
         Collects stats from all participant agents and from the simulation and stores it in three dataframes.
         """
-        passenger_df = self.coordinator_agent.get_passenger_stats()
-        self.passenger_df = passenger_df[["name", "waiting_time", "total_time", "status"]]
-        taxi_df = self.coordinator_agent.get_taxi_stats()
-        self.taxi_df = taxi_df[["name", "assignments", "distance", "status"]]
-        stats = self.coordinator_agent.get_stats()
-        df_avg = pd.DataFrame.from_dict({"Avg Waiting Time": [stats["waiting"]],
-                                         "Avg Total Time": [stats["totaltime"]],
-                                         "Simulation Finished": [stats["finished"]],
-                                         "Simulation Time": [self.simulation_time]
-                                         })
+
+        df_avg, self.taxi_df, self.passenger_df = self.coordinator_agent.get_stats_dataframes()
+
         columns = []
         if self.config.simulation_name:
             df_avg["Simulation Name"] = self.config.simulation_name

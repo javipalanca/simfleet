@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-
+import io
+import json
 import logging
 import random
 import string
@@ -8,6 +9,8 @@ import os
 
 import pandas as pd
 import time
+from aiohttp import web as aioweb
+import xlsxwriter
 
 import faker
 from spade.agent import Agent
@@ -35,6 +38,7 @@ class CoordinatorAgent(Agent):
         self.simulation_mutex = threading.Lock()
         self.simulation_running = False
         self.simulation_time = None
+        self.simulation_init_time = None
         self.kill_simulator = threading.Event()
         self.kill_simulator.clear()
         self.lock = threading.RLock()
@@ -58,6 +62,8 @@ class CoordinatorAgent(Agent):
         self.web.add_get("/run", self.run_controller, None)
         self.web.add_get("/stop", self.stop_agents_controller, None)
         self.web.add_get("/clean", self.clean_controller, None)
+        self.web.add_get("/download/excel/", self.download_stats_excel_controller, None, raw=True)
+        self.web.add_get("/download/json/", self.download_stats_json_controller, None, raw=True)
         self.web.add_get("/generate/taxis/{ntaxis}/passengers/{npassengers}", self.generate_controller, None)
 
         self.web.app.router.add_static("/assets", os.path.dirname(os.path.realpath(__file__)) + "/templates/assets")
@@ -140,7 +146,7 @@ class CoordinatorAgent(Agent):
                     logger.debug(f"Adding strategy {self.passenger_strategy} to passenger {passenger.name}")
 
             self.simulation_running = True
-            self.simulation_time = time.time()
+            self.simulation_init_time = time.time()
             logger.info("Simulation started.")
 
     def get_simulation_time(self):
@@ -151,10 +157,10 @@ class CoordinatorAgent(Agent):
         Returns:
             float: the whole simulation time.
         """
-        if not self.simulation_time:
+        if not self.simulation_init_time:
             return 0
         if self.simulation_running:
-            return time.time() - self.simulation_time
+            return time.time() - self.simulation_init_time
         return self.simulation_time
 
     def add_strategy(self, strategy_class):
@@ -293,18 +299,92 @@ class CoordinatorAgent(Agent):
         return {"status": "done"}
 
     async def stop_agents_controller(self, request):
+        """
+        Web controller that stops all the passenger and taxi agents.
+
+        Returns:
+            dict: no template is returned since this is an AJAX controller, a dict with status=done
+        """
         self.stop_agents()
         return {"status": "done"}
 
+    async def download_stats_excel_controller(self, request):
+        """
+        Web controller that returns an Excel file with the simulation results.
+
+        Returns:
+            Response: a Response of type "attachment" with the file content.
+        """
+        headers = {
+            "Content-Disposition": "Attachment; filename=simulation.xlsx"
+        }
+
+        output = io.BytesIO()
+
+        # Use a temp filename to keep pandas happy.
+        writer = pd.ExcelWriter(output, engine='xlsxwriter')
+
+        # Write the data frame to the StringIO object.
+        df_avg, taxi_df, passenger_df = self.get_stats_dataframes()
+        df_avg.to_excel(writer, sheet_name='Simulation')
+        passenger_df.to_excel(writer, sheet_name='Passengers')
+        taxi_df.to_excel(writer, sheet_name='Taxis')
+        writer.save()
+        xlsx_data = output.getvalue()
+
+        return aioweb.Response(
+            body=xlsx_data,
+            headers=headers
+        )
+
+    async def download_stats_json_controller(self, request):
+        """
+        Web controller that returns a JSON file with the simulation results.
+
+        Returns:
+            Response: a Response of type "attachment" with the file content.
+        """
+        headers = {
+            "Content-Disposition": "Attachment; filename=simulation.json"
+        }
+
+        output = io.StringIO()
+
+        # Write the data frame to the StringIO object.
+        df_avg, taxi_df, passenger_df = self.get_stats_dataframes()
+
+        data = {
+            "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
+            "passengers": json.loads(passenger_df.to_json(orient="index")),
+            "taxis": json.loads(taxi_df.to_json(orient="index"))
+        }
+
+        json.dump(data, output, indent=4)
+
+        return aioweb.Response(
+            body=output.getvalue(),
+            headers=headers
+        )
+
     def clear_agents(self):
+        """
+        Resets the set of taxis and passengers. Resets the simulation clock.
+        """
         self.set("taxi_agents", {})
         self.set("passenger_agents", {})
+        self.simulation_time = None
+        self.simulation_init_time = None
 
     def clear_stopped_agents(self):
+        """
+        Removes from the taxi and passenger sets every agent that is stopped.
+        """
         agents = self.get("taxi_agents")
         self.set("taxi_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
         agents = self.get("passenger_agents")
         self.set("passenger_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
+        self.simulation_time = None
+        self.simulation_init_time = None
 
     def stop_agents(self):
         """
@@ -312,6 +392,8 @@ class CoordinatorAgent(Agent):
         """
         self.kill_simulator.set()
         self.simulation_running = False
+        if not self.simulation_time:
+            self.simulation_time = time.time() - self.simulation_init_time if self.simulation_init_time else 0
         with self.lock:
             for name, agent in self.taxi_agents.items():
                 logger.debug("Stopping taxi {}".format(name))
@@ -379,7 +461,8 @@ class CoordinatorAgent(Agent):
         """
         if len(self.passenger_agents) > 0:
             waiting = avg([passenger.get_waiting_time() for passenger in self.passenger_agents.values()])
-            total = avg([passenger.total_time() for passenger in self.passenger_agents.values()])
+            total = avg(
+                [passenger.total_time() for passenger in self.passenger_agents.values() if passenger.total_time()])
         else:
             waiting, total = 0, 0
 
@@ -429,6 +512,29 @@ class CoordinatorAgent(Agent):
                                      "status": statuses})
         return df
 
+    def get_stats_dataframes(self):
+        """
+        Collects simulation stats and returns 3 dataframes with the information:
+        A general dataframe with the average information, a dataframe with the taxi's information
+        and a dataframe with the passenger's information.
+        Returns:
+            pandas.Dataframe, pandas.Dataframe, pandas.Dataframe: avg df, taxi df and passenger df
+        """
+        passenger_df = self.get_passenger_stats()
+        passenger_df = passenger_df[["name", "waiting_time", "total_time", "status"]]
+        taxi_df = self.get_taxi_stats()
+        taxi_df = taxi_df[["name", "assignments", "distance", "status"]]
+        stats = self.get_stats()
+        df_avg = pd.DataFrame.from_dict({"Avg Waiting Time": [stats["waiting"]],
+                                         "Avg Total Time": [stats["totaltime"]],
+                                         "Simulation Finished": [stats["finished"]],
+                                         "Simulation Time": [self.get_simulation_time()]
+                                         })
+        columns = ["Avg Waiting Time", "Avg Total Time", "Simulation Time", "Simulation Finished"]
+        df_avg = df_avg[columns]
+
+        return df_avg, taxi_df, passenger_df
+
     def is_simulation_finished(self):
         """
         Checks whether the simulation has finished or not.
@@ -454,6 +560,17 @@ class CoordinatorAgent(Agent):
         self.submit(self.async_create_agent(cls, name, password, position, target, speed))
 
     async def async_create_agent(self, cls, name, password, position, target, speed):
+        """
+        Coroutine to create an agent.
+
+        Args:
+            cls (class): class of the agent (TaxiAgent or PassengerAgent)
+            name (str): name of the agent
+            password (str): password of the agent
+            position (list): initial coordinates of the agent
+            target (list, optional): destination coordinates of the agent
+            speed (float, optional): speed of the vehicle
+        """
         jid = f"{name}@{self.jid.domain}"
         agent = cls(jid, password, loop=self.loop)
         agent.set_id(name)

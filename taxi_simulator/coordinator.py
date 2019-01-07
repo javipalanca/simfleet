@@ -539,11 +539,15 @@ class CoordinatorAgent(Agent):
         """
         Checks whether the simulation has finished or not.
         A simulation is finished if all passengers are at their destinations.
+        If there is no passengers the simulation is not finished.
 
         Returns:
             bool: whether the simulation has finished or not.
         """
-        return all([passenger.is_in_destination() for passenger in self.passenger_agents.values()])
+        if len(self.passenger_agents) > 0:
+            return all([passenger.is_in_destination() for passenger in self.passenger_agents.values()])
+        else:
+            return False
 
     def create_agent(self, cls, name, password, position, target=None, speed=None):
         """

@@ -28,7 +28,7 @@ test_requirements = parse_requirements("requirements_dev.txt")
 
 setup(
     name='taxi_simulator',
-    version='0.4.0',
+    version='0.4.1',
     description="Agent-based taxi simulator to test strategies",
     long_description=readme + '\n\n' + history,
     author="Javi Palanca",

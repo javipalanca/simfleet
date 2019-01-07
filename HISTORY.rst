@@ -2,6 +2,11 @@
 History
 =======
 
+0.4.1 (2019-01-07)
+------------------
+
+* Fixed bug when checking if the simulation is finished.
+
 0.4.0 (2018-10-25)
 ------------------
 

@@ -16,8 +16,8 @@ logger = logging.getLogger("PassengerAgent")
 
 
 class PassengerAgent(Agent):
-    def __init__(self, agentjid, password, loop=None):
-        super().__init__(agentjid, password, loop=loop)
+    def __init__(self, agentjid, password):
+        super().__init__(agentjid, password)
         self.agent_id = None
         self.coordinator_id = None
         self.route_id = None
@@ -32,7 +32,7 @@ class PassengerAgent(Agent):
         self.end_time = None
         self.stopped = False
 
-    def setup(self):
+    async def setup(self):
         try:
             template = Template()
             template.set_metadata("protocol", TRAVEL_PROTOCOL)

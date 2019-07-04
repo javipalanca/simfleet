@@ -23,7 +23,7 @@ class RouteAgent(Agent):
 
         self.route_cache = defaultdict(dict)
 
-    def setup(self):
+    async def setup(self):
         template = Template()
         template.set_metadata("performative", "route")
         self.add_behaviour(self.RequestRouteBehaviour(), template)

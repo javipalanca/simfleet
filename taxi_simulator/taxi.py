@@ -19,8 +19,8 @@ ONESECOND_IN_MS = 1000
 
 
 class TaxiAgent(Agent):
-    def __init__(self, agentjid, password, loop=None):
-        super().__init__(agentjid, password, loop=loop)
+    def __init__(self, agentjid, password):
+        super().__init__(agentjid, password)
 
         self.coordinator_id = None
         self.route_id = None

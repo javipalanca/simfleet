@@ -55,7 +55,7 @@ class CoordinatorAgent(Agent):
 
         self.clear_agents()
 
-    def setup(self):
+    async def setup(self):
         logger.info("Coordinator agent running")
         self.web.add_get("/app", self.index_controller, "index.html")
         self.web.add_get("/entities", self.entities_controller, None)
@@ -128,7 +128,7 @@ class CoordinatorAgent(Agent):
                                                                      self.taxi_strategy,
                                                                      self.passenger_strategy))
 
-    def run_simulation(self):
+    '''def run_simulation(self):
         """
         Starts the simulation
         """
@@ -148,6 +148,8 @@ class CoordinatorAgent(Agent):
             self.simulation_running = True
             self.simulation_init_time = time.time()
             logger.info("Simulation started.")
+    '''
+
 
     def get_simulation_time(self):
         """
@@ -576,7 +578,7 @@ class CoordinatorAgent(Agent):
             speed (float, optional): speed of the vehicle
         """
         jid = f"{name}@{self.jid.domain}"
-        agent = cls(jid, password, loop=self.loop)
+        agent = cls(jid, password)
         agent.set_id(name)
         agent.set_coordinator(str(self.jid))
         agent.set_route_agent(self.route_id)
@@ -587,7 +589,7 @@ class CoordinatorAgent(Agent):
         if speed:
             agent.set_speed(speed)
 
-        await agent.async_start(auto_register=True)
+        await agent.start(auto_register=True)
 
         if cls == TaxiAgent:
             strategy = self.taxi_strategy

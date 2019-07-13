@@ -6,7 +6,7 @@ from .taxi import TaxiStrategyBehaviour
 from .utils import TAXI_WAITING, TAXI_WAITING_FOR_APPROVAL, PASSENGER_WAITING, TAXI_MOVING_TO_PASSENGER, \
     PASSENGER_ASSIGNED
 from .protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
-    CANCEL_PERFORMATIVE
+    CANCEL_PERFORMATIVE, REGISTER_PROTOCOL
 from .helpers import PathRequestException
 
 
@@ -22,10 +22,19 @@ class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
 
     async def run(self):
         msg = await self.receive(timeout=5)
+        self.logger.debug("Manager received message: {}".format(msg))
+        if not msg:
+            return
+        performative = msg.get_metadata("performative")
+        # self.logger.info("Performative: {}".format(performative))
+        if performative == REGISTER_PROTOCOL:
+            content = json.loads(msg.body)
+            self.add_taxi(content)
+            return
         if msg:
-            for taxi in self.get_taxi_agents():
-                msg.to = str(taxi.jid)
-                self.logger.debug("Coordinator sent request to taxi {}".format(taxi.name))
+            for taxi in self.get_taxi_agents().values():
+                msg.to = str(taxi["jid"])
+                self.logger.debug("Coordinator sent request to taxi {}".format(taxi["name"]))
                 await self.send(msg)
 
 
@@ -40,6 +49,9 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
     """
 
     async def run(self):
+        if not self.agent.registration:
+            await self.send_registration()
+
         msg = await self.receive(timeout=5)
         if not msg:
             return
@@ -112,3 +124,4 @@ class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
                 if self.agent.taxi_assigned == str(taxi_id):
                     self.logger.warning("Passenger {} received a CANCEL from Taxi {}.".format(self.agent.name, taxi_id))
                     self.agent.status = PASSENGER_WAITING
+

@@ -9,7 +9,7 @@ from spade.template import Template
 
 from .utils import TAXI_WAITING, TAXI_MOVING_TO_PASSENGER, TAXI_IN_PASSENGER_PLACE, TAXI_MOVING_TO_DESTINATION, \
     PASSENGER_IN_DEST, PASSENGER_LOCATION, chunk_path, request_path, StrategyBehaviour
-from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
+from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, REGISTER_PROTOCOL
 from .helpers import random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
     AlreadyInDestination
 
@@ -43,6 +43,7 @@ class TaxiAgent(Agent):
         self.set("passenger_in_taxi", None)
         self.num_assignments = 0
         self.stopped = False
+        self.registration = False
 
     def watch_value(self, key, callback):
         """
@@ -81,6 +82,7 @@ class TaxiAgent(Agent):
             coordinator_id (str): the coordinator jid
 
         """
+        logger.info("Asignacion de id para taxi Agent: {}".format(coordinator_id))
         self.coordinator_id = coordinator_id
 
     def set_route_agent(self, route_id):
@@ -410,6 +412,23 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         reply.set_metadata("performative", PROPOSE_PERFORMATIVE)
         reply.body = json.dumps(content)
         await self.send(reply)
+
+    async def send_registration(self):
+        """
+        Send a ``spade.message.Message`` with a proposal to manager to register.
+        """
+        logger.info("Taxi {} sent proposal to register to manager {}".format(self.agent.name, self.agent.coordinator_id))
+        content = {
+            "name": self.agent.name,
+            "jid": str(self.agent.jid)
+        }
+        msg = Message()
+        msg.to = str(self.agent.coordinator_id)
+        msg.set_metadata("protocol", REQUEST_PROTOCOL)
+        msg.set_metadata("performative", REGISTER_PROTOCOL)
+        msg.body = json.dumps(content)
+        await self.send(msg)
+        self.agent.registration = True
 
     async def cancel_proposal(self, passenger_id, content=None):
         """

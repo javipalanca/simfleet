@@ -6,7 +6,7 @@ import logging
 import sys
 import time
 
-from .simulator import Simulator, SimulationConfig
+from .simulator import SimulatorAgent, SimulationConfig
 
 logger = logging.getLogger()
 
@@ -27,6 +27,7 @@ logger = logging.getLogger()
 @click.option('--port', default=9000, help="Web interface port (default: 9000).")
 @click.option('-nt', '--num-taxis', default=0, help="Number of initial taxis to create (default: 0).")
 @click.option('-np', '--num-passengers', default=0, help="Number of initial passengers to create (default: 0).")
+@click.option('-nm', '--num-managers', default=2, help="Number of initial managers to create (default: 2)")
 @click.option('--scenario', help="Filename of JSON file with initial scenario description.")
 @click.option('-cn', '--coordinator-name', default="coordinator",
               help="Coordinator agent name (default: coordinator).")
@@ -41,7 +42,7 @@ logger = logging.getLogger()
 @click.option('-v', '--verbose', count=True,
               help="Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4")
 def main(name, output, oformat, max_time, autorun, taxi, passenger, coordinator, port, num_taxis, num_passengers,
-         scenario, coordinator_name, coord_passwd, route_name, route_passwd, host, ip_address, verbose):
+         num_managers, scenario, coordinator_name, coord_passwd, route_name, route_passwd, host, ip_address, verbose):
     """
     Console script for taxi_simulator.
     """
@@ -71,6 +72,7 @@ def main(name, output, oformat, max_time, autorun, taxi, passenger, coordinator,
     config.scenario = scenario
     config.num_taxis = num_taxis
     config.num_passengers = num_passengers
+    config.num_managers = num_managers
     config.http_port = port
     config.coordinator_name = coordinator_name
     config.coordinator_password = coord_passwd
@@ -80,7 +82,7 @@ def main(name, output, oformat, max_time, autorun, taxi, passenger, coordinator,
     config.ip = ip_address
     config.verbose = verbose
 
-    simulator = Simulator(config)
+    simulator = SimulatorAgent(config)
 
     if autorun:
         simulator.run()

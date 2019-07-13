@@ -19,7 +19,7 @@ class PassengerAgent(Agent):
     def __init__(self, agentjid, password):
         super().__init__(agentjid, password)
         self.agent_id = None
-        self.coordinator_id = None
+        self.coordinators = None
         self.route_id = None
         self.status = PASSENGER_WAITING
         self.current_pos = None
@@ -63,14 +63,14 @@ class PassengerAgent(Agent):
         """
         self.agent_id = agent_id
 
-    def set_coordinator(self, coordinator_id):
+    def set_coordinator(self, coordinators):
         """
         Sets the coordinator JID address
         Args:
             coordinator_id (str): the coordinator jid
 
         """
-        self.coordinator_id = coordinator_id
+        self.coordinators = coordinators
 
     def set_route_agent(self, route_id):
         """
@@ -289,12 +289,13 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
             }
         if not self.agent.dest:
             self.agent.dest = random_position()
-        msg = Message()
-        msg.to = self.agent.coordinator_id
-        msg.set_metadata("protocol", REQUEST_PROTOCOL)
-        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-        msg.body = json.dumps(content)
-        await self.send(msg)
+        for coordinator in self.agent.coordinators: # Send a message to all FleetManager
+            msg = Message()
+            msg.to = str(coordinator.jid)
+            msg.set_metadata("protocol", REQUEST_PROTOCOL)
+            msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+            msg.body = json.dumps(content)
+            await self.send(msg)
         self.logger.info("Passenger {} asked for a taxi to {}.".format(self.agent.name, self.agent.dest))
 
     async def accept_taxi(self, taxi_id):

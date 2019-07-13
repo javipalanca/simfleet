@@ -3,7 +3,7 @@ import logging
 
 import faker
 
-from .coordinator import CoordinatorAgent
+#from .simulator import SimulatorAgent
 from .passenger import PassengerAgent
 from .taxi import TaxiAgent
 
@@ -30,16 +30,16 @@ class Scenario(object):
             logger.info("Reading scenario {}".format(filename))
             self.scenario = json.load(f)
 
-    def load(self, coordinator: CoordinatorAgent):
+    def load(self, agent):
         logger.info("Loading scenario...")
         for taxi in self.scenario["taxis"]:
             password = taxi["password"] if "password" in taxi else faker_factory.password()
             speed = taxi["speed"] if "speed" in taxi else None
-            coordinator.create_agent(TaxiAgent, taxi["name"], password, taxi["position"], speed=speed)
+            agent.create_agent(TaxiAgent, taxi["name"], password, taxi["position"], speed=speed)
 
         for passenger in self.scenario["passengers"]:
             password = passenger["password"] if "password" in passenger else faker_factory.password()
-            coordinator.create_agent(PassengerAgent,
+            agent.create_agent(PassengerAgent,
                                      passenger["name"], password,
                                      passenger["position"],
                                      target=passenger["dest"])

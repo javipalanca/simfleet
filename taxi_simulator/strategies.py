@@ -6,7 +6,7 @@ from .taxi import TaxiStrategyBehaviour
 from .utils import TAXI_WAITING, TAXI_WAITING_FOR_APPROVAL, PASSENGER_WAITING, TAXI_MOVING_TO_PASSENGER, \
     PASSENGER_ASSIGNED
 from .protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
-    CANCEL_PERFORMATIVE, REGISTER_PROTOCOL
+    CANCEL_PERFORMATIVE, REGISTER_PROTOCOL, DEREGISTER_PROTOCOL
 from .helpers import PathRequestException
 
 
@@ -26,10 +26,13 @@ class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
         if not msg:
             return
         performative = msg.get_metadata("performative")
-        # self.logger.info("Performative: {}".format(performative))
         if performative == REGISTER_PROTOCOL:
             content = json.loads(msg.body)
             self.add_taxi(content)
+            return
+        elif performative == DEREGISTER_PROTOCOL:
+            name = msg.body
+            self.get_out_taxi(name)
             return
         if msg:
             for taxi in self.get_taxi_agents().values():

@@ -23,7 +23,9 @@ class FleetManagerAgent(Agent):
         super().__init__(jid=agentjid, password=password)
         self.strategy = None
         self.fleetName = None
+        self.quantityFloat = None
         self.agent_id = None
+
         self.stopped = False
         self.clear_agents()
 
@@ -35,6 +37,7 @@ class FleetManagerAgent(Agent):
 
     async def setup(self):
         logger.info("FleetManager agent running")
+        self.fleetName = faker_factory.user_name()
 
     def set_id(self, agent_id):
         """
@@ -80,6 +83,16 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
         """
         # with self.simulation_mutex:
         self.get("taxi_agents")[agent["name"]] = agent
+
+    def get_out_taxi(self, key):
+        """
+        Erase a ``TaxiAgent`` to the store.
+
+        Args:
+            agent (``TaxiAgent``): the instance of the TaxiAgent to be erased
+        """
+        del(self.get("taxi_agents")[key])
+        self.logger.debug("Deregistration of the TransporterAgent {}".format(key))
 
     def get_taxi_agents(self):
         """

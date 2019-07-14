@@ -105,12 +105,7 @@ class SimulatorAgent(Agent):
         self.selection = None
         self.manager_generator = None
 
-        # self.coordinator_id = "{}@{}".format(config.coordinator_name, self.host)
-        # self.coordinator_agent = FleetManagerAgent(agentjid=self.coordinator_id, password=config.coordinator_password)
-
         self.set_strategies(config.coordinator_strategy, config.taxi_strategy, config.passenger_strategy)
-
-        # self.coordinator_agent.start()
 
         self.route_id = "{}@{}".format(config.route_name, self.host)
         self.route_agent = RouteAgent(self.route_id, config.route_password)
@@ -118,6 +113,8 @@ class SimulatorAgent(Agent):
 
         logger.info("Creating {} managers, {} transporter and {} customer.".format(config.num_managers, config.num_taxis, config.num_passengers))
         self.create_agents_batch(FleetManagerAgent, config.num_managers)
+        self.manager_assignment()
+
         self.create_agents_batch(TaxiAgent, config.num_taxis)
         self.create_agents_batch(PassengerAgent, config.num_passengers)
 
@@ -125,7 +122,6 @@ class SimulatorAgent(Agent):
             scenario = Scenario(config.scenario)
             scenario.load(self)
 
-        self.manager_assignment()
         self.template_path = os.path.dirname(__file__) + os.sep + "templates"
         self.clear_agents()
 
@@ -481,7 +477,7 @@ class SimulatorAgent(Agent):
         A simulation is finished if all passengers are at their destinations.
         If there is no passengers the simulation is not finished.
 
-        Returns:
+        Returns:`
             bool: whether the simulation has finished or not.
         """
         if len(self.passenger_agents) > 0:
@@ -618,6 +614,12 @@ class SimulatorAgent(Agent):
         self.simulation_running = False
         if not self.simulation_time:
             self.simulation_time = time.time() - self.simulation_init_time if self.simulation_init_time else 0
+        '''with self.lock:
+            for name, agent in self.manager_agents.items():
+                logger.debug("Stopping manager {}".format(name))
+                agent.stop()
+                agent.stopped = True
+        '''
         with self.lock:
             for name, agent in self.taxi_agents.items():
                 logger.debug("Stopping taxi {}".format(name))

@@ -9,7 +9,7 @@ from spade.template import Template
 
 from .utils import TAXI_WAITING, TAXI_MOVING_TO_PASSENGER, TAXI_IN_PASSENGER_PLACE, TAXI_MOVING_TO_DESTINATION, \
     PASSENGER_IN_DEST, PASSENGER_LOCATION, chunk_path, request_path, StrategyBehaviour
-from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, REGISTER_PROTOCOL
+from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, REGISTER_PROTOCOL, DEREGISTER_PROTOCOL
 from .helpers import random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
     AlreadyInDestination
 
@@ -44,6 +44,15 @@ class TaxiAgent(Agent):
         self.num_assignments = 0
         self.stopped = False
         self.registration = False
+
+    def set_registration(self, status):
+        """
+        Sets the status of registration
+        Args:
+            status (boolean): True if the transport agent has registered or False if not
+
+        """
+        self.registration = status
 
     def watch_value(self, key, callback):
         """
@@ -417,7 +426,7 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         """
         Send a ``spade.message.Message`` with a proposal to manager to register.
         """
-        logger.info("Taxi {} sent proposal to register to manager {}".format(self.agent.name, self.agent.coordinator_id))
+        logger.debug("Taxi {} sent proposal to register to manager {}".format(self.agent.name, self.agent.coordinator_id))
         content = {
             "name": self.agent.name,
             "jid": str(self.agent.jid)
@@ -428,7 +437,20 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REGISTER_PROTOCOL)
         msg.body = json.dumps(content)
         await self.send(msg)
-        self.agent.registration = True
+        self.agent.set_registration(True)
+
+    async def send_deregistration(self):
+        """
+        Send a ``spade.message.Message`` with a proposal to manager to deregister.
+        """
+        logger.debug("Taxi {} sent proposal to register to manager {}".format(self.agent.name, self.agent.coordinator_id))
+        msg = Message()
+        msg.to = str(self.agent.coordinator_id)
+        msg.set_metadata("protocol", REQUEST_PROTOCOL)
+        msg.set_metadata("performative", DEREGISTER_PROTOCOL)
+        msg.body = str(self.agent.name)
+        await self.send(msg)
+        self.agent.set_registration(False)
 
     async def cancel_proposal(self, passenger_id, content=None):
         """

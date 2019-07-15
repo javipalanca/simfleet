@@ -15,7 +15,7 @@ faker_factory = faker.Factory.create()
 
 class FleetManagerAgent(Agent):
     """
-    FleetManager agent that manages the requests between taxis and passengers
+    FleetManager agent that manages the requests between transports and passengers
     """
 
     def __init__(self, agentjid, password):
@@ -31,9 +31,9 @@ class FleetManagerAgent(Agent):
 
     def clear_agents(self):
         """
-        Resets the set of taxis and passengers. Resets the simulation clock.
+        Resets the set of transports and passengers. Resets the simulation clock.
         """
-        self.set("taxi_agents", {})
+        self.set("transport_agents", {})
 
     async def setup(self):
         logger.info("FleetManager agent running")
@@ -50,7 +50,7 @@ class FleetManagerAgent(Agent):
 
     def add_strategy(self, strategy_class):
         """
-        Sets the strategy for the taxi agent.
+        Sets the strategy for the transport agent.
 
         Args:
             strategy_class (``TaxiStrategyBehaviour``): The class to be used. Must inherit from ``TaxiStrategyBehaviour``
@@ -66,7 +66,7 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
     You must overload the :func:`_process` method
 
     Helper functions:
-        * :func:`get_taxi_agents`
+        * :func:`get_transport_agents`
         * :func:`get_passenger_agents`
     """
 
@@ -74,34 +74,34 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
         self.logger = logging.getLogger("CoordinatorStrategy")
         self.logger.debug("Strategy {} started in manager".format(type(self).__name__))
 
-    def add_taxi(self, agent):
+    def add_transport(self, agent):
         """
-        Adds a new ``TaxiAgent`` to the store.
+        Adds a new ``TransportAgent`` to the store.
 
         Args:
-            agent (``TaxiAgent``): the instance of the TaxiAgent to be added
+            agent (``TransportAgent``): the instance of the TransportAgent to be added
         """
         # with self.simulation_mutex:
-        self.get("taxi_agents")[agent["name"]] = agent
+        self.get("transport_agents")[agent["name"]] = agent
 
-    def get_out_taxi(self, key):
+    def get_out_transport(self, key):
         """
-        Erase a ``TaxiAgent`` to the store.
+        Erase a ``TransportAgent`` to the store.
 
         Args:
-            agent (``TaxiAgent``): the instance of the TaxiAgent to be erased
+            agent (``TransportAgent``): the instance of the TransportAgent to be erased
         """
-        del(self.get("taxi_agents")[key])
+        del(self.get("transport_agents")[key])
         self.logger.debug("Deregistration of the TransporterAgent {}".format(key))
 
-    def get_taxi_agents(self):
+    def get_transport_agents(self):
         """
-        Gets the list of registered taxis
+        Gets the list of registered transports
 
         Returns:
-            list: a list of ``TaxiAgent``
+            list: a list of ``TransportAgent``
         """
-        return self.get("taxi_agents")
+        return self.get("transport_agents")
 
     def get_passenger_agents(self):
         """

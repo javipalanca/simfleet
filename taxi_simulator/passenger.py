@@ -7,8 +7,8 @@ from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
 from spade.template import Template
 
-from .utils import PASSENGER_WAITING, PASSENGER_IN_DEST, TAXI_MOVING_TO_PASSENGER, PASSENGER_IN_TAXI, \
-    TAXI_IN_PASSENGER_PLACE, PASSENGER_LOCATION, StrategyBehaviour, request_path, status_to_str
+from .utils import PASSENGER_WAITING, PASSENGER_IN_DEST, TRANSPORT_MOVING_TO_PASSENGER, PASSENGER_IN_TRANSPORT, \
+    TRANSPORT_IN_PASSENGER_PLACE, PASSENGER_LOCATION, StrategyBehaviour, request_path, status_to_str
 from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
 from .helpers import random_position
 
@@ -25,7 +25,7 @@ class PassengerAgent(Agent):
         self.current_pos = None
         self.dest = None
         self.port = None
-        self.taxi_assigned = None
+        self.transport_assigned = None
         self.init_time = None
         self.waiting_for_pickup_time = None
         self.pickup_time = None
@@ -153,7 +153,7 @@ class PassengerAgent(Agent):
 
     def get_waiting_time(self):
         """
-        Returns the time that the agent was waiting for a taxi, from its creation until it gets into a taxi.
+        Returns the time that the agent was waiting for a transport, from its creation until it gets into a transport.
 
         Returns:
             float: The time the passenger was waiting.
@@ -171,10 +171,10 @@ class PassengerAgent(Agent):
 
     def get_pickup_time(self):
         """
-        Returns the time that the passenger was waiting to be picked up since it has been assigned to a taxi.
+        Returns the time that the passenger was waiting to be picked up since it has been assigned to a transport.
 
         Returns:
-            float: The time that the passenger was waiting to a taxi since it has been assigned.
+            float: The time that the passenger was waiting to a transport since it has been assigned.
         """
         if self.pickup_time:
             return self.pickup_time - self.waiting_for_pickup_time
@@ -184,7 +184,7 @@ class PassengerAgent(Agent):
         """
         Serializes the main information of a passenger agent to a JSON format.
         It includes the id of the agent, its current position, the destination coordinates of the agent,
-        the current status, the taxi that it has assigned (if any) and its waiting time.
+        the current status, the transport that it has assigned (if any) and its waiting time.
 
         Returns:
             dict: a JSON doc with the main information of the passenger.
@@ -196,7 +196,7 @@ class PassengerAgent(Agent):
                     "position": [ 39.461327, -0.361839 ],
                     "dest": [ 39.460599, -0.335041 ],
                     "status": 24,
-                    "taxi": "ghiggins@127.0.0.1",
+                    "transport": "ghiggins@127.0.0.1",
                     "waiting": 13.45
                 }
         """
@@ -206,7 +206,7 @@ class PassengerAgent(Agent):
             "position": self.current_pos,
             "dest": self.dest,
             "status": self.status,
-            "taxi": self.taxi_assigned,
+            "transport": self.transport_assigned,
             "waiting": float("{0:.2f}".format(t)) if t else None
         }
 
@@ -214,7 +214,7 @@ class PassengerAgent(Agent):
 class TravelBehaviour(CyclicBehaviour):
     """
     This is the internal behaviour that manages the movement of the passenger.
-    It is triggered when the taxi informs the passenger that it is going to the
+    It is triggered when the transport informs the passenger that it is going to the
     passenger's position until the passenger is droppped in its destination.
     """
 
@@ -233,12 +233,12 @@ class TravelBehaviour(CyclicBehaviour):
                 if status != PASSENGER_LOCATION:
                     logger.debug("Passenger {} informed of status: {}".format(self.agent.name,
                                                                               status_to_str(status)))
-                if status == TAXI_MOVING_TO_PASSENGER:
-                    logger.info("Passenger {} waiting for taxi.".format(self.agent.name))
+                if status == TRANSPORT_MOVING_TO_PASSENGER:
+                    logger.info("Passenger {} waiting for transport.".format(self.agent.name))
                     self.agent.waiting_for_pickup_time = time.time()
-                elif status == TAXI_IN_PASSENGER_PLACE:
-                    self.agent.status = PASSENGER_IN_TAXI
-                    logger.info("Passenger {} in taxi.".format(self.agent.name))
+                elif status == TRANSPORT_IN_PASSENGER_PLACE:
+                    self.agent.status = PASSENGER_IN_TRANSPORT
+                    logger.info("Passenger {} in transport.".format(self.agent.name))
                     self.agent.pickup_time = time.time()
                 elif status == PASSENGER_IN_DEST:
                     self.agent.status = PASSENGER_IN_DEST
@@ -254,13 +254,13 @@ class TravelBehaviour(CyclicBehaviour):
 
 class PassengerStrategyBehaviour(StrategyBehaviour):
     """
-    Class from which to inherit to create a taxi strategy.
+    Class from which to inherit to create a transport strategy.
     You must overload the ``run`` coroutine
 
     Helper functions:
         * ``send_request``
-        * ``accept_taxi``
-        * ``refuse_taxi``
+        * ``accept_transport``
+        * ``refuse_transport``
     """
 
     async def on_start(self):
@@ -273,7 +273,7 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
 
     async def send_request(self, content=None):
         """
-        Sends an ``spade.message.Message`` to the fleetmanager to request a taxi.
+        Sends an ``spade.message.Message`` to the fleetmanager to request a transport.
         It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
         If no content is set a default content with the passenger_id,
         origin and target coordinates is used.
@@ -296,18 +296,18 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
             msg.set_metadata("performative", REQUEST_PERFORMATIVE)
             msg.body = json.dumps(content)
             await self.send(msg)
-        self.logger.info("Passenger {} asked for a taxi to {}.".format(self.agent.name, self.agent.dest))
+        self.logger.info("Passenger {} asked for a transport to {}.".format(self.agent.name, self.agent.dest))
 
-    async def accept_taxi(self, taxi_id):
+    async def accept_transport(self, transport_id):
         """
-        Sends a ``spade.message.Message`` to a taxi to accept a travel proposal.
+        Sends a ``spade.message.Message`` to a transport to accept a travel proposal.
         It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
 
         Args:
-            taxi_id (str): The Agent JID of the taxi
+            transport_id (str): The Agent JID of the transport
         """
         reply = Message()
-        reply.to = str(taxi_id)
+        reply.to = str(transport_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
         content = {
@@ -317,20 +317,20 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
         }
         reply.body = json.dumps(content)
         await self.send(reply)
-        self.agent.taxi_assigned = str(taxi_id)
-        self.logger.info("Passenger {} accepted proposal from taxi {}".format(self.agent.name,
-                                                                              taxi_id))
+        self.agent.transport_assigned = str(transport_id)
+        self.logger.info("Passenger {} accepted proposal from transport {}".format(self.agent.name,
+                                                                              transport_id))
 
-    async def refuse_taxi(self, taxi_id):
+    async def refuse_transport(self, transport_id):
         """
-        Sends an ``spade.message.Message`` to a taxi to refuse a travel proposal.
+        Sends an ``spade.message.Message`` to a transport to refuse a travel proposal.
         It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
 
         Args:
-            taxi_id (str): The Agent JID of the taxi
+            transport_id (str): The Agent JID of the transport
         """
         reply = Message()
-        reply.to = str(taxi_id)
+        reply.to = str(transport_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", REFUSE_PERFORMATIVE)
         content = {
@@ -341,8 +341,8 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
         reply.body = json.dumps(content)
 
         await self.send(reply)
-        self.logger.info("Passenger {} refused proposal from taxi {}".format(self.agent.name,
-                                                                             taxi_id))
+        self.logger.info("Passenger {} refused proposal from transport {}".format(self.agent.name,
+                                                                                  transport_id))
 
     async def run(self):
         raise NotImplementedError

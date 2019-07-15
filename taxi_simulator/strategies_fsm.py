@@ -3,32 +3,32 @@ import json
 
 from spade.behaviour import State, FSMBehaviour
 
-from taxi_simulator.taxi import TaxiStrategyBehaviour
+from taxi_simulator.transport import TaxiStrategyBehaviour
 from taxi_simulator.helpers import PathRequestException
 from taxi_simulator.protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
-from taxi_simulator.utils import TAXI_WAITING, TAXI_WAITING_FOR_APPROVAL, TAXI_MOVING_TO_PASSENGER
+from taxi_simulator.utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_MOVING_TO_PASSENGER
 
 
 class TaxiWaitingState(TaxiStrategyBehaviour, State):
 
     async def on_start(self):
         await super().on_start()
-        self.agent.status = TAXI_WAITING
+        self.agent.status = TRANSPORT_WAITING
 
     async def run(self):
         msg = await self.receive(timeout=60)
         if not msg:
-            self.set_next_state(TAXI_WAITING)
+            self.set_next_state(TRANSPORT_WAITING)
             return
         self.logger.info("received: {}".format(msg.body))
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
         if performative == REQUEST_PERFORMATIVE:
             await self.send_proposal(content["passenger_id"], {})
-            self.set_next_state(TAXI_WAITING_FOR_APPROVAL)
+            self.set_next_state(TRANSPORT_WAITING_FOR_APPROVAL)
             return
         else:
-            self.set_next_state(TAXI_WAITING)
+            self.set_next_state(TRANSPORT_WAITING)
             return
 
 
@@ -36,13 +36,13 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour, State):
 
     async def on_start(self):
         await super().on_start()
-        self.agent.status = TAXI_WAITING_FOR_APPROVAL
+        self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
 
     async def run(self):
         msg = await self.receive(timeout=60)
         if not msg:
             self.logger.info("No approval msg received. Still waiting.")
-            self.set_next_state(TAXI_WAITING_FOR_APPROVAL)
+            self.set_next_state(TRANSPORT_WAITING_FOR_APPROVAL)
             return
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
@@ -50,20 +50,20 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour, State):
             try:
                 self.logger.info("Got accept. Picking up passenger.")
                 await self.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])
-                self.set_next_state(TAXI_MOVING_TO_PASSENGER)
+                self.set_next_state(TRANSPORT_MOVING_TO_PASSENGER)
                 return
             except PathRequestException:
                 await self.cancel_proposal(content["passenger_id"])
-                self.set_next_state(TAXI_WAITING)
+                self.set_next_state(TRANSPORT_WAITING)
                 return
             except Exception as e:
                 await self.cancel_proposal(content["passenger_id"])
-                self.set_next_state(TAXI_WAITING)
+                self.set_next_state(TRANSPORT_WAITING)
                 return
 
         elif performative == REFUSE_PERFORMATIVE:
             self.logger.info("Got refuse :(")
-            self.set_next_state(TAXI_WAITING)
+            self.set_next_state(TRANSPORT_WAITING)
             return
 
 
@@ -79,28 +79,28 @@ class TaxiMovingState(TaxiStrategyBehaviour, State):
 
     async def on_start(self):
         await super().on_start()
-        self.agent.status = TAXI_MOVING_TO_PASSENGER
+        self.agent.status = TRANSPORT_MOVING_TO_PASSENGER
 
     async def run(self):
         passenger_in_taxi_event.clear()
         self.agent.watch_value("passenger_in_taxi", passenger_in_taxi_callback)
         await passenger_in_taxi_event.wait()
-        self.logger.info("Taxi is free again.")
-        return self.set_next_state(TAXI_WAITING)
+        self.logger.info("Transport is free again.")
+        return self.set_next_state(TRANSPORT_WAITING)
 
 
 class FSMTaxiStrategyBehaviour(FSMBehaviour):
     def setup(self):
         # Create states
-        self.add_state(TAXI_WAITING, TaxiWaitingState(), initial=True)
-        self.add_state(TAXI_WAITING_FOR_APPROVAL, TaxiWaitingForApprovalState())
-        self.add_state(TAXI_MOVING_TO_PASSENGER, TaxiMovingState())
+        self.add_state(TRANSPORT_WAITING, TaxiWaitingState(), initial=True)
+        self.add_state(TRANSPORT_WAITING_FOR_APPROVAL, TaxiWaitingForApprovalState())
+        self.add_state(TRANSPORT_MOVING_TO_PASSENGER, TaxiMovingState())
 
         # Create transitions
-        self.add_transition(TAXI_WAITING, TAXI_WAITING)
-        self.add_transition(TAXI_WAITING, TAXI_WAITING_FOR_APPROVAL)
-        self.add_transition(TAXI_WAITING_FOR_APPROVAL, TAXI_MOVING_TO_PASSENGER)
-        self.add_transition(TAXI_WAITING_FOR_APPROVAL, TAXI_WAITING)
-        self.add_transition(TAXI_WAITING_FOR_APPROVAL, TAXI_WAITING_FOR_APPROVAL)
-        self.add_transition(TAXI_MOVING_TO_PASSENGER, TAXI_WAITING)
+        self.add_transition(TRANSPORT_WAITING, TRANSPORT_WAITING)
+        self.add_transition(TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL)
+        self.add_transition(TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_MOVING_TO_PASSENGER)
+        self.add_transition(TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_WAITING)
+        self.add_transition(TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_WAITING_FOR_APPROVAL)
+        self.add_transition(TRANSPORT_MOVING_TO_PASSENGER, TRANSPORT_WAITING)
 

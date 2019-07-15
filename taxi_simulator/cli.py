@@ -22,17 +22,17 @@ logger = logging.getLogger()
               help='Taxi strategy class (default: AcceptAlwaysStrategyBehaviour).')
 @click.option('-p', '--passenger', default="taxi_simulator.strategies.AcceptFirstRequestTaxiBehaviour",
               help="Passenger strategy class (default: AcceptFirstRequestTaxiBehaviour).")
-@click.option('-c', '--coordinator', default="taxi_simulator.strategies.DelegateRequestTaxiBehaviour",
-              help="Coordinator strategy class (default: DelegateRequestTaxiBehaviour).")
+@click.option('-c', '--fleetmanager', default="taxi_simulator.strategies.DelegateRequestTaxiBehaviour",
+              help="fleetmanager strategy class (default: DelegateRequestTaxiBehaviour).")
 @click.option('--port', default=9000, help="Web interface port (default: 9000).")
 @click.option('-nt', '--num-taxis', default=0, help="Number of initial taxis to create (default: 0).")
 @click.option('-np', '--num-passengers', default=0, help="Number of initial passengers to create (default: 0).")
 @click.option('-nm', '--num-managers', default=2, help="Number of initial managers to create (default: 2)")
 @click.option('--scenario', help="Filename of JSON file with initial scenario description.")
-@click.option('-cn', '--coordinator-name', default="coordinator",
-              help="Coordinator agent name (default: coordinator).")
-@click.option('--coord-passwd', default="coordinator_passwd",
-              help="Coordinator agent password (default: coordinator_passwd).")
+@click.option('-cn', '--fleetmanager-name', default="fleetmanager",
+              help="fleetmanager agent name (default: fleetmanager).")
+@click.option('--coord-passwd', default="fleetmanager_passwd",
+              help="fleetmanager agent password (default: fleetmanager_passwd).")
 @click.option('-rn', '--route-name', default="route",
               help="Route agent name (default: route).")
 @click.option('--route-passwd', default="route_passwd",
@@ -41,8 +41,8 @@ logger = logging.getLogger()
 @click.option('-ip', '--ip-address', default="127.0.0.1", help="IP to serve web (default: 127.0.0.1).")
 @click.option('-v', '--verbose', count=True,
               help="Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4")
-def main(name, output, oformat, max_time, autorun, taxi, passenger, coordinator, port, num_taxis, num_passengers,
-         num_managers, scenario, coordinator_name, coord_passwd, route_name, route_passwd, host, ip_address, verbose):
+def main(name, output, oformat, max_time, autorun, taxi, passenger, fleetmanager, port, num_taxis, num_passengers,
+         num_managers, scenario, fleetmanager_name, coord_passwd, route_name, route_passwd, host, ip_address, verbose):
     """
     Console script for taxi_simulator.
     """
@@ -68,14 +68,14 @@ def main(name, output, oformat, max_time, autorun, taxi, passenger, coordinator,
     config.max_time = max_time
     config.taxi_strategy = taxi
     config.passenger_strategy = passenger
-    config.coordinator_strategy = coordinator
+    config.fleetmanager_strategy = fleetmanager
     config.scenario = scenario
     config.num_taxis = num_taxis
     config.num_passengers = num_passengers
     config.num_managers = num_managers
     config.http_port = port
-    config.coordinator_name = coordinator_name
-    config.coordinator_password = coord_passwd
+    config.fleetmanager_name = fleetmanager_name
+    config.fleetmanager_password = coord_passwd
     config.route_name = route_name
     config.route_password = route_passwd
     config.host = host

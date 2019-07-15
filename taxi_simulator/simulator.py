@@ -8,7 +8,7 @@ import faker
 from .passenger import PassengerAgent
 from .taxi import TaxiAgent
 from .scenario import Scenario
-from .coordinator import FleetManagerAgent
+from .fleetmanager import FleetManagerAgent
 from .route import RouteAgent
 
 from spade.agent import Agent
@@ -41,15 +41,15 @@ class SimulationConfig(object):
         self.max_time = None
         self.taxi_strategy = None
         self.passenger_strategy = None
-        self.coordinator_strategy = None
+        self.fleetmanager_strategy = None
         self.scenario = None
         self.num_taxis = None
         self.num_passengers = None
         self.num_managers = None
         self.http_port = None
         self.ip_address = None
-        self.coordinator_name = None
-        self.coordinator_password = None
+        self.fleetmanager_name = None
+        self.fleetmanager_password = None
         self.route_name = None
         self.route_password = None
         self.verbose = None
@@ -61,7 +61,7 @@ class SimulatorAgent(Agent):
     Tasks done by the simulator at initialization:
         #. Create the XMPP server
         #. Run the SPADE backend
-        #. Run the coordinator and route agents.
+        #. Run the fleetmanager and route agents.
         #. Create agents passed as parameters (if any).
         #. Create agents defined in scenario (if any).
 
@@ -78,7 +78,7 @@ class SimulatorAgent(Agent):
 
         self.host = config.host
 
-        self.coordinator_agent = None
+        self.fleetmanager_agent = None
 
         self.df_avg = None
         self.passenger_df = None
@@ -94,7 +94,7 @@ class SimulatorAgent(Agent):
         self.route_id = None
 
         # self.strategy = None
-        self.coordinator_strategy = None
+        self.fleetmanager_strategy = None
         self.taxi_strategy = None
         self.passenger_strategy = None
 
@@ -105,7 +105,7 @@ class SimulatorAgent(Agent):
         self.selection = None
         self.manager_generator = None
 
-        self.set_strategies(config.coordinator_strategy, config.taxi_strategy, config.passenger_strategy)
+        self.set_strategies(config.fleetmanager_strategy, config.taxi_strategy, config.passenger_strategy)
 
         self.route_id = "{}@{}".format(config.route_name, self.host)
         self.route_agent = RouteAgent(self.route_id, config.route_password)
@@ -144,7 +144,7 @@ class SimulatorAgent(Agent):
     def is_simulation_finished(self):
         """
         Checks if the simulation is finished.
-        A simulation is finished if the max simulation time has been reached or when the coordinator says it.
+        A simulation is finished if the max simulation time has been reached or when the fleetmanager says it.
 
         Returns:
             bool: whether the simulation is finished or not.
@@ -169,12 +169,12 @@ class SimulatorAgent(Agent):
         self.clear_stopped_agents()
         if not self.simulation_running:
             self.kill_simulator.clear()
-            # if not self.coordinator_agent.strategy:
-            # self.coordinator_agent.add_strategy(self.coordinator_strategy)
+            # if not self.fleetmanager_agent.strategy:
+            # self.fleetmanager_agent.add_strategy(self.fleetmanager_strategy)
             with self.simulation_mutex:
                 for manager in self.manager_agents.values():
-                    manager.add_strategy(self.coordinator_strategy)
-                    logger.debug(f"Adding strategy {self.coordinator_strategy} to manager {manager.name}")
+                    manager.add_strategy(self.fleetmanager_strategy)
+                    logger.debug(f"Adding strategy {self.fleetmanager_strategy} to manager {manager.name}")
                 for taxi in self.taxi_agents.values():
                     taxi.add_strategy(self.taxi_strategy)
                     logger.debug(f"Adding strategy {self.taxi_strategy} to taxi {taxi.name}")
@@ -193,7 +193,7 @@ class SimulatorAgent(Agent):
             #. Stop participant agents.
             #. Print stats.
             #. Stop Route agent.
-            #. Stop Coordinator agent.
+            #. Stop fleetmanager agent.
         """
         self.simulation_time = self.get_simulation_time()
 
@@ -724,9 +724,9 @@ class SimulatorAgent(Agent):
         agent.set_id(name)
         if cls != FleetManagerAgent:
             if cls == TaxiAgent:
-                agent.set_coordinator(next(self.manager_generator))
+                agent.set_fleetmanager(next(self.manager_generator))
             else:
-                agent.set_coordinator(self.manager_agents.values())
+                agent.set_fleetmanager(self.manager_agents.values())
             agent.set_route_agent(self.route_id)
             await agent.set_position(position)
 
@@ -738,7 +738,7 @@ class SimulatorAgent(Agent):
         await agent.start(auto_register=True)
 
         if cls == FleetManagerAgent:
-            strategy = self.coordinator_strategy
+            strategy = self.fleetmanager_strategy
             self.add_manager(agent)
         elif cls == TaxiAgent:
             strategy = self.taxi_strategy
@@ -802,20 +802,20 @@ class SimulatorAgent(Agent):
         with self.simulation_mutex:
             self.get("passenger_agents")[agent.name] = agent
 
-    def set_strategies(self, coordinator_strategy, taxi_strategy, passenger_strategy):
+    def set_strategies(self, fleetmanager_strategy, taxi_strategy, passenger_strategy):
         """
         Gets the strategy strings and loads their classes. This strategies are prepared to be injected into any
         new taxi or passenger agent.
 
         Args:
-            coordinator_strategy (str): the path to the coordinator strategy
+            fleetmanager_strategy (str): the path to the fleetmanager strategy
             taxi_strategy (str): the path to the taxi strategy
             passenger_strategy (str): the path to the passenger strategy
         """
-        self.coordinator_strategy = load_class(coordinator_strategy)
+        self.fleetmanager_strategy = load_class(fleetmanager_strategy)
         self.taxi_strategy = load_class(taxi_strategy)
         self.passenger_strategy = load_class(passenger_strategy)
-        logger.debug("Loaded strategy classes: {}, {} and {}".format(self.coordinator_strategy,
+        logger.debug("Loaded strategy classes: {}, {} and {}".format(self.fleetmanager_strategy,
                                                                      self.taxi_strategy,
                                                                      self.passenger_strategy))
 

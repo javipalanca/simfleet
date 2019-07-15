@@ -19,7 +19,7 @@ class PassengerAgent(Agent):
     def __init__(self, agentjid, password):
         super().__init__(agentjid, password)
         self.agent_id = None
-        self.coordinators = None
+        self.fleetmanagers = None
         self.route_id = None
         self.status = PASSENGER_WAITING
         self.current_pos = None
@@ -63,14 +63,14 @@ class PassengerAgent(Agent):
         """
         self.agent_id = agent_id
 
-    def set_coordinator(self, coordinators):
+    def set_fleetmanager(self, fleetmanagers):
         """
-        Sets the coordinator JID address
+        Sets the fleetmanager JID address
         Args:
-            coordinator_id (str): the coordinator jid
+            fleetmanager_id (str): the fleetmanager jid
 
         """
-        self.coordinators = coordinators
+        self.fleetmanagers = fleetmanagers
 
     def set_route_agent(self, route_id):
         """
@@ -273,7 +273,7 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
 
     async def send_request(self, content=None):
         """
-        Sends an ``spade.message.Message`` to the coordinator to request a taxi.
+        Sends an ``spade.message.Message`` to the fleetmanager to request a taxi.
         It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
         If no content is set a default content with the passenger_id,
         origin and target coordinates is used.
@@ -289,9 +289,9 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
             }
         if not self.agent.dest:
             self.agent.dest = random_position()
-        for coordinator in self.agent.coordinators: # Send a message to all FleetManager
+        for fleetmanager in self.agent.fleetmanagers: # Send a message to all FleetManager
             msg = Message()
-            msg.to = str(coordinator.jid)
+            msg.to = str(fleetmanager.jid)
             msg.set_metadata("protocol", REQUEST_PROTOCOL)
             msg.set_metadata("performative", REQUEST_PERFORMATIVE)
             msg.body = json.dumps(content)

@@ -3,7 +3,6 @@ import logging
 
 import faker
 
-#from .simulator import SimulatorAgent
 from .passenger import PassengerAgent
 from .taxi import TaxiAgent
 

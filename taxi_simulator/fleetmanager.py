@@ -9,13 +9,13 @@ from spade.template import Template
 from .utils import StrategyBehaviour
 from .protocol import REQUEST_PROTOCOL
 
-logger = logging.getLogger("CoordinatorAgent")
+logger = logging.getLogger("FleetManagerAgent")
 faker_factory = faker.Factory.create()
 
 
 class FleetManagerAgent(Agent):
     """
-    Coordinator agent that manages the requests between taxis and passengers
+    FleetManager agent that manages the requests between taxis and passengers
     """
 
     def __init__(self, agentjid, password):

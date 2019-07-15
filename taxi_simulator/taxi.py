@@ -22,7 +22,7 @@ class TaxiAgent(Agent):
     def __init__(self, agentjid, password):
         super().__init__(agentjid, password)
 
-        self.coordinator_id = None
+        self.fleetmanager_id = None
         self.route_id = None
 
         self.__observers = defaultdict(list)
@@ -44,6 +44,8 @@ class TaxiAgent(Agent):
         self.num_assignments = 0
         self.stopped = False
         self.registration = False
+
+        self.fuel = 100
 
     def set_registration(self, status):
         """
@@ -84,15 +86,15 @@ class TaxiAgent(Agent):
         """
         self.agent_id = agent_id
 
-    def set_coordinator(self, coordinator_id):
+    def set_fleetmanager(self, fleetmanager_id):
         """
-        Sets the coordinator JID address
+        Sets the fleetmanager JID address
         Args:
-            coordinator_id (str): the coordinator jid
+            fleetmanager_id (str): the fleetmanager jid
 
         """
-        logger.info("Asignacion de id para taxi Agent: {}".format(coordinator_id))
-        self.coordinator_id = coordinator_id
+        logger.info("Asignacion de id para taxi Agent: {}".format(fleetmanager_id))
+        self.fleetmanager_id = fleetmanager_id
 
     def set_route_agent(self, route_id):
         """
@@ -426,13 +428,13 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         """
         Send a ``spade.message.Message`` with a proposal to manager to register.
         """
-        logger.debug("Taxi {} sent proposal to register to manager {}".format(self.agent.name, self.agent.coordinator_id))
+        logger.debug("Taxi {} sent proposal to register to manager {}".format(self.agent.name, self.agent.fleetmanager_id))
         content = {
             "name": self.agent.name,
             "jid": str(self.agent.jid)
         }
         msg = Message()
-        msg.to = str(self.agent.coordinator_id)
+        msg.to = str(self.agent.fleetmanager_id)
         msg.set_metadata("protocol", REQUEST_PROTOCOL)
         msg.set_metadata("performative", REGISTER_PROTOCOL)
         msg.body = json.dumps(content)
@@ -443,9 +445,9 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         """
         Send a ``spade.message.Message`` with a proposal to manager to deregister.
         """
-        logger.debug("Taxi {} sent proposal to register to manager {}".format(self.agent.name, self.agent.coordinator_id))
+        logger.debug("Taxi {} sent proposal to register to manager {}".format(self.agent.name, self.agent.fleetmanager_id))
         msg = Message()
-        msg.to = str(self.agent.coordinator_id)
+        msg.to = str(self.agent.fleetmanager_id)
         msg.set_metadata("protocol", REQUEST_PROTOCOL)
         msg.set_metadata("performative", DEREGISTER_PROTOCOL)
         msg.body = str(self.agent.name)

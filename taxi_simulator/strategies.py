@@ -1,6 +1,6 @@
 import json
 
-from .coordinator import CoordinatorStrategyBehaviour
+from .fleetmanager import CoordinatorStrategyBehaviour
 from .passenger import PassengerStrategyBehaviour
 from .taxi import TaxiStrategyBehaviour
 from .utils import TAXI_WAITING, TAXI_WAITING_FOR_APPROVAL, PASSENGER_WAITING, TAXI_MOVING_TO_PASSENGER, \
@@ -17,7 +17,7 @@ from .helpers import PathRequestException
 ################################################################
 class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
     """
-    The default strategy for the Coordinator agent. By default it delegates all requests to all taxis.
+    The default strategy for the FleetManager agent. By default it delegates all requests to all taxis.
     """
 
     async def run(self):
@@ -37,7 +37,7 @@ class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
         if msg:
             for taxi in self.get_taxi_agents().values():
                 msg.to = str(taxi["jid"])
-                self.logger.debug("Coordinator sent request to taxi {}".format(taxi["name"]))
+                self.logger.debug("Manager sent request to taxi {}".format(taxi["name"]))
                 await self.send(msg)
 
 

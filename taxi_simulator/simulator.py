@@ -5,7 +5,7 @@ from tabulate import tabulate
 import json
 import faker
 
-from .passenger import PassengerAgent
+from .customer import CustomerAgent
 from .transport import TransportAgent
 from .scenario import Scenario
 from .fleetmanager import FleetManagerAgent
@@ -40,11 +40,11 @@ class SimulationConfig(object):
         self.simulation_name = None
         self.max_time = None
         self.transport_strategy = None
-        self.passenger_strategy = None
+        self.customer_strategy = None
         self.fleetmanager_strategy = None
         self.scenario = None
         self.num_transport = None
-        self.num_passengers = None
+        self.num_customers = None
         self.num_managers = None
         self.http_port = None
         self.ip_address = None
@@ -81,7 +81,7 @@ class SimulatorAgent(Agent):
         self.fleetmanager_agent = None
 
         self.df_avg = None
-        self.passenger_df = None
+        self.customer_df = None
         self.transport_df = None
 
         self.simulation_mutex = threading.Lock()
@@ -96,7 +96,7 @@ class SimulatorAgent(Agent):
         # self.strategy = None
         self.fleetmanager_strategy = None
         self.transport_strategy = None
-        self.passenger_strategy = None
+        self.customer_strategy = None
 
         self.start()
 
@@ -105,18 +105,18 @@ class SimulatorAgent(Agent):
         self.selection = None
         self.manager_generator = None
 
-        self.set_strategies(config.fleetmanager_strategy, config.transport_strategy, config.passenger_strategy)
+        self.set_strategies(config.fleetmanager_strategy, config.transport_strategy, config.customer_strategy)
 
         self.route_id = "{}@{}".format(config.route_name, self.host)
         self.route_agent = RouteAgent(self.route_id, config.route_password)
         self.route_agent.start()
 
-        logger.info("Creating {} managers, {} transporter and {} customer.".format(config.num_managers, config.num_transport, config.num_passengers))
+        logger.info("Creating {} managers, {} transporter and {} customer.".format(config.num_managers, config.num_transport, config.num_customers))
         self.create_agents_batch(FleetManagerAgent, config.num_managers)
         self.manager_assignment()
 
         self.create_agents_batch(TransportAgent, config.num_transport)
-        self.create_agents_batch(PassengerAgent, config.num_passengers)
+        self.create_agents_batch(CustomerAgent, config.num_customers)
 
         if config.scenario:
             scenario = Scenario(config.scenario)
@@ -178,9 +178,9 @@ class SimulatorAgent(Agent):
                 for transport in self.transport_agents.values():
                     transport.add_strategy(self.transport_strategy)
                     logger.debug(f"Adding strategy {self.transport_strategy} to transport {transport.name}")
-                for passenger in self.passenger_agents.values():
-                    passenger.add_strategy(self.passenger_strategy)
-                    logger.debug(f"Adding strategy {self.passenger_strategy} to passenger {passenger.name}")
+                for customer in self.customer_agents.values():
+                    customer.add_strategy(self.customer_strategy)
+                    logger.debug(f"Adding strategy {self.customer_strategy} to customer {customer.name}")
 
             self.simulation_running = True
             self.simulation_init_time = time.time()
@@ -210,7 +210,7 @@ class SimulatorAgent(Agent):
         Collects stats from all participant agents and from the simulation and stores it in three dataframes.
         """
 
-        df_avg, self.transport_df, self.passenger_df = self.get_stats_dataframes()
+        df_avg, self.transport_df, self.customer_df = self.get_stats_dataframes()
 
         columns = []
         if self.config.simulation_name:
@@ -229,9 +229,9 @@ class SimulatorAgent(Agent):
         Returns the dataframes collected by :func:`collect_stats`
 
         Returns:
-            ``pandas.DataFrame``, ``pandas.DataFrame``, ``pandas.DataFrame``: average df, passengers df and transport df
+            ``pandas.DataFrame``, ``pandas.DataFrame``, ``pandas.DataFrame``: average df, customers df and transport df
         """
-        return self.df_avg, self.passenger_df, self.transport_df    
+        return self.df_avg, self.customer_df, self.transport_df    
         '''
 
     def print_stats(self):
@@ -243,8 +243,8 @@ class SimulatorAgent(Agent):
 
         print("Simulation Results")
         print(tabulate(self.df_avg, headers="keys", showindex=False, tablefmt="fancy_grid"))
-        print("Passenger stats")
-        print(tabulate(self.passenger_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print("Customer stats")
+        print(tabulate(self.customer_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
         print("Taxi stats")
         print(tabulate(self.transport_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
 
@@ -272,7 +272,7 @@ class SimulatorAgent(Agent):
         """
         data = {
             "simulation": json.loads(self.df_avg.to_json(orient="index"))["0"],
-            "passengers": json.loads(self.passenger_df.to_json(orient="index")),
+            "customers": json.loads(self.customer_df.to_json(orient="index")),
             "transports": json.loads(self.transport_df.to_json(orient="index"))
         }
 
@@ -289,7 +289,7 @@ class SimulatorAgent(Agent):
         """
         writer = pd.ExcelWriter(filename)
         self.df_avg.to_excel(writer, 'Simulation')
-        self.passenger_df.to_excel(writer, 'Passengers')
+        self.customer_df.to_excel(writer, 'Passengers')
         self.transport_df.to_excel(writer, 'Taxis')
         writer.save()
 
@@ -316,14 +316,14 @@ class SimulatorAgent(Agent):
         return self.get("transport_agents")
 
     @property
-    def passenger_agents(self):
+    def customer_agents(self):
         """
-        Gets the dict of registered passengers
+        Gets the dict of registered customers
 
         Returns:
-            dict: a dict of ``PassengerAgent`` with the name in the key
+            dict: a dict of ``CustomerAgent`` with the name in the key
         """
-        return self.get("passenger_agents")
+        return self.get("customer_agents")
 
     async def index_controller(self, request):
         """
@@ -341,7 +341,7 @@ class SimulatorAgent(Agent):
         Example of the entities returned data::
 
             {
-                "passengers": [
+                "customers": [
                     {
                         "status": 24,
                         "transport": "transport2@127.0.0.1",
@@ -354,7 +354,7 @@ class SimulatorAgent(Agent):
                 "transports": [
                     {
                         "status": 11,
-                        "passenger": "michaelstewart@127.0.0.1",
+                        "customer": "michaelstewart@127.0.0.1",
                         "assignments": 1,
                         "path": [
                                  [ 39.478328, -0.406712 ],
@@ -384,7 +384,7 @@ class SimulatorAgent(Agent):
                         },
                         {
                             "count": "1",
-                            "name": "Passengers",
+                            "name": "Customers",
                             "children": [ { "status": 24, "name": " michaelstewart", "icon": "fa-user" } ]
                         }
                     ]
@@ -393,11 +393,11 @@ class SimulatorAgent(Agent):
             }
 
         Returns:
-            dict:  no template is returned since this is an AJAX controller, a dict with the list of transports, the list of passengers, the tree view to be showed in the sidebar and the stats of the simulation.
+            dict:  no template is returned since this is an AJAX controller, a dict with the list of transports, the list of customers, the tree view to be showed in the sidebar and the stats of the simulation.
         """
         result = {
             "taxis": [transport.to_json() for transport in self.transport_agents.values()],
-            "passengers": [passenger.to_json() for passenger in self.passenger_agents.values()],
+            "passengers": [customer.to_json() for customer in self.customer_agents.values()],
             "tree": self.generate_tree(),
             "stats": self.get_stats()
         }
@@ -426,13 +426,13 @@ class SimulatorAgent(Agent):
                 },
                 {
                     "name": "Passengers",
-                    "count": "{}".format(len(self.passenger_agents)),
+                    "count": "{}".format(len(self.customer_agents)),
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
                             "status": i.status,
                             "icon": "fa-user"
-                        } for i in self.passenger_agents.values()
+                        } for i in self.customer_agents.values()
                     ]
                 },
 
@@ -457,10 +457,10 @@ class SimulatorAgent(Agent):
             dict: a dict with the total time, waiting time, is_running and finished values
 
         """
-        if len(self.passenger_agents) > 0:
-            waiting = avg([passenger.get_waiting_time() for passenger in self.passenger_agents.values()])
+        if len(self.customer_agents) > 0:
+            waiting = avg([customer.get_waiting_time() for customer in self.customer_agents.values()])
             total = avg(
-                [passenger.total_time() for passenger in self.passenger_agents.values() if passenger.total_time()])
+                [customer.total_time() for customer in self.customer_agents.values() if customer.total_time()])
         else:
             waiting, total = 0, 0
 
@@ -474,14 +474,14 @@ class SimulatorAgent(Agent):
     def is_simulation_finish(self):
         """
         Checks whether the simulation has finished or not.
-        A simulation is finished if all passengers are at their destinations.
-        If there is no passengers the simulation is not finished.
+        A simulation is finished if all customers are at their destinations.
+        If there is no customers the simulation is not finished.
 
         Returns:`
             bool: whether the simulation has finished or not.
         """
-        if len(self.passenger_agents) > 0:
-            return all([passenger.is_in_destination() for passenger in self.passenger_agents.values()])
+        if len(self.customer_agents) > 0:
+            return all([customer.is_in_destination() for customer in self.customer_agents.values()])
         else:
             return False
 
@@ -499,7 +499,7 @@ class SimulatorAgent(Agent):
         ntaxis = request.match_info["ntaxis"]
         npassengers = request.match_info["npassengers"]
         self.create_agents_batch(TransportAgent, int(ntaxis))
-        self.create_agents_batch(PassengerAgent, int(npassengers))
+        self.create_agents_batch(CustomerAgent, int(npassengers))
         self.clear_stopped_agents()
         return {"status": "ok"}
 
@@ -517,7 +517,7 @@ class SimulatorAgent(Agent):
 
     async def stop_agents_controller(self, request):
         """
-        Web controller that stops all the passenger and transport agents.
+        Web controller that stops all the customer and transport agents.
 
         Returns:
             dict: no template is returned since this is an AJAX controller, a dict with status=done
@@ -542,9 +542,9 @@ class SimulatorAgent(Agent):
         writer = pd.ExcelWriter(output, engine='xlsxwriter')
 
         # Write the data frame to the StringIO object.
-        df_avg, transport_df, passenger_df = self.get_stats_dataframes()
+        df_avg, transport_df, customer_df = self.get_stats_dataframes()
         df_avg.to_excel(writer, sheet_name='Simulation')
-        passenger_df.to_excel(writer, sheet_name='Passengers')
+        customer_df.to_excel(writer, sheet_name='Passengers')
         transport_df.to_excel(writer, sheet_name='Taxis')
         writer.save()
         xlsx_data = output.getvalue()
@@ -568,11 +568,11 @@ class SimulatorAgent(Agent):
         output = io.StringIO()
 
         # Write the data frame to the StringIO object.
-        df_avg, transport_df, passenger_df = self.get_stats_dataframes()
+        df_avg, transport_df, customer_df = self.get_stats_dataframes()
 
         data = {
             "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
-            "passengers": json.loads(passenger_df.to_json(orient="index")),
+            "passengers": json.loads(customer_df.to_json(orient="index")),
             "taxis": json.loads(transport_df.to_json(orient="index"))
         }
 
@@ -585,24 +585,24 @@ class SimulatorAgent(Agent):
 
     def clear_agents(self):
         """
-        Resets the set of transports and passengers. Resets the simulation clock.
+        Resets the set of transports and customers. Resets the simulation clock.
         """
         self.set("manager_agents", {})
         self.set("transport_agents", {})
-        self.set("passenger_agents", {})
+        self.set("customer_agents", {})
         self.simulation_time = None
         self.simulation_init_time = None
 
     def clear_stopped_agents(self):
         """
-        Removes from the transport and passenger sets every agent that is stopped.
+        Removes from the transport and customer sets every agent that is stopped.
         """
         agents = self.get("manager_agents")
         self.set("manager_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
         agents = self.get("transport_agents")
         self.set("transport_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
-        agents = self.get("passenger_agents")
-        self.set("passenger_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
+        agents = self.get("customer_agents")
+        self.set("customer_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
         self.simulation_time = None
         self.simulation_init_time = None
 
@@ -626,23 +626,23 @@ class SimulatorAgent(Agent):
                 agent.stop()
                 agent.stopped = True
         with self.lock:
-            for name, agent in self.passenger_agents.items():
-                logger.debug("Stopping passenger {}".format(name))
+            for name, agent in self.customer_agents.items():
+                logger.debug("Stopping customer {}".format(name))
                 agent.stop()
                 agent.stopped = True
 
-    def get_passenger_stats(self):
+    def get_customer_stats(self):
         """
-        Creates a dataframe with the simulation stats of the passengers
-        The dataframe includes for each passenger its name, waiting time, total time and status.
+        Creates a dataframe with the simulation stats of the customers
+        The dataframe includes for each customer its name, waiting time, total time and status.
 
         Returns:
-            ``pandas.DataFrame``: the dataframe with the passengers stats.
+            ``pandas.DataFrame``: the dataframe with the customers stats.
         """
         try:
             names, waitings, totals, statuses = zip(*[(p.name, p.get_waiting_time(),
                                                        p.total_time(), status_to_str(p.status))
-                                                      for p in self.passenger_agents.values()])
+                                                      for p in self.customer_agents.values()])
         except ValueError:
             names, waitings, totals, statuses = [], [], [], []
 
@@ -674,12 +674,12 @@ class SimulatorAgent(Agent):
         """
         Collects simulation stats and returns 3 dataframes with the information:
         A general dataframe with the average information, a dataframe with the transport's information
-        and a dataframe with the passenger's information.
+        and a dataframe with the customer's information.
         Returns:
-            pandas.Dataframe, pandas.Dataframe, pandas.Dataframe: avg df, transport df and passenger df
+            pandas.Dataframe, pandas.Dataframe, pandas.Dataframe: avg df, transport df and customer df
         """
-        passenger_df = self.get_passenger_stats()
-        passenger_df = passenger_df[["name", "waiting_time", "total_time", "status"]]
+        customer_df = self.get_customer_stats()
+        customer_df = customer_df[["name", "waiting_time", "total_time", "status"]]
         transport_df = self.get_transport_stats()
         transport_df = transport_df[["name", "assignments", "distance", "status"]]
         stats = self.get_stats()
@@ -691,14 +691,14 @@ class SimulatorAgent(Agent):
         columns = ["Avg Waiting Time", "Avg Total Time", "Simulation Time", "Simulation Finished"]
         df_avg = df_avg[columns]
 
-        return df_avg, transport_df, passenger_df
+        return df_avg, transport_df, customer_df
 
     def create_agent(self, cls, name, password, position, target=None, speed=None):
         """
-        Create an agent of type ``cls`` (TransportAgent or PassengerAgent).
+        Create an agent of type ``cls`` (TransportAgent or CustomerAgent).
 
         Args:
-            cls (class): class of the agent (TransportAgent or PassengerAgent)
+            cls (class): class of the agent (TransportAgent or CustomerAgent)
             name (str): name of the agent
             password (str): password of the agent
             position (list): initial coordinates of the agent
@@ -712,7 +712,7 @@ class SimulatorAgent(Agent):
         Coroutine to create an agent.
 
         Args:
-            cls (class): class of the agent (TransportAgent or PassengerAgent)
+            cls (class): class of the agent (TransportAgent or CustomerAgent)
             name (str): name of the agent
             password (str): password of the agent
             position (list): initial coordinates of the agent
@@ -743,9 +743,9 @@ class SimulatorAgent(Agent):
         elif cls == TransportAgent:
             strategy = self.transport_strategy
             self.add_transport(agent)
-        else:  # cls == PassengerAgent:
-            strategy = self.passenger_strategy
-            self.add_passenger(agent)
+        else:  # cls == CustomerAgent:
+            strategy = self.customer_strategy
+            self.add_customer(agent)
 
         if self.simulation_running:
             agent.add_strategy(strategy)
@@ -792,32 +792,32 @@ class SimulatorAgent(Agent):
         with self.simulation_mutex:
             self.get("transport_agents")[agent.name] = agent
 
-    def add_passenger(self, agent):
+    def add_customer(self, agent):
         """
-        Adds a new :class:`PassengerAgent` to the store.
+        Adds a new :class:`CustomerAgent` to the store.
 
         Args:
-            agent (``PassengerAgent``): the instance of the PassengerAgent to be added
+            agent (``CustomerAgent``): the instance of the CustomerAgent to be added
         """
         with self.simulation_mutex:
-            self.get("passenger_agents")[agent.name] = agent
+            self.get("customer_agents")[agent.name] = agent
 
-    def set_strategies(self, fleetmanager_strategy, transport_strategy, passenger_strategy):
+    def set_strategies(self, fleetmanager_strategy, transport_strategy, customer_strategy):
         """
         Gets the strategy strings and loads their classes. This strategies are prepared to be injected into any
-        new transport or passenger agent.
+        new transport or customer agent.
 
         Args:
             fleetmanager_strategy (str): the path to the fleetmanager strategy
             transport_strategy (str): the path to the transport strategy
-            passenger_strategy (str): the path to the passenger strategy
+            customer_strategy (str): the path to the customer strategy
         """
         self.fleetmanager_strategy = load_class(fleetmanager_strategy)
         self.transport_strategy = load_class(transport_strategy)
-        self.passenger_strategy = load_class(passenger_strategy)
+        self.customer_strategy = load_class(customer_strategy)
         logger.debug("Loaded strategy classes: {}, {} and {}".format(self.fleetmanager_strategy,
                                                                      self.transport_strategy,
-                                                                     self.passenger_strategy))
+                                                                     self.customer_strategy))
 
     def get_simulation_time(self):
         """

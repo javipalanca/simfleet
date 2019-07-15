@@ -15,7 +15,7 @@ faker_factory = faker.Factory.create()
 
 class FleetManagerAgent(Agent):
     """
-    FleetManager agent that manages the requests between transports and passengers
+    FleetManager agent that manages the requests between transports and customers
     """
 
     def __init__(self, agentjid, password):
@@ -31,7 +31,7 @@ class FleetManagerAgent(Agent):
 
     def clear_agents(self):
         """
-        Resets the set of transports and passengers. Resets the simulation clock.
+        Resets the set of transports and customers. Resets the simulation clock.
         """
         self.set("transport_agents", {})
 
@@ -67,7 +67,7 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
 
     Helper functions:
         * :func:`get_transport_agents`
-        * :func:`get_passenger_agents`
+        * :func:`get_customer_agents`
     """
 
     async def on_start(self):
@@ -103,14 +103,14 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
         """
         return self.get("transport_agents")
 
-    def get_passenger_agents(self):
+    def get_customer_agents(self):
         """
-        Gets the list of registered passengers
+        Gets the list of registered customers
 
         Returns:
-            list: a list of ``PassengerAgent``
+            list: a list of ``CustomerAgent``
         """
-        return self.get("passenger_agents").values()
+        return self.get("customer_agents").values()
 
     async def run(self):
         raise NotImplementedError

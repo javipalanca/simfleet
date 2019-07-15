@@ -3,7 +3,7 @@ import logging
 
 import faker
 
-from .passenger import PassengerAgent
+from .customer import CustomerAgent
 from .transport import TransportAgent
 
 logger = logging.getLogger()
@@ -23,7 +23,7 @@ class Scenario(object):
             filename (str): the name of the scenario file
         """
         self.transports = []
-        self.passengers = []
+        self.customers = []
         self.scenario = None
         with open(filename, 'r') as f:
             logger.info("Reading scenario {}".format(filename))
@@ -36,9 +36,9 @@ class Scenario(object):
             speed = transport["speed"] if "speed" in transport else None
             agent.create_agent(TransportAgent, transport["name"], password, transport["position"], speed=speed)
 
-        for passenger in self.scenario["passengers"]:
-            password = passenger["password"] if "password" in passenger else faker_factory.password()
-            agent.create_agent(PassengerAgent,
-                                     passenger["name"], password,
-                                     passenger["position"],
-                                     target=passenger["dest"])
+        for customer in self.scenario["customers"]:
+            password = customer["password"] if "password" in customer else faker_factory.password()
+            agent.create_agent(CustomerAgent,
+                                     customer["name"], password,
+                                     customer["position"],
+                                     target=customer["dest"])

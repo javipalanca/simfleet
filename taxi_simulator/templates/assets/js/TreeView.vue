@@ -13,10 +13,10 @@
       <li v-for="o in taxis" v-show="openTaxi">
           <div class="list-group-item" v-tooltip.top="{content: status2str(o.status), delay:100}">
               <span  class="fa fa-taxi" ></span>  {{ o.id }}
-              <status-indicator positive v-if="o.status == 'TAXI_WAITING'"></status-indicator>
-              <status-indicator intermediary v-else-if="o.status == 'TAXI_WAITING_FOR_APPROVAL'"></status-indicator>
-              <status-indicator intermediary pulse v-else-if="o.status == 'TAXI_MOVING_TO_PASSENGER'"></status-indicator>
-              <status-indicator active pulse v-else-if="o.status == 'TAXI_MOVING_TO_DESTINATION'"></status-indicator>
+              <status-indicator positive v-if="o.status == 'TRANSPORT_WAITING'"></status-indicator>
+              <status-indicator intermediary v-else-if="o.status == 'TRANSPORT_WAITING_FOR_APPROVAL'"></status-indicator>
+              <status-indicator intermediary pulse v-else-if="o.status == 'TRANSPORT_MOVING_TO_CUSTOMER'"></status-indicator>
+              <status-indicator active pulse v-else-if="o.status == 'TRANSPORT_MOVING_TO_DESTINATION'"></status-indicator>
           </div>
       </li>
 
@@ -33,10 +33,10 @@
       <li v-for="passenger in passengers" v-show="openPass">
           <div class="list-group-item" v-tooltip.top="{content: status2str(passenger.status), delay:100}">
               <span  class="fa fa-user" ></span>  {{passenger.id}}
-              <status-indicator v-if="passenger.status == 'PASSENGER_WAITING'"></status-indicator>
-              <status-indicator intermediary v-else-if="passenger.status == 'PASSENGER_ASSIGNED'"></status-indicator>
-              <status-indicator active pulse v-else-if="passenger.status == 'PASSENGER_IN_TAXI'"></status-indicator>
-              <status-indicator positive v-else-if="passenger.status == 'PASSENGER_IN_DEST'"></status-indicator>
+              <status-indicator v-if="passenger.status == 'CUSTOMER_WAITING'"></status-indicator>
+              <status-indicator intermediary v-else-if="passenger.status == 'CUSTOMER_ASSIGNED'"></status-indicator>
+              <status-indicator active pulse v-else-if="passenger.status == 'CUSTOMER_IN_TRANSPORT'"></status-indicator>
+              <status-indicator positive v-else-if="passenger.status == 'CUSTOMER_IN_DEST'"></status-indicator>
           </div>
       </li>
 
@@ -80,15 +80,15 @@
             },
             status2str: function(status) {
                 switch(status){
-                    case 10: return 'TAXI_WAITING';
-                    case 11: return 'TAXI_MOVING_TO_PASSENGER';
-                    case 12: return 'TAXI_IN_PASSENGER_PLACE';
-                    case 13: return 'TAXI_MOVING_TO_DESTINATION';
-                    case 14: return 'TAXI_WAITING_FOR_APPROVAL';
-                    case 20: return 'PASSENGER_WAITING';
-                    case 21: return 'PASSENGER_IN_TAXI';
-                    case 22: return 'PASSENGER_IN_DEST';
-                    case 24: return 'PASSENGER_ASSIGNED';
+                    case 10: return 'TRANSPORT_WAITING';
+                    case 11: return 'TRANSPORT_MOVING_TO_CUSTOMER';
+                    case 12: return 'TRANSPORT_IN_CUSTOMER_PLACE';
+                    case 13: return 'TRANSPORT_MOVING_TO_DESTINATION';
+                    case 14: return 'TRANSPORT_WAITING_FOR_APPROVAL';
+                    case 20: return 'CUSTOMER_WAITING';
+                    case 21: return 'CUSTOMER_IN_TRANSPORT';
+                    case 22: return 'CUSTOMER_IN_DEST';
+                    case 24: return 'CUSTOMER_ASSIGNED';
                 }
                 return status;
             }

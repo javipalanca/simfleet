@@ -452,13 +452,17 @@ var singletonElement = null
 var singletonCounter = 0
 var isProduction = false
 var noop = function () {}
+var options = null
+var ssrIdKey = 'data-vue-ssr-id'
 
 // Force single-tag solution on IE6-9, which has a hard limit on the # of <style>
 // tags it will allow on a page
 var isOldIE = typeof navigator !== 'undefined' && /msie [6-9]\b/.test(navigator.userAgent.toLowerCase())
 
-module.exports = function (parentId, list, _isProduction) {
+module.exports = function (parentId, list, _isProduction, _options) {
   isProduction = _isProduction
+
+  options = _options || {}
 
   var styles = listToStyles(parentId, list)
   addStylesToDom(styles)
@@ -523,7 +527,7 @@ function createStyleElement () {
 
 function addStyle (obj /* StyleObjectPart */) {
   var update, remove
-  var styleElement = document.querySelector('style[data-vue-ssr-id~="' + obj.id + '"]')
+  var styleElement = document.querySelector('style[' + ssrIdKey + '~="' + obj.id + '"]')
 
   if (styleElement) {
     if (isProduction) {
@@ -604,6 +608,9 @@ function applyToTag (styleElement, obj) {
 
   if (media) {
     styleElement.setAttribute('media', media)
+  }
+  if (options.ssrId) {
+    styleElement.setAttribute(ssrIdKey, obj.id)
   }
 
   if (sourceMap) {
@@ -714,23 +721,23 @@ function applyToTag (styleElement, obj) {
         status2str: function (status) {
             switch (status) {
                 case 10:
-                    return 'TAXI_WAITING';
+                    return 'TRANSPORT_WAITING';
                 case 11:
-                    return 'TAXI_MOVING_TO_PASSENGER';
+                    return 'TRANSPORT_MOVING_TO_CUSTOMER';
                 case 12:
-                    return 'TAXI_IN_PASSENGER_PLACE';
+                    return 'TRANSPORT_IN_CUSTOMER_PLACE';
                 case 13:
-                    return 'TAXI_MOVING_TO_DESTINATION';
+                    return 'TRANSPORT_MOVING_TO_DESTINATION';
                 case 14:
-                    return 'TAXI_WAITING_FOR_APPROVAL';
+                    return 'TRANSPORT_WAITING_FOR_APPROVAL';
                 case 20:
-                    return 'PASSENGER_WAITING';
+                    return 'CUSTOMER_WAITING';
                 case 21:
-                    return 'PASSENGER_IN_TAXI';
+                    return 'CUSTOMER_IN_TRANSPORT';
                 case 22:
-                    return 'PASSENGER_IN_DEST';
+                    return 'CUSTOMER_IN_DEST';
                 case 24:
-                    return 'PASSENGER_ASSIGNED';
+                    return 'CUSTOMER_ASSIGNED';
             }
             return status;
         }
@@ -788,7 +795,8 @@ new Vue({
             center: [39.47, -0.37],
             url: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
             taxiIcon: L.icon({ iconUrl: 'assets/img/taxi.png', iconSize: [38, 55] }),
-            passengerIcon: L.icon({ iconUrl: 'assets/img/passenger.png', iconSize: [38, 40] })
+            passengerIcon: L.icon({ iconUrl: 'assets/img/passenger.png', iconSize: [38, 40] }),
+            stationIcon: L.icon({ iconUrl: 'assets/img/tomacorriente.png', iconSize: [38, 40] })
         };
     },
     mounted() {
@@ -806,6 +814,7 @@ new Vue({
                 this.$store.state.total_time = data.data.stats.totaltime;
                 this.$store.commit('update_simulation_status', data.data.stats);
                 this.$store.commit("update_tree", data.data.tree);
+                this.$store.commit("addStations", data.data.stations);
             }).catch(error => {});
         },
         set_speed: function (event, item) {
@@ -827,6 +836,9 @@ new Vue({
         },
         treeData() {
             return this.$store.getters.tree;
+        },
+        stations() {
+            return this.$store.getters.get_stations;
         }
     }
 });
@@ -846,7 +858,8 @@ const store = new Vuex.Store({
         waiting_time: 0,
         total_time: 0,
         simulation_status: false,
-        treedata: {}
+        treedata: {},
+        stations: []
     },
     mutations: {
         addTaxis: (state, payload) => {
@@ -881,6 +894,15 @@ const store = new Vuex.Store({
         },
         update_tree: (state, payload) => {
             state.treedata = payload;
+        },
+        addStations: (state, payload) => {
+            if (payload.length > 0) {
+                for (let i = 0; i < payload.length; i++) {
+                    update_station_in_collection(state.stations, payload[i], station_popup);
+                }
+            } else {
+                state.stations = [];
+            }
         }
     },
     getters: {
@@ -904,6 +926,9 @@ const store = new Vuex.Store({
         },
         tree: state => {
             return state.treedata;
+        },
+        get_stations: state => {
+            return state.stations;
         }
     }
 });
@@ -922,7 +947,17 @@ let update_item_in_collection = function (collection, item, get_popup) {
         collection[p].popup = get_popup(item);
         collection[p].speed = item.speed;
         collection[p].status = item.status;
-        collection[p].visible = item.status !== "PASSENGER_IN_TAXI" && item.status !== "PASSENGER_IN_DEST" && item.status !== "PASSENGER_LOCATION";
+        collection[p].visible = item.status !== "CUSTOMER_IN_TRANSPORT" && item.status !== "CUSTOMER_IN_DEST" && item.status !== "CUSTOMER_LOCATION";
+    }
+};
+
+let update_station_in_collection = function (collection, item, get_popup) {
+    let p = getitem(collection, item);
+    if (p === false) {
+        item.latlng = L.latLng(item.position[0], item.position[1]);
+        item.popup = get_popup(item);
+        item.visible = true;
+        collection.push(item);
     }
 };
 
@@ -938,8 +973,8 @@ let getitem = function (collection, item) {
 let color = {
     11: "rgb(255, 170, 0)",
     13: "rgb(0, 149, 255)",
-    "TAXI_MOVING_TO_PASSENGER": "rgb(255, 170, 0)",
-    "TAXI_MOVING_TO_DESTINATION": "rgb(0, 149, 255)"
+    "TRANSPORT_MOVING_TO_CUSTOMER": "rgb(255, 170, 0)",
+    "TRANSPORT_MOVING_TO_DESTINATION": "rgb(0, 149, 255)"
 };
 
 function get_color(status) {
@@ -947,25 +982,29 @@ function get_color(status) {
 }
 
 let statuses = {
-    10: "TAXI_WAITING",
-    11: "TAXI_MOVING_TO_PASSENGER",
-    12: "TAXI_IN_PASSENGER_PLACE",
-    13: "TAXI_MOVING_TO_DESTINY",
-    14: "TAXI_WAITING_FOR_APPROVAL",
+    10: "TRANSPORT_WAITING",
+    11: "TRANSPORT_MOVING_TO_CUSTOMER",
+    12: "TRANSPORT_IN_CUSTOMER_PLACE",
+    13: "TRANSPORT_MOVING_TO_DESTINY",
+    14: "TRANSPORT_WAITING_FOR_APPROVAL",
     //
-    20: "PASSENGER_WAITING",
-    21: "PASSENGER_IN_TAXI",
-    22: "PASSENGER_IN_DEST",
-    23: "PASSENGER_LOCATION",
-    24: "PASSENGER_ASSIGNED"
+    20: "CUSTOMER_WAITING",
+    21: "CUSTOMER_IN_TRANSPORT",
+    22: "CUSTOMER_IN_DEST",
+    23: "CUSTOMER_LOCATION",
+    24: "CUSTOMER_ASSIGNED"
 };
 
 function passenger_popup(passenger) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + passenger.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + passenger.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + passenger.position + "</td></tr>" + "<tr><th>DEST</th><td>" + passenger.dest + "</td></tr>" + "<tr><th>TAXI</th><td>" + passenger.taxi + "</td></tr>" + "<tr><th>WAITING</th><td>" + passenger.waiting + "</td></tr>" + "</table>";
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + passenger.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + passenger.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + passenger.position + "</td></tr>" + "<tr><th>DEST</th><td>" + passenger.dest + "</td></tr>" + "<tr><th>TRANSPORT</th><td>" + passenger.taxi + "</td></tr>" + "<tr><th>WAITING</th><td>" + passenger.waiting + "</td></tr>" + "</table>";
 }
 
 function taxi_popup(taxi) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + taxi.status + "</td></tr>" + "<tr><th>PASSENGER</th><td>" + taxi.passenger + "</td></tr>" + "<tr><th>POSITION</th><td>" + taxi.position + "</td></tr>" + "<tr><th>DEST</th><td>" + taxi.dest + "</td></tr>" + "<tr><th>ASSIGNMENTS</th><td>" + taxi.assignments + "</td></tr>" + "<tr><th>SPEED</th><td>" + taxi.speed + "</td></tr>" + "<tr><th>DISTANCE</th><td>" + taxi.distance + "</td></tr>" + "</table>";
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + taxi.status + "</td></tr>" + "<tr><th>CUSTOMER</th><td>" + taxi.passenger + "</td></tr>" + "<tr><th>POSITION</th><td>" + taxi.position + "</td></tr>" + "<tr><th>DEST</th><td>" + taxi.dest + "</td></tr>" + "<tr><th>ASSIGNMENTS</th><td>" + taxi.assignments + "</td></tr>" + "<tr><th>SPEED</th><td>" + taxi.speed + "</td></tr>" + "<tr><th>DISTANCE</th><td>" + taxi.distance + "</td></tr>" + "</table>";
+}
+
+function station_popup(station) {
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + station.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" + "</table>";
 }
 
 /***/ }),
@@ -1019,7 +1058,7 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_TreeView_vue__ = __webpack_require__(4);
 /* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_abc6a0e0_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_59191e47_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__ = __webpack_require__(18);
 function injectStyle (ssrContext) {
   __webpack_require__(11)
 }
@@ -1034,12 +1073,12 @@ var __vue_template_functional__ = false
 /* styles */
 var __vue_styles__ = injectStyle
 /* scopeId */
-var __vue_scopeId__ = "data-v-abc6a0e0"
+var __vue_scopeId__ = "data-v-59191e47"
 /* moduleIdentifier (server only) */
 var __vue_module_identifier__ = null
 var Component = normalizeComponent(
   __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_TreeView_vue__["a" /* default */],
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_abc6a0e0_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__["a" /* default */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_59191e47_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__["a" /* default */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
@@ -1060,7 +1099,7 @@ var content = __webpack_require__(12);
 if(typeof content === 'string') content = [[module.i, content, '']];
 if(content.locals) module.exports = content.locals;
 // add the styles to the DOM
-var update = __webpack_require__(3)("5d098929", content, true);
+var update = __webpack_require__(3)("6a94cbba", content, true, {});
 
 /***/ }),
 /* 12 */
@@ -1071,7 +1110,7 @@ exports = module.exports = __webpack_require__(2)(false);
 
 
 // module
-exports.push([module.i, ".item[data-v-abc6a0e0]{cursor:pointer}.bold[data-v-abc6a0e0]{font-weight:700}ul[data-v-abc6a0e0]{-webkit-padding-start:0;list-style-type:none}.list-group-item[data-v-abc6a0e0]{border-radius:0;position:relative;display:block;padding:10px 15px;margin-bottom:-2px;background-color:#fff;border:1px solid #ddd}.status-indicator[data-v-abc6a0e0]{float:right}", ""]);
+exports.push([module.i, ".item[data-v-59191e47]{cursor:pointer}.bold[data-v-59191e47]{font-weight:700}ul[data-v-59191e47]{-webkit-padding-start:0;list-style-type:none}.list-group-item[data-v-59191e47]{border-radius:0;position:relative;display:block;padding:10px 15px;margin-bottom:-2px;background-color:#fff;border:1px solid #ddd}.status-indicator[data-v-59191e47]{float:right}", ""]);
 
 // exports
 
@@ -1157,7 +1196,7 @@ var content = __webpack_require__(16);
 if(typeof content === 'string') content = [[module.i, content, '']];
 if(content.locals) module.exports = content.locals;
 // add the styles to the DOM
-var update = __webpack_require__(3)("26b830bb", content, true);
+var update = __webpack_require__(3)("2990344a", content, true, {});
 
 /***/ }),
 /* 16 */
@@ -1188,7 +1227,7 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"list-group",staticStyle:{"list-style-type":"none"},attrs:{"id":"treeview-ul"}},[_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleTaxi}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openTaxi, 'glyphicon-chevron-right': !_vm.openTaxi}}),_vm._v("\n          Taxis\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.taxis.length))])])]),_vm._v(" "),_vm._l((_vm.taxis),function(o){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openTaxi),expression:"openTaxi"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(o.status), delay:100}),expression:"{content: status2str(o.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('span',{staticClass:"fa fa-taxi"}),_vm._v("  "+_vm._s(o.id)+"\n          "),(o.status == 'TAXI_WAITING')?_c('status-indicator',{attrs:{"positive":""}}):(o.status == 'TAXI_WAITING_FOR_APPROVAL')?_c('status-indicator',{attrs:{"intermediary":""}}):(o.status == 'TAXI_MOVING_TO_PASSENGER')?_c('status-indicator',{attrs:{"intermediary":"","pulse":""}}):(o.status == 'TAXI_MOVING_TO_DESTINATION')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.togglePass}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openPass, 'glyphicon-chevron-right': !_vm.openPass}}),_vm._v("\n          Passengers\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.passengers.length))])])]),_vm._v(" "),_vm._l((_vm.passengers),function(passenger){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openPass),expression:"openPass"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(passenger.status), delay:100}),expression:"{content: status2str(passenger.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('span',{staticClass:"fa fa-user"}),_vm._v("  "+_vm._s(passenger.id)+"\n          "),(passenger.status == 'PASSENGER_WAITING')?_c('status-indicator'):(passenger.status == 'PASSENGER_ASSIGNED')?_c('status-indicator',{attrs:{"intermediary":""}}):(passenger.status == 'PASSENGER_IN_TAXI')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):(passenger.status == 'PASSENGER_IN_DEST')?_c('status-indicator',{attrs:{"positive":""}}):_vm._e()],1)])})],2)}
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"list-group",staticStyle:{"list-style-type":"none"},attrs:{"id":"treeview-ul"}},[_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleTaxi}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openTaxi, 'glyphicon-chevron-right': !_vm.openTaxi}}),_vm._v("\n          Taxis\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.taxis.length))])])]),_vm._v(" "),_vm._l((_vm.taxis),function(o){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openTaxi),expression:"openTaxi"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(o.status), delay:100}),expression:"{content: status2str(o.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('span',{staticClass:"fa fa-taxi"}),_vm._v("  "+_vm._s(o.id)+"\n          "),(o.status == 'TRANSPORT_WAITING')?_c('status-indicator',{attrs:{"positive":""}}):(o.status == 'TRANSPORT_WAITING_FOR_APPROVAL')?_c('status-indicator',{attrs:{"intermediary":""}}):(o.status == 'TRANSPORT_MOVING_TO_CUSTOMER')?_c('status-indicator',{attrs:{"intermediary":"","pulse":""}}):(o.status == 'TRANSPORT_MOVING_TO_DESTINATION')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.togglePass}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openPass, 'glyphicon-chevron-right': !_vm.openPass}}),_vm._v("\n          Passengers\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.passengers.length))])])]),_vm._v(" "),_vm._l((_vm.passengers),function(passenger){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openPass),expression:"openPass"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(passenger.status), delay:100}),expression:"{content: status2str(passenger.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('span',{staticClass:"fa fa-user"}),_vm._v("  "+_vm._s(passenger.id)+"\n          "),(passenger.status == 'CUSTOMER_WAITING')?_c('status-indicator'):(passenger.status == 'CUSTOMER_ASSIGNED')?_c('status-indicator',{attrs:{"intermediary":""}}):(passenger.status == 'CUSTOMER_IN_TRANSPORT')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):(passenger.status == 'CUSTOMER_IN_DEST')?_c('status-indicator',{attrs:{"positive":""}}):_vm._e()],1)])})],2)}
 var staticRenderFns = []
 var esExports = { render: render, staticRenderFns: staticRenderFns }
 /* harmony default export */ __webpack_exports__["a"] = (esExports);

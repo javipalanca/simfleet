@@ -23,7 +23,8 @@ new Vue({
             center: [39.47, -0.37],
             url: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
             taxiIcon: L.icon({iconUrl: 'assets/img/taxi.png', iconSize: [38, 55]}),
-            passengerIcon: L.icon({iconUrl: 'assets/img/passenger.png', iconSize: [38, 40]})
+            passengerIcon: L.icon({iconUrl: 'assets/img/passenger.png', iconSize: [38, 40]}),
+            stationIcon: L.icon({iconUrl: 'assets/img/tomacorriente.png', iconSize: [38, 40]})
         }
     },
     mounted() {
@@ -42,6 +43,7 @@ new Vue({
                     this.$store.state.total_time = data.data.stats.totaltime;
                     this.$store.commit('update_simulation_status', data.data.stats);
                     this.$store.commit("update_tree", data.data.tree);
+                    this.$store.commit("addStations", data.data.stations);
                 }).catch(error => {});
         },
         set_speed: function (event, item) {
@@ -63,6 +65,9 @@ new Vue({
         },
         treeData() {
             return this.$store.getters.tree;
+        },
+        stations() {
+            return this.$store.getters.get_stations;
         }
     }
 });

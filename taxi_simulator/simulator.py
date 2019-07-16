@@ -389,7 +389,14 @@ class SimulatorAgent(Agent):
                         }
                     ]
                 },
-                "authenticated": False
+                "authenticated": False,
+                "stations": [
+                    {
+                        "status": 24,
+                        "position": [ 39.460568, -0.352529 ],
+                        "id": "michaelstewart"
+                    }
+                ],
             }
 
         Returns:
@@ -399,9 +406,23 @@ class SimulatorAgent(Agent):
             "taxis": [transport.to_json() for transport in self.transport_agents.values()],
             "passengers": [customer.to_json() for customer in self.customer_agents.values()],
             "tree": self.generate_tree(),
-            "stats": self.get_stats()
+            "stats": self.get_stats(),
+            "stations": self.get_stations()
         }
         return result
+
+    def get_stations(self):
+        """
+        Generates the stations in JSON format to be showed in the map.
+
+        Returns:
+            dict: a dict with all the stations
+        """
+        stations = [
+            {'id': 'Station1', 'position': [39.461327, -0.361839], 'status': 'FREE'},
+            {'id': 'Station2', 'position': [39.456183, -0.355816], 'status': 'FREE'}
+        ]
+        return stations
 
     def generate_tree(self):
         """

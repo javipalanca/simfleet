@@ -100,6 +100,11 @@
                 <span v-for="path in paths">
                     <v-polyline :lat-lngs="path.latlngs" :color="path.color"></v-polyline>
                 </span>
+                <span v-for="station in stations">
+                    <v-marker :lat-lng="station.latlng" :icon="stationIcon" :visible="station.visible">
+                        <v-popup :content="station.popup"></v-popup>
+                    </v-marker>
+                </span>
             </v-map>
 
         <input type="hidden" id="backport" value="{{ port }}">

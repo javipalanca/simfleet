@@ -13,6 +13,11 @@ const passenger2Icon = L.icon({
     className: "fadeOut",
 });
 
+const stationIcon = L.icon({
+   iconUrl: 'assets/img/tomacorriente.png',
+   iconSize: [38,40]
+});
+
 const backend_port = $("#backport").val();
 const ip_address = $("#ip_address").val();
 
@@ -46,36 +51,37 @@ let taxis = {};
 let passengers = {};
 let paths = new HashTable();
 let urls = new HashTable();
+let stations = {}
 
-/*const PASSENGER_WAITING = 20;
-const PASSENGER_IN_TAXI = 21;
-const PASSENGER_IN_DEST = 22;
-const PASSENGER_ASSIGNED = 24;
+/*const CUSTOMER_WAITING = 20;
+const CUSTOMER_IN_TRANSPORT = 21;
+const CUSTOMER_IN_DEST = 22;
+const CUSTOMER_ASSIGNED = 24;
 */
-const PASSENGER_WAITING = "PASSENGER_WAITING";
-const PASSENGER_IN_TAXI = "PASSENGER_IN_TAXI";
-const PASSENGER_IN_DEST = "PASSENGER_IN_DEST";
-const PASSENGER_ASSIGNED = "PASSENGER_ASSIGNED";
+const CUSTOMER_WAITING = "CUSTOMER_WAITING";
+const CUSTOMER_IN_TRANSPORT = "CUSTOMER_IN_TRANSPORT";
+const CUSTOMER_IN_DEST = "CUSTOMER_IN_DEST";
+const CUSTOMER_ASSIGNED = "CUSTOMER_ASSIGNED";
 
 const statuses = {
-    10: "TAXI_WAITING",
-    11: "TAXI_MOVING_TO_PASSENGER",
-    12: "TAXI_IN_PASSENGER_PLACE",
-    13: "TAXI_MOVING_TO_DESTINATION",
-    14: "TAXI_WAITING_FOR_APPROVAL",
+    10: "TRANSPORT_WAITING",
+    11: "TRANSPORT_MOVING_TO_CUSTOMER",
+    12: "TRANSPORT_IN_CUSTOMER_PLACE",
+    13: "TRANSPORT_MOVING_TO_DESTINATION",
+    14: "TRANSPORT_WAITING_FOR_APPROVAL",
     //
-    20: "PASSENGER_WAITING",
-    21: "PASSENGER_IN_TAXI",
-    22: "PASSENGER_IN_DEST",
-    23: "PASSENGER_LOCATION",
-    24: "PASSENGER_ASSIGNED"
+    20: "CUSTOMER_WAITING",
+    21: "CUSTOMER_IN_TRANSPORT",
+    22: "CUSTOMER_IN_DEST",
+    23: "CUSTOMER_LOCATION",
+    24: "CUSTOMER_ASSIGNED"
 };
 
 color = {
     11: "blue",
     13: "green",
-    "TAXI_MOVING_TO_PASSENGER": "blue",
-    "TAXI_MOVING_TO_DESTINATION": "green",
+    "TRANSPORT_MOVING_TO_CUSTOMER": "blue",
+    "TRANSPORT_MOVING_TO_DESTINATION": "green",
 };
 
 function gen_passenger_popup(passenger) {
@@ -83,7 +89,7 @@ function gen_passenger_popup(passenger) {
         "<tr><th>STATUS</th><td>" + passenger.status + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + passenger.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + passenger.dest + "</td></tr>" +
-        "<tr><th>TAXI</th><td>" + passenger.taxi + "</td></tr>" +
+        "<tr><th>TRANSPORT</th><td>" + passenger.taxi + "</td></tr>" +
         "<tr><th>WAITING</th><td>" + passenger.waiting + "</td></tr>" +
         "</table>"
 }
@@ -91,7 +97,7 @@ function gen_passenger_popup(passenger) {
 function gen_taxi_popup(taxi) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" +
         "<tr><th>STATUS</th><td>" + taxi.status + "</td></tr>" +
-        "<tr><th>PASSENGER</th><td>" + taxi.passenger + "</td></tr>" +
+        "<tr><th>CUSTOMER</th><td>" + taxi.passenger + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + taxi.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + taxi.dest + "</td></tr>" +
         "<tr><th>ASSIGNMENTS</th><td>" + taxi.assignments + "</td></tr>" +
@@ -99,6 +105,14 @@ function gen_taxi_popup(taxi) {
         "<tr><th>DISTANCE</th><td>" + taxi.distance + "</td></tr>" +
         "</table>"
 }
+
+function station_popup(station) {
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" +
+        "<tr><th>STATUS</th><td>" + station.status + "</td></tr>" +
+        "<tr><th>POSITION</th><td>" + station.position + "</td></tr>"
+        "</table>"
+}
+
 
 var tree = JSON.stringify({});
 var $tree = $('#tree');
@@ -183,7 +197,7 @@ var animate = function () {
         for (i = 0; i < count; i++) {
             var passenger = data.passengers[i];
             if (!(passenger.id in passengers) &&
-                (passenger.status === PASSENGER_WAITING || passenger.status === PASSENGER_ASSIGNED)) {
+                (passenger.status === CUSTOMER_WAITING || passenger.status === CUSTOMER_ASSIGNED)) {
                 marker = L.marker(passenger.position, {
                     icon: passengerIcon
                 });
@@ -195,7 +209,7 @@ var animate = function () {
             }
             else {
                 localpassenger = passengers[passenger.id];
-                if (passenger.status === PASSENGER_IN_TAXI || passenger.status === PASSENGER_IN_DEST) {
+                if (passenger.status === CUSTOMER_IN_TRANSPORT || passenger.status === CUSTOMER_IN_DEST) {
                     if (localpassenger && "marker" in localpassenger) {
                         map.removeLayer(localpassenger.marker);
                     }
@@ -203,6 +217,21 @@ var animate = function () {
             }
             if (localpassenger && "marker" in localpassenger && "_popup" in localpassenger.marker) {
                 localpassenger.marker._popup.setContent(gen_passenger_popup(passenger))
+            }
+        }
+        // draw stations
+        count = data.stations.length;
+        for (i = 0; i < count; i++) {
+            var station = data.stations[i];
+            if (!(station.id in stations)) {
+                marker = L.marker(station.position, {
+                    icon: stationIcon,
+                    clickable: true
+                });
+                map.addLayer(marker);
+                station.marker = marker;
+                station.marker.bindPopup(station_popup(station));
+                stations[station.id] = station;
             }
         }
     });

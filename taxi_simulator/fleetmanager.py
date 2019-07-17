@@ -103,14 +103,5 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
         """
         return self.get("transport_agents")
 
-    def get_customer_agents(self):
-        """
-        Gets the list of registered customers
-
-        Returns:
-            list: a list of ``CustomerAgent``
-        """
-        return self.get("customer_agents").values()
-
     async def run(self):
         raise NotImplementedError

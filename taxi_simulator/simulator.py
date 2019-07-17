@@ -119,8 +119,8 @@ class SimulatorAgent(Agent):
         self.create_agents_batch(CustomerAgent, config.num_customers)
 
         if config.scenario:
-            scenario = Scenario(config.scenario)
-            scenario.load(self)
+            _scenario = Scenario(config.scenario)
+            self.load_scenario(_scenario.scenario)
 
         self.template_path = os.path.dirname(__file__) + os.sep + "templates"
         self.clear_agents()
@@ -140,6 +140,26 @@ class SimulatorAgent(Agent):
 
         self.web.start(port=self.config.http_port, templates_path=self.template_path)
         logger.info("Web interface running at http://127.0.0.1:{}/app".format(self.config.http_port))
+
+    def load_scenario(self, scenario):
+        '''
+        Load the information from the preloaded scenario through the Scenario class
+
+        Args:
+             filename (str): name of the json file.
+        '''
+        logger.info("Loading scenario...")
+        for manager in scenario["managers"]:
+            password = manager["password"] if "password" in manager else faker_factory.password()
+            self.create_agent(FleetManagerAgent, manager["name"], password, position=[0, 0])
+        for transport in scenario["transports"]:
+            password = transport["password"] if "password" in transport else faker_factory.password()
+            speed = transport["speed"] if "speed" in transport else None
+            self.create_agent(TransportAgent, transport["name"], password, transport["position"], speed=speed)
+        for customer in scenario["customers"]:
+            password = customer["password"] if "password" in customer else faker_factory.password()
+            self.create_agent(CustomerAgent, customer["name"], password, customer["position"], target=customer["dest"])
+        
 
     def is_simulation_finished(self):
         """

@@ -9,7 +9,7 @@ from spade.template import Template
 
 from .utils import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_IN_CUSTOMER_PLACE, TRANSPORT_MOVING_TO_DESTINATION, \
     CUSTOMER_IN_DEST, CUSTOMER_LOCATION, chunk_path, request_path, StrategyBehaviour
-from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, REGISTER_PROTOCOL, DEREGISTER_PROTOCOL
+from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE
 from .helpers import random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
     AlreadyInDestination
 
@@ -435,8 +435,8 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         }
         msg = Message()
         msg.to = str(self.agent.fleetmanager_id)
-        msg.set_metadata("protocol", REQUEST_PROTOCOL)
-        msg.set_metadata("performative", REGISTER_PROTOCOL)
+        msg.set_metadata("protocol", REGISTER_PROTOCOL)
+        msg.set_metadata("performative", PROPOSE_PERFORMATIVE)
         msg.body = json.dumps(content)
         await self.send(msg)
         self.agent.set_registration(True)
@@ -448,8 +448,8 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         logger.debug("Transport {} sent proposal to register to manager {}".format(self.agent.name, self.agent.fleetmanager_id))
         msg = Message()
         msg.to = str(self.agent.fleetmanager_id)
-        msg.set_metadata("protocol", REQUEST_PROTOCOL)
-        msg.set_metadata("performative", DEREGISTER_PROTOCOL)
+        msg.set_metadata("protocol", REGISTER_PROTOCOL)
+        msg.set_metadata("performative", CANCEL_PERFORMATIVE)
         msg.body = str(self.agent.name)
         await self.send(msg)
         self.agent.set_registration(False)

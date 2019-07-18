@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import json
 
 import faker
 from spade.agent import Agent
 from spade.template import Template
+from spade.behaviour import CyclicBehaviour
+from spade.message import Message
 
 from .utils import StrategyBehaviour
-from .protocol import REQUEST_PROTOCOL
+from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
 
 logger = logging.getLogger("FleetManagerAgent")
 faker_factory = faker.Factory.create()
@@ -38,6 +41,16 @@ class FleetManagerAgent(Agent):
     async def setup(self):
         logger.info("FleetManager agent running")
         self.fleetName = faker_factory.user_name()
+        try:
+            template = Template()
+            template.set_metadata("protocol", REGISTER_PROTOCOL)
+            register_behaviour = RegisterBehaviour()
+            self.add_behaviour(register_behaviour, template)
+            while not self.has_behaviour(register_behaviour):
+                logger.warning("Manager {} could not create RegisterBehaviour. Retrying...".format(self.agent_id))
+                self.add_behaviour(register_behaviour, template)
+        except Exception as e:
+            logger.error("EXCEPTION creating RegisterBehaviour in Manager {}: {}".format(self.agent_id, e))
 
     def set_id(self, agent_id):
         """
@@ -60,18 +73,10 @@ class FleetManagerAgent(Agent):
         self.add_behaviour(strategy_class(), template)
 
 
-class CoordinatorStrategyBehaviour(StrategyBehaviour):
-    """
-    Class from which to inherit to create a coordinator strategy.
-    You must overload the :func:`_process` method
-
-    Helper functions:
-        * :func:`get_transport_agents`
-        * :func:`get_customer_agents`
-    """
+class RegisterBehaviour(CyclicBehaviour):
 
     async def on_start(self):
-        self.logger = logging.getLogger("CoordinatorStrategy")
+        self.logger = logging.getLogger("RegisterStrategy")
         self.logger.debug("Strategy {} started in manager".format(type(self).__name__))
 
     def add_transport(self, agent):
@@ -81,8 +86,8 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
         Args:
             agent (``TransportAgent``): the instance of the TransportAgent to be added
         """
-        # with self.simulation_mutex:
         self.get("transport_agents")[agent["name"]] = agent
+        logger.info("Registration in the fleet {}".format(self.agent.fleetName))
 
     def get_out_transport(self, key):
         """
@@ -91,8 +96,39 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
         Args:
             agent (``TransportAgent``): the instance of the TransportAgent to be erased
         """
-        del(self.get("transport_agents")[key])
-        self.logger.debug("Deregistration of the TransporterAgent {}".format(key))
+        if key in self.get("transport_agents"):
+            del(self.get("transport_agents")[key])
+            self.logger.debug("Deregistration of the TransporterAgent {}".format(key))
+        else:
+            self.logger.debug("Cancelation of the registration in the Fleet")
+
+    async def run(self):
+        try:
+            msg = await self.receive(timeout=5)
+            if msg:
+                performative = msg.get_metadata("performative")
+                content = json.loads(msg.body)
+                if performative == PROPOSE_PERFORMATIVE:
+                    self.add_transport(content)
+                elif performative == CANCEL_PERFORMATIVE:
+                    self.get_out_transport(content["name"])
+                    logger.debug("No registration in the fleet {}".format(self.agent.fleetName))
+        except Exception as e:
+            logger.error("EXCEPTION in Register Behaviour of Manager {}: {}".format(self.agent.name, e))
+
+
+class CoordinatorStrategyBehaviour(StrategyBehaviour):
+    """
+    Class from which to inherit to create a coordinator strategy.
+    You must overload the :func:`_process` method
+
+    Helper functions:
+        * :func:`get_transport_agents`
+    """
+
+    async def on_start(self):
+        self.logger = logging.getLogger("CoordinatorStrategy")
+        self.logger.debug("Strategy {} started in manager".format(type(self).__name__))
 
     def get_transport_agents(self):
         """

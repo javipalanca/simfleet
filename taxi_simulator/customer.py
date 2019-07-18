@@ -45,7 +45,7 @@ class CustomerAgent(Agent):
             logger.error("EXCEPTION creating TravelBehaviour in Customer {}: {}".format(self.agent_id, e))
 
     def add_strategy(self, strategy_class):
-        """
+        """import json
         Sets the strategy for the customer agent.
 
         Args:
@@ -232,7 +232,7 @@ class TravelBehaviour(CyclicBehaviour):
                 status = content["status"]
                 if status != CUSTOMER_LOCATION:
                     logger.debug("Customer {} informed of status: {}".format(self.agent.name,
-                                                                              status_to_str(status)))
+                                                                             status_to_str(status)))
                 if status == TRANSPORT_MOVING_TO_CUSTOMER:
                     logger.info("Customer {} waiting for transport.".format(self.agent.name))
                     self.agent.waiting_for_pickup_time = time.time()

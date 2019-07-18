@@ -3,10 +3,11 @@ import json
 from .fleetmanager import CoordinatorStrategyBehaviour
 from .customer import PassengerStrategyBehaviour
 from .transport import TaxiStrategyBehaviour
+from .secretary import SecretaryStrategyBehaviour
 from .utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, CUSTOMER_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, \
     CUSTOMER_ASSIGNED
 from .protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
-    CANCEL_PERFORMATIVE, REGISTER_PROTOCOL, DEREGISTER_PROTOCOL
+    CANCEL_PERFORMATIVE
 from .helpers import PathRequestException
 
 
@@ -23,17 +24,6 @@ class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
     async def run(self):
         msg = await self.receive(timeout=5)
         self.logger.debug("Manager received message: {}".format(msg))
-        if not msg:
-            return
-        performative = msg.get_metadata("performative")
-        if performative == REGISTER_PROTOCOL:
-            content = json.loads(msg.body)
-            self.add_transport(content)
-            return
-        elif performative == DEREGISTER_PROTOCOL:
-            name = msg.body
-            self.get_out_transport(name)
-            return
         if msg:
             for transport in self.get_transport_agents().values():
                 msg.to = str(transport["jid"])
@@ -63,7 +53,7 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
         performative = msg.get_metadata("performative")
 
         self.logger.debug("Transport {} received request protocol from customer {}.".format(self.agent.name,
-                                                                                        content["customer_id"]))
+                                                                                            content["customer_id"]))
         if performative == REQUEST_PERFORMATIVE:
             if self.agent.status == TRANSPORT_WAITING:
                 await self.send_proposal(content["customer_id"], {})
@@ -128,3 +118,22 @@ class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
                     self.logger.warning("Customer {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
                     self.agent.status = CUSTOMER_WAITING
 
+
+################################################################
+#                                                              #
+#                       Secretary Strategy                     #
+#                                                              #
+################################################################
+class AlwaysAnswerStrategyBehaviour(SecretaryStrategyBehaviour):
+    """
+    The default strategy for the Secretary agent. By default it answer the first message it receives.
+    """
+    async def run(self):
+        msg = await self.receive(timeout=5)
+        if msg:
+            performative = msg.get_metadata("performative")
+            sender = msg.sender
+            if performative == PROPOSE_PERFORMATIVE:
+                content = json.loads(msg.body)
+                self.add_manager(content)
+                return

@@ -32,6 +32,8 @@ class CustomerAgent(Agent):
         self.end_time = None
         self.stopped = False
 
+        self.secretary_id = None
+
     async def setup(self):
         try:
             template = Template()
@@ -80,6 +82,16 @@ class CustomerAgent(Agent):
 
         """
         self.route_id = route_id
+
+    def set_secretary(self, secretary_id):
+        """
+        Sets the secretary JID address
+        Args:
+            secretary_id (str): the SecretaryAgent jid
+
+        """
+        logger.debug("Asignacion del id de SecretaryAgent: {}".format(secretary_id))
+        self.secretary_id = secretary_id
 
     async def set_position(self, coords=None):
         """

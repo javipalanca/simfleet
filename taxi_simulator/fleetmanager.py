@@ -9,6 +9,8 @@ from spade.template import Template
 from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 
+from itertools import cycle
+
 from .utils import StrategyBehaviour
 from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
 
@@ -28,6 +30,9 @@ class FleetManagerAgent(Agent):
         self.fleetName = None
         self.quantityFloat = None
         self.agent_id = None
+        self.type = None
+        self.registration = False
+        self.secretary_id = None
 
         self.stopped = False
         self.clear_agents()
@@ -44,7 +49,7 @@ class FleetManagerAgent(Agent):
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)
-            register_behaviour = RegisterBehaviour()
+            register_behaviour = TaxiRegistrationForFleetBehaviour()
             self.add_behaviour(register_behaviour, template)
             while not self.has_behaviour(register_behaviour):
                 logger.warning("Manager {} could not create RegisterBehaviour. Retrying...".format(self.agent_id))
@@ -72,8 +77,37 @@ class FleetManagerAgent(Agent):
         template.set_metadata("protocol", REQUEST_PROTOCOL)
         self.add_behaviour(strategy_class(), template)
 
+    def types_generator(self):
+        """
+        Create a generator of the jid of the FleetManagerAgent created
 
-class RegisterBehaviour(CyclicBehaviour):
+        Returns:
+            generator: the jid of the FleetManagerAgent's
+        """
+        for type in cycle(["taxi", "merchandiseTransports"]):
+            yield str(type)
+
+    def set_registration(self, status):
+        """
+        Sets the status of registration
+        Args:
+            status (boolean): True if the transport agent has registered or False if not
+
+        """
+        self.registration = status
+
+    def set_secretary(self, secretary_id):
+        """
+        Sets the secretary JID address
+        Args:
+            secretary_id (str): the SecretaryAgent jid
+
+        """
+        logger.debug("Asignacion del id de SecretaryAgent: {}".format(secretary_id))
+        self.secretary_id = secretary_id
+
+
+class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
 
     async def on_start(self):
         self.logger = logging.getLogger("RegisterStrategy")
@@ -89,7 +123,7 @@ class RegisterBehaviour(CyclicBehaviour):
         self.get("transport_agents")[agent["name"]] = agent
         logger.info("Registration in the fleet {}".format(self.agent.fleetName))
 
-    def get_out_transport(self, key):
+    def remove_transport(self, key):
         """
         Erase a ``TransportAgent`` to the store.
 
@@ -111,7 +145,7 @@ class RegisterBehaviour(CyclicBehaviour):
                 if performative == PROPOSE_PERFORMATIVE:
                     self.add_transport(content)
                 elif performative == CANCEL_PERFORMATIVE:
-                    self.get_out_transport(content["name"])
+                    self.remove_transport(content["name"])
                     logger.debug("No registration in the fleet {}".format(self.agent.fleetName))
         except Exception as e:
             logger.error("EXCEPTION in Register Behaviour of Manager {}: {}".format(self.agent.name, e))
@@ -138,6 +172,25 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
             list: a list of ``TransportAgent``
         """
         return self.get("transport_agents")
+
+    def send_registration(self):
+        """
+        Send a ``spade.message.Message`` with a proposal to secretary to register.
+        """
+        logger.debug(
+            "Manager {} sent proposal to register to secretary {}".format(self.agent.name, self.agent.secretary_id))
+        content = {
+            "name": self.agent.name,
+            "type": self.agent.type,
+            "services": self.get_transport_agents()
+        }
+        msg = Message()
+        msg.to = str(self.agent.secretary_id)
+        msg.set_metadata("protocol", REGISTER_PROTOCOL)
+        msg.set_metadata("performative", PROPOSE_PERFORMATIVE)
+        msg.body = json.dumps(content)
+        self.send(msg)
+        self.agent.set_registration(True)
 
     async def run(self):
         raise NotImplementedError

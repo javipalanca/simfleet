@@ -9,6 +9,7 @@ from .customer import CustomerAgent
 from .transport import TransportAgent
 from .scenario import Scenario
 from .fleetmanager import FleetManagerAgent
+from .secretary import SecretaryAgent
 from .route import RouteAgent
 
 from spade.agent import Agent
@@ -78,7 +79,8 @@ class SimulatorAgent(Agent):
 
         self.host = config.host
 
-        self.fleetmanager_agent = None
+        # self.fleetmanager_agent = None
+        self.secretary_agent = None
 
         self.df_avg = None
         self.customer_df = None
@@ -97,6 +99,7 @@ class SimulatorAgent(Agent):
         self.fleetmanager_strategy = None
         self.transport_strategy = None
         self.customer_strategy = None
+        self.secretary_strategy = None
 
         self.start()
 
@@ -105,13 +108,14 @@ class SimulatorAgent(Agent):
         self.selection = None
         self.manager_generator = None
 
-        self.set_strategies(config.fleetmanager_strategy, config.transport_strategy, config.customer_strategy)
+        self.set_strategies(config.fleetmanager_strategy, config.transport_strategy, config.customer_strategy, "taxi_simulator.strategies.AlwaysAnswerStrategyBehaviour")
 
         self.route_id = "{}@{}".format(config.route_name, self.host)
         self.route_agent = RouteAgent(self.route_id, config.route_password)
         self.route_agent.start()
 
-        logger.info("Creating {} managers, {} transporter and {} customer.".format(config.num_managers, config.num_transport, config.num_customers))
+        logger.info("Creating {} managers, {} transporter, {} customer and {} secretary.".format(config.num_managers, config.num_transport, config.num_customers, 1))
+        self.create_agents_batch(SecretaryAgent, 1)
         self.create_agents_batch(FleetManagerAgent, config.num_managers)
         self.manager_assignment()
 
@@ -159,7 +163,12 @@ class SimulatorAgent(Agent):
         for customer in scenario["customers"]:
             password = customer["password"] if "password" in customer else faker_factory.password()
             self.create_agent(CustomerAgent, customer["name"], password, customer["position"], target=customer["dest"])
-        
+
+    def set_secretary(self, agent):
+        self.secretary_agent = agent
+
+    def get_secretary(self):
+        return self.secretary_agent
 
     def is_simulation_finished(self):
         """
@@ -189,8 +198,6 @@ class SimulatorAgent(Agent):
         self.clear_stopped_agents()
         if not self.simulation_running:
             self.kill_simulator.clear()
-            # if not self.fleetmanager_agent.strategy:
-            # self.fleetmanager_agent.add_strategy(self.fleetmanager_strategy)
             with self.simulation_mutex:
                 for manager in self.manager_agents.values():
                     manager.add_strategy(self.fleetmanager_strategy)
@@ -763,22 +770,30 @@ class SimulatorAgent(Agent):
         jid = f"{name}@{self.jid.domain}"
         agent = cls(jid, password)
         agent.set_id(name)
-        if cls != FleetManagerAgent:
-            if cls == TransportAgent:
-                agent.set_fleetmanager(next(self.manager_generator))
-            else:
-                agent.set_fleetmanager(self.manager_agents.values())
-            agent.set_route_agent(self.route_id)
-            await agent.set_position(position)
+        if cls != SecretaryAgent:
+            if cls != FleetManagerAgent:
+                if cls == TransportAgent:
+                    agent.set_fleetmanager(next(self.manager_generator))
+                else:
+                    agent.set_fleetmanager(self.manager_agents.values())
+                    agent.set_secretary(self.get_secretary()["jid"])
+                agent.set_route_agent(self.route_id)
+                await agent.set_position(position)
 
-            if target:
-                agent.set_target_position(target)
-            if speed:
-                agent.set_speed(speed)
+                if target:
+                    agent.set_target_position(target)
+                if speed:
+                    agent.set_speed(speed)
+            else:
+                print(self.get_secretary()["jid"])
+                agent.set_secretary(self.get_secretary()["jid"])
 
         await agent.start(auto_register=True)
 
-        if cls == FleetManagerAgent:
+        if cls == SecretaryAgent:
+            strategy = self.secretary_strategy
+            self.set_secretary(agent)
+        elif cls == FleetManagerAgent:
             strategy = self.fleetmanager_strategy
             self.add_manager(agent)
         elif cls == TransportAgent:
@@ -843,7 +858,7 @@ class SimulatorAgent(Agent):
         with self.simulation_mutex:
             self.get("customer_agents")[agent.name] = agent
 
-    def set_strategies(self, fleetmanager_strategy, transport_strategy, customer_strategy):
+    def set_strategies(self, fleetmanager_strategy, transport_strategy, customer_strategy, secretary_strategy):
         """
         Gets the strategy strings and loads their classes. This strategies are prepared to be injected into any
         new transport or customer agent.
@@ -856,9 +871,11 @@ class SimulatorAgent(Agent):
         self.fleetmanager_strategy = load_class(fleetmanager_strategy)
         self.transport_strategy = load_class(transport_strategy)
         self.customer_strategy = load_class(customer_strategy)
-        logger.debug("Loaded strategy classes: {}, {} and {}".format(self.fleetmanager_strategy,
-                                                                     self.transport_strategy,
-                                                                     self.customer_strategy))
+        self.secretary_strategy = load_class(secretary_strategy)
+        logger.debug("Loaded strategy classes: {}, {}, {} and {}".format(self.fleetmanager_strategy,
+                                                                         self.transport_strategy,
+                                                                         self.customer_strategy,
+                                                                         self.secretary_strategy))
 
     def get_simulation_time(self):
         """

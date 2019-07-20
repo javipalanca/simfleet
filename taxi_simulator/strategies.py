@@ -131,9 +131,4 @@ class AlwaysAnswerStrategyBehaviour(SecretaryStrategyBehaviour):
     async def run(self):
         msg = await self.receive(timeout=5)
         if msg:
-            performative = msg.get_metadata("performative")
-            sender = msg.sender
-            if performative == PROPOSE_PERFORMATIVE:
-                content = json.loads(msg.body)
-                self.add_manager(content)
-                return
+            pass

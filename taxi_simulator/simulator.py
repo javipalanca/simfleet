@@ -771,12 +771,13 @@ class SimulatorAgent(Agent):
         agent = cls(jid, password)
         agent.set_id(name)
         if cls != SecretaryAgent:
-            if cls != FleetManagerAgent:
+            if cls == FleetManagerAgent:
+                agent.set_secretary(self.get_secretary().jid)
+            else:
                 if cls == TransportAgent:
                     agent.set_fleetmanager(next(self.manager_generator))
                 else:
-                    agent.set_fleetmanager(self.manager_agents.values())
-                    agent.set_secretary(self.get_secretary()["jid"])
+                    agent.set_secretary(self.get_secretary().jid)
                 agent.set_route_agent(self.route_id)
                 await agent.set_position(position)
 
@@ -784,15 +785,14 @@ class SimulatorAgent(Agent):
                     agent.set_target_position(target)
                 if speed:
                     agent.set_speed(speed)
-            else:
-                print(self.get_secretary()["jid"])
-                agent.set_secretary(self.get_secretary()["jid"])
+        else:
+            self.set_secretary(agent)
 
         await agent.start(auto_register=True)
 
         if cls == SecretaryAgent:
             strategy = self.secretary_strategy
-            self.set_secretary(agent)
+            agent.add_strategy(strategy)
         elif cls == FleetManagerAgent:
             strategy = self.fleetmanager_strategy
             self.add_manager(agent)
@@ -872,7 +872,7 @@ class SimulatorAgent(Agent):
         self.transport_strategy = load_class(transport_strategy)
         self.customer_strategy = load_class(customer_strategy)
         self.secretary_strategy = load_class(secretary_strategy)
-        logger.debug("Loaded strategy classes: {}, {}, {} and {}".format(self.fleetmanager_strategy,
+        logger.info("Loaded strategy classes: {}, {}, {} and {}".format(self.fleetmanager_strategy,
                                                                          self.transport_strategy,
                                                                          self.customer_strategy,
                                                                          self.secretary_strategy))

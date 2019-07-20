@@ -33,6 +33,7 @@ class CustomerAgent(Agent):
         self.stopped = False
 
         self.secretary_id = None
+        self.type_service = "Taxi"
 
     async def setup(self):
         try:
@@ -283,6 +284,18 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
         self.logger.debug("Strategy {} started in customer {}".format(type(self).__name__, self.agent.name))
         self.agent.init_time = time.time()
 
+    async def send_get_managers(self, content=None):
+
+        if content is None or len(content) == 0:
+            content = self.agent.type_service
+        msg = Message()
+        msg.to = str(self.agent.secretary_id)
+        msg.set_metadata("protocol", REQUEST_PROTOCOL)
+        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+        msg.body = content
+        await self.send(msg)
+        self.logger.info("Customer {} asked for a managers to {} for type {}.".format(self.agent.name, self.agent.secretary_id, self.agent.type_service))
+
     async def send_request(self, content=None):
         """
         Sends an ``spade.message.Message`` to the fleetmanager to request a transport.
@@ -303,7 +316,7 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
             self.agent.dest = random_position()
         for fleetmanager in self.agent.fleetmanagers: # Send a message to all FleetManager
             msg = Message()
-            msg.to = str(fleetmanager.jid)
+            msg.to = str(fleetmanager)
             msg.set_metadata("protocol", REQUEST_PROTOCOL)
             msg.set_metadata("performative", REQUEST_PERFORMATIVE)
             msg.body = json.dumps(content)

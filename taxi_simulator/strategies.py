@@ -7,7 +7,7 @@ from .secretary import SecretaryStrategyBehaviour
 from .utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, CUSTOMER_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, \
     CUSTOMER_ASSIGNED
 from .protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
-    CANCEL_PERFORMATIVE
+    CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
 from .helpers import PathRequestException
 
 
@@ -22,6 +22,9 @@ class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
     """
 
     async def run(self):
+        if not self.agent.registration:
+            await self.send_registration()
+
         msg = await self.receive(timeout=5)
         self.logger.debug("Manager received message: {}".format(msg))
         if msg:
@@ -96,6 +99,16 @@ class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
     """
 
     async def run(self):
+        if self.agent.fleetmanagers is None:
+            await self.send_get_managers(content="")
+
+            msg = await self.receive(timeout=5)
+            if msg:
+                performative = msg.get_metadata("performative")
+                if performative == INFORM_PERFORMATIVE:
+                    self.agent.fleetmanagers = json.loads(msg.body)
+                    return
+
         if self.agent.status == CUSTOMER_WAITING:
             await self.send_request(content={})
 
@@ -131,4 +144,9 @@ class AlwaysAnswerStrategyBehaviour(SecretaryStrategyBehaviour):
     async def run(self):
         msg = await self.receive(timeout=5)
         if msg:
-            pass
+            performative = msg.get_metadata("performative")
+            customer_id = msg.sender
+            if performative == REQUEST_PERFORMATIVE:
+                self.logger.debug("Secretary {} received message from customer {}".format(self.agent.name,
+                                                                                          customer_id))
+                await self.send_services(customer_id, msg.body)

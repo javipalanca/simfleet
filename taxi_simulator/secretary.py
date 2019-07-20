@@ -6,12 +6,12 @@ from spade.template import Template
 from spade.message import Message
 
 from .utils import StrategyBehaviour, CyclicBehaviour
-from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE
+from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, INFORM_PERFORMATIVE
 
 logger = logging.getLogger("StrategyAgent")
 
-class SecretaryAgent(Agent):
 
+class SecretaryAgent(Agent):
     def __init__(self, agentjid, password):
         super().__init__(jid=agentjid, password=password)
         self.strategy = None
@@ -42,46 +42,54 @@ class SecretaryAgent(Agent):
 
     async def setup(self):
         logger.info("Secretary agent running")
-        logger.info("Agent id: {}".format(self.agent_id))
+        try:
+            template = Template()
+            template.set_metadata("protocol", REGISTER_PROTOCOL)
+            register_behaviour = RegistrationBehaviour()
+            self.add_behaviour(register_behaviour, template)
+            while not self.has_behaviour(register_behaviour):
+                logger.warning("Secretary {} could not create RegisterBehaviour. Retrying...".format(self.agent_id))
+                self.add_behaviour(register_behaviour, template)
+        except Exception as e:
+            logger.error("EXCEPTION creating RegisterBehaviour in Secretary {}: {}".format(self.agent_id, e))
 
 
-class ManagerRegistrationBehaviour(CyclicBehaviour):
+class RegistrationBehaviour(CyclicBehaviour):
 
     async def on_start(self):
         self.logger = logging.getLogger("SecretaryRegistrationStrategy")
         self.logger.debug("Strategy {} started in secretary".format(type(self).__name__))
 
-    def add_manager_service(self, agent):
+    def add_service(self, agent):
         """
         Adds a new ``FleetManagerAgent`` to the store.
 
         Args:
             agent (``FleetManagerAgent``): the instance of the FleetManagerAgent to be added
         """
-        # with self.simulation_mutex:
-        self.get("manager_agents")[agent["type"]] = agent
+        service = self.get("manager_agents")
+        if agent["type"] in service:
+            service[agent["type"]].append(agent["jid"])
+        else:
+            service[agent["type"]] = [agent["jid"]]
 
-    def remove_manager_service(self, key, agent):
+    def remove_service(self, type, agent):
         """
         Erase a ``FleetManagerAgent`` to the store.
 
         Args:
             agent (``FleetManagerAgent``): the instance of the FleetManagerAgent to be erased
         """
-        del (self.get("manager_agents")[key][agent])
-        self.logger.debug("Deregistration of the TransporterAgent {}".format(key))
+        del (self.get("manager_agents")[type][agent])
+        self.logger.debug("Deregistration of the Manager {} for service {}".format(agent, type))
 
     async def run(self):
         try:
             msg = await self.receive(timeout=5)
             if msg:
-                performative = msg.get_metadata("performative")
                 content = json.loads(msg.body)
-                if performative == PROPOSE_PERFORMATIVE:
-                    self.add_manager_service(content)
-                elif performative == CANCEL_PERFORMATIVE:
-                    self.remove_manager_service(content["name"])
-                    logger.debug("No registration in the dictionary {}".format(self.agent.fleetName))
+                self.add_service(content)
+                logger.info("Registration in the dictionary {}".format(self.agent.name))
         except Exception as e:
             logger.error("EXCEPTION in Secretary Register Behaviour of Manager {}: {}".format(self.agent.name, e))
 
@@ -98,6 +106,15 @@ class SecretaryStrategyBehaviour(StrategyBehaviour):
     async def on_start(self):
         self.logger = logging.getLogger("SecretaryStrategy")
         self.logger.debug("Strategy {} started in secretary".format(type(self).__name__))
+
+    async def send_services(self, customer_id, type):
+        reply = Message()
+        reply.to = str(customer_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", INFORM_PERFORMATIVE)
+        reply.body = json.dumps(self.get("manager_agents")[type])
+        print(self.get("manager_agents")[type])
+        await self.send(reply)
 
     async def run(self):
         raise NotImplementedError

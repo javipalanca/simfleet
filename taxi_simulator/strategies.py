@@ -108,6 +108,9 @@ class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
                 if performative == INFORM_PERFORMATIVE:
                     self.agent.fleetmanagers = json.loads(msg.body)
                     return
+                elif performative == CANCEL_PERFORMATIVE:
+                    self.logger.info("Cancelacion de solicitud de informacion de transporte de tipo {}".format(self.agent.type_service))
+                    return
 
         if self.agent.status == CUSTOMER_WAITING:
             await self.send_request(content={})
@@ -146,7 +149,11 @@ class AlwaysAnswerStrategyBehaviour(SecretaryStrategyBehaviour):
         if msg:
             performative = msg.get_metadata("performative")
             customer_id = msg.sender
+            request = msg.body
             if performative == REQUEST_PERFORMATIVE:
                 self.logger.debug("Secretary {} received message from customer {}".format(self.agent.name,
                                                                                           customer_id))
-                await self.send_services(customer_id, msg.body)
+                if request in self.get("manager_agents"):
+                    await self.send_services(customer_id, msg.body)
+                else:
+                    await self.send_negative(customer_id)

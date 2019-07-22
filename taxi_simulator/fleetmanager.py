@@ -26,9 +26,9 @@ class FleetManagerAgent(Agent):
         super().__init__(jid=agentjid, password=password)
         self.strategy = None
         self.fleetName = None
-        self.quantityFloat = None
+        self.quantityFleet = 0
         self.agent_id = None
-        self.type = "Taxi"
+        self.type = None
         self.registration = False
         self.secretary_id = None
 
@@ -94,6 +94,9 @@ class FleetManagerAgent(Agent):
         logger.debug("Asignacion del id de SecretaryAgent: {}".format(secretary_id))
         self.secretary_id = secretary_id
 
+    def set_type(self, type):
+        self.type = type
+
 
 class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
 
@@ -108,6 +111,7 @@ class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
         Args:
             agent (``TransportAgent``): the instance of the TransportAgent to be added
         """
+        self.agent.quantityFleet += 1
         self.get("transport_agents")[agent["name"]] = agent
 
     def remove_transport(self, key):

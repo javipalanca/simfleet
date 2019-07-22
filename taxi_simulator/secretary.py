@@ -6,7 +6,7 @@ from spade.template import Template
 from spade.message import Message
 
 from .utils import StrategyBehaviour, CyclicBehaviour
-from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, INFORM_PERFORMATIVE
+from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, INFORM_PERFORMATIVE, CANCEL_PERFORMATIVE
 
 logger = logging.getLogger("StrategyAgent")
 
@@ -72,6 +72,7 @@ class RegistrationBehaviour(CyclicBehaviour):
             service[agent["type"]].append(agent["jid"])
         else:
             service[agent["type"]] = [agent["jid"]]
+        print(service)
 
     def remove_service(self, type, agent):
         """
@@ -114,6 +115,13 @@ class SecretaryStrategyBehaviour(StrategyBehaviour):
         reply.set_metadata("performative", INFORM_PERFORMATIVE)
         reply.body = json.dumps(self.get("manager_agents")[type])
         print(self.get("manager_agents")[type])
+        await self.send(reply)
+
+    async def send_negative(self, customer_id):
+        reply = Message()
+        reply.to = str(customer_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         await self.send(reply)
 
     async def run(self):

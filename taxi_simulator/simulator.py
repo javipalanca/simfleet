@@ -85,6 +85,7 @@ class SimulatorAgent(Agent):
         self.df_avg = None
         self.customer_df = None
         self.transport_df = None
+        self.manager_df = None
 
         self.simulation_mutex = threading.Lock()
         self.simulation_running = False
@@ -101,6 +102,9 @@ class SimulatorAgent(Agent):
         self.customer_strategy = None
         self.secretary_strategy = None
 
+        self.manager_types = ["Taxi", "Trucking", "Foodtransport"]
+        self.type_generator = None
+
         self.start()
 
         logger.info("Starting SimFleet {}".format(self.pretty_name))
@@ -115,6 +119,7 @@ class SimulatorAgent(Agent):
         self.route_agent.start()
 
         logger.info("Creating {} managers, {} transporter, {} customer and {} secretary.".format(config.num_managers, config.num_transport, config.num_customers, 1))
+        self.types_assignment()
         self.create_agents_batch(SecretaryAgent, 1)
         self.create_agents_batch(FleetManagerAgent, config.num_managers)
         self.manager_assignment()
@@ -237,7 +242,7 @@ class SimulatorAgent(Agent):
         Collects stats from all participant agents and from the simulation and stores it in three dataframes.
         """
 
-        df_avg, self.transport_df, self.customer_df = self.get_stats_dataframes()
+        df_avg, self.transport_df, self.customer_df, self.manager_df = self.get_stats_dataframes()
 
         columns = []
         if self.config.simulation_name:
@@ -270,6 +275,8 @@ class SimulatorAgent(Agent):
 
         print("Simulation Results")
         print(tabulate(self.df_avg, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print("Manager stats")
+        print(tabulate(self.manager_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
         print("Customer stats")
         print(tabulate(self.customer_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
         print("Taxi stats")
@@ -299,6 +306,7 @@ class SimulatorAgent(Agent):
         """
         data = {
             "simulation": json.loads(self.df_avg.to_json(orient="index"))["0"],
+            "managers": json.loads(self.manager_df.to_json(orient="index")),
             "customers": json.loads(self.customer_df.to_json(orient="index")),
             "transports": json.loads(self.transport_df.to_json(orient="index"))
         }
@@ -316,6 +324,7 @@ class SimulatorAgent(Agent):
         """
         writer = pd.ExcelWriter(filename)
         self.df_avg.to_excel(writer, 'Simulation')
+        self.manager_df.to_excel(writer, 'Managers')
         self.customer_df.to_excel(writer, 'Passengers')
         self.transport_df.to_excel(writer, 'Taxis')
         writer.save()
@@ -679,6 +688,24 @@ class SimulatorAgent(Agent):
                 agent.stop()
                 agent.stopped = True
 
+    def get_manager_stats(self):
+        """
+        Creates a dataframe with the simulation stats of the customers
+        The dataframe includes for each customer its name, waiting time, total time and status.
+
+        Returns:
+            ``pandas.DataFrame``: the dataframe with the customers stats.
+        """
+        try:
+            names, fleetnames, quantitys, types = zip(*[(p.name, p.fleetName,
+                                                       p.quantityFleet, p.type)
+                                                      for p in self.manager_agents.values()])
+        except ValueError:
+            names, fleetnames, quantitys, types = [], [], [], []
+
+        df = pd.DataFrame.from_dict({"name": names, "fleet_name": fleetnames, "quantity_fleet": quantitys, "type": types})
+        return df
+
     def get_customer_stats(self):
         """
         Creates a dataframe with the simulation stats of the customers
@@ -726,6 +753,8 @@ class SimulatorAgent(Agent):
         Returns:
             pandas.Dataframe, pandas.Dataframe, pandas.Dataframe: avg df, transport df and customer df
         """
+        manager_df = self.get_manager_stats()
+        manager_df = manager_df[["name", "fleet_name", "quantity_fleet", "type"]]
         customer_df = self.get_customer_stats()
         customer_df = customer_df[["name", "waiting_time", "total_time", "status"]]
         transport_df = self.get_transport_stats()
@@ -739,7 +768,7 @@ class SimulatorAgent(Agent):
         columns = ["Avg Waiting Time", "Avg Total Time", "Simulation Time", "Simulation Finished"]
         df_avg = df_avg[columns]
 
-        return df_avg, transport_df, customer_df
+        return df_avg, transport_df, customer_df, manager_df
 
     def create_agent(self, cls, name, password, position, target=None, speed=None):
         """
@@ -773,6 +802,7 @@ class SimulatorAgent(Agent):
         if cls != SecretaryAgent:
             if cls == FleetManagerAgent:
                 agent.set_secretary(self.get_secretary().jid)
+                agent.set_type(next(self.type_generator))
             else:
                 if cls == TransportAgent:
                     agent.set_fleetmanager(next(self.manager_generator))
@@ -872,7 +902,7 @@ class SimulatorAgent(Agent):
         self.transport_strategy = load_class(transport_strategy)
         self.customer_strategy = load_class(customer_strategy)
         self.secretary_strategy = load_class(secretary_strategy)
-        logger.info("Loaded strategy classes: {}, {}, {} and {}".format(self.fleetmanager_strategy,
+        logger.debug("Loaded strategy classes: {}, {}, {} and {}".format(self.fleetmanager_strategy,
                                                                          self.transport_strategy,
                                                                          self.customer_strategy,
                                                                          self.secretary_strategy))
@@ -921,4 +951,16 @@ class SimulatorAgent(Agent):
         """
         for manager in cycle(self.manager_agents.values()):
             yield str(manager.jid)
+
+    def types_assignment(self):
+        """
+        assigns a generator to the manager_generator variable for the TransportAgent's record
+        """
+        if not self.types_generator():
+            self.type_generator = None
+        self.type_generator = self.types_generator()
+
+    def types_generator(self):
+        for type in cycle(self.manager_types):
+            yield str(type)
 

@@ -24,10 +24,15 @@ logger = logging.getLogger()
               help="Passenger strategy class (default: AcceptFirstRequestTaxiBehaviour).")
 @click.option('-c', '--fleetmanager', default="taxi_simulator.strategies.DelegateRequestTaxiBehaviour",
               help="fleetmanager strategy class (default: DelegateRequestTaxiBehaviour).")
+@click.option('-s','--secretary', default="taxi_simulator.strategies.AlwaysAnswerStrategyBehaviour",
+              help="secretary strategy class (default: AlwaysAnswerStrategyBehaviou).")
+@click.option('-st','--station', default="taxi_simulator.strategies.ManageChargeSpacesBehaviour",
+              help="station strategy class (default: ManageChargeSpacesBehaviour).")
 @click.option('--port', default=9000, help="Web interface port (default: 9000).")
 @click.option('-nt', '--num-transports', default=0, help="Number of initial transports to create (default: 0).")
 @click.option('-np', '--num-customers', default=0, help="Number of initial customers to create (default: 0).")
 @click.option('-nm', '--num-managers', default=3, help="Number of initial managers to create (default: 3)")
+@click.option('-nst', '--num-stations', default=3, help="Number of initial station to create (default: 3)")
 @click.option('--scenario', help="Filename of JSON file with initial scenario description.")
 @click.option('-cn', '--fleetmanager-name', default="fleetmanager",
               help="fleetmanager agent name (default: fleetmanager).")
@@ -41,8 +46,8 @@ logger = logging.getLogger()
 @click.option('-ip', '--ip-address', default="127.0.0.1", help="IP to serve web (default: 127.0.0.1).")
 @click.option('-v', '--verbose', count=True,
               help="Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4")
-def main(name, output, oformat, max_time, autorun, transport, customer, fleetmanager, port, num_transports, num_customers,
-         num_managers, scenario, fleetmanager_name, coord_passwd, route_name, route_passwd, host, ip_address, verbose):
+def main(name, output, oformat, max_time, autorun, transport, customer, fleetmanager, secretary, station, port, num_transports, num_customers,
+         num_managers, num_stations, scenario, fleetmanager_name, coord_passwd, route_name, route_passwd, host, ip_address, verbose):
     """
     Console script for SimFleet.
     """
@@ -69,10 +74,13 @@ def main(name, output, oformat, max_time, autorun, transport, customer, fleetman
     config.transport_strategy = transport
     config.customer_strategy = customer
     config.fleetmanager_strategy = fleetmanager
+    config.secretary_strategy = secretary
+    config.station_strategy = station
     config.scenario = scenario
     config.num_transport = num_transports
     config.num_customers = num_customers
     config.num_managers = num_managers
+    config.num_stations = num_stations
     config.http_port = port
     config.fleetmanager_name = fleetmanager_name
     config.fleetmanager_password = coord_passwd

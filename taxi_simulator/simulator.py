@@ -11,6 +11,7 @@ from .scenario import Scenario
 from .fleetmanager import FleetManagerAgent
 from .secretary import SecretaryAgent
 from .route import RouteAgent
+from.station import StationAgent
 
 from spade.agent import Agent
 from .helpers import random_position
@@ -43,10 +44,14 @@ class SimulationConfig(object):
         self.transport_strategy = None
         self.customer_strategy = None
         self.fleetmanager_strategy = None
+        self.secretary_strategy = None
+        self.station_strategy = None
         self.scenario = None
         self.num_transport = None
         self.num_customers = None
         self.num_managers = None
+        self.num_secretary = 1
+        self.num_stations = None
         self.http_port = None
         self.ip_address = None
         self.fleetmanager_name = None
@@ -79,13 +84,13 @@ class SimulatorAgent(Agent):
 
         self.host = config.host
 
-        # self.fleetmanager_agent = None
         self.secretary_agent = None
 
         self.df_avg = None
         self.customer_df = None
         self.transport_df = None
         self.manager_df = None
+        self.station_df = None
 
         self.simulation_mutex = threading.Lock()
         self.simulation_running = False
@@ -101,6 +106,7 @@ class SimulatorAgent(Agent):
         self.transport_strategy = None
         self.customer_strategy = None
         self.secretary_strategy = None
+        self.station_strategy = None
 
         self.manager_types = ["Taxi", "Trucking", "Foodtransport"]
         self.type_generator = None
@@ -112,20 +118,23 @@ class SimulatorAgent(Agent):
         self.selection = None
         self.manager_generator = None
 
-        self.set_strategies(config.fleetmanager_strategy, config.transport_strategy, config.customer_strategy, "taxi_simulator.strategies.AlwaysAnswerStrategyBehaviour")
+        self.set_strategies(config.fleetmanager_strategy, config.transport_strategy, config.customer_strategy,
+                            config.secretary_strategy, config.station_strategy)
 
         self.route_id = "{}@{}".format(config.route_name, self.host)
         self.route_agent = RouteAgent(self.route_id, config.route_password)
         self.route_agent.start()
 
-        logger.info("Creating {} managers, {} transporter, {} customer and {} secretary.".format(config.num_managers, config.num_transport, config.num_customers, 1))
+        logger.info("Creating {} managers, {} transporter, {} customer and {} secretary.".format(config.num_managers, config.num_transport, config.num_customers,
+                                                                                                 config.num_secretary, config.num_stations))
         self.types_assignment()
-        self.create_agents_batch(SecretaryAgent, 1)
+        self.create_agents_batch(SecretaryAgent, config.num_secretary)
         self.create_agents_batch(FleetManagerAgent, config.num_managers)
         self.manager_assignment()
 
         self.create_agents_batch(TransportAgent, config.num_transport)
         self.create_agents_batch(CustomerAgent, config.num_customers)
+        self.create_agents_batch(StationAgent, config.num_stations)
 
         if config.scenario:
             _scenario = Scenario(config.scenario)
@@ -242,7 +251,7 @@ class SimulatorAgent(Agent):
         Collects stats from all participant agents and from the simulation and stores it in three dataframes.
         """
 
-        df_avg, self.transport_df, self.customer_df, self.manager_df = self.get_stats_dataframes()
+        df_avg, self.transport_df, self.customer_df, self.manager_df, self.station_df = self.get_stats_dataframes()
 
         columns = []
         if self.config.simulation_name:
@@ -281,6 +290,8 @@ class SimulatorAgent(Agent):
         print(tabulate(self.customer_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
         print("Taxi stats")
         print(tabulate(self.transport_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print("Station stats")
+        print(tabulate(self.station_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
 
     def write_file(self, filename, fileformat="json"):
         """
@@ -360,6 +371,16 @@ class SimulatorAgent(Agent):
             dict: a dict of ``CustomerAgent`` with the name in the key
         """
         return self.get("customer_agents")
+
+    @property
+    def station_agents(self):
+        """
+        Gets the dict of registered customers
+
+        Returns:
+            dict: a dict of ``StationAgent`` with the name in the key
+        """
+        return self.get("station_agents")
 
     async def index_controller(self, request):
         """
@@ -443,22 +464,9 @@ class SimulatorAgent(Agent):
             "passengers": [customer.to_json() for customer in self.customer_agents.values()],
             "tree": self.generate_tree(),
             "stats": self.get_stats(),
-            "stations": self.get_stations()
+            "stations": [station.to_json() for station in self.station_agents.values()]
         }
         return result
-
-    def get_stations(self):
-        """
-        Generates the stations in JSON format to be showed in the map.
-
-        Returns:
-            dict: a dict with all the stations
-        """
-        stations = [
-            {'id': 'Station1', 'position': [39.461327, -0.361839], 'status': 'FREE'},
-            {'id': 'Station2', 'position': [39.456183, -0.355816], 'status': 'FREE'}
-        ]
-        return stations
 
     def generate_tree(self):
         """
@@ -647,6 +655,7 @@ class SimulatorAgent(Agent):
         self.set("manager_agents", {})
         self.set("transport_agents", {})
         self.set("customer_agents", {})
+        self.set("station_agents", {})
         self.simulation_time = None
         self.simulation_init_time = None
 
@@ -745,6 +754,24 @@ class SimulatorAgent(Agent):
                                      "status": statuses})
         return df
 
+    def get_station_stats(self):
+        """
+        Creates a dataframe with the simulation stats of the customers
+        The dataframe includes for each customer its name, waiting time, total time and status.
+
+        Returns:
+            ``pandas.DataFrame``: the dataframe with the customers stats.
+        """
+        try:
+            names, status, places, charge_time = zip(*[(p.name, p.status,
+                                                       p.places_available, p.charge_time)
+                                                      for p in self.station_agents.values()])
+        except ValueError:
+            names, status, places, charge_time = [], [], [], []
+
+        df = pd.DataFrame.from_dict({"name": names, "status": status, "places_available": places, "charge_time": charge_time})
+        return df
+
     def get_stats_dataframes(self):
         """
         Collects simulation stats and returns 3 dataframes with the information:
@@ -759,6 +786,8 @@ class SimulatorAgent(Agent):
         customer_df = customer_df[["name", "waiting_time", "total_time", "status"]]
         transport_df = self.get_transport_stats()
         transport_df = transport_df[["name", "assignments", "distance", "status"]]
+        station_df = self.get_station_stats()
+        station_df = station_df[["name", "status", "places_available", "charge_time"]]
         stats = self.get_stats()
         df_avg = pd.DataFrame.from_dict({"Avg Waiting Time": [stats["waiting"]],
                                          "Avg Total Time": [stats["totaltime"]],
@@ -768,7 +797,7 @@ class SimulatorAgent(Agent):
         columns = ["Avg Waiting Time", "Avg Total Time", "Simulation Time", "Simulation Finished"]
         df_avg = df_avg[columns]
 
-        return df_avg, transport_df, customer_df, manager_df
+        return df_avg, transport_df, customer_df, manager_df, station_df
 
     def create_agent(self, cls, name, password, position, target=None, speed=None):
         """
@@ -808,7 +837,8 @@ class SimulatorAgent(Agent):
                     agent.set_fleetmanager(next(self.manager_generator))
                 else:
                     agent.set_secretary(self.get_secretary().jid)
-                agent.set_route_agent(self.route_id)
+                if cls != StationAgent:
+                    agent.set_route_agent(self.route_id)
                 await agent.set_position(position)
 
                 if target:
@@ -829,9 +859,12 @@ class SimulatorAgent(Agent):
         elif cls == TransportAgent:
             strategy = self.transport_strategy
             self.add_transport(agent)
-        else:  # cls == CustomerAgent:
+        elif cls == CustomerAgent:
             strategy = self.customer_strategy
             self.add_customer(agent)
+        else: # cls == StationAgent
+            strategy = self.station_strategy
+            self.add_station(agent)
 
         if self.simulation_running:
             agent.add_strategy(strategy)
@@ -888,7 +921,17 @@ class SimulatorAgent(Agent):
         with self.simulation_mutex:
             self.get("customer_agents")[agent.name] = agent
 
-    def set_strategies(self, fleetmanager_strategy, transport_strategy, customer_strategy, secretary_strategy):
+    def add_station(self, agent):
+        """
+        Adds a new :class:`StationAgent` to the store.
+
+        Args:
+            agent (``StationAgent``): the instance of the StationAgent to be added
+        """
+        with self.simulation_mutex:
+            self.get("station_agents")[agent.name] = agent
+
+    def set_strategies(self, fleetmanager_strategy, transport_strategy, customer_strategy, secretary_strategy, station_strategy):
         """
         Gets the strategy strings and loads their classes. This strategies are prepared to be injected into any
         new transport or customer agent.
@@ -902,10 +945,12 @@ class SimulatorAgent(Agent):
         self.transport_strategy = load_class(transport_strategy)
         self.customer_strategy = load_class(customer_strategy)
         self.secretary_strategy = load_class(secretary_strategy)
-        logger.debug("Loaded strategy classes: {}, {}, {} and {}".format(self.fleetmanager_strategy,
+        self.station_strategy = load_class(station_strategy)
+        logger.debug("Loaded strategy classes: {}, {}, {}, {} and {}".format(self.fleetmanager_strategy,
                                                                          self.transport_strategy,
                                                                          self.customer_strategy,
-                                                                         self.secretary_strategy))
+                                                                         self.secretary_strategy,
+                                                                         self.station_strategy))
 
     def get_simulation_time(self):
         """

@@ -6,7 +6,7 @@ from spade.template import Template
 from spade.message import Message
 
 from .utils import StrategyBehaviour, CyclicBehaviour
-from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, INFORM_PERFORMATIVE, CANCEL_PERFORMATIVE
+from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, INFORM_PERFORMATIVE, ACCEPT_PERFORMATIVE, CANCEL_PERFORMATIVE, REQUEST_PERFORMATIVE
 
 logger = logging.getLogger("StrategyAgent")
 
@@ -72,7 +72,7 @@ class RegistrationBehaviour(CyclicBehaviour):
             service[agent["type"]].append(agent["jid"])
         else:
             service[agent["type"]] = [agent["jid"]]
-        print(service)
+        print("Arbol de servicios: ", service)
 
     def remove_service(self, type, agent):
         """
@@ -84,13 +84,24 @@ class RegistrationBehaviour(CyclicBehaviour):
         del (self.get("manager_agents")[type][agent])
         self.logger.debug("Deregistration of the Manager {} for service {}".format(agent, type))
 
+    async def send_confirmation(self, agent_id):
+        reply = Message()
+        reply.to = str(agent_id)
+        reply.set_metadata("protocol", REGISTER_PROTOCOL)
+        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+        await self.send(reply)
+
     async def run(self):
         try:
             msg = await self.receive(timeout=5)
             if msg:
-                content = json.loads(msg.body)
-                self.add_service(content)
-                logger.info("Registration in the dictionary {}".format(self.agent.name))
+                agent_id = msg.sender
+                performative = msg.get_metadata("performative")
+                if performative == REQUEST_PERFORMATIVE:
+                    content = json.loads(msg.body)
+                    self.add_service(content)
+                    logger.info("Registration in the dictionary {}".format(self.agent.name))
+                    await self.send_confirmation(agent_id)
         except Exception as e:
             logger.error("EXCEPTION in Secretary Register Behaviour of Manager {}: {}".format(self.agent.name, e))
 

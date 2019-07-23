@@ -4,6 +4,7 @@ from .fleetmanager import CoordinatorStrategyBehaviour
 from .customer import PassengerStrategyBehaviour
 from .transport import TaxiStrategyBehaviour
 from .secretary import SecretaryStrategyBehaviour
+from .station import StationStrategyBehaviour
 from .utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, CUSTOMER_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, \
     CUSTOMER_ASSIGNED
 from .protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
@@ -148,12 +149,28 @@ class AlwaysAnswerStrategyBehaviour(SecretaryStrategyBehaviour):
         msg = await self.receive(timeout=5)
         if msg:
             performative = msg.get_metadata("performative")
-            customer_id = msg.sender
+            agent_id = msg.sender
             request = msg.body
             if performative == REQUEST_PERFORMATIVE:
-                self.logger.debug("Secretary {} received message from customer {}".format(self.agent.name,
-                                                                                          customer_id))
+                self.logger.info("Secretary {} received message from customer/transport {}".format(self.agent.name,
+                                                                                                   agent_id))
                 if request in self.get("manager_agents"):
-                    await self.send_services(customer_id, msg.body)
+                    await self.send_services(agent_id, msg.body)
                 else:
-                    await self.send_negative(customer_id)
+                    await self.send_negative(agent_id)
+
+
+################################################################
+#                                                              #
+#                        Station Strategy                      #
+#                                                              #
+################################################################
+class ManageChargeSpacesBehaviour(StationStrategyBehaviour):
+    """
+    The default strategy for the Station agent. Manage electric charge spaces.
+    """
+    async def run(self):
+        if not self.agent.registration:
+            await self.send_registration()
+
+

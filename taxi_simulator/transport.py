@@ -8,7 +8,8 @@ from spade.behaviour import PeriodicBehaviour
 from spade.template import Template
 
 from .utils import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_IN_CUSTOMER_PLACE, TRANSPORT_MOVING_TO_DESTINATION, \
-    CUSTOMER_IN_DEST, CUSTOMER_LOCATION, chunk_path, request_path, StrategyBehaviour
+    CUSTOMER_IN_DEST, CUSTOMER_LOCATION, chunk_path, request_path, StrategyBehaviour, TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE, \
+    TRANSPORT_LOADING, TRANSPORT_LOADED
 from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, REGISTER_PROTOCOL, REQUEST_PERFORMATIVE
 from .helpers import random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
     AlreadyInDestination
@@ -32,7 +33,7 @@ class TransportAgent(Agent):
         self.dest = None
         self.set("path", None)
         self.chunked_path = None
-        self.set("speed_in_kmh", 2000)
+        self.set("speed_in_kmh", 3000)
         self.animation_speed = ONESECOND_IN_MS
         self.distances = []
         self.durations = []
@@ -45,7 +46,15 @@ class TransportAgent(Agent):
         self.stopped = False
         self.registration = False
 
+        self.type_service = "Station"
+        self.stations = None
         self.fuel = 100
+        self.autonomy_km = 300
+        self.batery_kW = 41
+        self.meters_traveled = 0
+        self.num_charges = 0
+        self.set("current_station", None)
+        self.current_station_dest = None
 
     def set_registration(self, status):
         """
@@ -141,9 +150,32 @@ class TransportAgent(Agent):
                 await self.inform_customer(TRANSPORT_IN_CUSTOMER_PLACE)
                 self.status = TRANSPORT_MOVING_TO_DESTINATION
                 logger.info("Transport {} has picked up the customer {}.".format(self.agent_id,
-                                                                             self.get("current_customer")))
+                                                                                 self.get("current_customer")))
         else:  # elif self.status == TRANSPORT_MOVING_TO_DESTINATION:
             await self.drop_customer()
+
+    async def arrived_to_station(self):
+        """
+        Informs that the transport has arrived to its destination.
+        It recomputes the new destination and path if picking up a customer
+        or drops it and goes to WAITING status again.
+        """
+        self.set("path", None)
+        self.chunked_path = None
+
+        data = {
+            "status": TRANSPORT_IN_STATION_PLACE,
+            "capacity": self.fuel,
+            "batery": self.batery_kW
+        }
+        await self.inform_station(data)
+        self.status = TRANSPORT_LOADING
+        logger.info("Transport {} has started loading in the station {}.".format(self.agent_id,
+                                                                                 self.get("current_station")))
+
+    def transport_loaded(self):
+        self.autonomy_km = 300
+        self.fuel = 100
 
     async def drop_customer(self):
         """
@@ -152,10 +184,20 @@ class TransportAgent(Agent):
         await self.inform_customer(CUSTOMER_IN_DEST)
         self.status = TRANSPORT_WAITING
         logger.debug("Transport {} has dropped the customer {} in destination.".format(self.agent_id,
-                                                                                   self.get(
-                                                                                       "current_customer")))
+                                                                                       self.get("current_customer")))
         self.set("current_customer", None)
         self.set("customer_in_transport", None)
+
+    async def drop_station(self):
+        """
+        Drops the customer that the transport is carring in the current location.
+        """
+        # data = {"status": TRANSPORT_LOADED}
+        # await self.inform_station(data)
+        self.status = TRANSPORT_WAITING
+        logger.debug("Transport {} has dropped the station {}.".format(self.agent_id,
+                                                                       self.get("current_station")))
+        self.set("current_station", None)
 
     async def move_to(self, dest):
         """
@@ -200,6 +242,23 @@ class TransportAgent(Agent):
             distance = distance_in_meters(self.get_position(), _next)
             self.animation_speed = distance / kmh_to_ms(self.get("speed_in_kmh")) * ONESECOND_IN_MS
             await self.set_position(_next)
+
+    async def inform_station(self, data=None):
+        """
+        Sends a message to the current assigned customer to inform her about a new status.
+
+        Args:
+            status (int): The new status code
+            data (dict, optional): complementary info about the status
+        """
+        if data is None:
+            data = {}
+        msg = Message()
+        msg.to = self.get("current_station")
+        msg.set_metadata("protocol", TRAVEL_PROTOCOL)
+        msg.set_metadata("performative", INFORM_PERFORMATIVE)
+        msg.body = json.dumps(data)
+        await self.send(msg)
 
     async def inform_customer(self, status, data=None):
         """
@@ -307,6 +366,20 @@ class TransportAgent(Agent):
         """
         return self.dest == self.get_position()
 
+    def set_fuel_expense(self, expense=0):
+        self.fuel = self.fuel - expense
+
+    def set_km_expense(self, expense=0):
+        self.autonomy_km -= expense
+
+    def get_fuel(self):
+        return self.fuel
+
+    def calculate_km_expense(self, origin, start, dest):
+        fir_distance = distance_in_meters(origin, start)
+        sec_distance = distance_in_meters(start, dest)
+        return (fir_distance+sec_distance)/1000
+
     def to_json(self):
         """
         Serializes the main information of a transport agent to a JSON format.
@@ -404,6 +477,60 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
             await self.agent.move_to(self.agent.current_customer_orig)
         except AlreadyInDestination:
             await self.agent.arrived_to_destination()
+
+    async def go_to_the_station(self, station_id, dest):
+        """
+        Starts a TRAVEL_PROTOCOL to pick up a customer and get him to his destination.
+        It automatically launches all the travelling process until the customer is
+        delivered. This travelling process includes to update the transport coordinates as it
+        moves along the path at the specified speed.
+
+        Args:
+            customer_id (str): the id of the customer
+            origin (list): the coordinates of the current location of the customer
+            dest (list): the coordinates of the target destination of the customer
+        """
+        logger.info("Transport {} on route to station {}".format(self.agent.name, station_id))
+        reply = Message()
+        reply.to = station_id
+        reply.set_metadata("performative", INFORM_PERFORMATIVE)
+        reply.set_metadata("protocol", TRAVEL_PROTOCOL)
+        content = {
+            "status": TRANSPORT_MOVING_TO_STATION
+        }
+        reply.body = json.dumps(content)
+        self.set("current_station", station_id)
+        self.agent.current_station_dest = dest
+        await self.send(reply)
+        self.agent.num_charges += 1
+        try:
+            await self.agent.move_to(self.agent.current_customer_dest)
+        except AlreadyInDestination:
+            await self.agent.arrived_to_station()
+
+    async def do_travel(self, customer_orig, customer_dest):
+
+        if self.agent.get_fuel() <= 10:
+            return False
+        travel_km = self.agent.calculate_km_expense(self.get("current_pos"), customer_orig, customer_dest)
+        expense = (travel_km*100)//self.agent.autonomy_km
+        if self.agent.get_fuel - expense < 10:
+            return False
+        self.agent.set_fuel_expense(expense)
+        self.agent.set_km_expense(travel_km)
+        return True
+
+    async def send_get_stations(self, content=None):
+
+        if content is None or len(content) == 0:
+            content = self.agent.type_service
+        msg = Message()
+        msg.to = str(self.agent.secretary_id)
+        msg.set_metadata("protocol", REQUEST_PROTOCOL)
+        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+        msg.body = content
+        await self.send(msg)
+        self.logger.info("Transport {} asked for Stations to Secretary {} for type {}.".format(self.agent.name, self.agent.secretary_id, self.agent.type_service))
 
     async def send_proposal(self, customer_id, content=None):
         """

@@ -17,7 +17,7 @@ class SecretaryAgent(Agent):
         self.strategy = None
         self.agent_id = None
 
-        self.set("manager_agents", {})
+        self.set("service_agents", {})
         self.stopped = False
 
     def set_id(self, agent_id):
@@ -67,7 +67,7 @@ class RegistrationBehaviour(CyclicBehaviour):
         Args:
             agent (``FleetManagerAgent``): the instance of the FleetManagerAgent to be added
         """
-        service = self.get("manager_agents")
+        service = self.get("service_agents")
         if agent["type"] in service:
             service[agent["type"]].append(agent["jid"])
         else:
@@ -81,7 +81,7 @@ class RegistrationBehaviour(CyclicBehaviour):
         Args:
             agent (``FleetManagerAgent``): the instance of the FleetManagerAgent to be erased
         """
-        del (self.get("manager_agents")[type][agent])
+        del (self.get("service_agents")[type][agent])
         self.logger.debug("Deregistration of the Manager {} for service {}".format(agent, type))
 
     async def send_confirmation(self, agent_id):
@@ -119,18 +119,18 @@ class SecretaryStrategyBehaviour(StrategyBehaviour):
         self.logger = logging.getLogger("SecretaryStrategy")
         self.logger.debug("Strategy {} started in secretary".format(type(self).__name__))
 
-    async def send_services(self, customer_id, type):
+    async def send_services(self, agent_id, type):
         reply = Message()
-        reply.to = str(customer_id)
+        reply.to = str(agent_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", INFORM_PERFORMATIVE)
-        reply.body = json.dumps(self.get("manager_agents")[type])
-        print(self.get("manager_agents")[type])
+        reply.body = json.dumps(self.get("service_agents")[type])
+        print(self.get("service_agents")[type])
         await self.send(reply)
 
-    async def send_negative(self, customer_id):
+    async def send_negative(self, agent_id):
         reply = Message()
-        reply.to = str(customer_id)
+        reply.to = str(agent_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         await self.send(reply)

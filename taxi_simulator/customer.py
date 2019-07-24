@@ -294,7 +294,7 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
         await self.send(msg)
-        self.logger.info("Customer {} asked for a managers to {} for type {}.".format(self.agent.name, self.agent.secretary_id, self.agent.type_service))
+        self.logger.info("Customer {} asked for managers to Secretary {} for type {}.".format(self.agent.name, self.agent.secretary_id, self.agent.type_service))
 
     async def send_request(self, content=None):
         """

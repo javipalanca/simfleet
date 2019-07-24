@@ -6,7 +6,7 @@ from .transport import TaxiStrategyBehaviour
 from .secretary import SecretaryStrategyBehaviour
 from .station import StationStrategyBehaviour
 from .utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, CUSTOMER_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, \
-    CUSTOMER_ASSIGNED
+    CUSTOMER_ASSIGNED, TRANSPORT_WAITING_FOR_STATION_APPROVAL, FREE_STATION, TRANSPORT_MOVING_TO_STATION, TRANSPORT_LOADED
 from .protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
     CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
 from .helpers import PathRequestException
@@ -49,6 +49,9 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
         if not self.agent.registration:
             await self.send_registration()
 
+        if self.agent.get_fuel() < 50 and self.agent.stations:
+            await self.send_get_stations()
+
         msg = await self.receive(timeout=5)
         if not msg:
             return
@@ -58,9 +61,17 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
 
         self.logger.debug("Transport {} received request protocol from customer {}.".format(self.agent.name,
                                                                                             content["customer_id"]))
+
+        if not self.do_travel(content["origin"], content["dest"]):
+            await self.cancel_proposal(content["customer_id"])
+            for station in self.agent.stations:
+                await self.send_proposal(str(station))
+            self.agent.status = TRANSPORT_WAITING_FOR_STATION_APPROVAL
+            return
+
         if performative == REQUEST_PERFORMATIVE:
             if self.agent.status == TRANSPORT_WAITING:
-                await self.send_proposal(content["customer_id"], {})
+                await self.send_proposal(content["passenger_id"], {})
                 self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
 
         elif performative == ACCEPT_PERFORMATIVE:
@@ -82,11 +93,37 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
             else:
                 await self.cancel_proposal(content["customer_id"])
 
+            if self.agent.status == TRANSPORT_WAITING_FOR_STATION_APPROVAL:
+                self.logger.debug("Transport {} got accept from {}".format(self.agent.name,
+                                                                           content["station_id"]))
+                try:
+                    self.agent.status = TRANSPORT_MOVING_TO_STATION
+                    await self.go_to_the_station(content["station_id", content["dest"]])
+                except PathRequestException:
+                    self.logger.error("Transport {} could not get a path to station {}. Cancelling..."
+                                      .format(self.agent.name, content["station_id"]))
+                    self.agent.status = TRANSPORT_WAITING
+                    await self.cancel_proposal(content["station_id"])
+                except Exception as e:
+                    self.logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
+                    await self.cancel_proposal(content["station_id"])
+                    self.agent.status = TRANSPORT_WAITING
+
+            if content["status"] == TRANSPORT_LOADED:
+                self.agent.transport_loaded()
+                self.agent.drop_station()
+
         elif performative == REFUSE_PERFORMATIVE:
             self.logger.debug("Transport {} got refusal from {}".format(self.agent.name,
                                                                    content["customer_id"]))
             if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
                 self.agent.status = TRANSPORT_WAITING
+
+        elif performative == INFORM_PERFORMATIVE:
+            self.agent.stations = json.loads(msg.body)
+            self.logger.info("Registro de estaciones actuales")
+        elif performative == CANCEL_PERFORMATIVE:
+            self.logger.info("Cancelacion de solicitud de informacion de transporte de tipo {}".format(self.agent.type_service))
 
 
 ################################################################
@@ -154,7 +191,7 @@ class AlwaysAnswerStrategyBehaviour(SecretaryStrategyBehaviour):
             if performative == REQUEST_PERFORMATIVE:
                 self.logger.info("Secretary {} received message from customer/transport {}".format(self.agent.name,
                                                                                                    agent_id))
-                if request in self.get("manager_agents"):
+                if request in self.get("service_agents"):
                     await self.send_services(agent_id, msg.body)
                 else:
                     await self.send_negative(agent_id)
@@ -173,4 +210,18 @@ class ManageChargeSpacesBehaviour(StationStrategyBehaviour):
         if not self.agent.registration:
             await self.send_registration()
 
+        msg = await self.receive(timeout=5)
 
+        if msg:
+            performative = msg.get_metadata("performative")
+            transport_id = msg.sender
+            if performative == PROPOSE_PERFORMATIVE:
+                if self.agent.get_status() == FREE_STATION:
+                    self.logger.debug("Station {} received proposal from transport {}".format(self.agent.name,
+                                                                                              transport_id))
+                    await self.accept_transport(transport_id)
+                else:  # self.agent.get_status() == BUSY_STATION
+                    await self.refuse_transport(transport_id)
+            elif performative == CANCEL_PERFORMATIVE:
+                self.logger.warning("Station {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
+                self.agent.deassigning_place()

@@ -1,10 +1,13 @@
 import logging
 import json
+import time
+from math import ceil
 from spade.agent import Agent
 from spade.template import Template
 from spade.message import Message
-from .utils import StrategyBehaviour, CyclicBehaviour
-from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, REQUEST_PERFORMATIVE
+from .utils import StrategyBehaviour, CyclicBehaviour, FREE_STATION, BUSY_STATION, TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE, \
+    TRANSPORT_LOADED
+from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL
 from .helpers import random_position
 
 logger = logging.getLogger("StationAgent")
@@ -21,7 +24,7 @@ class StationAgent(Agent):
         self.current_pos = None
         self.places_available = None
         self.status = None
-        self.charge_time = None
+        self.potency = None
         self.stopped = False
 
     async def setup(self):
@@ -29,7 +32,7 @@ class StationAgent(Agent):
         self.set_type("Station")
         self.set_places_available(5)
         self.set_status()
-        self.set_charge_time(35)
+        self.set_potency(50)
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)
@@ -40,6 +43,16 @@ class StationAgent(Agent):
                 self.add_behaviour(register_behaviour, template)
         except Exception as e:
             logger.error("EXCEPTION creating RegisterBehaviour in Station {}: {}".format(self.agent_id, e))
+        try:
+            template = Template()
+            template.set_metadata("protocol", TRAVEL_PROTOCOL)
+            travel_behaviour = TravelBehaviour()
+            self.add_behaviour(travel_behaviour, template)
+            while not self.has_behaviour(travel_behaviour):
+                logger.warning("Customer {} could not create TravelBehaviour. Retrying...".format(self.agent_id))
+                self.add_behaviour(travel_behaviour, template)
+        except Exception as e:
+            logger.error("EXCEPTION creating TravelBehaviour in Customer {}: {}".format(self.agent_id, e))
 
     def set_id(self, agent_id):
         """
@@ -105,7 +118,7 @@ class StationAgent(Agent):
         """
         return self.current_pos
 
-    def set_status(self, state=True):
+    def set_status(self, state=FREE_STATION):
         self.status = state
 
     def get_status(self):
@@ -117,11 +130,11 @@ class StationAgent(Agent):
     def get_places_available(self):
         return self.places_available
 
-    def set_charge_time(self, charge):
-        self.charge_time = charge
+    def set_potency(self, charge):
+        self.potency = charge
 
-    def get_charge_time(self):
-        return self.charge_time
+    def get_potency(self):
+        return self.potency
 
     def to_json(self):
         """
@@ -139,7 +152,7 @@ class StationAgent(Agent):
                     "position": [ 39.461327, -0.361839 ],
                     "status": True,
                     "places": 10,
-                    "charge_time": 10
+                    "potency": 10
                 }
         """
         return {
@@ -147,8 +160,26 @@ class StationAgent(Agent):
             "position": self.current_pos,
             "status": self.status,
             "places": self.places_available,
-            "charge_time": self.charge_time
+            "potency": self.potency
         }
+
+    def assigning_place(self):
+        p = self.get_places_available()
+        if not p-1:
+            self.set_status(BUSY_STATION)
+        self.set_places_available(p-1)
+
+    def deassigning_place(self):
+        p = self.get_places_available()
+        if p+1:
+            self.set_status(FREE_STATION)
+        self.set_places_available(p+1)
+
+    async def loading_transport(self, fuel, batery_kW):
+        total_time = ((batery_kW*1000)/(self.get_potency()*1000))*60
+        t = ((100-fuel)/100)*total_time
+        time.sleep(ceil(t/10))
+        self.set("current_station", None)
 
 
 class RegistrationBehaviour(CyclicBehaviour):
@@ -169,6 +200,45 @@ class RegistrationBehaviour(CyclicBehaviour):
                     logger.info("Registration in the directory of secretary")
         except Exception as e:
             logger.error("EXCEPTION in RegisterBehaviour of Station {}: {}".format(self.agent.name, e))
+
+
+class TravelBehaviour(CyclicBehaviour):
+    """
+    This is the internal behaviour that manages the inform of the station.
+    It is triggered when the transport informs the station that it is going to the
+    customer's position until the customer is droppped in its destination.
+    """
+
+    async def on_start(self):
+        logger.debug("Station {} started TravelBehavior.".format(self.agent.name))
+
+    async def loading_completed(self, transport_id):
+        reply = Message()
+        reply.to = str(transport_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+        content = {"status": TRANSPORT_LOADED}
+        reply.body = json.dumps(content)
+        await self.send(reply)
+
+    async def run(self):
+        try:
+            msg = await self.receive(timeout=5)
+            if not msg:
+                return
+            content = json.loads(msg.body)
+            transport_id = msg.sender
+            logger.debug("Station {} informed of: {}".format(self.agent.name, content))
+            if "status" in content:
+                status = content["status"]
+                if status == TRANSPORT_MOVING_TO_STATION:
+                    logger.info("Transport goes to my destination .")
+                elif status == TRANSPORT_IN_STATION_PLACE:
+                    logger.info("Transport {} in Station.".format(msg.sender))
+                    await self.agent.loading_transport(content["capacity"], content["batery"])
+                    await self.loading_completed(transport_id)
+        except Exception as e:
+            logger.error("EXCEPTION in Travel Behaviour of Customer {}: {}".format(self.agent.name, e))
 
 
 class StationStrategyBehaviour(StrategyBehaviour):
@@ -192,9 +262,9 @@ class StationStrategyBehaviour(StrategyBehaviour):
         content = {
             "jid": str(self.agent.jid),
             "type": self.agent.type_station,
-            "state": self.agent.status,
+            "status": self.agent.status,
             "position": self.agent.get_position(),
-            "charge": self.agent.charge_time
+            "charge": self.agent.potency
         }
         msg = Message()
         msg.to = str(self.agent.secretary_id)
@@ -202,6 +272,47 @@ class StationStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = json.dumps(content)
         await self.send(msg)
+
+    async def accept_transport(self, transport_id):
+        """
+        Sends a ``spade.message.Message`` to a transport to accept a travel proposal for charge.
+        It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
+
+        Args:
+            transport_id (str): The Agent JID of the transport
+        """
+        reply = Message()
+        reply.to = str(transport_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+        content = {
+            "station_id": str(self.agent.jid),
+            "dest": self.agent.current_pos
+        }
+        reply.body = json.dumps(content)
+        await self.send(reply)
+        self.agent.assigning_place()
+        self.logger.info("Station {} accepted proposal for charge from transport {}".format(self.agent.name,
+                                                                                            transport_id))
+
+    async def refuse_transport(self, transport_id):
+        """
+        Sends an ``spade.message.Message`` to a transport to refuse a travel proposal for charge.
+        It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
+
+        Args:
+            transport_id (str): The Agent JID of the transport
+        """
+        reply = Message()
+        reply.to = str(transport_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", REFUSE_PERFORMATIVE)
+        content = {}
+        reply.body = json.dumps(content)
+
+        await self.send(reply)
+        self.logger.info("Station {} refused proposal for charge from transport {}".format(self.agent.name,
+                                                                                           transport_id))
 
     async def run(self):
         raise NotImplementedError

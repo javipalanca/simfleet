@@ -288,7 +288,7 @@ class SimulatorAgent(Agent):
         print(tabulate(self.manager_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
         print("Customer stats")
         print(tabulate(self.customer_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
-        print("Taxi stats")
+        print("Transport stats")
         print(tabulate(self.transport_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
         print("Station stats")
         print(tabulate(self.station_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
@@ -828,25 +828,25 @@ class SimulatorAgent(Agent):
         jid = f"{name}@{self.jid.domain}"
         agent = cls(jid, password)
         agent.set_id(name)
-        if cls != SecretaryAgent:
-            if cls == FleetManagerAgent:
-                agent.set_secretary(self.get_secretary().jid)
-                agent.set_type(next(self.type_generator))
-            else:
-                if cls == TransportAgent:
-                    agent.set_fleetmanager(next(self.manager_generator))
-                else:
-                    agent.set_secretary(self.get_secretary().jid)
-                if cls != StationAgent:
-                    agent.set_route_agent(self.route_id)
-                await agent.set_position(position)
-
-                if target:
-                    agent.set_target_position(target)
-                if speed:
-                    agent.set_speed(speed)
-        else:
+        if cls == SecretaryAgent:
             self.set_secretary(agent)
+        elif cls == FleetManagerAgent:
+            agent.set_secretary(self.get_secretary().jid)
+            agent.set_type(next(self.type_generator))
+        else:
+            if cls == TransportAgent:
+                agent.set_fleetmanager(next(self.manager_generator))
+            else: # if cls == CustomerAgent or cls == StationAgent
+                agent.set_secretary(self.get_secretary().jid)
+            if cls != StationAgent: # if cls == TransportAgent or cls == CustomerAgent
+                agent.set_route_agent(self.route_id)
+
+            await agent.set_position(position)
+
+            if target:
+                agent.set_target_position(target)
+            if speed:
+                agent.set_speed(speed)
 
         await agent.start(auto_register=True)
 

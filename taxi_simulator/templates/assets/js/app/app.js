@@ -1004,7 +1004,7 @@ function taxi_popup(taxi) {
 }
 
 function station_popup(station) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + station.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" + "</table>";
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + station.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" + "<tr><th>POWERCHARGE</th><td>" + station.potency + 'kW' + "</td></tr>" + "<tr><th>PLACES</th><td>" + station.places_available + "</td></tr>" + "</table>";
 }
 
 /***/ }),

@@ -127,6 +127,9 @@ class SimulatorAgent(Agent):
 
         logger.info("Creating {} managers, {} transporter, {} customer and {} secretary.".format(config.num_managers, config.num_transport, config.num_customers,
                                                                                                  config.num_secretary, config.num_stations))
+
+        self._icons = None
+        self.load_icons('taxi_simulator/img_transports.json')
         self.types_assignment()
         self.create_agents_batch(SecretaryAgent, config.num_secretary)
         self.create_agents_batch(FleetManagerAgent, config.num_managers)
@@ -177,6 +180,11 @@ class SimulatorAgent(Agent):
         for customer in scenario["customers"]:
             password = customer["password"] if "password" in customer else faker_factory.password()
             self.create_agent(CustomerAgent, customer["name"], password, customer["position"], target=customer["dest"])
+
+    def load_icons(self, filename):
+        with open(filename, 'r') as f:
+            logger.info("Reading icons {}".format(filename))
+            self._icons = json.load(f)
 
     def set_secretary(self, agent):
         self.secretary_agent = agent
@@ -460,8 +468,8 @@ class SimulatorAgent(Agent):
             dict:  no template is returned since this is an AJAX controller, a dict with the list of transports, the list of customers, the tree view to be showed in the sidebar and the stats of the simulation.
         """
         result = {
-            "taxis": [transport.to_json() for transport in self.transport_agents.values()],
-            "passengers": [customer.to_json() for customer in self.customer_agents.values()],
+            "transports": [transport.to_json() for transport in self.transport_agents.values()],
+            "customers": [customer.to_json() for customer in self.customer_agents.values()],
             "tree": self.generate_tree(),
             "stats": self.get_stats(),
             "stations": [station.to_json() for station in self.station_agents.values()]

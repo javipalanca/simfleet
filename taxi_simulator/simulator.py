@@ -155,7 +155,7 @@ class SimulatorAgent(Agent):
         self.web.add_get("/clean", self.clean_controller, None)
         self.web.add_get("/download/excel/", self.download_stats_excel_controller, None, raw=True)
         self.web.add_get("/download/json/", self.download_stats_json_controller, None, raw=True)
-        self.web.add_get("/generate/taxis/{ntaxis}/passengers/{npassengers}", self.generate_controller, None)
+        self.web.add_get("/generate/transports/{ntransports}/customers/{ncustomers}", self.generate_controller, None)
 
         self.web.app.router.add_static("/assets", os.path.dirname(os.path.realpath(__file__)) + "/templates/assets")
 
@@ -487,7 +487,7 @@ class SimulatorAgent(Agent):
             "name": 'Agents',
             "children": [
                 {
-                    "name": "Taxis",
+                    "name": "Transports",
                     "count": "{}".format(len(self.transport_agents)),
                     "children": [
                         {
@@ -498,7 +498,7 @@ class SimulatorAgent(Agent):
                     ]
                 },
                 {
-                    "name": "Passengers",
+                    "name": "Customers",
                     "count": "{}".format(len(self.customer_agents)),
                     "children": [
                         {
@@ -569,10 +569,10 @@ class SimulatorAgent(Agent):
         return {"status": "ok"}
 
     async def generate_controller(self, request):
-        ntaxis = request.match_info["ntaxis"]
-        npassengers = request.match_info["npassengers"]
-        self.create_agents_batch(TransportAgent, int(ntaxis))
-        self.create_agents_batch(CustomerAgent, int(npassengers))
+        ntransports = request.match_info["ntransports"]
+        ncustomers = request.match_info["ncustomers"]
+        self.create_agents_batch(TransportAgent, int(ntransports))
+        self.create_agents_batch(CustomerAgent, int(ncustomers))
         self.clear_stopped_agents()
         return {"status": "ok"}
 
@@ -645,8 +645,8 @@ class SimulatorAgent(Agent):
 
         data = {
             "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
-            "passengers": json.loads(customer_df.to_json(orient="index")),
-            "taxis": json.loads(transport_df.to_json(orient="index"))
+            "customers": json.loads(customer_df.to_json(orient="index")),
+            "transports": json.loads(transport_df.to_json(orient="index"))
         }
 
         json.dump(data, output, indent=4)
@@ -841,6 +841,7 @@ class SimulatorAgent(Agent):
         elif cls == FleetManagerAgent:
             agent.set_secretary(self.get_secretary().jid)
             agent.set_type(next(self.type_generator))
+            agent.set_type("Taxi")
         else:
             if cls == TransportAgent:
                 agent.set_fleetmanager(next(self.manager_generator))

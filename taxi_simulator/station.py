@@ -1,6 +1,6 @@
 import logging
 import json
-import time
+import asyncio
 from math import ceil
 from spade.agent import Agent
 from spade.template import Template
@@ -168,7 +168,9 @@ class StationAgent(Agent):
         p = self.get_places_available()
         if not p-1:
             self.set_status(BUSY_STATION)
+        print("Lugares disponibles: ", p)
         self.set_places_available(p-1)
+        print("Lugares disponibles: ", self.get_places_available())
 
     def deassigning_place(self):
         p = self.get_places_available()
@@ -179,8 +181,9 @@ class StationAgent(Agent):
     async def loading_transport(self, fuel, batery_kW):
         total_time = ((batery_kW*1000)/(self.get_potency()*1000))*60
         t = ((100-fuel)/100)*total_time
-        time.sleep(ceil(t/10))
+        await asyncio.sleep(ceil(t/10))
         self.set("current_station", None)
+        self.deassigning_place()
 
 
 class RegistrationBehaviour(CyclicBehaviour):
@@ -294,7 +297,7 @@ class StationStrategyBehaviour(StrategyBehaviour):
         await self.send(reply)
         self.agent.assigning_place()
         self.logger.debug("Station {} accepted proposal for charge from transport {}".format(self.agent.name,
-                                                                                            transport_id))
+                                                                                             transport_id))
 
     async def refuse_transport(self, transport_id):
         """

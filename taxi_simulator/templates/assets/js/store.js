@@ -125,8 +125,10 @@ let getitem = function (collection, item) {
 let color = {
     11: "rgb(255, 170, 0)",
     13: "rgb(0, 149, 255)",
+    15: "rgb(0, 255, 15)",
     "TRANSPORT_MOVING_TO_CUSTOMER": "rgb(255, 170, 0)",
     "TRANSPORT_MOVING_TO_DESTINATION": "rgb(0, 149, 255)",
+    "TRANSPORT_MOVING_TO_STATION": "rgb(0, 255, 15)"
 };
 
 function get_color(status) {

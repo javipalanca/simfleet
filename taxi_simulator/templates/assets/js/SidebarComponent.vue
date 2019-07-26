@@ -18,15 +18,15 @@
                         <thead class="list">
                         <tr>
                             <th>
-                                <label for="numtaxis">Num. Taxis</label>
-                                <input v-model="numtaxis" type="number" min="0"
-                                       class="form-control" id="numtaxis"
+                                <label for="numtransports">Num. Transport</label>
+                                <input v-model="numtransports" type="number" min="0"
+                                       class="form-control" id="numtransports"
                                        placeholder="Taxis"/>
                             </th>
                             <th>
-                                <label for="numpassengers">Num. Passengers</label>
-                                <input v-model="numpassengers" type="number" min="0"
-                                       class="form-control" id="numpassengers"
+                                <label for="numcustomers">Num. Passengers</label>
+                                <input v-model="numcustomers" type="number" min="0"
+                                       class="form-control" id="numcustomers"
                                        placeholder="Passengers"/>
                             </th>
                             <th>
@@ -111,8 +111,8 @@
     export default {
         data() {
             return {
-                numtaxis: 0,
-                numpassengers: 0,
+                numtransports: 0,
+                numcustomers: 0,
                 hideSidebar: false
             }
         },
@@ -138,7 +138,7 @@
                 axios.get("/clean");
             },
             create() {
-                axios.get("/generate/taxis/" + this.numtaxis + "/passengers/" + this.numpassengers);
+                axios.get("/generate/transports/" + this.numtransports + "/customers/" + this.numcustomers);
             }
         }
     }

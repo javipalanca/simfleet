@@ -6,11 +6,11 @@
                     :class="{'glyphicon-chevron-down': openTaxi, 'glyphicon-chevron-right': !openTaxi}">
             </span>
               Taxis
-            <span class="badge">{{taxis.length}}</span>
+            <span class="badge">{{transports.length}}</span>
           </div>
       </li>
 
-      <li v-for="o in taxis" v-show="openTaxi">
+      <li v-for="o in transports" v-show="openTaxi">
           <div class="list-group-item" v-tooltip.top="{content: status2str(o.status), delay:100}">
               <span  class="fa fa-taxi" ></span>  {{ o.id }}
               <status-indicator positive v-if="o.status == 'TRANSPORT_WAITING'"></status-indicator>
@@ -26,17 +26,17 @@
                     :class="{'glyphicon-chevron-down': openPass, 'glyphicon-chevron-right': !openPass}">
             </span>
               Passengers
-            <span class="badge">{{passengers.length}}</span>
+            <span class="badge">{{customers.length}}</span>
           </div>
       </li>
 
-      <li v-for="passenger in passengers" v-show="openPass">
-          <div class="list-group-item" v-tooltip.top="{content: status2str(passenger.status), delay:100}">
-              <span  class="fa fa-user" ></span>  {{passenger.id}}
-              <status-indicator v-if="passenger.status == 'CUSTOMER_WAITING'"></status-indicator>
-              <status-indicator intermediary v-else-if="passenger.status == 'CUSTOMER_ASSIGNED'"></status-indicator>
-              <status-indicator active pulse v-else-if="passenger.status == 'CUSTOMER_IN_TRANSPORT'"></status-indicator>
-              <status-indicator positive v-else-if="passenger.status == 'CUSTOMER_IN_DEST'"></status-indicator>
+      <li v-for="customer in customers" v-show="openPass">
+          <div class="list-group-item" v-tooltip.top="{content: status2str(customer.status), delay:100}">
+              <span  class="fa fa-user" ></span>  {{customer.id}}
+              <status-indicator v-if="customer.status == 'CUSTOMER_WAITING'"></status-indicator>
+              <status-indicator intermediary v-else-if="customer.status == 'CUSTOMER_ASSIGNED'"></status-indicator>
+              <status-indicator active pulse v-else-if="customer.status == 'CUSTOMER_IN_TRANSPORT'"></status-indicator>
+              <status-indicator positive v-else-if="customer.status == 'CUSTOMER_IN_DEST'"></status-indicator>
           </div>
       </li>
 
@@ -51,8 +51,8 @@
     export default {
         name: "tree-view",
         props: {
-            taxis: Array,
-            passengers: Array
+            transports: Array,
+            customers: Array
         },
         data: function () {
             return {

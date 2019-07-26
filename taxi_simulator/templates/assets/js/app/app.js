@@ -290,8 +290,8 @@ module.exports = function normalizeComponent (
 /* harmony default export */ __webpack_exports__["a"] = ({
     data() {
         return {
-            numtaxis: 0,
-            numpassengers: 0,
+            numtransports: 0,
+            numcustomers: 0,
             hideSidebar: false
         };
     },
@@ -317,7 +317,7 @@ module.exports = function normalizeComponent (
             axios.get("/clean");
         },
         create() {
-            axios.get("/generate/taxis/" + this.numtaxis + "/passengers/" + this.numpassengers);
+            axios.get("/generate/transports/" + this.numtransports + "/customers/" + this.numcustomers);
         }
     }
 });
@@ -691,8 +691,8 @@ function applyToTag (styleElement, obj) {
 /* harmony default export */ __webpack_exports__["a"] = ({
     name: "tree-view",
     props: {
-        taxis: Array,
-        passengers: Array
+        transports: Array,
+        customers: Array
     },
     data: function () {
         return {
@@ -973,8 +973,10 @@ let getitem = function (collection, item) {
 let color = {
     11: "rgb(255, 170, 0)",
     13: "rgb(0, 149, 255)",
+    15: "rgb(0, 255, 15)",
     "TRANSPORT_MOVING_TO_CUSTOMER": "rgb(255, 170, 0)",
-    "TRANSPORT_MOVING_TO_DESTINATION": "rgb(0, 149, 255)"
+    "TRANSPORT_MOVING_TO_DESTINATION": "rgb(0, 149, 255)",
+    "TRANSPORT_MOVING_TO_STATION": "rgb(0, 255, 15)"
 };
 
 function get_color(status) {
@@ -1022,7 +1024,7 @@ function station_popup(station) {
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_SidebarComponent_vue__ = __webpack_require__(1);
 /* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_89537608_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_SidebarComponent_vue__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_77b862f4_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_SidebarComponent_vue__ = __webpack_require__(9);
 var normalizeComponent = __webpack_require__(0)
 /* script */
 
@@ -1039,7 +1041,7 @@ var __vue_scopeId__ = null
 var __vue_module_identifier__ = null
 var Component = normalizeComponent(
   __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_SidebarComponent_vue__["a" /* default */],
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_89537608_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_SidebarComponent_vue__["a" /* default */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_77b862f4_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_SidebarComponent_vue__["a" /* default */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
@@ -1054,7 +1056,7 @@ var Component = normalizeComponent(
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('transition',{attrs:{"name":"slide","enter-active-class":"animated slideInLeft","leave-active-class":"animated slideOutLeft"}},[(!_vm.hideSidebar)?_c('div',{staticClass:"bodycontainer table-scrollable",attrs:{"id":"sidebar"}},[_c('div',{staticClass:"sidebar-wrapper"},[_c('div',{staticClass:"panel panel-default",attrs:{"id":"features"}},[_c('div',{staticClass:"panel-heading"},[_c('h3',{staticClass:"panel-title"},[_vm._v("Control Panel\n                    "),_c('button',{staticClass:"btn btn-xs btn-default pull-right",attrs:{"type":"button","id":"sidebar-hide-btn"},on:{"click":function($event){_vm.hideSidebar=!_vm.hideSidebar}}},[_c('i',{staticClass:"fa fa-chevron-left"})])])]),_vm._v(" "),_c('div',{staticClass:"panel-body"},[_c('table',{staticClass:"table table-hover",attrs:{"id":"feature-list"}},[_c('thead',{staticClass:"list"},[_c('tr',[_c('th',[_c('label',{attrs:{"for":"numtaxis"}},[_vm._v("Num. Taxis")]),_vm._v(" "),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.numtaxis),expression:"numtaxis"}],staticClass:"form-control",attrs:{"type":"number","min":"0","id":"numtaxis","placeholder":"Taxis"},domProps:{"value":(_vm.numtaxis)},on:{"input":function($event){if($event.target.composing){ return; }_vm.numtaxis=$event.target.value}}})]),_vm._v(" "),_c('th',[_c('label',{attrs:{"for":"numpassengers"}},[_vm._v("Num. Passengers")]),_vm._v(" "),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.numpassengers),expression:"numpassengers"}],staticClass:"form-control",attrs:{"type":"number","min":"0","id":"numpassengers","placeholder":"Passengers"},domProps:{"value":(_vm.numpassengers)},on:{"input":function($event){if($event.target.composing){ return; }_vm.numpassengers=$event.target.value}}})]),_vm._v(" "),_c('th',[_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name","id":"generate-btn"},on:{"click":_vm.create}},[_c('i',{staticClass:"far fa-address-book"}),_vm._v("  Add\n                            ")])])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"3"}},[(!_vm.is_running)?_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.run}},[_c('i',{staticClass:"fa fa-play"}),_vm._v("\n                                  Run\n                            ")]):_vm._e(),_vm._v(" "),(_vm.is_running)?_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name","disabled":""}},[_c('i',{staticClass:"fa fa-spinner fa-spin"}),_vm._v("\n                                  Run\n                            ")]):_vm._e(),_vm._v(" "),(_vm.is_running)?_c('button',{staticClass:"btn btn-danger",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.stop}},[_c('i',{staticClass:"fa fa-stop"}),_vm._v("\n                                  Stop\n                            ")]):_vm._e(),_vm._v(" "),_c('button',{staticClass:"btn btn-warning",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.clean}},[_c('i',{staticClass:"fa fa-trash-alt"}),_vm._v("\n                                  Clear\n                            ")])])])]),_vm._v(" "),_c('tbody',{staticClass:"list"},[_c('tr',[_c('th',{attrs:{"colspan":"2"}},[_vm._v("Waiting Time")]),_vm._v(" "),_c('td',{attrs:{"id":"waiting"}},[_vm._v(_vm._s(_vm.waiting))])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"2"}},[_vm._v("Total Time")]),_vm._v(" "),_c('td',{attrs:{"id":"total"}},[_vm._v(_vm._s(_vm.totaltime))])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"3"}},[_c('div',{staticClass:"dropdown"},[_c('button',{staticClass:"btn btn-info dropdown-toggle",attrs:{"type":"button","id":"dropdownMenu1","data-toggle":"dropdown","aria-haspopup":"true","aria-expanded":"true"}},[_c('i',{staticClass:"fa fa-download"}),_vm._v("  Download\n                                "),_c('span',{staticClass:"caret"})]),_vm._v(" "),_c('ul',{staticClass:"dropdown-menu",attrs:{"aria-labelledby":"dropdownMenu1"}},[_c('li',[_c('a',{attrs:{"href":"/download/excel/"}},[_vm._v("Excel")])]),_vm._v(" "),_c('li',[_c('a',{attrs:{"href":"/download/json/"}},[_vm._v("JSON")])])])])])]),_vm._v(" "),_c('tr',[_c('td',{attrs:{"colspan":"3"}},[_vm._t("default")],2)])])])])])])]):_vm._e()])}
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('transition',{attrs:{"name":"slide","enter-active-class":"animated slideInLeft","leave-active-class":"animated slideOutLeft"}},[(!_vm.hideSidebar)?_c('div',{staticClass:"bodycontainer table-scrollable",attrs:{"id":"sidebar"}},[_c('div',{staticClass:"sidebar-wrapper"},[_c('div',{staticClass:"panel panel-default",attrs:{"id":"features"}},[_c('div',{staticClass:"panel-heading"},[_c('h3',{staticClass:"panel-title"},[_vm._v("Control Panel\n                    "),_c('button',{staticClass:"btn btn-xs btn-default pull-right",attrs:{"type":"button","id":"sidebar-hide-btn"},on:{"click":function($event){_vm.hideSidebar=!_vm.hideSidebar}}},[_c('i',{staticClass:"fa fa-chevron-left"})])])]),_vm._v(" "),_c('div',{staticClass:"panel-body"},[_c('table',{staticClass:"table table-hover",attrs:{"id":"feature-list"}},[_c('thead',{staticClass:"list"},[_c('tr',[_c('th',[_c('label',{attrs:{"for":"numtransports"}},[_vm._v("Num. Transport")]),_vm._v(" "),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.numtransports),expression:"numtransports"}],staticClass:"form-control",attrs:{"type":"number","min":"0","id":"numtransports","placeholder":"Taxis"},domProps:{"value":(_vm.numtransports)},on:{"input":function($event){if($event.target.composing){ return; }_vm.numtransports=$event.target.value}}})]),_vm._v(" "),_c('th',[_c('label',{attrs:{"for":"numcustomers"}},[_vm._v("Num. Passengers")]),_vm._v(" "),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.numcustomers),expression:"numcustomers"}],staticClass:"form-control",attrs:{"type":"number","min":"0","id":"numcustomers","placeholder":"Passengers"},domProps:{"value":(_vm.numcustomers)},on:{"input":function($event){if($event.target.composing){ return; }_vm.numcustomers=$event.target.value}}})]),_vm._v(" "),_c('th',[_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name","id":"generate-btn"},on:{"click":_vm.create}},[_c('i',{staticClass:"far fa-address-book"}),_vm._v("  Add\n                            ")])])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"3"}},[(!_vm.is_running)?_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.run}},[_c('i',{staticClass:"fa fa-play"}),_vm._v("\n                                  Run\n                            ")]):_vm._e(),_vm._v(" "),(_vm.is_running)?_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name","disabled":""}},[_c('i',{staticClass:"fa fa-spinner fa-spin"}),_vm._v("\n                                  Run\n                            ")]):_vm._e(),_vm._v(" "),(_vm.is_running)?_c('button',{staticClass:"btn btn-danger",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.stop}},[_c('i',{staticClass:"fa fa-stop"}),_vm._v("\n                                  Stop\n                            ")]):_vm._e(),_vm._v(" "),_c('button',{staticClass:"btn btn-warning",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.clean}},[_c('i',{staticClass:"fa fa-trash-alt"}),_vm._v("\n                                  Clear\n                            ")])])])]),_vm._v(" "),_c('tbody',{staticClass:"list"},[_c('tr',[_c('th',{attrs:{"colspan":"2"}},[_vm._v("Waiting Time")]),_vm._v(" "),_c('td',{attrs:{"id":"waiting"}},[_vm._v(_vm._s(_vm.waiting))])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"2"}},[_vm._v("Total Time")]),_vm._v(" "),_c('td',{attrs:{"id":"total"}},[_vm._v(_vm._s(_vm.totaltime))])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"3"}},[_c('div',{staticClass:"dropdown"},[_c('button',{staticClass:"btn btn-info dropdown-toggle",attrs:{"type":"button","id":"dropdownMenu1","data-toggle":"dropdown","aria-haspopup":"true","aria-expanded":"true"}},[_c('i',{staticClass:"fa fa-download"}),_vm._v("  Download\n                                "),_c('span',{staticClass:"caret"})]),_vm._v(" "),_c('ul',{staticClass:"dropdown-menu",attrs:{"aria-labelledby":"dropdownMenu1"}},[_c('li',[_c('a',{attrs:{"href":"/download/excel/"}},[_vm._v("Excel")])]),_vm._v(" "),_c('li',[_c('a',{attrs:{"href":"/download/json/"}},[_vm._v("JSON")])])])])])]),_vm._v(" "),_c('tr',[_c('td',{attrs:{"colspan":"3"}},[_vm._t("default")],2)])])])])])])]):_vm._e()])}
 var staticRenderFns = []
 var esExports = { render: render, staticRenderFns: staticRenderFns }
 /* harmony default export */ __webpack_exports__["a"] = (esExports);
@@ -1066,7 +1068,7 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_TreeView_vue__ = __webpack_require__(4);
 /* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_59191e47_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_4620c7e4_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__ = __webpack_require__(18);
 function injectStyle (ssrContext) {
   __webpack_require__(11)
 }
@@ -1081,12 +1083,12 @@ var __vue_template_functional__ = false
 /* styles */
 var __vue_styles__ = injectStyle
 /* scopeId */
-var __vue_scopeId__ = "data-v-59191e47"
+var __vue_scopeId__ = "data-v-4620c7e4"
 /* moduleIdentifier (server only) */
 var __vue_module_identifier__ = null
 var Component = normalizeComponent(
   __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_TreeView_vue__["a" /* default */],
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_59191e47_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__["a" /* default */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_4620c7e4_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__["a" /* default */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
@@ -1107,7 +1109,7 @@ var content = __webpack_require__(12);
 if(typeof content === 'string') content = [[module.i, content, '']];
 if(content.locals) module.exports = content.locals;
 // add the styles to the DOM
-var update = __webpack_require__(3)("6a94cbba", content, true, {});
+var update = __webpack_require__(3)("121527e3", content, true, {});
 
 /***/ }),
 /* 12 */
@@ -1118,7 +1120,7 @@ exports = module.exports = __webpack_require__(2)(false);
 
 
 // module
-exports.push([module.i, ".item[data-v-59191e47]{cursor:pointer}.bold[data-v-59191e47]{font-weight:700}ul[data-v-59191e47]{-webkit-padding-start:0;list-style-type:none}.list-group-item[data-v-59191e47]{border-radius:0;position:relative;display:block;padding:10px 15px;margin-bottom:-2px;background-color:#fff;border:1px solid #ddd}.status-indicator[data-v-59191e47]{float:right}", ""]);
+exports.push([module.i, ".item[data-v-4620c7e4]{cursor:pointer}.bold[data-v-4620c7e4]{font-weight:700}ul[data-v-4620c7e4]{-webkit-padding-start:0;list-style-type:none}.list-group-item[data-v-4620c7e4]{border-radius:0;position:relative;display:block;padding:10px 15px;margin-bottom:-2px;background-color:#fff;border:1px solid #ddd}.status-indicator[data-v-4620c7e4]{float:right}", ""]);
 
 // exports
 
@@ -1235,7 +1237,7 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"list-group",staticStyle:{"list-style-type":"none"},attrs:{"id":"treeview-ul"}},[_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleTaxi}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openTaxi, 'glyphicon-chevron-right': !_vm.openTaxi}}),_vm._v("\n          Taxis\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.taxis.length))])])]),_vm._v(" "),_vm._l((_vm.taxis),function(o){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openTaxi),expression:"openTaxi"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(o.status), delay:100}),expression:"{content: status2str(o.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('span',{staticClass:"fa fa-taxi"}),_vm._v("  "+_vm._s(o.id)+"\n          "),(o.status == 'TRANSPORT_WAITING')?_c('status-indicator',{attrs:{"positive":""}}):(o.status == 'TRANSPORT_WAITING_FOR_APPROVAL')?_c('status-indicator',{attrs:{"intermediary":""}}):(o.status == 'TRANSPORT_MOVING_TO_CUSTOMER')?_c('status-indicator',{attrs:{"intermediary":"","pulse":""}}):(o.status == 'TRANSPORT_MOVING_TO_DESTINATION')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.togglePass}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openPass, 'glyphicon-chevron-right': !_vm.openPass}}),_vm._v("\n          Passengers\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.passengers.length))])])]),_vm._v(" "),_vm._l((_vm.passengers),function(passenger){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openPass),expression:"openPass"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(passenger.status), delay:100}),expression:"{content: status2str(passenger.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('span',{staticClass:"fa fa-user"}),_vm._v("  "+_vm._s(passenger.id)+"\n          "),(passenger.status == 'CUSTOMER_WAITING')?_c('status-indicator'):(passenger.status == 'CUSTOMER_ASSIGNED')?_c('status-indicator',{attrs:{"intermediary":""}}):(passenger.status == 'CUSTOMER_IN_TRANSPORT')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):(passenger.status == 'CUSTOMER_IN_DEST')?_c('status-indicator',{attrs:{"positive":""}}):_vm._e()],1)])})],2)}
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"list-group",staticStyle:{"list-style-type":"none"},attrs:{"id":"treeview-ul"}},[_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleTaxi}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openTaxi, 'glyphicon-chevron-right': !_vm.openTaxi}}),_vm._v("\n          Taxis\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.transports.length))])])]),_vm._v(" "),_vm._l((_vm.transports),function(o){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openTaxi),expression:"openTaxi"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(o.status), delay:100}),expression:"{content: status2str(o.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('span',{staticClass:"fa fa-taxi"}),_vm._v("  "+_vm._s(o.id)+"\n          "),(o.status == 'TRANSPORT_WAITING')?_c('status-indicator',{attrs:{"positive":""}}):(o.status == 'TRANSPORT_WAITING_FOR_APPROVAL')?_c('status-indicator',{attrs:{"intermediary":""}}):(o.status == 'TRANSPORT_MOVING_TO_CUSTOMER')?_c('status-indicator',{attrs:{"intermediary":"","pulse":""}}):(o.status == 'TRANSPORT_MOVING_TO_DESTINATION')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.togglePass}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openPass, 'glyphicon-chevron-right': !_vm.openPass}}),_vm._v("\n          Passengers\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.customers.length))])])]),_vm._v(" "),_vm._l((_vm.customers),function(customer){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openPass),expression:"openPass"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(customer.status), delay:100}),expression:"{content: status2str(customer.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('span',{staticClass:"fa fa-user"}),_vm._v("  "+_vm._s(customer.id)+"\n          "),(customer.status == 'CUSTOMER_WAITING')?_c('status-indicator'):(customer.status == 'CUSTOMER_ASSIGNED')?_c('status-indicator',{attrs:{"intermediary":""}}):(customer.status == 'CUSTOMER_IN_TRANSPORT')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):(customer.status == 'CUSTOMER_IN_DEST')?_c('status-indicator',{attrs:{"positive":""}}):_vm._e()],1)])})],2)}
 var staticRenderFns = []
 var esExports = { render: render, staticRenderFns: staticRenderFns }
 /* harmony default export */ __webpack_exports__["a"] = (esExports);

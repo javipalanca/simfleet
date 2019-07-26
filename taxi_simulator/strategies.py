@@ -6,9 +6,9 @@ from .transport import TaxiStrategyBehaviour
 from .secretary import SecretaryStrategyBehaviour
 from .station import StationStrategyBehaviour
 from .utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, CUSTOMER_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, \
-    CUSTOMER_ASSIGNED, TRANSPORT_WAITING_FOR_STATION_APPROVAL, FREE_STATION, TRANSPORT_MOVING_TO_STATION, TRANSPORT_LOADED
+    CUSTOMER_ASSIGNED, TRANSPORT_WAITING_FOR_STATION_APPROVAL, FREE_STATION, TRANSPORT_MOVING_TO_STATION, TRANSPORT_LOADING, TRANSPORT_LOADED
 from .protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
-    CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
+    CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, CONFIRM_PERFORMATIVE
 from .helpers import PathRequestException
 
 
@@ -49,7 +49,8 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
         if not self.agent.registration:
             await self.send_registration()
 
-        if self.agent.get_fuel() < 50 and self.agent.stations:
+        if self.agent.get_fuel() < 40 and not self.agent.flag_stations:
+            self.logger.info("Envio de informacion para obtener el listado de estaciones###############")
             await self.send_get_stations()
 
         msg = await self.receive(timeout=5)
@@ -59,20 +60,18 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
 
-        self.logger.debug("Transport {} received request protocol from customer {}.".format(self.agent.name,
-                                                                                            content["customer_id"]))
-
-        if not self.do_travel(content["origin"], content["dest"]):
-            await self.cancel_proposal(content["customer_id"])
-            for station in self.agent.stations:
-                await self.send_proposal(str(station))
-            self.agent.status = TRANSPORT_WAITING_FOR_STATION_APPROVAL
-            return
+        # self.logger.debug("Transport {} received request protocol from customer {}.".format(self.agent.name, content["customer_id"]))
 
         if performative == REQUEST_PERFORMATIVE:
             if self.agent.status == TRANSPORT_WAITING:
-                await self.send_proposal(content["passenger_id"], {})
-                self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
+                if not self.do_travel(content["origin"], content["dest"]):
+                    await self.cancel_proposal(content["customer_id"])
+                    self.agent.status = TRANSPORT_WAITING_FOR_STATION_APPROVAL
+                    for station in self.agent.stations:
+                        await self.send_proposal(station)
+                else:
+                    await self.send_proposal(content["customer_id"], {})
+                    self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
 
         elif performative == ACCEPT_PERFORMATIVE:
             if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
@@ -93,12 +92,13 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
             else:
                 await self.cancel_proposal(content["customer_id"])
 
+        elif performative == CONFIRM_PERFORMATIVE:
             if self.agent.status == TRANSPORT_WAITING_FOR_STATION_APPROVAL:
-                self.logger.debug("Transport {} got accept from {}".format(self.agent.name,
-                                                                           content["station_id"]))
+                self.logger.info("Transport {} got accept from station {}".format(self.agent.name,
+                                                                                  content["station_id"]))
                 try:
                     self.agent.status = TRANSPORT_MOVING_TO_STATION
-                    await self.go_to_the_station(content["station_id", content["dest"]])
+                    await self.go_to_the_station(content["station_id"], content["dest"])
                 except PathRequestException:
                     self.logger.error("Transport {} could not get a path to station {}. Cancelling..."
                                       .format(self.agent.name, content["station_id"]))
@@ -108,22 +108,23 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
                     self.logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
                     await self.cancel_proposal(content["station_id"])
                     self.agent.status = TRANSPORT_WAITING
-
-            if content["status"] == TRANSPORT_LOADED:
-                self.agent.transport_loaded()
-                self.agent.drop_station()
+            elif self.agent.status == TRANSPORT_LOADING:
+                if content["status"] == TRANSPORT_LOADED:
+                    self.agent.transport_loaded()
+                    await self.agent.drop_station()
 
         elif performative == REFUSE_PERFORMATIVE:
-            self.logger.debug("Transport {} got refusal from {}".format(self.agent.name,
-                                                                   content["customer_id"]))
-            if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
+            # self.logger.debug("Transport {} got refusal from {}".format(self.agent.name, content["customer_id"]))
+            if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL or self.agent.status == TRANSPORT_WAITING_FOR_STATION_APPROVAL:
                 self.agent.status = TRANSPORT_WAITING
 
         elif performative == INFORM_PERFORMATIVE:
             self.agent.stations = json.loads(msg.body)
-            self.logger.info("Registro de estaciones actuales")
+            self.logger.info("Registro de estaciones actuales {}".format(self.agent.stations))
+
         elif performative == CANCEL_PERFORMATIVE:
-            self.logger.info("Cancelacion de solicitud de informacion de transporte de tipo {}".format(self.agent.type_service))
+            self.logger.info(
+                "Cancelacion de solicitud de informacion de transporte de tipo {}".format(self.agent.type_service))
 
 
 ################################################################

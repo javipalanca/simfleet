@@ -7,7 +7,8 @@ from spade.template import Template
 from spade.message import Message
 from .utils import StrategyBehaviour, CyclicBehaviour, FREE_STATION, BUSY_STATION, TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE, \
     TRANSPORT_LOADED
-from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL
+from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL, \
+    CONFIRM_PERFORMATIVE
 from .helpers import random_position
 
 logger = logging.getLogger("StationAgent")
@@ -216,7 +217,7 @@ class TravelBehaviour(CyclicBehaviour):
         reply = Message()
         reply.to = str(transport_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+        reply.set_metadata("performative", CONFIRM_PERFORMATIVE)
         content = {"status": TRANSPORT_LOADED}
         reply.body = json.dumps(content)
         await self.send(reply)
@@ -232,7 +233,7 @@ class TravelBehaviour(CyclicBehaviour):
             if "status" in content:
                 status = content["status"]
                 if status == TRANSPORT_MOVING_TO_STATION:
-                    logger.info("Transport goes to my destination .")
+                    logger.info("Transport goes to my destination.")
                 elif status == TRANSPORT_IN_STATION_PLACE:
                     logger.info("Transport {} in Station.".format(msg.sender))
                     await self.agent.loading_transport(content["capacity"], content["batery"])
@@ -284,7 +285,7 @@ class StationStrategyBehaviour(StrategyBehaviour):
         reply = Message()
         reply.to = str(transport_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+        reply.set_metadata("performative", CONFIRM_PERFORMATIVE)
         content = {
             "station_id": str(self.agent.jid),
             "dest": self.agent.current_pos
@@ -292,7 +293,7 @@ class StationStrategyBehaviour(StrategyBehaviour):
         reply.body = json.dumps(content)
         await self.send(reply)
         self.agent.assigning_place()
-        self.logger.info("Station {} accepted proposal for charge from transport {}".format(self.agent.name,
+        self.logger.debug("Station {} accepted proposal for charge from transport {}".format(self.agent.name,
                                                                                             transport_id))
 
     async def refuse_transport(self, transport_id):
@@ -311,8 +312,8 @@ class StationStrategyBehaviour(StrategyBehaviour):
         reply.body = json.dumps(content)
 
         await self.send(reply)
-        self.logger.info("Station {} refused proposal for charge from transport {}".format(self.agent.name,
-                                                                                           transport_id))
+        self.logger.debug("Station {} refused proposal for charge from transport {}".format(self.agent.name,
+                                                                                            transport_id))
 
     async def run(self):
         raise NotImplementedError

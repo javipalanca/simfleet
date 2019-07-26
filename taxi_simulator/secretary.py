@@ -72,7 +72,6 @@ class RegistrationBehaviour(CyclicBehaviour):
             service[agent["type"]].append(agent["jid"])
         else:
             service[agent["type"]] = [agent["jid"]]
-        print("Arbol de servicios: ", service)
 
     def remove_service(self, type, agent):
         """
@@ -100,10 +99,10 @@ class RegistrationBehaviour(CyclicBehaviour):
                 if performative == REQUEST_PERFORMATIVE:
                     content = json.loads(msg.body)
                     self.add_service(content)
-                    logger.info("Registration in the dictionary {}".format(self.agent.name))
+                    logger.debug("Registration in the dictionary {}".format(self.agent.name))
                     await self.send_confirmation(agent_id)
         except Exception as e:
-            logger.error("EXCEPTION in Secretary Register Behaviour of Manager {}: {}".format(self.agent.name, e))
+            logger.error("EXCEPTION in SecretaryRegister Behaviour of Secretary {}: {}".format(self.agent.name, e))
 
 
 class SecretaryStrategyBehaviour(StrategyBehaviour):
@@ -125,7 +124,6 @@ class SecretaryStrategyBehaviour(StrategyBehaviour):
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", INFORM_PERFORMATIVE)
         reply.body = json.dumps(self.get("service_agents")[type])
-        print(self.get("service_agents")[type])
         await self.send(reply)
 
     async def send_negative(self, agent_id):

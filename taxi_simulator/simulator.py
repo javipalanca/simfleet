@@ -763,13 +763,13 @@ class SimulatorAgent(Agent):
             ``pandas.DataFrame``: the dataframe with the customers stats.
         """
         try:
-            names, status, places, charge_time = zip(*[(p.name, p.status,
-                                                       p.places_available, p.charge_time)
+            names, status, places, potency = zip(*[(p.name, p.status,
+                                                       p.places_available, p.potency)
                                                       for p in self.station_agents.values()])
         except ValueError:
-            names, status, places, charge_time = [], [], [], []
+            names, status, places, potency = [], [], [], []
 
-        df = pd.DataFrame.from_dict({"name": names, "status": status, "places_available": places, "charge_time": charge_time})
+        df = pd.DataFrame.from_dict({"name": names, "status": status, "places_available": places, "potency": potency})
         return df
 
     def get_stats_dataframes(self):
@@ -787,7 +787,7 @@ class SimulatorAgent(Agent):
         transport_df = self.get_transport_stats()
         transport_df = transport_df[["name", "assignments", "distance", "status"]]
         station_df = self.get_station_stats()
-        station_df = station_df[["name", "status", "places_available", "charge_time"]]
+        station_df = station_df[["name", "status", "places_available", "potency"]]
         stats = self.get_stats()
         df_avg = pd.DataFrame.from_dict({"Avg Waiting Time": [stats["waiting"]],
                                          "Avg Total Time": [stats["totaltime"]],
@@ -836,11 +836,9 @@ class SimulatorAgent(Agent):
         else:
             if cls == TransportAgent:
                 agent.set_fleetmanager(next(self.manager_generator))
-            else: # if cls == CustomerAgent or cls == StationAgent
-                agent.set_secretary(self.get_secretary().jid)
             if cls != StationAgent: # if cls == TransportAgent or cls == CustomerAgent
                 agent.set_route_agent(self.route_id)
-
+            agent.set_secretary(self.get_secretary().jid)
             await agent.set_position(position)
 
             if target:
@@ -853,18 +851,19 @@ class SimulatorAgent(Agent):
         if cls == SecretaryAgent:
             strategy = self.secretary_strategy
             agent.add_strategy(strategy)
+        elif cls == StationAgent:
+            strategy = self.station_strategy
+            self.add_station(agent)
+            agent.add_strategy(strategy)
         elif cls == FleetManagerAgent:
             strategy = self.fleetmanager_strategy
             self.add_manager(agent)
         elif cls == TransportAgent:
             strategy = self.transport_strategy
             self.add_transport(agent)
-        elif cls == CustomerAgent:
+        else: # cls == CustomerAgent:
             strategy = self.customer_strategy
             self.add_customer(agent)
-        else: # cls == StationAgent
-            strategy = self.station_strategy
-            self.add_station(agent)
 
         if self.simulation_running:
             agent.add_strategy(strategy)

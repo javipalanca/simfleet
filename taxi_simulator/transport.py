@@ -9,7 +9,7 @@ from spade.template import Template
 
 from .utils import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_IN_CUSTOMER_PLACE, TRANSPORT_MOVING_TO_DESTINATION, \
     CUSTOMER_IN_DEST, CUSTOMER_LOCATION, chunk_path, request_path, StrategyBehaviour, TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE, \
-    TRANSPORT_LOADING, TRANSPORT_LOADED
+    TRANSPORT_LOADING
 from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, REGISTER_PROTOCOL, REQUEST_PERFORMATIVE
 from .helpers import random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
     AlreadyInDestination
@@ -46,9 +46,12 @@ class TransportAgent(Agent):
         self.stopped = False
         self.registration = False
 
+        self.secretary_id = None
+
         self.type_service = "Station"
         self.stations = None
-        self.fuel = 100
+        self.flag_stations = False
+        self.fuel = 40
         self.autonomy_km = 300
         self.batery_kW = 41
         self.meters_traveled = 0
@@ -64,6 +67,15 @@ class TransportAgent(Agent):
 
         """
         self.registration = status
+
+    def set_secretary(self, secretary_id):
+        """
+        Sets the secretary JID address
+        Args:
+            secretary_id (str): the SecretaryAgent jid
+
+        """
+        self.secretary_id = secretary_id
 
     def watch_value(self, key, callback):
         """
@@ -160,6 +172,8 @@ class TransportAgent(Agent):
         It recomputes the new destination and path if picking up a customer
         or drops it and goes to WAITING status again.
         """
+        self.status = TRANSPORT_IN_STATION_PLACE
+
         self.set("path", None)
         self.chunked_path = None
 
@@ -337,7 +351,10 @@ class TransportAgent(Agent):
             await self.inform_customer(CUSTOMER_LOCATION, {"location": self.get("current_pos")})
         if self.is_in_destination():
             logger.info("Transport {} has arrived to destination.".format(self.agent_id))
-            await self.arrived_to_destination()
+            if self.status == TRANSPORT_MOVING_TO_STATION:
+                await self.arrived_to_station()
+            else:
+                await self.arrived_to_destination()
 
     def get_position(self):
         """
@@ -367,18 +384,26 @@ class TransportAgent(Agent):
         return self.dest == self.get_position()
 
     def set_fuel_expense(self, expense=0):
-        self.fuel = self.fuel - expense
+        self.set_fuel(self.fuel - expense)
 
     def set_km_expense(self, expense=0):
         self.autonomy_km -= expense
 
+    def set_fuel(self, fuel):
+        self.fuel = fuel
+
     def get_fuel(self):
         return self.fuel
+
+    def get_autonomy(self):
+        return self.autonomy_km
 
     def calculate_km_expense(self, origin, start, dest):
         fir_distance = distance_in_meters(origin, start)
         sec_distance = distance_in_meters(start, dest)
-        return (fir_distance+sec_distance)/1000
+        logger.info("Coord1: {}, Coord2: {}, Coord3: {}".format(origin, start, dest))
+        logger.info("Primera distancia: {}, segudna distancia: {}".format(fir_distance, sec_distance))
+        return (fir_distance+sec_distance)//1000
 
     def to_json(self):
         """
@@ -414,6 +439,9 @@ class TransportAgent(Agent):
             "customer": self.get("current_customer") if self.get("current_customer") else None,
             "assignments": self.num_assignments,
             "distance": "{0:.2f}".format(sum(self.distances)),
+            "fuel": self.fuel,
+            "autonomy": self.autonomy_km,
+            "potency": self.batery_kW,
         }
 
     class MovingBehaviour(PeriodicBehaviour):
@@ -504,17 +532,17 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         await self.send(reply)
         self.agent.num_charges += 1
         try:
-            await self.agent.move_to(self.agent.current_customer_dest)
+            await self.agent.move_to(self.agent.current_station_dest)
         except AlreadyInDestination:
             await self.agent.arrived_to_station()
 
-    async def do_travel(self, customer_orig, customer_dest):
-
+    def do_travel(self, customer_orig, customer_dest):
         if self.agent.get_fuel() <= 10:
             return False
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), customer_orig, customer_dest)
-        expense = (travel_km*100)//self.agent.autonomy_km
-        if self.agent.get_fuel - expense < 10:
+        expense = (travel_km*100)//self.agent.get_autonomy()
+        expense *= 12 # prueba para gastar mas rapido el combustible
+        if self.agent.get_fuel() - expense < 10:
             return False
         self.agent.set_fuel_expense(expense)
         self.agent.set_km_expense(travel_km)
@@ -530,6 +558,7 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
         await self.send(msg)
+        self.agent.flag_stations = True
         self.logger.info("Transport {} asked for Stations to Secretary {} for type {}.".format(self.agent.name, self.agent.secretary_id, self.agent.type_service))
 
     async def send_proposal(self, customer_id, content=None):
@@ -550,6 +579,7 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         reply.set_metadata("performative", PROPOSE_PERFORMATIVE)
         reply.body = json.dumps(content)
         await self.send(reply)
+
 
     async def send_registration(self):
         """

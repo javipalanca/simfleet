@@ -32,7 +32,7 @@ logger = logging.getLogger()
 @click.option('-nt', '--num-transports', default=0, help="Number of initial transports to create (default: 0).")
 @click.option('-np', '--num-customers', default=0, help="Number of initial customers to create (default: 0).")
 @click.option('-nm', '--num-managers', default=3, help="Number of initial managers to create (default: 3)")
-@click.option('-nst', '--num-stations', default=3, help="Number of initial station to create (default: 3)")
+@click.option('-nst', '--num-stations', default=1, help="Number of initial station to create (default: 1)")
 @click.option('--scenario', help="Filename of JSON file with initial scenario description.")
 @click.option('-cn', '--fleetmanager-name', default="fleetmanager",
               help="fleetmanager agent name (default: fleetmanager).")

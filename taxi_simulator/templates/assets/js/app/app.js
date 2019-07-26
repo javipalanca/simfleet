@@ -987,12 +987,20 @@ let statuses = {
     12: "TRANSPORT_IN_CUSTOMER_PLACE",
     13: "TRANSPORT_MOVING_TO_DESTINY",
     14: "TRANSPORT_WAITING_FOR_APPROVAL",
+    15: "TRANSPORT_MOVING_TO_STATION",
+    16: "TRANSPORT_IN_STATION_PLACE",
+    17: "TRANSPORT_WAITING_FOR_STATION_APPROVAL",
+    18: "TRANSPORT_LOADING",
+    19: "TRANSPORT_LOADED",
     //
     20: "CUSTOMER_WAITING",
     21: "CUSTOMER_IN_TRANSPORT",
     22: "CUSTOMER_IN_DEST",
     23: "CUSTOMER_LOCATION",
-    24: "CUSTOMER_ASSIGNED"
+    24: "CUSTOMER_ASSIGNED",
+    //
+    30: "FREE_STATION",
+    31: "BUSY_STATION"
 };
 
 function passenger_popup(passenger) {
@@ -1000,11 +1008,11 @@ function passenger_popup(passenger) {
 }
 
 function taxi_popup(taxi) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + taxi.status + "</td></tr>" + "<tr><th>CUSTOMER</th><td>" + taxi.passenger + "</td></tr>" + "<tr><th>POSITION</th><td>" + taxi.position + "</td></tr>" + "<tr><th>DEST</th><td>" + taxi.dest + "</td></tr>" + "<tr><th>ASSIGNMENTS</th><td>" + taxi.assignments + "</td></tr>" + "<tr><th>SPEED</th><td>" + taxi.speed + "</td></tr>" + "<tr><th>DISTANCE</th><td>" + taxi.distance + "</td></tr>" + "</table>";
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + taxi.status + "</td></tr>" + "<tr><th>CUSTOMER</th><td>" + taxi.customer + "</td></tr>" + "<tr><th>POSITION</th><td>" + taxi.position + "</td></tr>" + "<tr><th>DEST</th><td>" + taxi.dest + "</td></tr>" + "<tr><th>ASSIGNMENTS</th><td>" + taxi.assignments + "</td></tr>" + "<tr><th>SPEED</th><td>" + taxi.speed + "</td></tr>" + "<tr><th>DISTANCE</th><td>" + taxi.distance + "</td></tr>" + "<tr><th>FUEL</th><td>" + taxi.fuel + "</td></tr>" + "<tr><th>AUTONOMY</th><td>" + taxi.autonomy + "</td></tr>" + "</table>";
 }
 
 function station_popup(station) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + station.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" + "<tr><th>POWERCHARGE</th><td>" + station.potency + 'kW' + "</td></tr>" + "<tr><th>PLACES</th><td>" + station.places_available + "</td></tr>" + "</table>";
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + station.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" + "<tr><th>POWERCHARGE</th><td>" + station.potency + 'kW' + "</td></tr>" + "<tr><th>PLACES</th><td>" + station.places + "</td></tr>" + "</table>";
 }
 
 /***/ }),

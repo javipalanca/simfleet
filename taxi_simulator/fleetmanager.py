@@ -10,7 +10,7 @@ from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 
 from .utils import StrategyBehaviour
-from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, REQUEST_PERFORMATIVE
+from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REQUEST_PERFORMATIVE
 
 logger = logging.getLogger("FleetManagerAgent")
 faker_factory = faker.Factory.create()
@@ -132,12 +132,15 @@ class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
             msg = await self.receive(timeout=5)
             if msg:
                 performative = msg.get_metadata("performative")
-                content = json.loads(msg.body)
                 if performative == REQUEST_PERFORMATIVE:
+                    content = json.loads(msg.body)
                     self.add_transport(content)
                     logger.debug("Registration in the fleet {}".format(self.agent.fleetName))
+                if performative == ACCEPT_PERFORMATIVE:
+                    self.agent.set_registration(True)
+                    logger.info("Registration in the dictionary of services")
         except Exception as e:
-            logger.error("EXCEPTION in Register Behaviour of Manager {}: {}".format(self.agent.name, e))
+            logger.error("EXCEPTION in RegisterBehaviour of Manager {}: {}".format(self.agent.name, e))
 
 
 class CoordinatorStrategyBehaviour(StrategyBehaviour):
@@ -177,7 +180,6 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = json.dumps(content)
         await self.send(msg)
-        self.agent.set_registration(True)
 
     async def run(self):
         raise NotImplementedError

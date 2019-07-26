@@ -306,14 +306,14 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
         Args:
             content (dict): Optional content dictionary
         """
+        if not self.agent.dest:
+            self.agent.dest = random_position()
         if content is None or len(content) == 0:
             content = {
                 "customer_id": str(self.agent.jid),
                 "origin": self.agent.current_pos,
                 "dest": self.agent.dest
             }
-        if not self.agent.dest:
-            self.agent.dest = random_position()
         for fleetmanager in self.agent.fleetmanagers: # Send a message to all FleetManager
             msg = Message()
             msg.to = str(fleetmanager)

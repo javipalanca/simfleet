@@ -58,11 +58,15 @@ def status_to_str(status_code):
         15: "TRANSPORT_MOVING_TO_STATION",
         16: "TRANSPORT_IN_STATION_PLACE",
         17: "TRANSPORT_WAITING_FOR_STATION_APPROVAL",
+        18: "TRANSPORT_LOADING",
+        19: "TRANSPORT_LOADED",
         20: "CUSTOMER_WAITING",
         21: "CUSTOMER_IN_TRANSPORT",
         22: "CUSTOMER_IN_DESTINATION",
         23: "CUSTOMER_LOCATION",
-        24: "CUSTOMER_ASSIGNED"
+        24: "CUSTOMER_ASSIGNED",
+        30: "FREE_STATION",
+        31: "BUSY_STATION"
     }
     if status_code in statuses:
         return statuses[status_code]

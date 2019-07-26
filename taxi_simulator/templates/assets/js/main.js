@@ -22,8 +22,8 @@ new Vue({
             zoom: 14,
             center: [39.47, -0.37],
             url: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
-            taxiIcon: L.icon({iconUrl: 'assets/img/taxi.png', iconSize: [38, 55]}),
-            passengerIcon: L.icon({iconUrl: 'assets/img/passenger.png', iconSize: [38, 40]}),
+            transportIcon: L.icon({iconUrl: 'assets/img/transport.png', iconSize: [38, 55]}),
+            customerIcon: L.icon({iconUrl: 'assets/img/customer.png', iconSize: [38, 40]}),
             stationIcon: L.icon({iconUrl: 'assets/img/tomacorriente.png', iconSize: [38, 40]})
         }
     },
@@ -37,8 +37,8 @@ new Vue({
         loadEntities: function () {
             axios.get("/entities")
                 .then(data => {
-                    this.$store.commit('addTaxis', data.data.taxis);
-                    this.$store.commit('addPassengers', data.data.passengers);
+                    this.$store.commit('addTransports', data.data.transports);
+                    this.$store.commit('addCustomers', data.data.customers);
                     this.$store.state.waiting_time = data.data.stats.waiting;
                     this.$store.state.total_time = data.data.stats.totaltime;
                     this.$store.commit('update_simulation_status', data.data.stats);
@@ -54,11 +54,11 @@ new Vue({
         }
     },
     computed: {
-        taxis()  {
-            return this.$store.getters.get_taxis;
+        transports()  {
+            return this.$store.getters.get_transports;
         },
-        passengers()  {
-            return this.$store.getters.get_passengers;
+        customers()  {
+            return this.$store.getters.get_customers;
         },
         paths() {
             return this.$store.getters.get_paths;

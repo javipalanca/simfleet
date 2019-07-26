@@ -51,10 +51,9 @@ class TransportAgent(Agent):
         self.type_service = "Station"
         self.stations = None
         self.flag_stations = False
-        self.fuel = 40
+        self.fuel = 100
         self.autonomy_km = 300
         self.batery_kW = 41
-        self.meters_traveled = 0
         self.num_charges = 0
         self.set("current_station", None)
         self.current_station_dest = None

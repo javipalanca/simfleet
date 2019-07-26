@@ -794,8 +794,8 @@ new Vue({
             zoom: 14,
             center: [39.47, -0.37],
             url: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
-            taxiIcon: L.icon({ iconUrl: 'assets/img/taxi.png', iconSize: [38, 55] }),
-            passengerIcon: L.icon({ iconUrl: 'assets/img/passenger.png', iconSize: [38, 40] }),
+            transportIcon: L.icon({ iconUrl: 'assets/img/transport.png', iconSize: [38, 55] }),
+            customerIcon: L.icon({ iconUrl: 'assets/img/customer.png', iconSize: [38, 40] }),
             stationIcon: L.icon({ iconUrl: 'assets/img/tomacorriente.png', iconSize: [38, 40] })
         };
     },
@@ -808,8 +808,8 @@ new Vue({
     methods: {
         loadEntities: function () {
             axios.get("/entities").then(data => {
-                this.$store.commit('addTaxis', data.data.taxis);
-                this.$store.commit('addPassengers', data.data.passengers);
+                this.$store.commit('addTransports', data.data.transports);
+                this.$store.commit('addCustomers', data.data.customers);
                 this.$store.state.waiting_time = data.data.stats.waiting;
                 this.$store.state.total_time = data.data.stats.totaltime;
                 this.$store.commit('update_simulation_status', data.data.stats);
@@ -825,11 +825,11 @@ new Vue({
         }
     },
     computed: {
-        taxis() {
-            return this.$store.getters.get_taxis;
+        transports() {
+            return this.$store.getters.get_transports;
         },
-        passengers() {
-            return this.$store.getters.get_passengers;
+        customers() {
+            return this.$store.getters.get_customers;
         },
         paths() {
             return this.$store.getters.get_paths;
@@ -852,8 +852,8 @@ Vue.use(Vuex);
 
 const store = new Vuex.Store({
     state: {
-        taxis: [],
-        passengers: [],
+        transports: [],
+        customers: [],
         paths: [],
         waiting_time: 0,
         total_time: 0,
@@ -862,11 +862,11 @@ const store = new Vuex.Store({
         stations: []
     },
     mutations: {
-        addTaxis: (state, payload) => {
+        addTransports: (state, payload) => {
             if (payload.length > 0) {
                 let new_paths = [];
                 for (let i = 0; i < payload.length; i++) {
-                    update_item_in_collection(state.taxis, payload[i], taxi_popup);
+                    update_item_in_collection(state.transports, payload[i], transport_popup);
 
                     if (payload[i].path) {
                         new_paths.push({ latlngs: payload[i].path, color: get_color(payload[i].status) });
@@ -874,17 +874,17 @@ const store = new Vuex.Store({
                 }
                 state.paths = new_paths;
             } else {
-                state.taxis = [];
+                state.transports = [];
                 state.paths = [];
             }
         },
-        addPassengers: (state, payload) => {
+        addCustomers: (state, payload) => {
             if (payload.length > 0) {
                 for (let i = 0; i < payload.length; i++) {
-                    update_item_in_collection(state.passengers, payload[i], passenger_popup);
+                    update_item_in_collection(state.customers, payload[i], customer_popup);
                 }
             } else {
-                state.passengers = [];
+                state.customers = [];
             }
         },
         update_simulation_status: (state, stats) => {
@@ -906,11 +906,11 @@ const store = new Vuex.Store({
         }
     },
     getters: {
-        get_taxis: state => {
-            return state.taxis;
+        get_transports: state => {
+            return state.transports;
         },
-        get_passengers: state => {
-            return state.passengers;
+        get_customers: state => {
+            return state.customers;
         },
         get_paths: state => {
             return state.paths;
@@ -922,7 +922,7 @@ const store = new Vuex.Store({
             return state.total_time;
         },
         status: state => {
-            return state.simulation_status && (state.passengers.length || state.taxis.length);
+            return state.simulation_status && (state.customers.length || state.transports.length);
         },
         tree: state => {
             return state.treedata;
@@ -1003,12 +1003,12 @@ let statuses = {
     31: "BUSY_STATION"
 };
 
-function passenger_popup(passenger) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + passenger.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + passenger.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + passenger.position + "</td></tr>" + "<tr><th>DEST</th><td>" + passenger.dest + "</td></tr>" + "<tr><th>TRANSPORT</th><td>" + passenger.taxi + "</td></tr>" + "<tr><th>WAITING</th><td>" + passenger.waiting + "</td></tr>" + "</table>";
+function customer_popup(customer) {
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + customer.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + customer.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + customer.position + "</td></tr>" + "<tr><th>DEST</th><td>" + customer.dest + "</td></tr>" + "<tr><th>TRANSPORT</th><td>" + customer.transport + "</td></tr>" + "<tr><th>WAITING</th><td>" + customer.waiting + "</td></tr>" + "</table>";
 }
 
-function taxi_popup(taxi) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + taxi.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + taxi.status + "</td></tr>" + "<tr><th>CUSTOMER</th><td>" + taxi.customer + "</td></tr>" + "<tr><th>POSITION</th><td>" + taxi.position + "</td></tr>" + "<tr><th>DEST</th><td>" + taxi.dest + "</td></tr>" + "<tr><th>ASSIGNMENTS</th><td>" + taxi.assignments + "</td></tr>" + "<tr><th>SPEED</th><td>" + taxi.speed + "</td></tr>" + "<tr><th>DISTANCE</th><td>" + taxi.distance + "</td></tr>" + "<tr><th>FUEL</th><td>" + taxi.fuel + "</td></tr>" + "<tr><th>AUTONOMY</th><td>" + taxi.autonomy + "</td></tr>" + "</table>";
+function transport_popup(transport) {
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + transport.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + transport.status + "</td></tr>" + "<tr><th>CUSTOMER</th><td>" + transport.customer + "</td></tr>" + "<tr><th>POSITION</th><td>" + transport.position + "</td></tr>" + "<tr><th>DEST</th><td>" + transport.dest + "</td></tr>" + "<tr><th>ASSIGNMENTS</th><td>" + transport.assignments + "</td></tr>" + "<tr><th>SPEED</th><td>" + transport.speed + "</td></tr>" + "<tr><th>DISTANCE</th><td>" + transport.distance + "</td></tr>" + "<tr><th>FUEL</th><td>" + transport.fuel + "</td></tr>" + "<tr><th>AUTONOMY</th><td>" + transport.autonomy + "</td></tr>" + "</table>";
 }
 
 function station_popup(station) {

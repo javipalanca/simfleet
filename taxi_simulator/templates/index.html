@@ -58,7 +58,7 @@
                     <a href="#" class="navbar-icon pull-right visible-xs" id="sidebar-toggle-btn"><i
                         class="fa fa-search fa-lg white"></i></a>
                 </div>
-                <a class="navbar-brand" href="#"><i class="fa fa-taxi" aria-hidden="true"></i> Taxi Simulator</a>
+                <a class="navbar-brand" href="#"><i class="fa fa-transport" aria-hidden="true"></i> Taxi Simulator</a>
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
@@ -79,7 +79,7 @@
             <sidebar-component ref="sidebar">
                 <div class="treeview">
                     <ul id="treeview-ul" class="list-group" style="list-style-type: none;">
-                      <tree-view class="item" :taxis="taxis" :passengers="passengers"></tree-view>
+                      <tree-view class="item" :transports="transports" :customers="customers"></tree-view>
                     </ul>
                 </div>
             </sidebar-component>
@@ -87,14 +87,14 @@
 
             <v-map :zoom="zoom" :center="center" ref="map">
                 <v-tilelayer :url="url"></v-tilelayer>
-                <span v-for="taxi in taxis">
-                    <v-marker :lat-lng="taxi.latlng" :icon="taxiIcon" @l-move="set_speed($event, taxi)">
-                        <v-popup :content="taxi.popup"></v-popup>
+                <span v-for="transport in transports">
+                    <v-marker :lat-lng="transport.latlng" :icon="transportIcon" @l-move="set_speed($event, transport)">
+                        <v-popup :content="transport.popup"></v-popup>
                     </v-marker>
                 </span>
-                <span v-for="passenger in passengers">
-                    <v-marker :lat-lng="passenger.latlng" :icon="passengerIcon" :visible="passenger.visible">
-                        <v-popup :content="passenger.popup"></v-popup>
+                <span v-for="customer in customers">
+                    <v-marker :lat-lng="customer.latlng" :icon="customerIcon" :visible="customer.visible">
+                        <v-popup :content="customer.popup"></v-popup>
                     </v-marker>
                 </span>
                 <span v-for="path in paths">

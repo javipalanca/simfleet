@@ -94,8 +94,14 @@ class FleetManagerAgent(Agent):
         logger.debug("Asignacion del id de SecretaryAgent: {}".format(secretary_id))
         self.secretary_id = secretary_id
 
-    def set_type(self, type):
-        self.type = type
+    def set_type(self, type_service):
+        """
+        Sets the type of service to the fleet
+        Args:
+            type_service (str): type of service
+
+        """
+        self.type = type_service
 
 
 class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
@@ -128,6 +134,9 @@ class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
             self.logger.debug("Cancelation of the registration in the Fleet")
 
     async def send_confirmation(self, agent_id):
+        """
+        Send a ``spade.message.Message`` with an acceptance to transport to register in the fleet.
+        """
         reply = Message()
         content = {"fleet_name": self.agent.fleetName, "type_service": self.agent.type}
         reply.to = str(agent_id)

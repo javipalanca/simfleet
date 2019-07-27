@@ -165,14 +165,19 @@ class StationAgent(Agent):
         }
 
     def assigning_place(self):
+        '''
+        set a space in the charging station for the transport that has been accepted, when the available spaces are zero,
+        the status will change to OCCUPATION STATION
+        '''
         p = self.get_places_available()
         if not p-1:
             self.set_status(BUSY_STATION)
-        print("Lugares disponibles: ", p)
         self.set_places_available(p-1)
-        print("Lugares disponibles: ", self.get_places_available())
 
     def deassigning_place(self):
+        '''
+        leave a space of the charging station, when the station has free spaces, the status will change to FREE_STATION
+        '''
         p = self.get_places_available()
         if p+1:
             self.set_status(FREE_STATION)
@@ -217,6 +222,12 @@ class TravelBehaviour(CyclicBehaviour):
         logger.debug("Station {} started TravelBehavior.".format(self.agent.name))
 
     async def loading_completed(self, transport_id):
+        '''
+        Send a message to the transport agent that the vehicle load has been completed
+
+        Args:
+            transport_id (str): the jid of the transport
+        '''
         reply = Message()
         reply.to = str(transport_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)

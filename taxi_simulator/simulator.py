@@ -74,10 +74,10 @@ class SimulatorAgent(Agent):
     After these tasks are done in the Simulator constructor, the simulation is started when the ``run`` method is called.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, agentjid="simulator@localhost", password="simulator123j3"):
         self.config = config
 
-        super().__init__(jid="simulator@localhost", password="simulator123j3")
+        super().__init__(jid=agentjid, password=password)
 
         self.pretty_name = "({})".format(self.config.simulation_name) if self.config.simulation_name else ""
         self.verbose = self.config.verbose
@@ -101,7 +101,6 @@ class SimulatorAgent(Agent):
         self.lock = threading.RLock()
         self.route_id = None
 
-        # self.strategy = None
         self.fleetmanager_strategy = None
         self.transport_strategy = None
         self.customer_strategy = None
@@ -125,11 +124,15 @@ class SimulatorAgent(Agent):
         self.route_agent = RouteAgent(self.route_id, config.route_password)
         self.route_agent.start()
 
-        logger.info("Creating {} managers, {} transporter, {} customer and {} secretary.".format(config.num_managers, config.num_transport, config.num_customers,
-                                                                                                 config.num_secretary, config.num_stations))
+        logger.info("Creating {} managers, {} transporter, {} customer and {} secretary.".format(config.num_managers,
+                                                                                                 config.num_transport,
+                                                                                                 config.num_customers,
+                                                                                                 config.num_secretary,
+                                                                                                 config.num_stations))
 
         self._icons = None
         self.load_icons('taxi_simulator/img_transports.json')
+
         self.types_assignment()
         self.create_agents_batch(SecretaryAgent, config.num_secretary)
         self.create_agents_batch(FleetManagerAgent, config.num_managers)
@@ -180,6 +183,9 @@ class SimulatorAgent(Agent):
         for customer in scenario["customers"]:
             password = customer["password"] if "password" in customer else faker_factory.password()
             self.create_agent(CustomerAgent, customer["name"], password, customer["position"], target=customer["dest"])
+        for station in scenario["stations"]:
+            password = station["password"] if "password" in station else faker_factory.password()
+            self.create_agent(CustomerAgent, station["name"], password, station["position"])
 
     def load_icons(self, filename):
         with open(filename, 'r') as f:
@@ -230,6 +236,9 @@ class SimulatorAgent(Agent):
                 for customer in self.customer_agents.values():
                     customer.add_strategy(self.customer_strategy)
                     logger.debug(f"Adding strategy {self.customer_strategy} to customer {customer.name}")
+                for station in self.station_agents.values():
+                    station.add_strategy(self.station_strategy)
+                    logger.debug(f"Adding strategy {self.secretary_strategy} to station {station.name}")
 
             self.simulation_running = True
             self.simulation_init_time = time.time()
@@ -314,9 +323,10 @@ class SimulatorAgent(Agent):
         """
         data = {
             "simulation": json.loads(self.df_avg.to_json(orient="index"))["0"],
-            "managers": json.loads(self.manager_df.to_json(orient="index")),
             "customers": json.loads(self.customer_df.to_json(orient="index")),
-            "transports": json.loads(self.transport_df.to_json(orient="index"))
+            "transports": json.loads(self.transport_df.to_json(orient="index")),
+            "managers": json.loads(self.manager_df.to_json(orient="index")),
+            "stations": json.loads(self.station_df.to_json(orient="index"))
         }
 
         with open(filename, 'w') as f:
@@ -372,7 +382,7 @@ class SimulatorAgent(Agent):
     @property
     def station_agents(self):
         """
-        Gets the dict of registered customers
+        Gets the dict of registered stations
 
         Returns:
             dict: a dict of ``StationAgent`` with the name in the key
@@ -630,10 +640,11 @@ class SimulatorAgent(Agent):
         output = io.StringIO()
 
         # Write the data frame to the StringIO object.
-        df_avg, transport_df, customer_df = self.get_stats_dataframes()
+        df_avg, manager_df ,transport_df, customer_df = self.get_stats_dataframes()
 
         data = {
             "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
+            "managers": json.loads(manager_df.to_json(orient="index")),
             "customers": json.loads(customer_df.to_json(orient="index")),
             "transports": json.loads(transport_df.to_json(orient="index"))
         }
@@ -666,6 +677,8 @@ class SimulatorAgent(Agent):
         self.set("transport_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
         agents = self.get("customer_agents")
         self.set("customer_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
+        agents = self.get("station_agents")
+        self.set("station_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
         self.simulation_time = None
         self.simulation_init_time = None
 
@@ -692,7 +705,14 @@ class SimulatorAgent(Agent):
             for name, agent in self.customer_agents.items():
                 logger.debug("Stopping customer {}".format(name))
                 agent.stop()
+                agent.stop()
                 agent.stopped = True
+        '''with self.lock:
+            for name, agent in self.station_agents.items():
+                logger.debug("Stopping station {}".format(name))
+                agent.stop()
+                agent.stopped = True
+        '''
 
     def get_manager_stats(self):
         """
@@ -944,10 +964,10 @@ class SimulatorAgent(Agent):
         self.secretary_strategy = load_class(secretary_strategy)
         self.station_strategy = load_class(station_strategy)
         logger.debug("Loaded strategy classes: {}, {}, {}, {} and {}".format(self.fleetmanager_strategy,
-                                                                         self.transport_strategy,
-                                                                         self.customer_strategy,
-                                                                         self.secretary_strategy,
-                                                                         self.station_strategy))
+                                                                             self.transport_strategy,
+                                                                             self.customer_strategy,
+                                                                             self.secretary_strategy,
+                                                                             self.station_strategy))
 
     def get_simulation_time(self):
         """
@@ -996,13 +1016,19 @@ class SimulatorAgent(Agent):
 
     def types_assignment(self):
         """
-        assigns a generator to the manager_generator variable for the TransportAgent's record
+        Assigns a generator to the manager_generator variable for the TransportAgent's record
         """
         if not self.types_generator():
             self.type_generator = None
         self.type_generator = self.types_generator()
 
     def types_generator(self):
+        """
+        Create a type generator for FleetManagers
+
+        Returns:
+            generator: the type of the FleetManagerAgent's
+        """
         for type in cycle(self.manager_types):
             yield str(type)
 

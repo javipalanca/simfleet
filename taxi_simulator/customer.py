@@ -285,7 +285,13 @@ class PassengerStrategyBehaviour(StrategyBehaviour):
         self.agent.init_time = time.time()
 
     async def send_get_managers(self, content=None):
-
+        """
+        Sends an ``spade.message.Message`` to the secretaryAgent to request a managers.
+        It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
+        If no content is set a default content with the type_service that needs
+        Args:
+            content (dict): Optional content dictionary
+        """
         if content is None or len(content) == 0:
             content = self.agent.type_service
         msg = Message()

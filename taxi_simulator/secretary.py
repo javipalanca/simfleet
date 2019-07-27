@@ -84,6 +84,9 @@ class RegistrationBehaviour(CyclicBehaviour):
         self.logger.debug("Deregistration of the Manager {} for service {}".format(agent, type))
 
     async def send_confirmation(self, agent_id):
+        '''
+        Send a ``spade.message.Message`` with an acceptance to manager/station to register in the dictionary
+        '''
         reply = Message()
         reply.to = str(agent_id)
         reply.set_metadata("protocol", REGISTER_PROTOCOL)
@@ -118,15 +121,28 @@ class SecretaryStrategyBehaviour(StrategyBehaviour):
         self.logger = logging.getLogger("SecretaryStrategy")
         self.logger.debug("Strategy {} started in secretary".format(type(self).__name__))
 
-    async def send_services(self, agent_id, type):
+    async def send_services(self, agent_id, type_service):
+        """
+        Send a message to the customer or transport with the current information of the type of service they need.
+
+        Args:
+            agent_id (str): the id of the manager/station
+            type_service (str): the type of service
+        """
         reply = Message()
         reply.to = str(agent_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", INFORM_PERFORMATIVE)
-        reply.body = json.dumps(self.get("service_agents")[type])
+        reply.body = json.dumps(self.get("service_agents")[type_service])
         await self.send(reply)
 
     async def send_negative(self, agent_id):
+        """
+        Sends a message to the current assigned manager/station to cancel the registration.
+
+        Args:
+            agent_id (str): the id of the manager/station
+        """
         reply = Message()
         reply.to = str(agent_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)

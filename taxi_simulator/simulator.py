@@ -272,17 +272,6 @@ class SimulatorAgent(Agent):
         columns += ["Simulation Finished"]
         self.df_avg = df_avg[columns]
 
-    '''
-    def get_stats(self):
-        """
-        Returns the dataframes collected by :func:`collect_stats`
-
-        Returns:
-            ``pandas.DataFrame``, ``pandas.DataFrame``, ``pandas.DataFrame``: average df, customers df and transport df
-        """
-        return self.df_avg, self.customer_df, self.transport_df    
-        '''
-
     def print_stats(self):
         """
         Prints the dataframes collected by ``collect_stats``.
@@ -840,7 +829,7 @@ class SimulatorAgent(Agent):
             self.set_secretary(agent)
         elif cls == FleetManagerAgent:
             agent.set_secretary(self.get_secretary().jid)
-            agent.set_type(next(self.type_generator))
+            # agent.set_type(next(self.type_generator))
             agent.set_type("Taxi")
         else:
             if cls == TransportAgent:

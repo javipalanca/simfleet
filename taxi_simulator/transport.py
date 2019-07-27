@@ -4,13 +4,14 @@ import logging
 from collections import defaultdict
 from spade.message import Message
 from spade.agent import Agent
-from spade.behaviour import PeriodicBehaviour
+from spade.behaviour import PeriodicBehaviour, CyclicBehaviour
 from spade.template import Template
 
 from .utils import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_IN_CUSTOMER_PLACE, TRANSPORT_MOVING_TO_DESTINATION, \
     CUSTOMER_IN_DEST, CUSTOMER_LOCATION, chunk_path, request_path, StrategyBehaviour, TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE, \
     TRANSPORT_LOADING
-from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, REGISTER_PROTOCOL, REQUEST_PERFORMATIVE
+from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, REGISTER_PROTOCOL, REQUEST_PERFORMATIVE, \
+    ACCEPT_PERFORMATIVE
 from .helpers import random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
     AlreadyInDestination
 
@@ -47,8 +48,10 @@ class TransportAgent(Agent):
         self.registration = False
 
         self.secretary_id = None
+        self.type_service = None
+        self.fleet_name = None
 
-        self.type_service = "Station"
+        self.request = "Station"
         self.stations = None
         self.flag_stations = False
         self.fuel = 100
@@ -58,13 +61,27 @@ class TransportAgent(Agent):
         self.set("current_station", None)
         self.current_station_dest = None
 
-    def set_registration(self, status):
+    async def setup(self):
+        try:
+            template = Template()
+            template.set_metadata("protocol", REGISTER_PROTOCOL)
+            register_behaviour = RegistrationBehaviour()
+            self.add_behaviour(register_behaviour, template)
+            while not self.has_behaviour(register_behaviour):
+                logger.warning("Transport {} could not create RegisterBehaviour. Retrying...".format(self.agent_id))
+                self.add_behaviour(register_behaviour, template)
+        except Exception as e:
+            logger.error("EXCEPTION creating RegisterBehaviour in Transport {}: {}".format(self.agent_id, e))
+
+    def set_registration(self, status, content=None):
         """
         Sets the status of registration
         Args:
             status (boolean): True if the transport agent has registered or False if not
-
         """
+        if content is not None:
+            self.fleet_name = content["fleet_name"]
+            self.type_service = content["type_service"]
         self.registration = status
 
     def set_secretary(self, secretary_id):
@@ -441,6 +458,8 @@ class TransportAgent(Agent):
             "fuel": self.fuel,
             "autonomy": self.autonomy_km,
             "potency": self.batery_kW,
+            "service": self.type_service,
+            "fleet": self.fleet_name,
         }
 
     class MovingBehaviour(PeriodicBehaviour):
@@ -457,6 +476,24 @@ class TransportAgent(Agent):
             self.period = self.agent.animation_speed / ONESECOND_IN_MS
             if self.agent.is_in_destination():
                 self.agent.remove_behaviour(self)
+
+
+class RegistrationBehaviour(CyclicBehaviour):
+    async def on_start(self):
+        self.logger = logging.getLogger("TransportRegistrationStrategy")
+        self.logger.debug("Strategy {} started in transport".format(type(self).__name__))
+
+    async def run(self):
+        try:
+            msg = await self.receive(timeout=10)
+            if msg:
+                performative = msg.get_metadata("performative")
+                content = json.loads(msg.body)
+                if performative == ACCEPT_PERFORMATIVE:
+                    self.agent.set_registration(True, content)
+                    logger.info("Registration in the directory of secretary")
+        except Exception as e:
+            logger.error("EXCEPTION in RegisterBehaviour of Station {}: {}".format(self.agent.name, e))
 
 
 class TaxiStrategyBehaviour(StrategyBehaviour):
@@ -550,7 +587,7 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
     async def send_get_stations(self, content=None):
 
         if content is None or len(content) == 0:
-            content = self.agent.type_service
+            content = self.agent.request
         msg = Message()
         msg.to = str(self.agent.secretary_id)
         msg.set_metadata("protocol", REQUEST_PROTOCOL)
@@ -558,7 +595,7 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         msg.body = content
         await self.send(msg)
         self.agent.flag_stations = True
-        self.logger.info("Transport {} asked for Stations to Secretary {} for type {}.".format(self.agent.name, self.agent.secretary_id, self.agent.type_service))
+        self.logger.info("Transport {} asked for Stations to Secretary {} for type {}.".format(self.agent.name, self.agent.secretary_id, self.agent.request))
 
     async def send_proposal(self, customer_id, content=None):
         """
@@ -595,7 +632,6 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = json.dumps(content)
         await self.send(msg)
-        self.agent.set_registration(True)
 
     async def cancel_proposal(self, customer_id, content=None):
         """

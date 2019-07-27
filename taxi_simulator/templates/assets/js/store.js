@@ -171,6 +171,8 @@ function customer_popup(customer) {
 function transport_popup(transport) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + transport.id + "</td></tr>" +
         "<tr><th>STATUS</th><td>" + transport.status + "</td></tr>" +
+        "<tr><th>FLEETNAME</th><td>" + transport.fleet + "</td></tr>" +
+        "<tr><th>TYPE</th><td>" + transport.service + "</td></tr>" +
         "<tr><th>CUSTOMER</th><td>" + transport.customer + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + transport.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + transport.dest + "</td></tr>" +

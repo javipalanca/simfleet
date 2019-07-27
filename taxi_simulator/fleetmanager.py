@@ -127,6 +127,15 @@ class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
         else:
             self.logger.debug("Cancelation of the registration in the Fleet")
 
+    async def send_confirmation(self, agent_id):
+        reply = Message()
+        content = {"fleet_name": self.agent.fleetName, "type_service": self.agent.type}
+        reply.to = str(agent_id)
+        reply.set_metadata("protocol", REGISTER_PROTOCOL)
+        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+        reply.body = json.dumps(content)
+        await self.send(reply)
+
     async def run(self):
         try:
             msg = await self.receive(timeout=5)
@@ -135,6 +144,7 @@ class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
                 if performative == REQUEST_PERFORMATIVE:
                     content = json.loads(msg.body)
                     self.add_transport(content)
+                    await self.send_confirmation(msg.sender)
                     logger.debug("Registration in the fleet {}".format(self.agent.fleetName))
                 if performative == ACCEPT_PERFORMATIVE:
                     self.agent.set_registration(True)

@@ -853,9 +853,9 @@ class SimulatorAgent(Agent):
         elif cls == FleetManagerAgent:
             agent.set_secretary(self.get_secretary().jid)
             fleet_type = next(self.type_generator)
-            agent.set_type(fleet_type)
-            # agent.set_type("Taxi")
-            agent.set_icon(self.assigning_fleet_icon(fleet_type))
+            # agent.set_type(fleet_type)
+            agent.set_type("Taxi")
+            agent.set_icon(self.assigning_fleet_icon("Taxi"))
         else:
             if cls == TransportAgent:
                 agent.set_fleetmanager(next(self.manager_generator))
@@ -877,7 +877,6 @@ class SimulatorAgent(Agent):
         elif cls == StationAgent:
             strategy = self.station_strategy
             self.add_station(agent)
-            agent.add_strategy(strategy)
         elif cls == FleetManagerAgent:
             strategy = self.fleetmanager_strategy
             self.add_manager(agent)

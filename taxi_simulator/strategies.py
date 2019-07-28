@@ -1,8 +1,8 @@
 import json
 
 from .fleetmanager import CoordinatorStrategyBehaviour
-from .customer import PassengerStrategyBehaviour
-from .transport import TaxiStrategyBehaviour
+from .customer import CustomerStrategyBehaviour
+from .transport import TransportStrategyBehaviour
 from .secretary import SecretaryStrategyBehaviour
 from .station import StationStrategyBehaviour
 from .utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, CUSTOMER_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, \
@@ -40,7 +40,7 @@ class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
 #                     Transport Strategy                       #
 #                                                              #
 ################################################################
-class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
+class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
     """
     The default strategy for the Taxi agent. By default it accepts every request it receives if available.
     """
@@ -50,7 +50,6 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
             await self.send_registration()
 
         if self.agent.get_fuel() < 40 and not self.agent.flag_stations:
-            self.logger.info("Envio de informacion para obtener el listado de estaciones###############")
             await self.send_get_stations()
 
         msg = await self.receive(timeout=5)
@@ -60,7 +59,7 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
 
-        # self.logger.debug("Transport {} received request protocol from customer {}.".format(self.agent.name, content["customer_id"]))
+        self.logger.debug("Transport {} received request protocol from customer/station.".format(self.agent.name))
 
         if performative == REQUEST_PERFORMATIVE:
             if self.agent.status == TRANSPORT_WAITING:
@@ -114,17 +113,17 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
                     await self.agent.drop_station()
 
         elif performative == REFUSE_PERFORMATIVE:
-            # self.logger.debug("Transport {} got refusal from {}".format(self.agent.name, content["customer_id"]))
+            self.logger.debug("Transport {} got refusal from customer/station".format(self.agent.name))
             if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL or self.agent.status == TRANSPORT_WAITING_FOR_STATION_APPROVAL:
                 self.agent.status = TRANSPORT_WAITING
 
         elif performative == INFORM_PERFORMATIVE:
             self.agent.stations = json.loads(msg.body)
-            self.logger.info("Registro de estaciones actuales {}".format(self.agent.stations))
+            self.logger.debug("Registration of current stations {}".format(self.agent.stations))
 
         elif performative == CANCEL_PERFORMATIVE:
             self.logger.info(
-                "Cancelacion de solicitud de informacion de transporte de tipo {}".format(self.agent.type_service))
+                "Cancellation of request for {} information".format(self.agent.type_service))
 
 
 ################################################################
@@ -132,7 +131,7 @@ class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
 #                       Customer Strategy                      #
 #                                                              #
 ################################################################
-class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
+class AcceptFirstRequestTaxiBehaviour(CustomerStrategyBehaviour):
     """
     The default strategy for the Customer agent. By default it accepts the first proposal it receives.
     """
@@ -148,7 +147,7 @@ class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
                     self.agent.fleetmanagers = json.loads(msg.body)
                     return
                 elif performative == CANCEL_PERFORMATIVE:
-                    self.logger.info("Cancelacion de solicitud de informacion de transporte de tipo {}".format(self.agent.type_service))
+                    self.logger.info("Cancellation of request for {} information".format(self.agent.type_service))
                     return
 
         if self.agent.status == CUSTOMER_WAITING:

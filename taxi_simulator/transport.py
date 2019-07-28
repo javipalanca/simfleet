@@ -500,7 +500,7 @@ class RegistrationBehaviour(CyclicBehaviour):
             logger.error("EXCEPTION in RegisterBehaviour of Transport {}: {}".format(self.agent.name, e))
 
 
-class TaxiStrategyBehaviour(StrategyBehaviour):
+class TransportStrategyBehaviour(StrategyBehaviour):
     """
     Class from which to inherit to create a transport strategy.
     You must overload the ```run`` coroutine
@@ -512,7 +512,7 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
     """
 
     async def on_start(self):
-        self.logger = logging.getLogger("TaxiStrategy")
+        self.logger = logging.getLogger("TransportStrategy")
         self.logger.debug("Strategy {} started in transport {}".format(type(self).__name__, self.agent.name))
 
     async def pick_up_customer(self, customer_id, origin, dest):
@@ -630,7 +630,7 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         """
         Send a ``spade.message.Message`` with a proposal to manager to register.
         """
-        logger.debug("Transport {} sent proposal to register to manager {}".format(self.agent.name, self.agent.fleetmanager_id))
+        logger.info("Transport {} sent proposal to register to manager {}".format(self.agent.name, self.agent.fleetmanager_id))
         content = {
             "name": self.agent.name,
             "jid": str(self.agent.jid)

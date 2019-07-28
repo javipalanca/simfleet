@@ -265,7 +265,7 @@ class TravelBehaviour(CyclicBehaviour):
             logger.error("EXCEPTION in Travel Behaviour of Customer {}: {}".format(self.agent.name, e))
 
 
-class PassengerStrategyBehaviour(StrategyBehaviour):
+class CustomerStrategyBehaviour(StrategyBehaviour):
     """
     Class from which to inherit to create a transport strategy.
     You must overload the ``run`` coroutine

@@ -167,7 +167,7 @@ class StationAgent(Agent):
     def assigning_place(self):
         '''
         set a space in the charging station for the transport that has been accepted, when the available spaces are zero,
-        the status will change to OCCUPATION STATION
+        the status will change to BUSY_STATION
         '''
         p = self.get_places_available()
         if not p-1:

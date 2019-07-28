@@ -61,6 +61,8 @@ class TransportAgent(Agent):
         self.set("current_station", None)
         self.current_station_dest = None
 
+        self.icon = None
+
     async def setup(self):
         try:
             template = Template()
@@ -82,6 +84,7 @@ class TransportAgent(Agent):
         if content is not None:
             self.fleet_name = content["fleet_name"]
             self.type_service = content["type_service"]
+            self.icon = content["icon"]
         self.registration = status
 
     def set_secretary(self, secretary_id):
@@ -414,11 +417,11 @@ class TransportAgent(Agent):
     def get_autonomy(self):
         return self.autonomy_km
 
-    def calculate_km_expense(self, origin, start, dest):
+    def calculate_km_expense(self, origin, start, dest=None):
         fir_distance = distance_in_meters(origin, start)
         sec_distance = distance_in_meters(start, dest)
-        logger.info("Coord1: {}, Coord2: {}, Coord3: {}".format(origin, start, dest))
-        logger.info("Primera distancia: {}, segudna distancia: {}".format(fir_distance, sec_distance))
+        if dest is None:
+            sec_distance = 0
         return (fir_distance+sec_distance)//1000
 
     def to_json(self):
@@ -460,6 +463,7 @@ class TransportAgent(Agent):
             "potency": self.batery_kW,
             "service": self.type_service,
             "fleet": self.fleet_name,
+            "icon": self.icon,
         }
 
     class MovingBehaviour(PeriodicBehaviour):
@@ -493,7 +497,7 @@ class RegistrationBehaviour(CyclicBehaviour):
                     self.agent.set_registration(True, content)
                     logger.info("Registration in the directory of secretary")
         except Exception as e:
-            logger.error("EXCEPTION in RegisterBehaviour of Station {}: {}".format(self.agent.name, e))
+            logger.error("EXCEPTION in RegisterBehaviour of Transport {}: {}".format(self.agent.name, e))
 
 
 class TaxiStrategyBehaviour(StrategyBehaviour):
@@ -567,6 +571,11 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         self.agent.current_station_dest = dest
         await self.send(reply)
         self.agent.num_charges += 1
+        travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
+        expense = (travel_km * 100) // self.agent.get_autonomy()
+        expense *= 10
+        self.agent.set_fuel_expense(expense)
+        self.agent.set_km_expense(travel_km)
         try:
             await self.agent.move_to(self.agent.current_station_dest)
         except AlreadyInDestination:
@@ -577,7 +586,7 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
             return False
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), customer_orig, customer_dest)
         expense = (travel_km*100)//self.agent.get_autonomy()
-        expense *= 12 # prueba para gastar mas rapido el combustible
+        expense *= 10
         if self.agent.get_fuel() - expense < 10:
             return False
         self.agent.set_fuel_expense(expense)

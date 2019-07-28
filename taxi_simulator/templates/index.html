@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#000000">
     <meta name="description" content="">
     <meta name="author" content="">
-    <title>Taxi Simulator</title>
+    <title>SimFleet</title>
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
@@ -58,7 +58,7 @@
                     <a href="#" class="navbar-icon pull-right visible-xs" id="sidebar-toggle-btn"><i
                         class="fa fa-search fa-lg white"></i></a>
                 </div>
-                <a class="navbar-brand" href="#"><i class="fa fa-transport" aria-hidden="true"></i> Taxi Simulator</a>
+                <a class="navbar-brand" href="#"><i class="fa fa-transport" aria-hidden="true"></i> SimFleet </a>
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
@@ -88,7 +88,7 @@
             <v-map :zoom="zoom" :center="center" ref="map">
                 <v-tilelayer :url="url"></v-tilelayer>
                 <span v-for="transport in transports">
-                    <v-marker :lat-lng="transport.latlng" :icon="transportIcon" @l-move="set_speed($event, transport)">
+                    <v-marker :lat-lng="transport.latlng" :icon="transport.icon" @l-move="set_speed($event, transport)">
                         <v-popup :content="transport.popup"></v-popup>
                     </v-marker>
                 </span>

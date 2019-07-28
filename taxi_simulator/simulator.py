@@ -192,6 +192,9 @@ class SimulatorAgent(Agent):
             logger.info("Reading icons {}".format(filename))
             self._icons = json.load(f)
 
+    def assigning_fleet_icon(self, fleet_type):
+        return self._icons[fleet_type].pop()
+
     def set_secretary(self, agent):
         self.secretary_agent = agent
 
@@ -849,8 +852,10 @@ class SimulatorAgent(Agent):
             self.set_secretary(agent)
         elif cls == FleetManagerAgent:
             agent.set_secretary(self.get_secretary().jid)
-            # agent.set_type(next(self.type_generator))
-            agent.set_type("Taxi")
+            fleet_type = next(self.type_generator)
+            agent.set_type(fleet_type)
+            # agent.set_type("Taxi")
+            agent.set_icon(self.assigning_fleet_icon(fleet_type))
         else:
             if cls == TransportAgent:
                 agent.set_fleetmanager(next(self.manager_generator))

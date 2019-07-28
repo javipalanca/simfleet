@@ -31,7 +31,7 @@ class FleetManagerAgent(Agent):
         self.type = None
         self.registration = False
         self.secretary_id = None
-
+        self.fleet_icon = None
         self.stopped = False
         self.clear_agents()
 
@@ -63,6 +63,9 @@ class FleetManagerAgent(Agent):
             agent_id (str): The new Agent Id
         """
         self.agent_id = agent_id
+
+    def set_icon(self, icon):
+        self.fleet_icon = icon
 
     def add_strategy(self, strategy_class):
         """
@@ -138,7 +141,7 @@ class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
         Send a ``spade.message.Message`` with an acceptance to transport to register in the fleet.
         """
         reply = Message()
-        content = {"fleet_name": self.agent.fleetName, "type_service": self.agent.type}
+        content = {"fleet_name": self.agent.fleetName, "type_service": self.agent.type, "icon": self.agent.fleet_icon}
         reply.to = str(agent_id)
         reply.set_metadata("protocol", REGISTER_PROTOCOL)
         reply.set_metadata("performative", ACCEPT_PERFORMATIVE)

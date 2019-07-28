@@ -97,6 +97,7 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
                                                                                   content["station_id"]))
                 try:
                     self.agent.status = TRANSPORT_MOVING_TO_STATION
+                    await self.send_confirmation_travel(content["station_id"])
                     await self.go_to_the_station(content["station_id"], content["dest"])
                 except PathRequestException:
                     self.logger.error("Transport {} could not get a path to station {}. Cancelling..."
@@ -114,7 +115,7 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
 
         elif performative == REFUSE_PERFORMATIVE:
             self.logger.debug("Transport {} got refusal from customer/station".format(self.agent.name))
-            if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL or self.agent.status == TRANSPORT_WAITING_FOR_STATION_APPROVAL:
+            if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
                 self.agent.status = TRANSPORT_WAITING
 
         elif performative == INFORM_PERFORMATIVE:
@@ -225,3 +226,5 @@ class ManageChargeSpacesBehaviour(StationStrategyBehaviour):
             elif performative == CANCEL_PERFORMATIVE:
                 self.logger.warning("Station {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
                 self.agent.deassigning_place()
+            elif performative == ACCEPT_PERFORMATIVE:
+                self.agent.assigning_place()

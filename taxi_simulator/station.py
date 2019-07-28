@@ -31,7 +31,7 @@ class StationAgent(Agent):
     async def setup(self):
         logger.info("Station agent running")
         self.set_type("Station")
-        self.set_places_available(5)
+        self.set_places_available(2)
         self.set_status()
         self.set_potency(50)
         try:
@@ -306,7 +306,6 @@ class StationStrategyBehaviour(StrategyBehaviour):
         }
         reply.body = json.dumps(content)
         await self.send(reply)
-        self.agent.assigning_place()
         self.logger.debug("Station {} accepted proposal for charge from transport {}".format(self.agent.name,
                                                                                              transport_id))
 

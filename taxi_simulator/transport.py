@@ -546,6 +546,14 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         except AlreadyInDestination:
             await self.agent.arrived_to_destination()
 
+    async def send_confirmation_travel(self, station_id):
+        logger.info("Transport {} sent confirmation to station {}".format(self.agent.name, station_id))
+        reply = Message()
+        reply.to = station_id
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+        await self.send(reply)
+
     async def go_to_the_station(self, station_id, dest):
         """
         Starts a TRAVEL_PROTOCOL to pick up a customer and get him to his destination.

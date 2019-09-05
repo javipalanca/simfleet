@@ -110,8 +110,6 @@ class SimulatorAgent(Agent):
         self.manager_types = ["Taxi", "Trucking", "Foodtransport"]
         self.type_generator = None
 
-        self.start()
-
         logger.info("Starting SimFleet {}".format(self.pretty_name))
 
         self.selection = None
@@ -124,11 +122,13 @@ class SimulatorAgent(Agent):
         self.route_agent = RouteAgent(self.route_id, config.route_password)
         self.route_agent.start()
 
-        logger.info("Creating {} managers, {} transporter, {} customer and {} secretary.".format(config.num_managers,
-                                                                                                 config.num_transport,
-                                                                                                 config.num_customers,
-                                                                                                 config.num_secretary,
-                                                                                                 config.num_stations))
+        self.clear_agents()
+
+        logger.info("Creating {} managers, {} transports, {} customers, {} secretary and {} stations.".format(config.num_managers,
+                                                                                                              config.num_transport,
+                                                                                                              config.num_customers,
+                                                                                                              config.num_secretary,
+                                                                                                              config.num_stations))
 
         self._icons = None
         self.load_icons('taxi_simulator/img_transports.json')
@@ -136,6 +136,10 @@ class SimulatorAgent(Agent):
         self.types_assignment()
         self.create_agents_batch(SecretaryAgent, config.num_secretary)
         self.create_agents_batch(FleetManagerAgent, config.num_managers)
+
+        while len(self.manager_agents) < config.num_managers:
+            time.sleep(0.1)
+
         self.manager_assignment()
 
         self.create_agents_batch(TransportAgent, config.num_transport)
@@ -147,7 +151,6 @@ class SimulatorAgent(Agent):
             self.load_scenario(_scenario.scenario)
 
         self.template_path = os.path.dirname(__file__) + os.sep + "templates"
-        self.clear_agents()
 
     async def setup(self):
         logger.info("Simulator agent running")
@@ -847,48 +850,65 @@ class SimulatorAgent(Agent):
         """
         jid = f"{name}@{self.jid.domain}"
         agent = cls(jid, password)
+        logger.info("Creating {} of class {}".format(jid, cls))
         agent.set_id(name)
         if cls == SecretaryAgent:
             self.set_secretary(agent)
         elif cls == FleetManagerAgent:
             agent.set_secretary(self.get_secretary().jid)
             fleet_type = next(self.type_generator)
-            # agent.set_type(fleet_type)
-            agent.set_type("Taxi")
-            agent.set_icon(self.assigning_fleet_icon("Taxi"))
-        else:
-            if cls == TransportAgent:
-                agent.set_fleetmanager(next(self.manager_generator))
-            if cls != StationAgent: # if cls == TransportAgent or cls == CustomerAgent
-                agent.set_route_agent(self.route_id)
+            logger.info("Assigning type {} to fleet manager {}".format(fleet_type, jid))
+            agent.set_type(fleet_type)
+            #agent.set_type("Taxi")
+            agent.set_icon(self.assigning_fleet_icon(fleet_type))
+        elif cls == TransportAgent:
+            logger.error("PRIMER IF DE TRANSPORT {}".format(self.manager_agents.keys()))
+            random_fleet = next(self.manager_generator)
+            logger.info("Assigned to fleet {}".format(random_fleet))
+            agent.set_fleetmanager(random_fleet)
+            agent.set_route_agent(self.route_id)
             agent.set_secretary(self.get_secretary().jid)
+
+            await agent.set_position(position)
+
+            if speed:
+                agent.set_speed(speed)
+        elif cls == CustomerAgent:
+            agent.set_route_agent(self.route_id)
+            agent.set_secretary(self.get_secretary().jid)
+
             await agent.set_position(position)
 
             if target:
                 agent.set_target_position(target)
-            if speed:
-                agent.set_speed(speed)
 
         await agent.start(auto_register=True)
 
         if cls == SecretaryAgent:
+            logger.error("SECRETARY")
             strategy = self.secretary_strategy
             agent.add_strategy(strategy)
         elif cls == StationAgent:
+            logger.error("STATION")
             strategy = self.station_strategy
             self.add_station(agent)
         elif cls == FleetManagerAgent:
+            logger.error("FLEETMANAGER")
             strategy = self.fleetmanager_strategy
             self.add_manager(agent)
         elif cls == TransportAgent:
+            logger.error("TRANSPORT")
             strategy = self.transport_strategy
             self.add_transport(agent)
         else: # cls == CustomerAgent:
+            logger.error("CUSTOMER")
             strategy = self.customer_strategy
             self.add_customer(agent)
 
         if self.simulation_running:
             agent.add_strategy(strategy)
+
+        logger.info("Created {} of class {}".format(jid, cls))
 
     def create_agents_batch(self, cls, number: int):
         """
@@ -901,6 +921,7 @@ class SimulatorAgent(Agent):
         number = max(number, 0)
         iterations = [20] * (number // 20)
         iterations.append(number % 20)
+        logger.info("Creating {} agents of class {}".format(number, cls))
         for iteration in iterations:
             for _ in range(iteration):
                 suffix = "{}".format("".join(random.sample(string.ascii_letters, 4)))
@@ -1033,6 +1054,5 @@ class SimulatorAgent(Agent):
         Returns:
             generator: the type of the FleetManagerAgent's
         """
-        for type in cycle(self.manager_types):
-            yield str(type)
-
+        for type_ in cycle(self.manager_types):
+            yield str(type_)

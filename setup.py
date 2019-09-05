@@ -37,7 +37,7 @@ setup(
     packages=find_packages(include=['taxi_simulator']),
     entry_points={
         'console_scripts': [
-            'taxi_simulator=taxi_simulator.cli:main'
+            'simfleet=taxi_simulator.cli:main'
         ]
     },
     include_package_data=True,

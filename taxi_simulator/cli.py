@@ -42,7 +42,7 @@ logger = logging.getLogger()
               help="Route agent name (default: route).")
 @click.option('--route-passwd', default="route_passwd",
               help="Route agent password (default: route_passwd).")
-@click.option('--host', help="XMPP server address")
+@click.option('--host', help="XMPP server address", default="127.0.0.1")
 @click.option('-ip', '--ip-address', default="127.0.0.1", help="IP to serve web (default: 127.0.0.1).")
 @click.option('-v', '--verbose', count=True,
               help="Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4")
@@ -90,7 +90,10 @@ def main(name, output, oformat, max_time, autorun, transport, customer, fleetman
     config.ip = ip_address
     config.verbose = verbose
 
-    simulator = SimulatorAgent(config)
+    simulator_name = "simulator_{}@{}".format(name, host)
+
+    simulator = SimulatorAgent(config=config, agentjid=simulator_name)
+    simulator.start()
 
     if autorun:
         simulator.run()

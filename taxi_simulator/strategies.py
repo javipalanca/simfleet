@@ -162,7 +162,7 @@ class AcceptFirstRequestTaxiBehaviour(CustomerStrategyBehaviour):
             if performative == PROPOSE_PERFORMATIVE:
                 if self.agent.status == CUSTOMER_WAITING:
                     self.logger.debug("Customer {} received proposal from transport {}".format(self.agent.name,
-                                                                                           transport_id))
+                                                                                               transport_id))
                     await self.accept_transport(transport_id)
                     self.agent.status = CUSTOMER_ASSIGNED
                 else:

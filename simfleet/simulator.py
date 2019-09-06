@@ -1,64 +1,31 @@
-import logging
-
-import pandas as pd
-from tabulate import tabulate
-import json
-import faker
-
-from .customer import CustomerAgent
-from .transport import TransportAgent
-from .scenario import Scenario
-from .fleetmanager import FleetManagerAgent
-from .directory import DirectoryAgent
-from .route import RouteAgent
-from .station import StationAgent
-
-from spade.agent import Agent
-from .helpers import random_position
-
-from itertools import cycle
-
-import os
-import threading
 import io
+import json
+import logging
+import os
 import random
 import string
-from .utils import load_class, status_to_str, request_path, avg
+import threading
 import time
+from itertools import cycle
+
+import faker
+import pandas as pd
 from aiohttp import web as aioweb
-import xlsxwriter
+from spade.agent import Agent
+from tabulate import tabulate
+
+from .customer import CustomerAgent
+from .directory import DirectoryAgent
+from .fleetmanager import FleetManagerAgent
+from .helpers import random_position
+from .route import RouteAgent
+from .station import StationAgent
+from .transport import TransportAgent
+from .utils import load_class, status_to_str, request_path, avg
 
 faker_factory = faker.Factory.create()
 
 logger = logging.getLogger()
-
-
-class SimulationConfig(object):
-    """
-    Dataclass to store the :class:`Simulator` config
-    """
-
-    def __init__(self):
-        self.host = None
-        self.simulation_name = None
-        self.max_time = None
-        self.transport_strategy = None
-        self.customer_strategy = None
-        self.fleetmanager_strategy = None
-        self.directory_strategy = None
-        self.station_strategy = None
-        self.scenario = None
-        self.num_transport = None
-        self.num_customers = None
-        self.num_managers = None
-        self.num_stations = None
-        self.http_port = None
-        self.ip_address = None
-        self.fleetmanager_name = None
-        self.fleetmanager_password = None
-        self.route_name = None
-        self.route_password = None
-        self.verbose = None
 
 
 class SimulatorAgent(Agent):
@@ -130,7 +97,7 @@ class SimulatorAgent(Agent):
                                                                                                 config.num_stations))
 
         self._icons = None
-        self.load_icons('taxi_simulator/img_transports.json')
+        self.load_icons('simfleet/img_transports.json')
 
         self.types_assignment()
         self.create_agents_batch(DirectoryAgent, 1)
@@ -145,9 +112,7 @@ class SimulatorAgent(Agent):
         self.create_agents_batch(CustomerAgent, config.num_customers)
         self.create_agents_batch(StationAgent, config.num_stations)
 
-        if config.scenario:
-            _scenario = Scenario(config.scenario)
-            self.load_scenario(_scenario)
+        self.load_scenario()
 
         self.template_path = os.path.dirname(__file__) + os.sep + "templates"
 
@@ -164,28 +129,25 @@ class SimulatorAgent(Agent):
 
         self.web.app.router.add_static("/assets", os.path.dirname(os.path.realpath(__file__)) + "/templates/assets")
 
-        self.web.start(port=self.config.http_port, templates_path=self.template_path)
-        logger.info("Web interface running at http://127.0.0.1:{}/app".format(self.config.http_port))
+        self.web.start(hostname=self.config.http_ip, port=self.config.http_port, templates_path=self.template_path)
+        logger.info("Web interface running at http://{}:{}/app".format(self.config.http_ip, self.config.http_port))
 
-    def load_scenario(self, scenario: Scenario):
+    def load_scenario(self):
         """
-        Load the information from the preloaded scenario through the Scenario class
-
-        Args:
-             scenario (Scenario): name of the json file.
+        Load the information from the preloaded scenario through the SimfleetConfig class
         """
         logger.info("Loading scenario...")
-        for manager in scenario["managers"]:
+        for manager in self.config["fleets"]:
             password = manager["password"] if "password" in manager else faker_factory.password()
             self.create_agent(FleetManagerAgent, manager["name"], password, position=[0, 0])
-        for transport in scenario["transports"]:
+        for transport in self.config["transports"]:
             password = transport["password"] if "password" in transport else faker_factory.password()
             speed = transport["speed"] if "speed" in transport else None
             self.create_agent(TransportAgent, transport["name"], password, transport["position"], speed=speed)
-        for customer in scenario["customers"]:
+        for customer in self.config["customers"]:
             password = customer["password"] if "password" in customer else faker_factory.password()
             self.create_agent(CustomerAgent, customer["name"], password, customer["position"], target=customer["dest"])
-        for station in scenario["stations"]:
+        for station in self.config["stations"]:
             password = station["password"] if "password" in station else faker_factory.password()
             self.create_agent(CustomerAgent, station["name"], password, station["position"])
 

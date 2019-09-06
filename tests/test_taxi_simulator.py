@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Tests for `taxi_simulator` package."""
+"""Tests for `simfleet` package."""
 
 from click.testing import CliRunner
 
-from taxi_simulator import cli
+from simfleet import cli
 
 
 def test_command_line_interface():

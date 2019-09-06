@@ -27,25 +27,25 @@ setup_requirements = [
 test_requirements = parse_requirements("requirements_dev.txt")
 
 setup(
-    name='taxi_simulator',
+    name='simfleet',
     version='0.4.1',
     description="Agent-based taxi simulator to test strategies",
     long_description=readme + '\n\n' + history,
     author="Javi Palanca",
     author_email='jpalanca@gmail.com',
     url='https://github.com/javipalanca/taxi_simulator',
-    packages=find_packages(include=['taxi_simulator']),
+    packages=find_packages(include=['simfleet']),
     entry_points={
         'console_scripts': [
-            'simfleet=taxi_simulator.cli:main'
+            'simfleet=simfleet.cli:main'
         ]
     },
     include_package_data=True,
-    package_data={"taxi_simulator": ["templates"]},
+    package_data={"simfleet": ["templates"]},
     install_requires=requirements,
     license="MIT license",
     zip_safe=False,
-    keywords='taxi_simulator',
+    keywords='simfleet',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',

@@ -3,10 +3,10 @@ import json
 
 from spade.behaviour import State, FSMBehaviour
 
-from taxi_simulator.transport import TaxiStrategyBehaviour
-from taxi_simulator.helpers import PathRequestException
-from taxi_simulator.protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
-from taxi_simulator.utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_MOVING_TO_PASSENGER
+from simfleet.transport import TaxiStrategyBehaviour
+from simfleet.helpers import PathRequestException
+from simfleet.protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
+from simfleet.utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_MOVING_TO_PASSENGER
 
 
 class TaxiWaitingState(TaxiStrategyBehaviour, State):

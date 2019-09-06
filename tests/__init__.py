@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-"""Unit test package for taxi_simulator."""
+"""Unit test package for simfleet."""

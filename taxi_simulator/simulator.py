@@ -9,9 +9,9 @@ from .customer import CustomerAgent
 from .transport import TransportAgent
 from .scenario import Scenario
 from .fleetmanager import FleetManagerAgent
-from .secretary import SecretaryAgent
+from .directory import DirectoryAgent
 from .route import RouteAgent
-from.station import StationAgent
+from .station import StationAgent
 
 from spade.agent import Agent
 from .helpers import random_position
@@ -27,6 +27,7 @@ from .utils import load_class, status_to_str, request_path, avg
 import time
 from aiohttp import web as aioweb
 import xlsxwriter
+
 faker_factory = faker.Factory.create()
 
 logger = logging.getLogger()
@@ -44,13 +45,12 @@ class SimulationConfig(object):
         self.transport_strategy = None
         self.customer_strategy = None
         self.fleetmanager_strategy = None
-        self.secretary_strategy = None
+        self.directory_strategy = None
         self.station_strategy = None
         self.scenario = None
         self.num_transport = None
         self.num_customers = None
         self.num_managers = None
-        self.num_secretary = 1
         self.num_stations = None
         self.http_port = None
         self.ip_address = None
@@ -84,7 +84,7 @@ class SimulatorAgent(Agent):
 
         self.host = config.host
 
-        self.secretary_agent = None
+        self.directory_agent = None
 
         self.df_avg = None
         self.customer_df = None
@@ -104,7 +104,7 @@ class SimulatorAgent(Agent):
         self.fleetmanager_strategy = None
         self.transport_strategy = None
         self.customer_strategy = None
-        self.secretary_strategy = None
+        self.directory_strategy = None
         self.station_strategy = None
 
         self.manager_types = ["Taxi", "Trucking", "Foodtransport"]
@@ -116,7 +116,7 @@ class SimulatorAgent(Agent):
         self.manager_generator = None
 
         self.set_strategies(config.fleetmanager_strategy, config.transport_strategy, config.customer_strategy,
-                            config.secretary_strategy, config.station_strategy)
+                            config.directory_strategy, config.station_strategy)
 
         self.route_id = "{}@{}".format(config.route_name, self.host)
         self.route_agent = RouteAgent(self.route_id, config.route_password)
@@ -124,17 +124,16 @@ class SimulatorAgent(Agent):
 
         self.clear_agents()
 
-        logger.info("Creating {} managers, {} transports, {} customers, {} secretary and {} stations.".format(config.num_managers,
-                                                                                                              config.num_transport,
-                                                                                                              config.num_customers,
-                                                                                                              config.num_secretary,
-                                                                                                              config.num_stations))
+        logger.info("Creating {} managers, {} transports, {} customers and {} stations.".format(config.num_managers,
+                                                                                                config.num_transport,
+                                                                                                config.num_customers,
+                                                                                                config.num_stations))
 
         self._icons = None
         self.load_icons('taxi_simulator/img_transports.json')
 
         self.types_assignment()
-        self.create_agents_batch(SecretaryAgent, config.num_secretary)
+        self.create_agents_batch(DirectoryAgent, 1)
         self.create_agents_batch(FleetManagerAgent, config.num_managers)
 
         while len(self.manager_agents) < config.num_managers:
@@ -148,7 +147,7 @@ class SimulatorAgent(Agent):
 
         if config.scenario:
             _scenario = Scenario(config.scenario)
-            self.load_scenario(_scenario.scenario)
+            self.load_scenario(_scenario)
 
         self.template_path = os.path.dirname(__file__) + os.sep + "templates"
 
@@ -168,13 +167,13 @@ class SimulatorAgent(Agent):
         self.web.start(port=self.config.http_port, templates_path=self.template_path)
         logger.info("Web interface running at http://127.0.0.1:{}/app".format(self.config.http_port))
 
-    def load_scenario(self, scenario):
-        '''
+    def load_scenario(self, scenario: Scenario):
+        """
         Load the information from the preloaded scenario through the Scenario class
 
         Args:
-             filename (str): name of the json file.
-        '''
+             scenario (Scenario): name of the json file.
+        """
         logger.info("Loading scenario...")
         for manager in scenario["managers"]:
             password = manager["password"] if "password" in manager else faker_factory.password()
@@ -198,11 +197,11 @@ class SimulatorAgent(Agent):
     def assigning_fleet_icon(self, fleet_type):
         return self._icons[fleet_type].pop()
 
-    def set_secretary(self, agent):
-        self.secretary_agent = agent
+    def set_directory(self, agent):
+        self.directory_agent = agent
 
-    def get_secretary(self):
-        return self.secretary_agent
+    def get_directory(self):
+        return self.directory_agent
 
     def is_simulation_finished(self):
         """
@@ -244,7 +243,7 @@ class SimulatorAgent(Agent):
                     logger.debug(f"Adding strategy {self.customer_strategy} to customer {customer.name}")
                 for station in self.station_agents.values():
                     station.add_strategy(self.station_strategy)
-                    logger.debug(f"Adding strategy {self.secretary_strategy} to station {station.name}")
+                    logger.debug(f"Adding strategy {self.directory_strategy} to station {station.name}")
 
             self.simulation_running = True
             self.simulation_init_time = time.time()
@@ -646,7 +645,7 @@ class SimulatorAgent(Agent):
         output = io.StringIO()
 
         # Write the data frame to the StringIO object.
-        df_avg, manager_df ,transport_df, customer_df = self.get_stats_dataframes()
+        df_avg, manager_df, transport_df, customer_df = self.get_stats_dataframes()
 
         data = {
             "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
@@ -730,12 +729,13 @@ class SimulatorAgent(Agent):
         """
         try:
             names, fleetnames, quantitys, types = zip(*[(p.name, p.fleetName,
-                                                       p.quantityFleet, p.type)
-                                                      for p in self.manager_agents.values()])
+                                                         p.quantityFleet, p.type)
+                                                        for p in self.manager_agents.values()])
         except ValueError:
             names, fleetnames, quantitys, types = [], [], [], []
 
-        df = pd.DataFrame.from_dict({"name": names, "fleet_name": fleetnames, "quantity_fleet": quantitys, "type": types})
+        df = pd.DataFrame.from_dict(
+            {"name": names, "fleet_name": fleetnames, "quantity_fleet": quantitys, "type": types})
         return df
 
     def get_customer_stats(self):
@@ -787,8 +787,8 @@ class SimulatorAgent(Agent):
         """
         try:
             names, status, places, potency = zip(*[(p.name, p.status,
-                                                       p.places_available, p.potency)
-                                                      for p in self.station_agents.values()])
+                                                    p.places_available, p.potency)
+                                                   for p in self.station_agents.values()])
         except ValueError:
             names, status, places, potency = [], [], [], []
 
@@ -852,14 +852,14 @@ class SimulatorAgent(Agent):
         agent = cls(jid, password)
         logger.info("Creating {} of class {}".format(jid, cls))
         agent.set_id(name)
-        if cls == SecretaryAgent:
-            self.set_secretary(agent)
+        if cls == DirectoryAgent:
+            self.set_directory(agent)
         elif cls == FleetManagerAgent:
-            agent.set_secretary(self.get_secretary().jid)
+            agent.set_directory(self.get_directory().jid)
             fleet_type = next(self.type_generator)
             logger.info("Assigning type {} to fleet manager {}".format(fleet_type, jid))
             agent.set_type(fleet_type)
-            #agent.set_type("Taxi")
+            # agent.set_type("Taxi")
             agent.set_icon(self.assigning_fleet_icon(fleet_type))
         elif cls == TransportAgent:
             logger.error("PRIMER IF DE TRANSPORT {}".format(self.manager_agents.keys()))
@@ -867,7 +867,7 @@ class SimulatorAgent(Agent):
             logger.info("Assigned to fleet {}".format(random_fleet))
             agent.set_fleetmanager(random_fleet)
             agent.set_route_agent(self.route_id)
-            agent.set_secretary(self.get_secretary().jid)
+            agent.set_directory(self.get_directory().jid)
 
             await agent.set_position(position)
 
@@ -875,7 +875,7 @@ class SimulatorAgent(Agent):
                 agent.set_speed(speed)
         elif cls == CustomerAgent:
             agent.set_route_agent(self.route_id)
-            agent.set_secretary(self.get_secretary().jid)
+            agent.set_directory(self.get_directory().jid)
 
             await agent.set_position(position)
 
@@ -884,9 +884,9 @@ class SimulatorAgent(Agent):
 
         await agent.start(auto_register=True)
 
-        if cls == SecretaryAgent:
+        if cls == DirectoryAgent:
             logger.error("SECRETARY")
-            strategy = self.secretary_strategy
+            strategy = self.directory_strategy
             agent.add_strategy(strategy)
         elif cls == StationAgent:
             logger.error("STATION")
@@ -900,7 +900,7 @@ class SimulatorAgent(Agent):
             logger.error("TRANSPORT")
             strategy = self.transport_strategy
             self.add_transport(agent)
-        else: # cls == CustomerAgent:
+        else:  # cls == CustomerAgent:
             logger.error("CUSTOMER")
             strategy = self.customer_strategy
             self.add_customer(agent)
@@ -973,7 +973,8 @@ class SimulatorAgent(Agent):
         with self.simulation_mutex:
             self.get("station_agents")[agent.name] = agent
 
-    def set_strategies(self, fleetmanager_strategy, transport_strategy, customer_strategy, secretary_strategy, station_strategy):
+    def set_strategies(self, fleetmanager_strategy, transport_strategy, customer_strategy, directory_strategy,
+                       station_strategy):
         """
         Gets the strategy strings and loads their classes. This strategies are prepared to be injected into any
         new transport or customer agent.
@@ -982,16 +983,18 @@ class SimulatorAgent(Agent):
             fleetmanager_strategy (str): the path to the fleetmanager strategy
             transport_strategy (str): the path to the transport strategy
             customer_strategy (str): the path to the customer strategy
+            directory_strategy (str): the path to the directory strategy
+            station_strategy (str): the path to the station strategy
         """
         self.fleetmanager_strategy = load_class(fleetmanager_strategy)
         self.transport_strategy = load_class(transport_strategy)
         self.customer_strategy = load_class(customer_strategy)
-        self.secretary_strategy = load_class(secretary_strategy)
+        self.directory_strategy = load_class(directory_strategy)
         self.station_strategy = load_class(station_strategy)
         logger.debug("Loaded strategy classes: {}, {}, {}, {} and {}".format(self.fleetmanager_strategy,
                                                                              self.transport_strategy,
                                                                              self.customer_strategy,
-                                                                             self.secretary_strategy,
+                                                                             self.directory_strategy,
                                                                              self.station_strategy))
 
     def get_simulation_time(self):

@@ -30,7 +30,7 @@ class FleetManagerAgent(Agent):
         self.agent_id = None
         self.type = None
         self.registration = False
-        self.secretary_id = None
+        self.directory_id = None
         self.fleet_icon = None
         self.stopped = False
         self.clear_agents()
@@ -87,15 +87,14 @@ class FleetManagerAgent(Agent):
         """
         self.registration = status
 
-    def set_secretary(self, secretary_id):
+    def set_directory(self, directory_id):
         """
-        Sets the secretary JID address
+        Sets the directory JID address
         Args:
-            secretary_id (str): the SecretaryAgent jid
+            directory_id (str): the DirectoryAgent jid
 
         """
-        logger.debug("Asignacion del id de SecretaryAgent: {}".format(secretary_id))
-        self.secretary_id = secretary_id
+        self.directory_id = directory_id
 
     def set_type(self, type_service):
         """
@@ -131,7 +130,7 @@ class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
             agent (``TransportAgent``): the instance of the TransportAgent to be erased
         """
         if key in self.get("transport_agents"):
-            del(self.get("transport_agents")[key])
+            del (self.get("transport_agents")[key])
             self.logger.debug("Deregistration of the TransporterAgent {}".format(key))
         else:
             self.logger.debug("Cancelation of the registration in the Fleet")
@@ -189,15 +188,16 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
 
     async def send_registration(self):
         """
-        Send a ``spade.message.Message`` with a proposal to secretary to register.
+        Send a ``spade.message.Message`` with a proposal to directory to register.
         """
-        logger.info("Manager {} sent proposal to register to secretary {}".format(self.agent.name, self.agent.secretary_id))
+        logger.info("Manager {} sent proposal to register to directory {}".format(self.agent.name,
+                                                                                  self.agent.directory_id))
         content = {
             "jid": str(self.agent.jid),
             "type": self.agent.type
         }
         msg = Message()
-        msg.to = str(self.agent.secretary_id)
+        msg.to = str(self.agent.directory_id)
         msg.set_metadata("protocol", REGISTER_PROTOCOL)
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = json.dumps(content)

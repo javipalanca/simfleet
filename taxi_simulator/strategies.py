@@ -3,10 +3,11 @@ import json
 from .fleetmanager import CoordinatorStrategyBehaviour
 from .customer import CustomerStrategyBehaviour
 from .transport import TransportStrategyBehaviour
-from .secretary import SecretaryStrategyBehaviour
+from .directory import DirectoryStrategyBehaviour
 from .station import StationStrategyBehaviour
 from .utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, CUSTOMER_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, \
-    CUSTOMER_ASSIGNED, TRANSPORT_WAITING_FOR_STATION_APPROVAL, FREE_STATION, TRANSPORT_MOVING_TO_STATION, TRANSPORT_LOADING, TRANSPORT_LOADED
+    CUSTOMER_ASSIGNED, TRANSPORT_WAITING_FOR_STATION_APPROVAL, FREE_STATION, TRANSPORT_MOVING_TO_STATION, \
+    TRANSPORT_LOADING, TRANSPORT_LOADED
 from .protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
     CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, CONFIRM_PERFORMATIVE
 from .helpers import PathRequestException
@@ -75,7 +76,7 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
         elif performative == ACCEPT_PERFORMATIVE:
             if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
                 self.logger.debug("Transport {} got accept from {}".format(self.agent.name,
-                                                                      content["customer_id"]))
+                                                                           content["customer_id"]))
                 try:
                     self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
                     await self.pick_up_customer(content["customer_id"], content["origin"], content["dest"])
@@ -139,7 +140,7 @@ class AcceptFirstRequestTaxiBehaviour(CustomerStrategyBehaviour):
 
     async def run(self):
         if self.agent.fleetmanagers is None:
-            await self.send_get_managers(content="")
+            await self.send_get_managers()
 
             msg = await self.receive(timeout=5)
             if msg:
@@ -170,61 +171,6 @@ class AcceptFirstRequestTaxiBehaviour(CustomerStrategyBehaviour):
 
             elif performative == CANCEL_PERFORMATIVE:
                 if self.agent.transport_assigned == str(transport_id):
-                    self.logger.warning("Customer {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
+                    self.logger.warning(
+                        "Customer {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
                     self.agent.status = CUSTOMER_WAITING
-
-
-################################################################
-#                                                              #
-#                       Secretary Strategy                     #
-#                                                              #
-################################################################
-class AlwaysAnswerStrategyBehaviour(SecretaryStrategyBehaviour):
-    """
-    The default strategy for the Secretary agent. By default it answer the first message it receives.
-    """
-    async def run(self):
-        msg = await self.receive(timeout=5)
-        if msg:
-            performative = msg.get_metadata("performative")
-            agent_id = msg.sender
-            request = msg.body
-            if performative == REQUEST_PERFORMATIVE:
-                self.logger.info("Secretary {} received message from customer/transport {}".format(self.agent.name,
-                                                                                                   agent_id))
-                if request in self.get("service_agents"):
-                    await self.send_services(agent_id, msg.body)
-                else:
-                    await self.send_negative(agent_id)
-
-
-################################################################
-#                                                              #
-#                        Station Strategy                      #
-#                                                              #
-################################################################
-class ManageChargeSpacesBehaviour(StationStrategyBehaviour):
-    """
-    The default strategy for the Station agent. Manage electric charge spaces.
-    """
-    async def run(self):
-        if not self.agent.registration:
-            await self.send_registration()
-
-        msg = await self.receive(timeout=5)
-
-        if msg:
-            performative = msg.get_metadata("performative")
-            transport_id = msg.sender
-            if performative == PROPOSE_PERFORMATIVE:
-                if self.agent.get_status() == FREE_STATION:
-                    self.logger.debug("Station {} received proposal from transport {}".format(self.agent.name,
-                                                                                              transport_id))
-                    await self.accept_transport(transport_id)
-                else:  # self.agent.get_status() == BUSY_STATION
-                    await self.refuse_transport(transport_id)
-            elif performative == CANCEL_PERFORMATIVE:
-                self.logger.warning("Station {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
-                self.agent.deassigning_place()
-            elif performative == ACCEPT_PERFORMATIVE:
-                self.agent.assigning_place()

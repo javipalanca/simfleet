@@ -32,7 +32,7 @@ class CustomerAgent(Agent):
         self.end_time = None
         self.stopped = False
 
-        self.secretary_id = None
+        self.directory_id = None
         self.type_service = "Taxi"
 
     async def setup(self):
@@ -84,15 +84,14 @@ class CustomerAgent(Agent):
         """
         self.route_id = route_id
 
-    def set_secretary(self, secretary_id):
+    def set_directory(self, directory_id):
         """
-        Sets the secretary JID address
+        Sets the directory JID address
         Args:
-            secretary_id (str): the SecretaryAgent jid
+            directory_id (str): the DirectoryAgent jid
 
         """
-        logger.debug("Asignacion del id de SecretaryAgent: {}".format(secretary_id))
-        self.secretary_id = secretary_id
+        self.directory_id = directory_id
 
     async def set_position(self, coords=None):
         """
@@ -286,7 +285,7 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
 
     async def send_get_managers(self, content=None):
         """
-        Sends an ``spade.message.Message`` to the secretaryAgent to request a managers.
+        Sends an ``spade.message.Message`` to the DirectoryAgent to request a managers.
         It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
         If no content is set a default content with the type_service that needs
         Args:
@@ -295,12 +294,14 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         if content is None or len(content) == 0:
             content = self.agent.type_service
         msg = Message()
-        msg.to = str(self.agent.secretary_id)
+        msg.to = str(self.agent.directory_id)
         msg.set_metadata("protocol", REQUEST_PROTOCOL)
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
         await self.send(msg)
-        self.logger.info("Customer {} asked for managers to Secretary {} for type {}.".format(self.agent.name, self.agent.secretary_id, self.agent.type_service))
+        self.logger.info("Customer {} asked for managers to directory {} for type {}.".format(self.agent.name,
+                                                                                              self.agent.directory_id,
+                                                                                              self.agent.type_service))
 
     async def send_request(self, content=None):
         """

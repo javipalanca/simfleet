@@ -5,10 +5,10 @@ from math import ceil
 from spade.agent import Agent
 from spade.template import Template
 from spade.message import Message
-from .utils import StrategyBehaviour, CyclicBehaviour, FREE_STATION, BUSY_STATION, TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE, \
-    TRANSPORT_LOADED
-from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL, \
-    CONFIRM_PERFORMATIVE
+from .utils import StrategyBehaviour, CyclicBehaviour, FREE_STATION, BUSY_STATION, TRANSPORT_MOVING_TO_STATION, \
+    TRANSPORT_IN_STATION_PLACE, TRANSPORT_LOADED
+from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, \
+    REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL, CONFIRM_PERFORMATIVE, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE
 from .helpers import random_position
 
 logger = logging.getLogger("StationAgent")
@@ -18,7 +18,7 @@ class StationAgent(Agent):
     def __init__(self, agentjid, password):
         super().__init__(jid=agentjid, password=password)
         self.agent_id = None
-        self.secretary_id = None
+        self.directory_id = None
         self.registration = False
         self.station_name = None
         self.type_station = None
@@ -84,18 +84,17 @@ class StationAgent(Agent):
         """
         self.registration = status
 
-    def set_secretary(self, secretary_id):
+    def set_directory(self, directory_id):
         """
-        Sets the secretary JID address
+        Sets the directory JID address
         Args:
-            secretary_id (str): the SecretaryAgent jid
+            directory_id (str): the DirectoryAgent jid
 
         """
-        logger.debug("Asignacion del id de SecretaryAgent: {}".format(secretary_id))
-        self.secretary_id = secretary_id
+        self.directory_id = directory_id
 
-    def set_type(self, type):
-        self.type_station = type
+    def set_type(self, station_type):
+        self.type_station = station_type
 
     async def set_position(self, coords=None):
         """
@@ -170,31 +169,31 @@ class StationAgent(Agent):
         the status will change to BUSY_STATION
         '''
         p = self.get_places_available()
-        if not p-1:
+        if not p - 1:
             self.set_status(BUSY_STATION)
-        self.set_places_available(p-1)
+        self.set_places_available(p - 1)
 
     def deassigning_place(self):
         '''
         leave a space of the charging station, when the station has free spaces, the status will change to FREE_STATION
         '''
         p = self.get_places_available()
-        if p+1:
+        if p + 1:
             self.set_status(FREE_STATION)
-        self.set_places_available(p+1)
+        self.set_places_available(p + 1)
 
     async def loading_transport(self, fuel, batery_kW):
-        total_time = ((batery_kW*1000)/(self.get_potency()*1000))*60
-        t = ((100-fuel)/100)*total_time
-        await asyncio.sleep(ceil(t/10))
+        total_time = ((batery_kW * 1000) / (self.get_potency() * 1000)) * 60
+        t = ((100 - fuel) / 100) * total_time
+        await asyncio.sleep(ceil(t / 10))
         self.set("current_station", None)
         self.deassigning_place()
 
 
 class RegistrationBehaviour(CyclicBehaviour):
     async def on_start(self):
-        self.logger = logging.getLogger("SecretaryRegistrationStrategy")
-        self.logger.debug("Strategy {} started in secretary".format(type(self).__name__))
+        self.logger = logging.getLogger("StationRegistrationStrategy")
+        self.logger.debug("Strategy {} started in directory".format(type(self).__name__))
 
     def set_registration(self, decision):
         self.agent.registration = decision
@@ -206,7 +205,7 @@ class RegistrationBehaviour(CyclicBehaviour):
                 performative = msg.get_metadata("performative")
                 if performative == ACCEPT_PERFORMATIVE:
                     self.set_registration(True)
-                    logger.info("Registration in the directory of secretary")
+                    logger.info("Registration in the directory")
         except Exception as e:
             logger.error("EXCEPTION in RegisterBehaviour of Station {}: {}".format(self.agent.name, e))
 
@@ -258,8 +257,8 @@ class TravelBehaviour(CyclicBehaviour):
 
 class StationStrategyBehaviour(StrategyBehaviour):
     """
-    Class from which to inherit to create a secretary strategy.
-    You must overload the :func:`_process` method
+    Class from which to inherit to create a station strategy.
+    You must overload the :func:`run` method
 
     Helper functions:
         * :func:`get_transport_agents`
@@ -271,9 +270,10 @@ class StationStrategyBehaviour(StrategyBehaviour):
 
     async def send_registration(self):
         """
-        Send a ``spade.message.Message`` with a proposal to secretary to register.
+        Send a ``spade.message.Message`` with a proposal to directory to register.
         """
-        logger.info("Station {} sent proposal to register to secretary {}".format(self.agent.name, self.agent.secretary_id))
+        logger.info(
+            "Station {} sent proposal to register to directory {}".format(self.agent.name, self.agent.directory_id))
         content = {
             "jid": str(self.agent.jid),
             "type": self.agent.type_station,
@@ -282,7 +282,7 @@ class StationStrategyBehaviour(StrategyBehaviour):
             "charge": self.agent.potency
         }
         msg = Message()
-        msg.to = str(self.agent.secretary_id)
+        msg.to = str(self.agent.directory_id)
         msg.set_metadata("protocol", REGISTER_PROTOCOL)
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = json.dumps(content)
@@ -329,4 +329,24 @@ class StationStrategyBehaviour(StrategyBehaviour):
                                                                                             transport_id))
 
     async def run(self):
-        raise NotImplementedError
+        if not self.agent.registration:
+            await self.send_registration()
+
+        msg = await self.receive(timeout=5)
+
+        if msg:
+            performative = msg.get_metadata("performative")
+            transport_id = msg.sender
+            if performative == PROPOSE_PERFORMATIVE:
+                if self.agent.get_status() == FREE_STATION:
+                    self.logger.debug("Station {} received proposal from transport {}".format(self.agent.name,
+                                                                                              transport_id))
+                    await self.accept_transport(transport_id)
+                else:  # self.agent.get_status() == BUSY_STATION
+                    await self.refuse_transport(transport_id)
+            elif performative == CANCEL_PERFORMATIVE:
+                self.logger.warning(
+                    "Station {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
+                self.agent.deassigning_place()
+            elif performative == ACCEPT_PERFORMATIVE:
+                self.agent.assigning_place()

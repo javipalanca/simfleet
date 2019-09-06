@@ -1,5 +1,6 @@
 import json
 import logging
+
 logger = logging.getLogger()
 
 
@@ -18,3 +19,6 @@ class Scenario(object):
         with open(filename, 'r') as f:
             logger.info("Reading scenario {}".format(filename))
             self.scenario = json.load(f)
+
+    def __getitem__(self, item):
+        return self.scenario[item]

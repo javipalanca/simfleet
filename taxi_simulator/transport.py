@@ -7,10 +7,13 @@ from spade.agent import Agent
 from spade.behaviour import PeriodicBehaviour, CyclicBehaviour
 from spade.template import Template
 
-from .utils import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_IN_CUSTOMER_PLACE, TRANSPORT_MOVING_TO_DESTINATION, \
-    CUSTOMER_IN_DEST, CUSTOMER_LOCATION, chunk_path, request_path, StrategyBehaviour, TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE, \
+from .utils import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_IN_CUSTOMER_PLACE, \
+    TRANSPORT_MOVING_TO_DESTINATION, \
+    CUSTOMER_IN_DEST, CUSTOMER_LOCATION, chunk_path, request_path, StrategyBehaviour, TRANSPORT_MOVING_TO_STATION, \
+    TRANSPORT_IN_STATION_PLACE, \
     TRANSPORT_LOADING
-from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, REGISTER_PROTOCOL, REQUEST_PERFORMATIVE, \
+from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, \
+    REGISTER_PROTOCOL, REQUEST_PERFORMATIVE, \
     ACCEPT_PERFORMATIVE
 from .helpers import random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
     AlreadyInDestination
@@ -47,7 +50,7 @@ class TransportAgent(Agent):
         self.stopped = False
         self.registration = False
 
-        self.secretary_id = None
+        self.directory_id = None
         self.type_service = None
         self.fleet_name = None
 
@@ -87,14 +90,14 @@ class TransportAgent(Agent):
             self.icon = content["icon"]
         self.registration = status
 
-    def set_secretary(self, secretary_id):
+    def set_directory(self, directory_id):
         """
-        Sets the secretary JID address
+        Sets the directory JID address
         Args:
-            secretary_id (str): the SecretaryAgent jid
+            directory_id (str): the DirectoryAgent jid
 
         """
-        self.secretary_id = secretary_id
+        self.directory_id = directory_id
 
     def watch_value(self, key, callback):
         """
@@ -319,7 +322,7 @@ class TransportAgent(Agent):
             data (dict, optional): Complementary info about the cancellation
         """
         logger.error("Transport {} could not get a path to customer {}.".format(self.agent_id,
-                                                                            self.get("current_customer")))
+                                                                                self.get("current_customer")))
         if data is None:
             data = {}
         reply = Message()
@@ -328,7 +331,7 @@ class TransportAgent(Agent):
         reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         reply.body = json.dumps(data)
         logger.debug("Transport {} sent cancel proposal to customer {}".format(self.agent_id,
-                                                                           self.get("current_customer")))
+                                                                               self.get("current_customer")))
         await self.send(reply)
 
     async def request_path(self, origin, destination):
@@ -422,7 +425,7 @@ class TransportAgent(Agent):
         sec_distance = distance_in_meters(start, dest)
         if dest is None:
             sec_distance = 0
-        return (fir_distance+sec_distance)//1000
+        return (fir_distance + sec_distance) // 1000
 
     def to_json(self):
         """
@@ -495,7 +498,7 @@ class RegistrationBehaviour(CyclicBehaviour):
                 content = json.loads(msg.body)
                 if performative == ACCEPT_PERFORMATIVE:
                     self.agent.set_registration(True, content)
-                    logger.info("Registration in the directory of secretary")
+                    logger.info("Registration in the directory of directory")
         except Exception as e:
             logger.error("EXCEPTION in RegisterBehaviour of Transport {}: {}".format(self.agent.name, e))
 
@@ -593,7 +596,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         if self.agent.get_fuel() <= 10:
             return False
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), customer_orig, customer_dest)
-        expense = (travel_km*100)//self.agent.get_autonomy()
+        expense = (travel_km * 100) // self.agent.get_autonomy()
         expense *= 10
         if self.agent.get_fuel() - expense < 10:
             return False
@@ -606,13 +609,15 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         if content is None or len(content) == 0:
             content = self.agent.request
         msg = Message()
-        msg.to = str(self.agent.secretary_id)
+        msg.to = str(self.agent.directory_id)
         msg.set_metadata("protocol", REQUEST_PROTOCOL)
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
         await self.send(msg)
         self.agent.flag_stations = True
-        self.logger.info("Transport {} asked for Stations to Secretary {} for type {}.".format(self.agent.name, self.agent.secretary_id, self.agent.request))
+        self.logger.info("Transport {} asked for stations to Directory {} for type {}.".format(self.agent.name,
+                                                                                               self.agent.directory_id,
+                                                                                               self.agent.request))
 
     async def send_proposal(self, customer_id, content=None):
         """
@@ -633,12 +638,12 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         reply.body = json.dumps(content)
         await self.send(reply)
 
-
     async def send_registration(self):
         """
         Send a ``spade.message.Message`` with a proposal to manager to register.
         """
-        logger.info("Transport {} sent proposal to register to manager {}".format(self.agent.name, self.agent.fleetmanager_id))
+        logger.info(
+            "Transport {} sent proposal to register to manager {}".format(self.agent.name, self.agent.fleetmanager_id))
         content = {
             "name": self.agent.name,
             "jid": str(self.agent.jid)

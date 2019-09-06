@@ -24,8 +24,8 @@ logger = logging.getLogger()
               help="Passenger strategy class (default: AcceptFirstRequestTaxiBehaviour).")
 @click.option('-c', '--fleetmanager', default="taxi_simulator.strategies.DelegateRequestTaxiBehaviour",
               help="fleetmanager strategy class (default: DelegateRequestTaxiBehaviour).")
-@click.option('-s','--secretary', default="taxi_simulator.strategies.AlwaysAnswerStrategyBehaviour",
-              help="secretary strategy class (default: AlwaysAnswerStrategyBehaviou).")
+@click.option('-d','--directory', default="taxi_simulator.strategies.AlwaysAnswerStrategyBehaviour",
+              help="directory strategy class (default: AlwaysAnswerStrategyBehaviou).")
 @click.option('-st','--station', default="taxi_simulator.strategies.ManageChargeSpacesBehaviour",
               help="station strategy class (default: ManageChargeSpacesBehaviour).")
 @click.option('--port', default=9000, help="Web interface port (default: 9000).")
@@ -46,7 +46,7 @@ logger = logging.getLogger()
 @click.option('-ip', '--ip-address', default="127.0.0.1", help="IP to serve web (default: 127.0.0.1).")
 @click.option('-v', '--verbose', count=True,
               help="Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4")
-def main(name, output, oformat, max_time, autorun, transport, customer, fleetmanager, secretary, station, port, num_transports, num_customers,
+def main(name, output, oformat, max_time, autorun, transport, customer, fleetmanager, directory, station, port, num_transports, num_customers,
          num_managers, num_stations, scenario, fleetmanager_name, coord_passwd, route_name, route_passwd, host, ip_address, verbose):
     """
     Console script for SimFleet.
@@ -74,7 +74,7 @@ def main(name, output, oformat, max_time, autorun, transport, customer, fleetman
     config.transport_strategy = transport
     config.customer_strategy = customer
     config.fleetmanager_strategy = fleetmanager
-    config.secretary_strategy = secretary
+    config.directory_strategy = directory
     config.station_strategy = station
     config.scenario = scenario
     config.num_transport = num_transports

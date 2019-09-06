@@ -136,7 +136,7 @@ async def request_path(agent, origin, destination, route_id):
                             the distance of the path in meters, a estimation of the duration of the path
 
     Examples:
-        >>> path, distance, duration = request_path(an_agent, origin=[0,0], destination=[1,1])
+        >>> path, distance, duration = request_path(agent, origin=[0,0], destination=[1,1])
         >>> print(path)
         [[0,0], [0,1], [1,1]]
         >>> print(distance)

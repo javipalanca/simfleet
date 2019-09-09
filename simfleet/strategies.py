@@ -1,16 +1,14 @@
 import json
 
-from .fleetmanager import CoordinatorStrategyBehaviour
 from .customer import CustomerStrategyBehaviour
-from .transport import TransportStrategyBehaviour
-from .directory import DirectoryStrategyBehaviour
-from .station import StationStrategyBehaviour
-from .utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, CUSTOMER_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, \
-    CUSTOMER_ASSIGNED, TRANSPORT_WAITING_FOR_STATION_APPROVAL, FREE_STATION, TRANSPORT_MOVING_TO_STATION, \
-    TRANSPORT_LOADING, TRANSPORT_LOADED
+from .fleetmanager import FleetManagerStrategyBehaviour
+from .helpers import PathRequestException
 from .protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
     CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, CONFIRM_PERFORMATIVE
-from .helpers import PathRequestException
+from .transport import TransportStrategyBehaviour
+from .utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, CUSTOMER_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, \
+    CUSTOMER_ASSIGNED, TRANSPORT_WAITING_FOR_STATION_APPROVAL, TRANSPORT_MOVING_TO_STATION, \
+    TRANSPORT_LOADING, TRANSPORT_LOADED
 
 
 ################################################################
@@ -18,7 +16,7 @@ from .helpers import PathRequestException
 #                     FleetManager Strategy                    #
 #                                                              #
 ################################################################
-class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
+class DelegateRequestBehaviour(FleetManagerStrategyBehaviour):
     """
     The default strategy for the FleetManager agent. By default it delegates all requests to all transports.
     """
@@ -47,9 +45,6 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
     """
 
     async def run(self):
-        if not self.agent.registration:
-            await self.send_registration()
-
         if self.agent.get_fuel() < 40 and not self.agent.flag_stations:
             await self.send_get_stations()
 
@@ -133,14 +128,14 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
 #                       Customer Strategy                      #
 #                                                              #
 ################################################################
-class AcceptFirstRequestTaxiBehaviour(CustomerStrategyBehaviour):
+class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
     """
     The default strategy for the Customer agent. By default it accepts the first proposal it receives.
     """
 
     async def run(self):
         if self.agent.fleetmanagers is None:
-            await self.send_get_managers()
+            await self.send_get_managers(self.agent.fleet_type)
 
             msg = await self.receive(timeout=5)
             if msg:

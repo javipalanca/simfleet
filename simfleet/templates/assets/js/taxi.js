@@ -14,7 +14,7 @@ const passenger2Icon = L.icon({
 });
 
 const stationIcon = L.icon({
-   iconUrl: 'assets/img/tomacorriente.png',
+   iconUrl: 'assets/img/station.png',
    iconSize: [38,40]
 });
 

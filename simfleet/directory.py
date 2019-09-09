@@ -30,16 +30,13 @@ class DirectoryAgent(Agent):
         """
         self.agent_id = agent_id
 
-    def add_strategy(self, strategy_class):
+    def run_strategy(self):
         """
-        Sets the strategy for the directory agent.
-
-        Args:
-            strategy_class (``DirectoryStrategyBehaviour``): The class to be used. Must inherit from ``DirectoryStrategyBehaviour``
+        Runs the strategy for the directory agent.
         """
         template = Template()
         template.set_metadata("protocol", REQUEST_PROTOCOL)
-        self.add_behaviour(strategy_class(), template)
+        self.add_behaviour(self.strategy(), template)
 
     async def setup(self):
         logger.info("Directory agent running")

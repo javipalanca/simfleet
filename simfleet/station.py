@@ -1,15 +1,17 @@
-import logging
-import json
 import asyncio
+import json
+import logging
 from math import ceil
+
 from spade.agent import Agent
-from spade.template import Template
 from spade.message import Message
-from .utils import StrategyBehaviour, CyclicBehaviour, FREE_STATION, BUSY_STATION, TRANSPORT_MOVING_TO_STATION, \
-    TRANSPORT_IN_STATION_PLACE, TRANSPORT_LOADED
+from spade.template import Template
+
+from .helpers import random_position
 from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, \
     REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL, CONFIRM_PERFORMATIVE, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE
-from .helpers import random_position
+from .utils import StrategyBehaviour, CyclicBehaviour, FREE_STATION, BUSY_STATION, TRANSPORT_MOVING_TO_STATION, \
+    TRANSPORT_IN_STATION_PLACE, TRANSPORT_LOADED
 
 logger = logging.getLogger("StationAgent")
 
@@ -18,22 +20,22 @@ class StationAgent(Agent):
     def __init__(self, agentjid, password):
         super().__init__(jid=agentjid, password=password)
         self.agent_id = None
+        self.strategy = None
+        self.running_strategy = False
         self.directory_id = None
         self.registration = False
         self.station_name = None
-        self.type_station = None
+        self.station_type = None
         self.current_pos = None
-        self.places_available = None
+        self.available_places = None
         self.status = None
-        self.potency = None
+        self.power = None
         self.stopped = False
 
     async def setup(self):
         logger.info("Station agent running")
-        self.set_type("Station")
-        self.set_places_available(2)
+        self.set_type("station")
         self.set_status()
-        self.set_potency(50)
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)
@@ -64,16 +66,18 @@ class StationAgent(Agent):
         """
         self.agent_id = agent_id
 
-    def add_strategy(self, strategy_class):
+    def run_strategy(self):
         """
         Sets the strategy for the transport agent.
 
         Args:
             strategy_class (``RegistrationBehaviour``): The class to be used. Must inherit from ``RegistrationBehaviour``
         """
-        template = Template()
-        template.set_metadata("protocol", REQUEST_PROTOCOL)
-        self.add_behaviour(strategy_class(), template)
+        if not self.running_strategy:
+            template = Template()
+            template.set_metadata("protocol", REQUEST_PROTOCOL)
+            self.add_behaviour(self.strategy(), template)
+            self.running_strategy = True
 
     def set_registration(self, status):
         """
@@ -94,11 +98,11 @@ class StationAgent(Agent):
         self.directory_id = directory_id
 
     def set_type(self, station_type):
-        self.type_station = station_type
+        self.station_type = station_type
 
-    async def set_position(self, coords=None):
+    def set_position(self, coords=None):
         """
-        Sets the position of the customer. If no position is provided it is located in a random position.
+        Sets the position of the station. If no position is provided it is located in a random position.
 
         Args:
             coords (list): a list coordinates (longitude and latitude)
@@ -124,17 +128,17 @@ class StationAgent(Agent):
     def get_status(self):
         return self.status
 
-    def set_places_available(self, places):
-        self.places_available = places
+    def set_available_places(self, places):
+        self.available_places = places
 
-    def get_places_available(self):
-        return self.places_available
+    def get_available_places(self):
+        return self.available_places
 
-    def set_potency(self, charge):
-        self.potency = charge
+    def set_power(self, charge):
+        self.power = charge
 
-    def get_potency(self):
-        return self.potency
+    def get_power(self):
+        return self.power
 
     def to_json(self):
         """
@@ -152,38 +156,39 @@ class StationAgent(Agent):
                     "position": [ 39.461327, -0.361839 ],
                     "status": True,
                     "places": 10,
-                    "potency": 10
+                    "power": 10
                 }
         """
         return {
             "id": self.agent_id,
             "position": self.current_pos,
             "status": self.status,
-            "places": self.places_available,
-            "potency": self.potency
+            "places": self.available_places,
+            "power": self.power,
+            "icon": "assets/img/station.png"
         }
 
     def assigning_place(self):
-        '''
-        set a space in the charging station for the transport that has been accepted, when the available spaces are zero,
+        """
+        Set a space in the charging station for the transport that has been accepted, when the available spaces are zero,
         the status will change to BUSY_STATION
-        '''
-        p = self.get_places_available()
+        """
+        p = self.get_available_places()
         if not p - 1:
             self.set_status(BUSY_STATION)
-        self.set_places_available(p - 1)
+        self.set_available_places(p - 1)
 
     def deassigning_place(self):
-        '''
-        leave a space of the charging station, when the station has free spaces, the status will change to FREE_STATION
-        '''
-        p = self.get_places_available()
+        """
+        Leave a space of the charging station, when the station has free spaces, the status will change to FREE_STATION
+        """
+        p = self.get_available_places()
         if p + 1:
             self.set_status(FREE_STATION)
-        self.set_places_available(p + 1)
+        self.set_available_places(p + 1)
 
     async def loading_transport(self, fuel, batery_kW):
-        total_time = ((batery_kW * 1000) / (self.get_potency() * 1000)) * 60
+        total_time = ((batery_kW * 1000) / (self.get_power() * 1000)) * 60
         t = ((100 - fuel) / 100) * total_time
         await asyncio.sleep(ceil(t / 10))
         self.set("current_station", None)
@@ -198,8 +203,30 @@ class RegistrationBehaviour(CyclicBehaviour):
     def set_registration(self, decision):
         self.agent.registration = decision
 
+    async def send_registration(self):
+        """
+        Send a ``spade.message.Message`` with a proposal to directory to register.
+        """
+        logger.info(
+            "Station {} sent proposal to register to directory {}".format(self.agent.name, self.agent.directory_id))
+        content = {
+            "jid": str(self.agent.jid),
+            "type": self.agent.station_type,
+            "status": self.agent.status,
+            "position": self.agent.get_position(),
+            "charge": self.agent.power
+        }
+        msg = Message()
+        msg.to = str(self.agent.directory_id)
+        msg.set_metadata("protocol", REGISTER_PROTOCOL)
+        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+        msg.body = json.dumps(content)
+        await self.send(msg)
+
     async def run(self):
         try:
+            if not self.agent.registration:
+                await self.send_registration()
             msg = await self.receive(timeout=10)
             if msg:
                 performative = msg.get_metadata("performative")
@@ -221,12 +248,12 @@ class TravelBehaviour(CyclicBehaviour):
         logger.debug("Station {} started TravelBehavior.".format(self.agent.name))
 
     async def loading_completed(self, transport_id):
-        '''
+        """
         Send a message to the transport agent that the vehicle load has been completed
 
         Args:
             transport_id (str): the jid of the transport
-        '''
+        """
         reply = Message()
         reply.to = str(transport_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
@@ -267,26 +294,6 @@ class StationStrategyBehaviour(StrategyBehaviour):
     async def on_start(self):
         self.logger = logging.getLogger("StationStrategy")
         self.logger.debug("Strategy {} started in station".format(type(self).__name__))
-
-    async def send_registration(self):
-        """
-        Send a ``spade.message.Message`` with a proposal to directory to register.
-        """
-        logger.info(
-            "Station {} sent proposal to register to directory {}".format(self.agent.name, self.agent.directory_id))
-        content = {
-            "jid": str(self.agent.jid),
-            "type": self.agent.type_station,
-            "status": self.agent.status,
-            "position": self.agent.get_position(),
-            "charge": self.agent.potency
-        }
-        msg = Message()
-        msg.to = str(self.agent.directory_id)
-        msg.set_metadata("protocol", REGISTER_PROTOCOL)
-        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-        msg.body = json.dumps(content)
-        await self.send(msg)
 
     async def accept_transport(self, transport_id):
         """
@@ -329,9 +336,6 @@ class StationStrategyBehaviour(StrategyBehaviour):
                                                                                             transport_id))
 
     async def run(self):
-        if not self.agent.registration:
-            await self.send_registration()
-
         msg = await self.receive(timeout=5)
 
         if msg:

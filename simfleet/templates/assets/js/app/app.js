@@ -796,7 +796,7 @@ new Vue({
             url: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
             transportIcon: L.icon({ iconUrl: 'assets/img/transport.png', iconSize: [38, 55] }),
             customerIcon: L.icon({ iconUrl: 'assets/img/customer.png', iconSize: [38, 40] }),
-            stationIcon: L.icon({ iconUrl: 'assets/img/tomacorriente.png', iconSize: [38, 40] })
+            stationIcon: L.icon({ iconUrl: 'assets/img/station.png', iconSize: [38, 40] })
         };
     },
     mounted() {
@@ -810,11 +810,11 @@ new Vue({
             axios.get("/entities").then(data => {
                 this.$store.commit('addTransports', data.data.transports);
                 this.$store.commit('addCustomers', data.data.customers);
+                this.$store.commit("addStations", data.data.stations);
                 this.$store.state.waiting_time = data.data.stats.waiting;
                 this.$store.state.total_time = data.data.stats.totaltime;
                 this.$store.commit('update_simulation_status', data.data.stats);
                 this.$store.commit("update_tree", data.data.tree);
-                this.$store.commit("addStations", data.data.stations);
             }).catch(error => {});
         },
         set_speed: function (event, item) {
@@ -831,14 +831,14 @@ new Vue({
         customers() {
             return this.$store.getters.get_customers;
         },
+        stations() {
+            return this.$store.getters.get_stations;
+        },
         paths() {
             return this.$store.getters.get_paths;
         },
         treeData() {
             return this.$store.getters.tree;
-        },
-        stations() {
-            return this.$store.getters.get_stations;
         }
     }
 });
@@ -854,12 +854,12 @@ const store = new Vuex.Store({
     state: {
         transports: [],
         customers: [],
+        stations: [],
         paths: [],
         waiting_time: 0,
         total_time: 0,
         simulation_status: false,
-        treedata: {},
-        stations: []
+        treedata: {}
     },
     mutations: {
         addTransports: (state, payload) => {
@@ -887,14 +887,6 @@ const store = new Vuex.Store({
                 state.customers = [];
             }
         },
-        update_simulation_status: (state, stats) => {
-            if (!stats.is_running) state.simulation_status = false;else {
-                state.simulation_status = !stats.finished;
-            }
-        },
-        update_tree: (state, payload) => {
-            state.treedata = payload;
-        },
         addStations: (state, payload) => {
             if (payload.length > 0) {
                 for (let i = 0; i < payload.length; i++) {
@@ -903,6 +895,14 @@ const store = new Vuex.Store({
             } else {
                 state.stations = [];
             }
+        },
+        update_simulation_status: (state, stats) => {
+            if (!stats.is_running) state.simulation_status = false;else {
+                state.simulation_status = !stats.finished;
+            }
+        },
+        update_tree: (state, payload) => {
+            state.treedata = payload;
         }
     },
     getters: {
@@ -911,6 +911,9 @@ const store = new Vuex.Store({
         },
         get_customers: state => {
             return state.customers;
+        },
+        get_stations: state => {
+            return state.stations;
         },
         get_paths: state => {
             return state.paths;
@@ -926,9 +929,6 @@ const store = new Vuex.Store({
         },
         tree: state => {
             return state.treedata;
-        },
-        get_stations: state => {
-            return state.stations;
         }
     }
 });
@@ -941,14 +941,22 @@ let update_item_in_collection = function (collection, item, get_popup) {
         item.latlng = L.latLng(item.position[0], item.position[1]);
         item.popup = get_popup(item);
         item.visible = true;
-        item.icon = L.icon({ iconUrl: 'assets/img/transport.png', iconSize: [38, 55] });
+        if (item.icon) {
+            item.icon = L.icon({ iconUrl: item.icon, iconSize: [38, 55] });
+        } else {
+            item.icon = L.icon({ iconUrl: 'assets/img/transport.png', iconSize: [38, 55] });
+        }
         collection.push(item);
     } else {
         collection[p].latlng = L.latLng(item.position[0], item.position[1]);
         collection[p].popup = get_popup(item);
         collection[p].speed = item.speed;
         collection[p].status = item.status;
-        collection[p].icon = L.icon({ iconUrl: item.icon, iconSize: [38, 55] });
+        if (item.icon) {
+            item.icon = L.icon({ iconUrl: item.icon, iconSize: [38, 55] });
+        } else {
+            item.icon = L.icon({ iconUrl: 'assets/img/transport.png', iconSize: [38, 55] });
+        }
         collection[p].visible = item.status !== "CUSTOMER_IN_TRANSPORT" && item.status !== "CUSTOMER_IN_DEST" && item.status !== "CUSTOMER_LOCATION" && item.status !== "TRANSPORT_LOADING";
     }
 };
@@ -962,7 +970,7 @@ let update_station_in_collection = function (collection, item, get_popup) {
         collection.push(item);
     } else {
         collection[p].popup = get_popup(item);
-        collection[p].potency = item.potency;
+        collection[p].power = item.power;
         collection[p].places = item.places;
         collection[p].status = item.status;
     }
@@ -1021,7 +1029,7 @@ function transport_popup(transport) {
 }
 
 function station_popup(station) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + station.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" + "<tr><th>POWERCHARGE</th><td>" + station.potency + 'kW' + "</td></tr>" + "<tr><th>PLACES</th><td>" + station.places + "</td></tr>" + "</table>";
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + station.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" + "<tr><th>POWERCHARGE</th><td>" + station.power + 'kW' + "</td></tr>" + "<tr><th>PLACES</th><td>" + station.places + "</td></tr>" + "</table>";
 }
 
 /***/ }),

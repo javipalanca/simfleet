@@ -2,15 +2,15 @@ import json
 import logging
 import time
 
-from spade.message import Message
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
+from spade.message import Message
 from spade.template import Template
 
+from .helpers import random_position
+from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
 from .utils import CUSTOMER_WAITING, CUSTOMER_IN_DEST, TRANSPORT_MOVING_TO_CUSTOMER, CUSTOMER_IN_TRANSPORT, \
     TRANSPORT_IN_CUSTOMER_PLACE, CUSTOMER_LOCATION, StrategyBehaviour, request_path, status_to_str
-from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
-from .helpers import random_position
 
 logger = logging.getLogger("CustomerAgent")
 
@@ -19,6 +19,9 @@ class CustomerAgent(Agent):
     def __init__(self, agentjid, password):
         super().__init__(agentjid, password)
         self.agent_id = None
+        self.strategy = None
+        self.running_strategy = False
+        self.fleet_type = None
         self.fleetmanagers = None
         self.route_id = None
         self.status = CUSTOMER_WAITING
@@ -47,16 +50,15 @@ class CustomerAgent(Agent):
         except Exception as e:
             logger.error("EXCEPTION creating TravelBehaviour in Customer {}: {}".format(self.agent_id, e))
 
-    def add_strategy(self, strategy_class):
+    def run_strategy(self):
         """import json
-        Sets the strategy for the customer agent.
-
-        Args:
-            strategy_class (``CustomerStrategyBehaviour``): The class to be used. Must inherit from ``CustomerStrategyBehaviour``
+        Runs the strategy for the customer agent.
         """
-        template = Template()
-        template.set_metadata("protocol", REQUEST_PROTOCOL)
-        self.add_behaviour(strategy_class(), template)
+        if not self.running_strategy:
+            template = Template()
+            template.set_metadata("protocol", REQUEST_PROTOCOL)
+            self.add_behaviour(self.strategy(), template)
+            self.running_strategy = True
 
     def set_id(self, agent_id):
         """
@@ -66,11 +68,20 @@ class CustomerAgent(Agent):
         """
         self.agent_id = agent_id
 
+    def set_fleet_type(self, fleet_type):
+        """
+        Sets the type of fleet to be used.
+
+        Args:
+            fleet_type (str): the type of the fleet to be used
+        """
+        self.fleet_type = fleet_type
+
     def set_fleetmanager(self, fleetmanagers):
         """
         Sets the fleetmanager JID address
         Args:
-            fleetmanager_id (str): the fleetmanager jid
+            fleetmanagers (str): the fleetmanager jid
 
         """
         self.fleetmanagers = fleetmanagers
@@ -93,7 +104,7 @@ class CustomerAgent(Agent):
         """
         self.directory_id = directory_id
 
-    async def set_position(self, coords=None):
+    def set_position(self, coords=None):
         """
         Sets the position of the customer. If no position is provided it is located in a random position.
 
@@ -219,7 +230,8 @@ class CustomerAgent(Agent):
             "dest": self.dest,
             "status": self.status,
             "transport": self.transport_assigned,
-            "waiting": float("{0:.2f}".format(t)) if t else None
+            "waiting": float("{0:.2f}".format(t)) if t else None,
+            "icon": "assets/img/customer.png"
         }
 
 
@@ -259,7 +271,7 @@ class TravelBehaviour(CyclicBehaviour):
                                 .format(self.agent.name, self.agent.total_time()))
                 elif status == CUSTOMER_LOCATION:
                     coords = content["location"]
-                    await self.agent.set_position(coords)
+                    self.agent.set_position(coords)
         except Exception as e:
             logger.error("EXCEPTION in Travel Behaviour of Customer {}: {}".format(self.agent.name, e))
 
@@ -292,7 +304,7 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
             content (dict): Optional content dictionary
         """
         if content is None or len(content) == 0:
-            content = self.agent.type_service
+            content = self.agent.fleet_type
         msg = Message()
         msg.to = str(self.agent.directory_id)
         msg.set_metadata("protocol", REQUEST_PROTOCOL)

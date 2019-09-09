@@ -6,6 +6,8 @@ import logging
 import sys
 import time
 
+from spade import quit_spade
+
 from .config import SimfleetConfig
 from .simulator import SimulatorAgent
 
@@ -22,7 +24,7 @@ logger = logging.getLogger()
 @click.option('-c', '--config', help="Filename of JSON file with initial config.")
 @click.option('-v', '--verbose', count=True,
               help="Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4")
-def main(name, output, oformat, max_time, autorun, scenario, config, verbose):
+def main(name, output, oformat, max_time, autorun, config, verbose):
     """
     Console script for SimFleet.
     """
@@ -43,10 +45,7 @@ def main(name, output, oformat, max_time, autorun, scenario, config, verbose):
     else:
         logging.getLogger("aioxmpp").setLevel(logging.WARNING)
 
-    simfleet_config = SimfleetConfig(config)
-    simfleet_config.simulation_name = name
-    simfleet_config.max_time = max_time
-    simfleet_config.verbose = verbose
+    simfleet_config = SimfleetConfig(config, name, max_time, verbose)
 
     simulator_name = "simulator_{}@{}".format(name, simfleet_config.host)
 
@@ -65,6 +64,8 @@ def main(name, output, oformat, max_time, autorun, scenario, config, verbose):
     simulator.stop()
     if output:
         simulator.write_file(output, oformat)
+
+    quit_spade()
 
     sys.exit(0)
 

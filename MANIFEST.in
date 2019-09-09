@@ -7,12 +7,12 @@ include README.rst
 include requirements.txt
 include requirements_dev.txt
 
-recursive-include taxi_simulator/templates/ *.html
-recursive-include taxi_simulator/templates/data *
-recursive-include taxi_simulator/templates/assets/js *
-recursive-include taxi_simulator/templates/assets/css *
-recursive-include taxi_simulator/templates/assets/img *
-exclude taxi_simulator/templates/node_modules/ *
+recursive-include simfleet/templates/ *.html
+recursive-include simfleet/templates/data *
+recursive-include simfleet/templates/assets/js *
+recursive-include simfleet/templates/assets/css *
+recursive-include simfleet/templates/assets/img *
+exclude simfleet/templates/node_modules/ *
 
 recursive-include tests *
 recursive-exclude * __pycache__

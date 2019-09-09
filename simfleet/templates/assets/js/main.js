@@ -24,7 +24,7 @@ new Vue({
             url: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
             transportIcon: L.icon({iconUrl: 'assets/img/transport.png', iconSize: [38, 55]}),
             customerIcon: L.icon({iconUrl: 'assets/img/customer.png', iconSize: [38, 40]}),
-            stationIcon: L.icon({iconUrl: 'assets/img/tomacorriente.png', iconSize: [38, 40]})
+            stationIcon: L.icon({iconUrl: 'assets/img/station.png', iconSize: [38, 40]})
         }
     },
     mounted() {
@@ -39,11 +39,11 @@ new Vue({
                 .then(data => {
                     this.$store.commit('addTransports', data.data.transports);
                     this.$store.commit('addCustomers', data.data.customers);
+                    this.$store.commit("addStations", data.data.stations);
                     this.$store.state.waiting_time = data.data.stats.waiting;
                     this.$store.state.total_time = data.data.stats.totaltime;
                     this.$store.commit('update_simulation_status', data.data.stats);
                     this.$store.commit("update_tree", data.data.tree);
-                    this.$store.commit("addStations", data.data.stations);
                 }).catch(error => {});
         },
         set_speed: function (event, item) {
@@ -60,14 +60,14 @@ new Vue({
         customers()  {
             return this.$store.getters.get_customers;
         },
+        stations() {
+            return this.$store.getters.get_stations;
+        },
         paths() {
             return this.$store.getters.get_paths;
         },
         treeData() {
             return this.$store.getters.tree;
-        },
-        stations() {
-            return this.$store.getters.get_stations;
         }
     }
 });

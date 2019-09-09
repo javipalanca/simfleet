@@ -1,22 +1,22 @@
 import json
 import logging
-
 from collections import defaultdict
-from spade.message import Message
+
 from spade.agent import Agent
 from spade.behaviour import PeriodicBehaviour, CyclicBehaviour
+from spade.message import Message
 from spade.template import Template
 
+from .helpers import random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
+    AlreadyInDestination
+from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, \
+    REGISTER_PROTOCOL, REQUEST_PERFORMATIVE, \
+    ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
 from .utils import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_IN_CUSTOMER_PLACE, \
     TRANSPORT_MOVING_TO_DESTINATION, \
     CUSTOMER_IN_DEST, CUSTOMER_LOCATION, chunk_path, request_path, StrategyBehaviour, TRANSPORT_MOVING_TO_STATION, \
     TRANSPORT_IN_STATION_PLACE, \
     TRANSPORT_LOADING
-from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, \
-    REGISTER_PROTOCOL, REQUEST_PERFORMATIVE, \
-    ACCEPT_PERFORMATIVE
-from .helpers import random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
-    AlreadyInDestination
 
 logger = logging.getLogger("TransportAgent")
 
@@ -29,6 +29,8 @@ class TransportAgent(Agent):
 
         self.fleetmanager_id = None
         self.route_id = None
+        self.strategy = None
+        self.running_strategy = False
 
         self.__observers = defaultdict(list)
         self.agent_id = None
@@ -51,8 +53,7 @@ class TransportAgent(Agent):
         self.registration = False
 
         self.directory_id = None
-        self.type_service = None
-        self.fleet_name = None
+        self.fleet_type = None
 
         self.request = "Station"
         self.stations = None
@@ -83,11 +84,11 @@ class TransportAgent(Agent):
         Sets the status of registration
         Args:
             status (boolean): True if the transport agent has registered or False if not
+            content (dict):
         """
         if content is not None:
-            self.fleet_name = content["fleet_name"]
-            self.type_service = content["type_service"]
             self.icon = content["icon"]
+            self.fleet_type = content["fleet_type"]
         self.registration = status
 
     def set_directory(self, directory_id):
@@ -109,16 +110,18 @@ class TransportAgent(Agent):
         """
         self.__observers[key].append(callback)
 
-    def add_strategy(self, strategy_class):
+    def run_strategy(self):
         """
         Sets the strategy for the transport agent.
 
         Args:
             strategy_class (``TaxiStrategyBehaviour``): The class to be used. Must inherit from ``TaxiStrategyBehaviour``
         """
-        template = Template()
-        template.set_metadata("protocol", REQUEST_PROTOCOL)
-        self.add_behaviour(strategy_class(), template)
+        if not self.running_strategy:
+            template = Template()
+            template.set_metadata("protocol", REQUEST_PROTOCOL)
+            self.add_behaviour(self.strategy(), template)
+            self.running_strategy = True
 
     def set_id(self, agent_id):
         """
@@ -136,8 +139,11 @@ class TransportAgent(Agent):
             fleetmanager_id (str): the fleetmanager jid
 
         """
-        logger.info("Asignacion de id para transport Agent: {}".format(fleetmanager_id))
+        logger.info("Setting fleet {} for agent {}".format(fleetmanager_id.split("@")[0], self.name))
         self.fleetmanager_id = fleetmanager_id
+
+    def set_fleet_type(self, fleet_type):
+        self.fleet_type = fleet_type
 
     def set_route_agent(self, route_id):
         """
@@ -356,6 +362,9 @@ class TransportAgent(Agent):
         """
         return await request_path(self, origin, destination, self.route_id)
 
+    def set_initial_position(self, coords):
+        self.set("current_pos", coords)
+
     async def set_position(self, coords=None):
         """
         Sets the position of the transport. If no position is provided it is located in a random position.
@@ -463,10 +472,10 @@ class TransportAgent(Agent):
             "distance": "{0:.2f}".format(sum(self.distances)),
             "fuel": self.fuel,
             "autonomy": self.autonomy_km,
-            "potency": self.batery_kW,
-            "service": self.type_service,
-            "fleet": self.fleet_name,
-            "icon": self.icon,
+            "power": self.batery_kW,
+            "service": self.fleet_type,
+            "fleet": self.fleetmanager_id,
+            "icon": self.icon
         }
 
     class MovingBehaviour(PeriodicBehaviour):
@@ -490,15 +499,38 @@ class RegistrationBehaviour(CyclicBehaviour):
         self.logger = logging.getLogger("TransportRegistrationStrategy")
         self.logger.debug("Strategy {} started in transport".format(type(self).__name__))
 
+    async def send_registration(self):
+        """
+        Send a ``spade.message.Message`` with a proposal to manager to register.
+        """
+        logger.info(
+            "Transport {} sent proposal to register to manager {}".format(self.agent.name, self.agent.fleetmanager_id))
+        content = {
+            "name": self.agent.name,
+            "jid": str(self.agent.jid),
+            "fleet_type": self.agent.fleet_type
+        }
+        msg = Message()
+        msg.to = str(self.agent.fleetmanager_id)
+        msg.set_metadata("protocol", REGISTER_PROTOCOL)
+        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+        msg.body = json.dumps(content)
+        await self.send(msg)
+
     async def run(self):
         try:
+            if not self.agent.registration:
+                await self.send_registration()
             msg = await self.receive(timeout=10)
             if msg:
                 performative = msg.get_metadata("performative")
-                content = json.loads(msg.body)
                 if performative == ACCEPT_PERFORMATIVE:
+                    content = json.loads(msg.body)
                     self.agent.set_registration(True, content)
-                    logger.info("Registration in the directory of directory")
+                    logger.info("Registration in the fleet manager accepted.")
+                elif performative == REFUSE_PERFORMATIVE:
+                    logger.warning("Registration in the fleet manager was rejected (check fleet type).")
+                    self.kill(exit_code="Fleet Registration Rejected")
         except Exception as e:
             logger.error("EXCEPTION in RegisterBehaviour of Transport {}: {}".format(self.agent.name, e))
 
@@ -637,23 +669,6 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         reply.set_metadata("performative", PROPOSE_PERFORMATIVE)
         reply.body = json.dumps(content)
         await self.send(reply)
-
-    async def send_registration(self):
-        """
-        Send a ``spade.message.Message`` with a proposal to manager to register.
-        """
-        logger.info(
-            "Transport {} sent proposal to register to manager {}".format(self.agent.name, self.agent.fleetmanager_id))
-        content = {
-            "name": self.agent.name,
-            "jid": str(self.agent.jid)
-        }
-        msg = Message()
-        msg.to = str(self.agent.fleetmanager_id)
-        msg.set_metadata("protocol", REGISTER_PROTOCOL)
-        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-        msg.body = json.dumps(content)
-        await self.send(msg)
 
     async def cancel_proposal(self, customer_id, content=None):
         """

@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import logging
 import json
+import logging
 
 import faker
 from spade.agent import Agent
-from spade.template import Template
 from spade.behaviour import CyclicBehaviour
 from spade.message import Message
+from spade.template import Template
 
+from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REQUEST_PERFORMATIVE, \
+    REFUSE_PERFORMATIVE
 from .utils import StrategyBehaviour
-from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REQUEST_PERFORMATIVE
 
 logger = logging.getLogger("FleetManagerAgent")
 faker_factory = faker.Factory.create()
@@ -25,10 +26,10 @@ class FleetManagerAgent(Agent):
 
         super().__init__(jid=agentjid, password=password)
         self.strategy = None
-        self.fleetName = None
-        self.quantityFleet = 0
+        self.running_strategy = False
+        self.transports_in_fleet = 0
         self.agent_id = None
-        self.type = None
+        self.fleet_type = None
         self.registration = False
         self.directory_id = None
         self.fleet_icon = None
@@ -43,11 +44,10 @@ class FleetManagerAgent(Agent):
 
     async def setup(self):
         logger.info("FleetManager agent running")
-        self.fleetName = faker_factory.user_name()
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)
-            register_behaviour = TaxiRegistrationForFleetBehaviour()
+            register_behaviour = TransportRegistrationForFleetBehaviour()
             self.add_behaviour(register_behaviour, template)
             while not self.has_behaviour(register_behaviour):
                 logger.warning("Manager {} could not create RegisterBehaviour. Retrying...".format(self.agent_id))
@@ -67,16 +67,15 @@ class FleetManagerAgent(Agent):
     def set_icon(self, icon):
         self.fleet_icon = icon
 
-    def add_strategy(self, strategy_class):
+    def run_strategy(self):
         """
-        Sets the strategy for the transport agent.
-
-        Args:
-            strategy_class (``TaxiStrategyBehaviour``): The class to be used. Must inherit from ``TaxiStrategyBehaviour``
+        Runs the strategy for the transport agent.
         """
-        template = Template()
-        template.set_metadata("protocol", REQUEST_PROTOCOL)
-        self.add_behaviour(strategy_class(), template)
+        if not self.running_strategy:
+            template = Template()
+            template.set_metadata("protocol", REQUEST_PROTOCOL)
+            self.add_behaviour(self.strategy(), template)
+            self.running_strategy = True
 
     def set_registration(self, status):
         """
@@ -96,17 +95,17 @@ class FleetManagerAgent(Agent):
         """
         self.directory_id = directory_id
 
-    def set_type(self, type_service):
+    def set_fleet_type(self, fleet_type):
         """
         Sets the type of service to the fleet
         Args:
             type_service (str): type of service
 
         """
-        self.type = type_service
+        self.fleet_type = fleet_type
 
 
-class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
+class TransportRegistrationForFleetBehaviour(CyclicBehaviour):
 
     async def on_start(self):
         self.logger = logging.getLogger("RegisterStrategy")
@@ -119,7 +118,7 @@ class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
         Args:
             agent (``TransportAgent``): the instance of the TransportAgent to be added
         """
-        self.agent.quantityFleet += 1
+        self.agent.transports_in_fleet += 1
         self.get("transport_agents")[agent["name"]] = agent
 
     def remove_transport(self, key):
@@ -132,19 +131,31 @@ class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
         if key in self.get("transport_agents"):
             del (self.get("transport_agents")[key])
             self.logger.debug("Deregistration of the TransporterAgent {}".format(key))
+            self.agent.transports_in_fleet -= 1
         else:
             self.logger.debug("Cancelation of the registration in the Fleet")
 
-    async def send_confirmation(self, agent_id):
+    async def accept_registration(self, agent_id):
         """
         Send a ``spade.message.Message`` with an acceptance to transport to register in the fleet.
         """
         reply = Message()
-        content = {"fleet_name": self.agent.fleetName, "type_service": self.agent.type, "icon": self.agent.fleet_icon}
+        content = {"icon": self.agent.fleet_icon, "fleet_type": self.agent.fleet_type}
         reply.to = str(agent_id)
         reply.set_metadata("protocol", REGISTER_PROTOCOL)
         reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
         reply.body = json.dumps(content)
+        await self.send(reply)
+
+    async def reject_registration(self, agent_id):
+        """
+        Send a ``spade.message.Message`` with an acceptance to transport to register in the fleet.
+        """
+        reply = Message()
+        reply.to = str(agent_id)
+        reply.set_metadata("protocol", REGISTER_PROTOCOL)
+        reply.set_metadata("performative", REFUSE_PERFORMATIVE)
+        reply.body = ""
         await self.send(reply)
 
     async def run(self):
@@ -154,9 +165,13 @@ class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
                 performative = msg.get_metadata("performative")
                 if performative == REQUEST_PERFORMATIVE:
                     content = json.loads(msg.body)
-                    self.add_transport(content)
-                    await self.send_confirmation(msg.sender)
-                    logger.debug("Registration in the fleet {}".format(self.agent.fleetName))
+                    if content["fleet_type"] == self.agent.fleet_type:
+                        self.add_transport(content)
+                        await self.accept_registration(msg.sender)
+                        logger.debug("Registration in the fleet {}".format(self.agent.name))
+                    else:
+                        await self.reject_registration(msg.sender)
+
                 if performative == ACCEPT_PERFORMATIVE:
                     self.agent.set_registration(True)
                     logger.info("Registration in the dictionary of services")
@@ -164,7 +179,7 @@ class TaxiRegistrationForFleetBehaviour(CyclicBehaviour):
             logger.error("EXCEPTION in RegisterBehaviour of Manager {}: {}".format(self.agent.name, e))
 
 
-class CoordinatorStrategyBehaviour(StrategyBehaviour):
+class FleetManagerStrategyBehaviour(StrategyBehaviour):
     """
     Class from which to inherit to create a coordinator strategy.
     You must overload the :func:`_process` method
@@ -194,7 +209,7 @@ class CoordinatorStrategyBehaviour(StrategyBehaviour):
                                                                                   self.agent.directory_id))
         content = {
             "jid": str(self.agent.jid),
-            "type": self.agent.type
+            "type": self.agent.fleet_type
         }
         msg = Message()
         msg.to = str(self.agent.directory_id)

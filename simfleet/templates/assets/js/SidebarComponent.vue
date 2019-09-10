@@ -17,26 +17,6 @@
                     <table class="table table-hover" id="feature-list">
                         <thead class="list">
                         <tr>
-                            <th>
-                                <label for="numtransports">Num. Transport</label>
-                                <input v-model="numtransports" type="number" min="0"
-                                       class="form-control" id="numtransports"
-                                       placeholder="Taxis"/>
-                            </th>
-                            <th>
-                                <label for="numcustomers">Num. Passengers</label>
-                                <input v-model="numcustomers" type="number" min="0"
-                                       class="form-control" id="numcustomers"
-                                       placeholder="Passengers"/>
-                            </th>
-                            <th>
-                                <button type="button" class="btn btn-primary" data-sort="feature-name"
-                                        id="generate-btn" @click="create">
-                                    <i class="far fa-address-book"></i>&nbsp;&nbsp;Add
-                                </button>
-                            </th>
-                        </tr>
-                        <tr>
                             <th colspan="3">
                                 <button type="button" class="btn btn-primary"
                                         data-sort="feature-name"
@@ -111,8 +91,6 @@
     export default {
         data() {
             return {
-                numtransports: 0,
-                numcustomers: 0,
                 hideSidebar: false
             }
         },
@@ -136,9 +114,6 @@
             },
             clean() {
                 axios.get("/clean");
-            },
-            create() {
-                axios.get("/generate/transports/" + this.numtransports + "/customers/" + this.numcustomers);
             }
         }
     }

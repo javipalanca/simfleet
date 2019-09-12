@@ -1,14 +1,15 @@
 import json
+import random
 
 from .customer import CustomerStrategyBehaviour
 from .fleetmanager import FleetManagerStrategyBehaviour
 from .helpers import PathRequestException
 from .protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, PROPOSE_PERFORMATIVE, \
-    CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, CONFIRM_PERFORMATIVE
+    CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, QUERY_PROTOCOL, REQUEST_PROTOCOL
 from .transport import TransportStrategyBehaviour
 from .utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, CUSTOMER_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, \
     CUSTOMER_ASSIGNED, TRANSPORT_WAITING_FOR_STATION_APPROVAL, TRANSPORT_MOVING_TO_STATION, \
-    TRANSPORT_LOADING, TRANSPORT_LOADED
+    TRANSPORT_CHARGING, TRANSPORT_CHARGED, TRANSPORT_NEEDS_CHARGING
 
 
 ################################################################
@@ -45,82 +46,95 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
     """
 
     async def run(self):
-        if self.agent.get_fuel() < 40 and not self.agent.flag_stations:
-            await self.send_get_stations()
+        if self.agent.needs_charging():
+            if self.agent.stations is None or len(self.agent.stations) < 1:
+                self.logger.warning("Transport {} looking for a station.".format(self.agent.name))
+                await self.send_get_stations()
+            else:
+                station = random.choice(self.agent.stations)
+                self.logger.info("Transport {} reserving station {}.".format(self.agent.name, station))
+                await self.send_proposal(station)
+                self.agent.status = TRANSPORT_WAITING_FOR_STATION_APPROVAL
 
         msg = await self.receive(timeout=5)
         if not msg:
             return
         self.logger.debug("Transport received message: {}".format(msg))
-        content = json.loads(msg.body)
+        try:
+            content = json.loads(msg.body)
+        except TypeError:
+            content = {}
+
         performative = msg.get_metadata("performative")
+        protocol = msg.get_metadata("protocol")
 
-        self.logger.debug("Transport {} received request protocol from customer/station.".format(self.agent.name))
+        if protocol == QUERY_PROTOCOL:
+            if performative == INFORM_PERFORMATIVE:
+                self.agent.stations = content
+                self.logger.info("Got list of current stations: {}".format(self.agent.stations))
+            elif performative == CANCEL_PERFORMATIVE:
+                self.logger.info("Cancellation of request for stations information.")
 
-        if performative == REQUEST_PERFORMATIVE:
-            if self.agent.status == TRANSPORT_WAITING:
-                if not self.do_travel(content["origin"], content["dest"]):
-                    await self.cancel_proposal(content["customer_id"])
-                    self.agent.status = TRANSPORT_WAITING_FOR_STATION_APPROVAL
-                    for station in self.agent.stations:
-                        await self.send_proposal(station)
+        elif protocol == REQUEST_PROTOCOL:
+            self.logger.debug("Transport {} received request protocol from customer/station.".format(self.agent.name))
+
+            if performative == REQUEST_PERFORMATIVE:
+                if self.agent.status == TRANSPORT_WAITING:
+                    if not self.has_enough_autonomy(content["origin"], content["dest"]):
+                        await self.cancel_proposal(content["customer_id"])
+                        self.agent.status = TRANSPORT_NEEDS_CHARGING
+                    else:
+                        await self.send_proposal(content["customer_id"], {})
+                        self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
+
+            elif performative == ACCEPT_PERFORMATIVE:
+                if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
+                    self.logger.debug("Transport {} got accept from {}".format(self.agent.name,
+                                                                               content["customer_id"]))
+                    try:
+                        self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
+                        await self.pick_up_customer(content["customer_id"], content["origin"], content["dest"])
+                    except PathRequestException:
+                        self.logger.error("Transport {} could not get a path to customer {}. Cancelling..."
+                                          .format(self.agent.name, content["customer_id"]))
+                        self.agent.status = TRANSPORT_WAITING
+                        await self.cancel_proposal(content["customer_id"])
+                    except Exception as e:
+                        self.logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
+                        await self.cancel_proposal(content["customer_id"])
+                        self.agent.status = TRANSPORT_WAITING
                 else:
-                    await self.send_proposal(content["customer_id"], {})
-                    self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
-
-        elif performative == ACCEPT_PERFORMATIVE:
-            if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
-                self.logger.debug("Transport {} got accept from {}".format(self.agent.name,
-                                                                           content["customer_id"]))
-                try:
-                    self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
-                    await self.pick_up_customer(content["customer_id"], content["origin"], content["dest"])
-                except PathRequestException:
-                    self.logger.error("Transport {} could not get a path to customer {}. Cancelling..."
-                                      .format(self.agent.name, content["customer_id"]))
-                    self.agent.status = TRANSPORT_WAITING
                     await self.cancel_proposal(content["customer_id"])
-                except Exception as e:
-                    self.logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
-                    await self.cancel_proposal(content["customer_id"])
+
+            elif performative == REFUSE_PERFORMATIVE:
+                self.logger.debug("Transport {} got refusal from customer/station".format(self.agent.name))
+                if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
                     self.agent.status = TRANSPORT_WAITING
-            else:
-                await self.cancel_proposal(content["customer_id"])
 
-        elif performative == CONFIRM_PERFORMATIVE:
-            if self.agent.status == TRANSPORT_WAITING_FOR_STATION_APPROVAL:
-                self.logger.info("Transport {} got accept from station {}".format(self.agent.name,
-                                                                                  content["station_id"]))
-                try:
-                    self.agent.status = TRANSPORT_MOVING_TO_STATION
-                    await self.send_confirmation_travel(content["station_id"])
-                    await self.go_to_the_station(content["station_id"], content["dest"])
-                except PathRequestException:
-                    self.logger.error("Transport {} could not get a path to station {}. Cancelling..."
-                                      .format(self.agent.name, content["station_id"]))
-                    self.agent.status = TRANSPORT_WAITING
-                    await self.cancel_proposal(content["station_id"])
-                except Exception as e:
-                    self.logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
-                    await self.cancel_proposal(content["station_id"])
-                    self.agent.status = TRANSPORT_WAITING
-            elif self.agent.status == TRANSPORT_LOADING:
-                if content["status"] == TRANSPORT_LOADED:
-                    self.agent.transport_loaded()
-                    await self.agent.drop_station()
+            elif performative == INFORM_PERFORMATIVE:
+                if self.agent.status == TRANSPORT_WAITING_FOR_STATION_APPROVAL:
+                    self.logger.info("Transport {} got accept from station {}".format(self.agent.name,
+                                                                                      content["station_id"]))
+                    try:
+                        self.agent.status = TRANSPORT_MOVING_TO_STATION
+                        await self.send_confirmation_travel(content["station_id"])
+                        await self.go_to_the_station(content["station_id"], content["dest"])
+                    except PathRequestException:
+                        self.logger.error("Transport {} could not get a path to station {}. Cancelling..."
+                                          .format(self.agent.name, content["station_id"]))
+                        self.agent.status = TRANSPORT_WAITING
+                        await self.cancel_proposal(content["station_id"])
+                    except Exception as e:
+                        self.logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
+                        await self.cancel_proposal(content["station_id"])
+                        self.agent.status = TRANSPORT_WAITING
+                elif self.agent.status == TRANSPORT_CHARGING:
+                    if content["status"] == TRANSPORT_CHARGED:
+                        self.agent.transport_charged()
+                        await self.agent.drop_station()
 
-        elif performative == REFUSE_PERFORMATIVE:
-            self.logger.debug("Transport {} got refusal from customer/station".format(self.agent.name))
-            if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
-                self.agent.status = TRANSPORT_WAITING
-
-        elif performative == INFORM_PERFORMATIVE:
-            self.agent.stations = json.loads(msg.body)
-            self.logger.debug("Registration of current stations {}".format(self.agent.stations))
-
-        elif performative == CANCEL_PERFORMATIVE:
-            self.logger.info(
-                "Cancellation of request for {} information".format(self.agent.type_service))
+            elif performative == CANCEL_PERFORMATIVE:
+                self.logger.info("Cancellation of request for {} information".format(self.agent.fleet_type))
 
 
 ################################################################

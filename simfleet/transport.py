@@ -11,15 +11,15 @@ from .helpers import random_position, distance_in_meters, kmh_to_ms, PathRequest
     AlreadyInDestination
 from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, \
     REGISTER_PROTOCOL, REQUEST_PERFORMATIVE, \
-    ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
+    ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, QUERY_PROTOCOL
 from .utils import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_IN_CUSTOMER_PLACE, \
-    TRANSPORT_MOVING_TO_DESTINATION, \
-    CUSTOMER_IN_DEST, CUSTOMER_LOCATION, chunk_path, request_path, StrategyBehaviour, TRANSPORT_MOVING_TO_STATION, \
-    TRANSPORT_IN_STATION_PLACE, \
-    TRANSPORT_LOADING
+    TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGING, \
+    CUSTOMER_IN_DEST, CUSTOMER_LOCATION, TRANSPORT_MOVING_TO_STATION, chunk_path, request_path, StrategyBehaviour, \
+    TRANSPORT_NEEDS_CHARGING, TRANSPORT_WAITING_FOR_STATION_APPROVAL
 
 logger = logging.getLogger("TransportAgent")
 
+MIN_AUTONOMY = 2
 ONESECOND_IN_MS = 1000
 
 
@@ -35,6 +35,7 @@ class TransportAgent(Agent):
         self.__observers = defaultdict(list)
         self.agent_id = None
         self.status = TRANSPORT_WAITING
+        self.icon = None
         self.set("current_pos", None)
         self.dest = None
         self.set("path", None)
@@ -55,17 +56,13 @@ class TransportAgent(Agent):
         self.directory_id = None
         self.fleet_type = None
 
-        self.request = "Station"
+        self.request = "station"
         self.stations = None
-        self.flag_stations = False
-        self.fuel = 100
-        self.autonomy_km = 300
-        self.batery_kW = 41
+        self.current_autonomy_km = 20
+        self.max_autonomy_km = 20
         self.num_charges = 0
         self.set("current_station", None)
         self.current_station_dest = None
-
-        self.icon = None
 
     async def setup(self):
         try:
@@ -87,7 +84,7 @@ class TransportAgent(Agent):
             content (dict):
         """
         if content is not None:
-            self.icon = content["icon"]
+            self.icon = content["icon"] if self.icon is None else self.icon
             self.fleet_type = content["fleet_type"]
         self.registration = status
 
@@ -118,9 +115,11 @@ class TransportAgent(Agent):
             strategy_class (``TaxiStrategyBehaviour``): The class to be used. Must inherit from ``TaxiStrategyBehaviour``
         """
         if not self.running_strategy:
-            template = Template()
-            template.set_metadata("protocol", REQUEST_PROTOCOL)
-            self.add_behaviour(self.strategy(), template)
+            template1 = Template()
+            template1.set_metadata("protocol", REQUEST_PROTOCOL)
+            template2 = Template()
+            template2.set_metadata("protocol", QUERY_PROTOCOL)
+            self.add_behaviour(self.strategy(), template1 | template2)
             self.running_strategy = True
 
     def set_id(self, agent_id):
@@ -131,6 +130,9 @@ class TransportAgent(Agent):
             agent_id (str): The new Agent Id
         """
         self.agent_id = agent_id
+
+    def set_icon(self, icon):
+        self.icon = icon
 
     def set_fleetmanager(self, fleetmanager_id):
         """
@@ -207,17 +209,19 @@ class TransportAgent(Agent):
 
         data = {
             "status": TRANSPORT_IN_STATION_PLACE,
-            "capacity": self.fuel,
-            "batery": self.batery_kW
+            "need": self.max_autonomy_km - self.current_autonomy_km
         }
         await self.inform_station(data)
-        self.status = TRANSPORT_LOADING
-        logger.info("Transport {} has started loading in the station {}.".format(self.agent_id,
-                                                                                 self.get("current_station")))
+        self.status = TRANSPORT_CHARGING
+        logger.info("Transport {} has started charging in the station {}.".format(self.agent_id,
+                                                                                  self.get("current_station")))
 
-    def transport_loaded(self):
-        self.autonomy_km = 300
-        self.fuel = 100
+    def needs_charging(self):
+        return (self.status == TRANSPORT_NEEDS_CHARGING) or \
+               (self.get_autonomy() <= MIN_AUTONOMY and self.status in [TRANSPORT_WAITING])
+
+    def transport_charged(self):
+        self.current_autonomy_km = self.max_autonomy_km
 
     async def drop_customer(self):
         """
@@ -414,20 +418,15 @@ class TransportAgent(Agent):
         """
         return self.dest == self.get_position()
 
-    def set_fuel_expense(self, expense=0):
-        self.set_fuel(self.fuel - expense)
-
     def set_km_expense(self, expense=0):
-        self.autonomy_km -= expense
+        self.current_autonomy_km -= expense
 
-    def set_fuel(self, fuel):
-        self.fuel = fuel
-
-    def get_fuel(self):
-        return self.fuel
+    def set_autonomy(self, autonomy, current_autonomy=None):
+        self.max_autonomy_km = autonomy
+        self.current_autonomy_km = current_autonomy if current_autonomy is not None else autonomy
 
     def get_autonomy(self):
-        return self.autonomy_km
+        return self.current_autonomy_km
 
     def calculate_km_expense(self, origin, start, dest=None):
         fir_distance = distance_in_meters(origin, start)
@@ -470,9 +469,7 @@ class TransportAgent(Agent):
             "customer": self.get("current_customer") if self.get("current_customer") else None,
             "assignments": self.num_assignments,
             "distance": "{0:.2f}".format(sum(self.distances)),
-            "fuel": self.fuel,
-            "autonomy": self.autonomy_km,
-            "power": self.batery_kW,
+            "autonomy": self.current_autonomy_km,
             "service": self.fleet_type,
             "fleet": self.fleetmanager_id,
             "icon": self.icon
@@ -527,7 +524,8 @@ class RegistrationBehaviour(CyclicBehaviour):
                 if performative == ACCEPT_PERFORMATIVE:
                     content = json.loads(msg.body)
                     self.agent.set_registration(True, content)
-                    logger.info("Registration in the fleet manager accepted.")
+                    logger.info("[{}] Registration in the fleet manager accepted: {}.".format(self.agent.name,
+                                                                                              self.agent.fleetmanager_id))
                 elif performative == REFUSE_PERFORMATIVE:
                     logger.warning("Registration in the fleet manager was rejected (check fleet type).")
                     self.kill(exit_code="Fleet Registration Rejected")
@@ -615,25 +613,24 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         await self.send(reply)
         self.agent.num_charges += 1
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
-        expense = (travel_km * 100) // self.agent.get_autonomy()
-        expense *= 10
-        self.agent.set_fuel_expense(expense)
         self.agent.set_km_expense(travel_km)
         try:
+            logger.info("{} going to station {}".format(self.agent.name, station_id))
             await self.agent.move_to(self.agent.current_station_dest)
         except AlreadyInDestination:
             await self.agent.arrived_to_station()
 
-    def do_travel(self, customer_orig, customer_dest):
-        if self.agent.get_fuel() <= 10:
+    def has_enough_autonomy(self, customer_orig, customer_dest):
+        autonomy = self.agent.get_autonomy()
+        if autonomy <= MIN_AUTONOMY:
+            logger.warning("{} has not enough autonomy ({}).".format(self.agent.name, autonomy))
             return False
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), customer_orig, customer_dest)
-        expense = (travel_km * 100) // self.agent.get_autonomy()
-        expense *= 10
-        if self.agent.get_fuel() - expense < 10:
+        if autonomy - travel_km < MIN_AUTONOMY:
+            logger.warning("{} has not enough autonomy to do travel ({} for {} km).".format(self.agent.name,
+                                                                                            autonomy, travel_km))
             return False
-        self.agent.set_fuel_expense(expense)
-        self.agent.set_km_expense(travel_km)
+        self.agent.set_km_expense(travel_km)  # TODO
         return True
 
     async def send_get_stations(self, content=None):
@@ -642,11 +639,10 @@ class TransportStrategyBehaviour(StrategyBehaviour):
             content = self.agent.request
         msg = Message()
         msg.to = str(self.agent.directory_id)
-        msg.set_metadata("protocol", REQUEST_PROTOCOL)
+        msg.set_metadata("protocol", QUERY_PROTOCOL)
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
         await self.send(msg)
-        self.agent.flag_stations = True
         self.logger.info("Transport {} asked for stations to Directory {} for type {}.".format(self.agent.name,
                                                                                                self.agent.directory_id,
                                                                                                self.agent.request))
@@ -662,7 +658,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         """
         if content is None:
             content = {}
-        logger.info("Transport {} sent proposal to customer {}".format(self.agent.name, customer_id))
+        logger.info("Transport {} sent proposal to {}".format(self.agent.name, customer_id))
         reply = Message()
         reply.to = customer_id
         reply.set_metadata("protocol", REQUEST_PROTOCOL)

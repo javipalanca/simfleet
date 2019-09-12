@@ -919,7 +919,7 @@ let update_item_in_collection = function (collection, item, get_popup) {
         if (item.icon) {
             item.icon = L.icon({ iconUrl: item.icon, iconSize: [38, 55] });
         } else {
-            item.icon = L.icon({ iconUrl: 'assets/img/transport.png', iconSize: [38, 55] });
+            item.icon = L.icon({ iconUrl: 'assets/img/ban.png', iconSize: [38, 55] });
         }
         collection.push(item);
     } else {
@@ -930,7 +930,7 @@ let update_item_in_collection = function (collection, item, get_popup) {
         if (item.icon) {
             item.icon = L.icon({ iconUrl: item.icon, iconSize: [38, 55] });
         } else {
-            item.icon = L.icon({ iconUrl: 'assets/img/transport.png', iconSize: [38, 55] });
+            item.icon = L.icon({ iconUrl: 'assets/img/ban.png', iconSize: [38, 55] });
         }
         collection[p].visible = item.status !== "CUSTOMER_IN_TRANSPORT" && item.status !== "CUSTOMER_IN_DEST" && item.status !== "CUSTOMER_LOCATION" && item.status !== "TRANSPORT_LOADING";
     }
@@ -942,12 +942,22 @@ let update_station_in_collection = function (collection, item, get_popup) {
         item.latlng = L.latLng(item.position[0], item.position[1]);
         item.popup = get_popup(item);
         item.visible = true;
+        if (item.icon) {
+            item.icon = L.icon({ iconUrl: item.icon, iconSize: [38, 55] });
+        } else {
+            item.icon = L.icon({ iconUrl: 'assets/img/ban.png', iconSize: [38, 55] });
+        }
         collection.push(item);
     } else {
         collection[p].popup = get_popup(item);
         collection[p].power = item.power;
         collection[p].places = item.places;
         collection[p].status = item.status;
+        if (item.icon) {
+            item.icon = L.icon({ iconUrl: item.icon, iconSize: [38, 55] });
+        } else {
+            item.icon = L.icon({ iconUrl: 'assets/img/ban.png', iconSize: [38, 55] });
+        }
     }
 };
 

@@ -8,7 +8,8 @@ from spade.message import Message
 from spade.template import Template
 
 from .helpers import random_position
-from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
+from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, \
+    QUERY_PROTOCOL
 from .utils import CUSTOMER_WAITING, CUSTOMER_IN_DEST, TRANSPORT_MOVING_TO_CUSTOMER, CUSTOMER_IN_TRANSPORT, \
     TRANSPORT_IN_CUSTOMER_PLACE, CUSTOMER_LOCATION, StrategyBehaviour, request_path, status_to_str
 
@@ -20,6 +21,7 @@ class CustomerAgent(Agent):
         super().__init__(agentjid, password)
         self.agent_id = None
         self.strategy = None
+        self.icon = None
         self.running_strategy = False
         self.fleet_type = None
         self.fleetmanagers = None
@@ -55,9 +57,11 @@ class CustomerAgent(Agent):
         Runs the strategy for the customer agent.
         """
         if not self.running_strategy:
-            template = Template()
-            template.set_metadata("protocol", REQUEST_PROTOCOL)
-            self.add_behaviour(self.strategy(), template)
+            template1 = Template()
+            template1.set_metadata("protocol", REQUEST_PROTOCOL)
+            template2 = Template()
+            template2.set_metadata("protocol", QUERY_PROTOCOL)
+            self.add_behaviour(self.strategy(), template1 | template2)
             self.running_strategy = True
 
     def set_id(self, agent_id):
@@ -67,6 +71,9 @@ class CustomerAgent(Agent):
             agent_id (str): The new Agent Id
         """
         self.agent_id = agent_id
+
+    def set_icon(self, icon):
+        self.icon = icon
 
     def set_fleet_type(self, fleet_type):
         """
@@ -231,7 +238,7 @@ class CustomerAgent(Agent):
             "status": self.status,
             "transport": self.transport_assigned,
             "waiting": float("{0:.2f}".format(t)) if t else None,
-            "icon": "assets/img/customer.png"
+            "icon": self.icon
         }
 
 
@@ -298,7 +305,7 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
     async def send_get_managers(self, content=None):
         """
         Sends an ``spade.message.Message`` to the DirectoryAgent to request a managers.
-        It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
+        It uses the QUERY_PROTOCOL and the REQUEST_PERFORMATIVE.
         If no content is set a default content with the type_service that needs
         Args:
             content (dict): Optional content dictionary
@@ -307,7 +314,7 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
             content = self.agent.fleet_type
         msg = Message()
         msg.to = str(self.agent.directory_id)
-        msg.set_metadata("protocol", REQUEST_PROTOCOL)
+        msg.set_metadata("protocol", QUERY_PROTOCOL)
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
         await self.send(msg)
@@ -362,8 +369,7 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         reply.body = json.dumps(content)
         await self.send(reply)
         self.agent.transport_assigned = str(transport_id)
-        self.logger.info("Customer {} accepted proposal from transport {}".format(self.agent.name,
-                                                                              transport_id))
+        self.logger.info("Customer {} accepted proposal from transport {}".format(self.agent.name, transport_id))
 
     async def refuse_transport(self, transport_id):
         """

@@ -93,7 +93,7 @@
                     </v-marker>
                 </span>
                 <span v-for="customer in customers">
-                    <v-marker :lat-lng="customer.latlng" :icon="customerIcon" :visible="customer.visible">
+                    <v-marker :lat-lng="customer.latlng" :icon="customer.icon" :visible="customer.visible">
                         <v-popup :content="customer.popup"></v-popup>
                     </v-marker>
                 </span>
@@ -101,7 +101,7 @@
                     <v-polyline :lat-lngs="path.latlngs" :color="path.color"></v-polyline>
                 </span>
                 <span v-for="station in stations">
-                    <v-marker :lat-lng="station.latlng" :icon="stationIcon" :visible="station.visible">
+                    <v-marker :lat-lng="station.latlng" :icon="station.icon" :visible="station.visible">
                         <v-popup :content="station.popup"></v-popup>
                     </v-marker>
                 </span>

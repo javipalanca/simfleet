@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-from math import ceil
 
 from spade.agent import Agent
 from spade.message import Message
@@ -9,9 +8,9 @@ from spade.template import Template
 
 from .helpers import random_position
 from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, \
-    REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL, CONFIRM_PERFORMATIVE, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE
+    REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
 from .utils import StrategyBehaviour, CyclicBehaviour, FREE_STATION, BUSY_STATION, TRANSPORT_MOVING_TO_STATION, \
-    TRANSPORT_IN_STATION_PLACE, TRANSPORT_LOADED
+    TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGED
 
 logger = logging.getLogger("StationAgent")
 
@@ -20,6 +19,7 @@ class StationAgent(Agent):
     def __init__(self, agentjid, password):
         super().__init__(jid=agentjid, password=password)
         self.agent_id = None
+        self.icon = None
         self.strategy = None
         self.running_strategy = False
         self.directory_id = None
@@ -65,6 +65,9 @@ class StationAgent(Agent):
             agent_id (str): The new Agent Id
         """
         self.agent_id = agent_id
+
+    def set_icon(self, icon):
+        self.icon = icon
 
     def run_strategy(self):
         """
@@ -165,7 +168,7 @@ class StationAgent(Agent):
             "status": self.status,
             "places": self.available_places,
             "power": self.power,
-            "icon": "assets/img/station.png"
+            "icon": self.icon
         }
 
     def assigning_place(self):
@@ -177,6 +180,8 @@ class StationAgent(Agent):
         if not p - 1:
             self.set_status(BUSY_STATION)
         self.set_available_places(p - 1)
+        logger.info("Station {} assigned place. Available places are now {}.".format(self.name,
+                                                                                     self.get_available_places()))
 
     def deassigning_place(self):
         """
@@ -187,10 +192,11 @@ class StationAgent(Agent):
             self.set_status(FREE_STATION)
         self.set_available_places(p + 1)
 
-    async def loading_transport(self, fuel, batery_kW):
-        total_time = ((batery_kW * 1000) / (self.get_power() * 1000)) * 60
-        t = ((100 - fuel) / 100) * total_time
-        await asyncio.sleep(ceil(t / 10))
+    async def charging_transport(self, need):
+        total_time = need / self.get_power()
+        logger.info("Station {} started charging.".format(self.name))
+        await asyncio.sleep(total_time)
+        logger.info("Station {} finished charging.".format(self.name))
         self.set("current_station", None)
         self.deassigning_place()
 
@@ -247,7 +253,7 @@ class TravelBehaviour(CyclicBehaviour):
     async def on_start(self):
         logger.debug("Station {} started TravelBehavior.".format(self.agent.name))
 
-    async def loading_completed(self, transport_id):
+    async def charging_complete(self, transport_id):
         """
         Send a message to the transport agent that the vehicle load has been completed
 
@@ -257,8 +263,8 @@ class TravelBehaviour(CyclicBehaviour):
         reply = Message()
         reply.to = str(transport_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        reply.set_metadata("performative", CONFIRM_PERFORMATIVE)
-        content = {"status": TRANSPORT_LOADED}
+        reply.set_metadata("performative", INFORM_PERFORMATIVE)
+        content = {"status": TRANSPORT_CHARGED}
         reply.body = json.dumps(content)
         await self.send(reply)
 
@@ -273,11 +279,11 @@ class TravelBehaviour(CyclicBehaviour):
             if "status" in content:
                 status = content["status"]
                 if status == TRANSPORT_MOVING_TO_STATION:
-                    logger.info("Transport goes to my destination.")
+                    logger.info("Transport {} comming to station {}.".format(transport_id, self.agent.name))
                 elif status == TRANSPORT_IN_STATION_PLACE:
-                    logger.info("Transport {} in Station.".format(msg.sender))
-                    await self.agent.loading_transport(content["capacity"], content["batery"])
-                    await self.loading_completed(transport_id)
+                    logger.info("Transport {} in station {}.".format(msg.sender.localpart, self.agent.name))
+                    await self.agent.charging_transport(content["need"])
+                    await self.charging_complete(transport_id)
         except Exception as e:
             logger.error("EXCEPTION in Travel Behaviour of Customer {}: {}".format(self.agent.name, e))
 
@@ -306,7 +312,7 @@ class StationStrategyBehaviour(StrategyBehaviour):
         reply = Message()
         reply.to = str(transport_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        reply.set_metadata("performative", CONFIRM_PERFORMATIVE)
+        reply.set_metadata("performative", INFORM_PERFORMATIVE)
         content = {
             "station_id": str(self.agent.jid),
             "dest": self.agent.current_pos

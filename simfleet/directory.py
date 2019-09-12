@@ -7,7 +7,7 @@ from spade.message import Message
 
 from .utils import StrategyBehaviour, CyclicBehaviour
 from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, INFORM_PERFORMATIVE, ACCEPT_PERFORMATIVE, \
-    CANCEL_PERFORMATIVE, REQUEST_PERFORMATIVE
+    CANCEL_PERFORMATIVE, REQUEST_PERFORMATIVE, QUERY_PROTOCOL
 
 logger = logging.getLogger("DirectoryAgent")
 
@@ -35,7 +35,7 @@ class DirectoryAgent(Agent):
         Runs the strategy for the directory agent.
         """
         template = Template()
-        template.set_metadata("protocol", REQUEST_PROTOCOL)
+        template.set_metadata("protocol", QUERY_PROTOCOL)
         self.add_behaviour(self.strategy(), template)
 
     async def setup(self):
@@ -71,15 +71,15 @@ class RegistrationBehaviour(CyclicBehaviour):
         else:
             service[agent["type"]] = [agent["jid"]]
 
-    def remove_service(self, type, agent):
+    def remove_service(self, service_type, agent):
         """
         Erase a ``FleetManagerAgent`` to the store.
 
         Args:
             agent (``FleetManagerAgent``): the instance of the FleetManagerAgent to be erased
         """
-        del (self.get("service_agents")[type][agent])
-        self.logger.debug("Deregistration of the Manager {} for service {}".format(agent, type))
+        del (self.get("service_agents")[service_type][agent])
+        self.logger.debug("Deregistration of the Manager {} for service {}".format(agent, service_type))
 
     async def send_confirmation(self, agent_id):
         """
@@ -129,7 +129,7 @@ class DirectoryStrategyBehaviour(StrategyBehaviour):
         """
         reply = Message()
         reply.to = str(agent_id)
-        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("protocol", QUERY_PROTOCOL)
         reply.set_metadata("performative", INFORM_PERFORMATIVE)
         reply.body = json.dumps(self.get("service_agents")[type_service])
         await self.send(reply)
@@ -143,7 +143,7 @@ class DirectoryStrategyBehaviour(StrategyBehaviour):
         """
         reply = Message()
         reply.to = str(agent_id)
-        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("protocol", QUERY_PROTOCOL)
         reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         await self.send(reply)
 

@@ -127,7 +127,9 @@ class SimulatorAgent(Agent):
             fleet_type = manager["fleet_type"]
             strategy = manager.get("strategy")
             icon = manager.get("icon")
-            self.create_fleetmanager_agent(name, password, fleet_type=fleet_type, strategy=strategy, icon=icon)
+            agent = self.create_fleetmanager_agent(name, password, fleet_type=fleet_type, strategy=strategy)
+
+            self.set_icon(agent, icon, default=fleet_type)
 
         while len(self.manager_agents) < self.config.num_managers:
             time.sleep(0.1)
@@ -139,9 +141,18 @@ class SimulatorAgent(Agent):
             fleetmanager = transport["fleet"]
             fleet_type = transport["fleet_type"]
             speed = transport.get("speed")
+            fuel = transport.get("fuel")
+            autonomy = transport.get("autonomy")
+            current_autonomy = transport.get("current_autonomy")
             strategy = transport.get("strategy")
-            self.create_transport_agent(name, password, position=position, speed=speed, fleet_type=fleet_type,
-                                        fleetmanager=fleetmanager, strategy=strategy)
+            icon = transport.get("icon")
+            agent = self.create_transport_agent(name, password, position=position, speed=speed, fleet_type=fleet_type,
+                                                fleetmanager=fleetmanager, strategy=strategy, autonomy=autonomy,
+                                                current_autonomy=current_autonomy)
+
+            if icon:
+                self.set_icon(agent, icon, default=fleet_type)
+
         for customer in self.config["customers"]:
             name = customer["name"]
             password = customer["password"] if "password" in customer else faker_factory.password()
@@ -149,24 +160,41 @@ class SimulatorAgent(Agent):
             position = customer["position"]
             target = customer["destination"]
             strategy = customer.get("strategy")
-            self.create_customer_agent(name, password, fleet_type, position=position, target=target, strategy=strategy)
+            icon = customer.get("icon")
+            agent = self.create_customer_agent(name, password, fleet_type, position=position, target=target,
+                                               strategy=strategy)
+
+            self.set_icon(agent, icon, default="customer")
 
         for station in self.config["stations"]:
             password = station["password"] if "password" in station else faker_factory.password()
             strategy = station.get("strategy")
-            self.create_station_agent(station["name"], password, position=station["position"], power=station["power"],
-                                      places=station["places"], strategy=strategy)
+            icon = station.get("icon")
+            agent = self.create_station_agent(station["name"], password, position=station["position"],
+                                              power=station["power"], places=station["places"], strategy=strategy)
+            self.set_icon(agent, icon, default="electric_station")
 
     def load_icons(self, filename):
         with open(filename, 'r') as f:
             logger.info("Reading icons {}".format(filename))
             self._icons = json.load(f)
 
-    def assigning_fleet_icon(self, fleet_type):
+    def assigning_fleet_icon(self, fleet_type, default=None):
+        if fleet_type not in self._icons:
+            fleet_type = "default" if default is None else default
         icon = self._icons[fleet_type].pop(0)
         self._icons[fleet_type].append(icon)
         logger.info("Got icon for fleet type {}".format(fleet_type))
         return icon
+
+    def set_icon(self, agent, icon, default=None):
+        if icon:
+            if icon.startswith("data:image"):
+                agent.set_icon(icon)
+            else:
+                agent.set_icon(self.assigning_fleet_icon(icon, default))
+        else:
+            agent.set_icon(self.assigning_fleet_icon(default))
 
     def set_directory(self, agent):
         self.directory_agent = agent
@@ -751,8 +779,8 @@ class SimulatorAgent(Agent):
         """
         try:
             names, status, places, power = zip(*[(p.name, p.status,
-                                                    p.available_places, p.power)
-                                                   for p in self.station_agents.values()])
+                                                  p.available_places, p.power)
+                                                 for p in self.station_agents.values()])
         except ValueError:
             names, status, places, power = [], [], [], []
 
@@ -810,10 +838,7 @@ class SimulatorAgent(Agent):
         agent.set_directory(self.get_directory().jid)
         logger.debug("Assigning type {} to fleet manager {}".format(fleet_type, name))
         agent.set_fleet_type(fleet_type)
-        if icon:
-            agent.set_icon(icon)
-        else:
-            agent.set_icon(self.assigning_fleet_icon(fleet_type))
+
         if strategy:
             agent.strategy = load_class(strategy)
         else:
@@ -826,7 +851,10 @@ class SimulatorAgent(Agent):
 
         self.submit(self.async_start_agent(agent))
 
-    def create_transport_agent(self, name, password, fleet_type, fleetmanager, position, strategy=None, speed=None):
+        return agent
+
+    def create_transport_agent(self, name, password, fleet_type, fleetmanager, position, strategy=None, speed=None,
+                               autonomy=None, current_autonomy=None):
         jid = f"{name}@{self.jid.domain}"
         agent = TransportAgent(jid, password)
         logger.debug("Creating Transport {}".format(jid))
@@ -837,6 +865,8 @@ class SimulatorAgent(Agent):
         agent.set_fleetmanager(fleetmanager)
         agent.set_route_agent(self.route_id)
         agent.set_directory(self.get_directory().jid)
+        if autonomy:
+            agent.set_autonomy(autonomy, current_autonomy=current_autonomy)
 
         agent.set_initial_position(position)
 
@@ -854,6 +884,8 @@ class SimulatorAgent(Agent):
         self.add_transport(agent)
 
         self.submit(self.async_start_agent(agent))
+
+        return agent
 
     def create_customer_agent(self, name, password, fleet_type, position, strategy=None, target=None):
         """
@@ -893,6 +925,8 @@ class SimulatorAgent(Agent):
 
         self.submit(self.async_start_agent(agent))
 
+        return agent
+
     def create_station_agent(self, name, password, position, power, places, strategy=None):
         """
         Create a customer agent.
@@ -929,6 +963,8 @@ class SimulatorAgent(Agent):
         self.add_station(agent)
 
         self.submit(self.async_start_agent(agent))
+
+        return agent
 
     def add_manager(self, agent):
         """

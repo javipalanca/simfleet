@@ -210,8 +210,7 @@ function transport_popup(transport) {
         "<tr><th>ASSIGNMENTS</th><td>" + transport.assignments + "</td></tr>" +
         "<tr><th>SPEED</th><td>" + transport.speed + "</td></tr>" +
         "<tr><th>DISTANCE</th><td>" + transport.distance + "</td></tr>" +
-        "<tr><th>FUEL</th><td>" + transport.fuel + "</td></tr>" +
-        "<tr><th>AUTONOMY</th><td>" + transport.autonomy + "</td></tr>" +
+        "<tr><th>AUTONOMY</th><td>" + transport.autonomy + " / " + transport.max_autonomy + "</td></tr>" +
         "</table>"
 }
 

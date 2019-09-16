@@ -15,7 +15,7 @@ from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, C
 from .utils import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_IN_CUSTOMER_PLACE, \
     TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGING, \
     CUSTOMER_IN_DEST, CUSTOMER_LOCATION, TRANSPORT_MOVING_TO_STATION, chunk_path, request_path, StrategyBehaviour, \
-    TRANSPORT_NEEDS_CHARGING, TRANSPORT_WAITING_FOR_STATION_APPROVAL
+    TRANSPORT_NEEDS_CHARGING
 
 logger = logging.getLogger("TransportAgent")
 
@@ -470,6 +470,7 @@ class TransportAgent(Agent):
             "assignments": self.num_assignments,
             "distance": "{0:.2f}".format(sum(self.distances)),
             "autonomy": self.current_autonomy_km,
+            "max_autonomy": self.max_autonomy_km,
             "service": self.fleet_type,
             "fleet": self.fleetmanager_id,
             "icon": self.icon

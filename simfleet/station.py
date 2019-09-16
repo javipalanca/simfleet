@@ -1,8 +1,10 @@
-import asyncio
+import datetime
+import datetime
 import json
 import logging
 
 from spade.agent import Agent
+from spade.behaviour import TimeoutBehaviour
 from spade.message import Message
 from spade.template import Template
 
@@ -194,11 +196,19 @@ class StationAgent(Agent):
 
     async def charging_transport(self, need):
         total_time = need / self.get_power()
-        logger.info("Station {} started charging.".format(self.name))
-        await asyncio.sleep(total_time)
-        logger.info("Station {} finished charging.".format(self.name))
+        now = datetime.datetime.now()
+        start_at = now + datetime.timedelta(seconds=total_time)
+        logger.info("Station {} started charging at {} for {} seconds.".format(self.name, now, total_time))
+        charge_behaviour = ChargeBehaviour(start_at=start_at)
+        self.add_behaviour(charge_behaviour)
+
+
+class ChargeBehaviour(TimeoutBehaviour):
+
+    async def run(self):
+        logger.info("Station {} finished charging.".format(self.agent.name))
         self.set("current_station", None)
-        self.deassigning_place()
+        self.agent.deassigning_place()
 
 
 class RegistrationBehaviour(CyclicBehaviour):

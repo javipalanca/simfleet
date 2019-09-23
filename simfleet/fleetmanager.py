@@ -4,6 +4,7 @@ import json
 import logging
 
 import faker
+from loguru import logger
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
 from spade.message import Message
@@ -13,7 +14,6 @@ from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, 
     REFUSE_PERFORMATIVE
 from .utils import StrategyBehaviour
 
-logger = logging.getLogger("FleetManagerAgent")
 faker_factory = faker.Factory.create()
 
 
@@ -108,8 +108,7 @@ class FleetManagerAgent(Agent):
 class TransportRegistrationForFleetBehaviour(CyclicBehaviour):
 
     async def on_start(self):
-        self.logger = logging.getLogger("RegisterStrategy")
-        self.logger.debug("Strategy {} started in manager".format(type(self).__name__))
+        logger.debug("Strategy {} started in manager".format(type(self).__name__))
 
     def add_transport(self, agent):
         """
@@ -130,10 +129,10 @@ class TransportRegistrationForFleetBehaviour(CyclicBehaviour):
         """
         if key in self.get("transport_agents"):
             del (self.get("transport_agents")[key])
-            self.logger.debug("Deregistration of the TransporterAgent {}".format(key))
+            logger.debug("Deregistration of the TransporterAgent {}".format(key))
             self.agent.transports_in_fleet -= 1
         else:
-            self.logger.debug("Cancelation of the registration in the Fleet")
+            logger.debug("Cancelation of the registration in the Fleet")
 
     async def accept_registration(self, agent_id):
         """
@@ -189,8 +188,7 @@ class FleetManagerStrategyBehaviour(StrategyBehaviour):
     """
 
     async def on_start(self):
-        self.logger = logging.getLogger("CoordinatorStrategy")
-        self.logger.debug("Strategy {} started in manager".format(type(self).__name__))
+        logger.debug("Strategy {} started in manager".format(type(self).__name__))
 
     def get_transport_agents(self):
         """

@@ -1,15 +1,13 @@
-
-import logging
 import json
+
+from loguru import logger
 from spade.agent import Agent
-from spade.template import Template
 from spade.message import Message
+from spade.template import Template
 
-from .utils import StrategyBehaviour, CyclicBehaviour
-from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, INFORM_PERFORMATIVE, ACCEPT_PERFORMATIVE, \
+from .protocol import REGISTER_PROTOCOL, INFORM_PERFORMATIVE, ACCEPT_PERFORMATIVE, \
     CANCEL_PERFORMATIVE, REQUEST_PERFORMATIVE, QUERY_PROTOCOL
-
-logger = logging.getLogger("DirectoryAgent")
+from .utils import StrategyBehaviour, CyclicBehaviour
 
 
 class DirectoryAgent(Agent):
@@ -55,8 +53,7 @@ class DirectoryAgent(Agent):
 class RegistrationBehaviour(CyclicBehaviour):
 
     async def on_start(self):
-        self.logger = logging.getLogger("DirectoryRegistrationStrategy")
-        self.logger.debug("Strategy {} started in directory".format(type(self).__name__))
+        logger.debug("Strategy {} started in directory".format(type(self).__name__))
 
     def add_service(self, agent):
         """
@@ -79,7 +76,7 @@ class RegistrationBehaviour(CyclicBehaviour):
             agent (``FleetManagerAgent``): the instance of the FleetManagerAgent to be erased
         """
         del (self.get("service_agents")[service_type][agent])
-        self.logger.debug("Deregistration of the Manager {} for service {}".format(agent, service_type))
+        logger.debug("Deregistration of the Manager {} for service {}".format(agent, service_type))
 
     async def send_confirmation(self, agent_id):
         """
@@ -116,8 +113,7 @@ class DirectoryStrategyBehaviour(StrategyBehaviour):
         """
 
     async def on_start(self):
-        self.logger = logging.getLogger("DirectoryStrategy")
-        self.logger.debug("Strategy {} started in directory".format(type(self).__name__))
+        logger.debug("Strategy {} started in directory".format(type(self).__name__))
 
     async def send_services(self, agent_id, type_service):
         """
@@ -154,8 +150,8 @@ class DirectoryStrategyBehaviour(StrategyBehaviour):
             agent_id = msg.sender
             request = msg.body
             if performative == REQUEST_PERFORMATIVE:
-                self.logger.info("Directory {} received message from customer/transport {}".format(self.agent.name,
-                                                                                                   agent_id))
+                logger.info("Directory {} received message from customer/transport {}".format(self.agent.name,
+                                                                                              agent_id))
                 if request in self.get("service_agents"):
                     await self.send_services(agent_id, msg.body)
                 else:

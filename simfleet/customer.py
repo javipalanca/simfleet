@@ -1,7 +1,7 @@
 import json
-import logging
 import time
 
+from loguru import logger
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
 from spade.message import Message
@@ -12,8 +12,6 @@ from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, A
     QUERY_PROTOCOL
 from .utils import CUSTOMER_WAITING, CUSTOMER_IN_DEST, TRANSPORT_MOVING_TO_CUSTOMER, CUSTOMER_IN_TRANSPORT, \
     TRANSPORT_IN_CUSTOMER_PLACE, CUSTOMER_LOCATION, StrategyBehaviour, request_path, status_to_str
-
-logger = logging.getLogger("CustomerAgent")
 
 
 class CustomerAgent(Agent):
@@ -298,8 +296,7 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         """
         Initializes the logger and timers. Call to parent method if overloaded.
         """
-        self.logger = logging.getLogger("CustomerStrategy")
-        self.logger.debug("Strategy {} started in customer {}".format(type(self).__name__, self.agent.name))
+        logger.debug("Strategy {} started in customer {}".format(type(self).__name__, self.agent.name))
         self.agent.init_time = time.time()
 
     async def send_get_managers(self, content=None):
@@ -318,9 +315,9 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
         await self.send(msg)
-        self.logger.info("Customer {} asked for managers to directory {} for type {}.".format(self.agent.name,
-                                                                                              self.agent.directory_id,
-                                                                                              self.agent.type_service))
+        logger.info("Customer {} asked for managers to directory {} for type {}.".format(self.agent.name,
+                                                                                         self.agent.directory_id,
+                                                                                         self.agent.type_service))
 
     async def send_request(self, content=None):
         """
@@ -340,14 +337,14 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
                 "origin": self.agent.current_pos,
                 "dest": self.agent.dest
             }
-        for fleetmanager in self.agent.fleetmanagers: # Send a message to all FleetManager
+        for fleetmanager in self.agent.fleetmanagers:  # Send a message to all FleetManager
             msg = Message()
             msg.to = str(fleetmanager)
             msg.set_metadata("protocol", REQUEST_PROTOCOL)
             msg.set_metadata("performative", REQUEST_PERFORMATIVE)
             msg.body = json.dumps(content)
             await self.send(msg)
-        self.logger.info("Customer {} asked for a transport to {}.".format(self.agent.name, self.agent.dest))
+        logger.info("Customer {} asked for a transport to {}.".format(self.agent.name, self.agent.dest))
 
     async def accept_transport(self, transport_id):
         """
@@ -369,7 +366,7 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         reply.body = json.dumps(content)
         await self.send(reply)
         self.agent.transport_assigned = str(transport_id)
-        self.logger.info("Customer {} accepted proposal from transport {}".format(self.agent.name, transport_id))
+        logger.info("Customer {} accepted proposal from transport {}".format(self.agent.name, transport_id))
 
     async def refuse_transport(self, transport_id):
         """
@@ -391,8 +388,8 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         reply.body = json.dumps(content)
 
         await self.send(reply)
-        self.logger.info("Customer {} refused proposal from transport {}".format(self.agent.name,
-                                                                                  transport_id))
+        logger.info("Customer {} refused proposal from transport {}".format(self.agent.name,
+                                                                            transport_id))
 
     async def run(self):
         raise NotImplementedError

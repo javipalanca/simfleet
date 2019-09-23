@@ -1,8 +1,7 @@
 import datetime
-import datetime
 import json
-import logging
 
+from loguru import logger
 from spade.agent import Agent
 from spade.behaviour import TimeoutBehaviour
 from spade.message import Message
@@ -13,8 +12,6 @@ from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, 
     REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
 from .utils import StrategyBehaviour, CyclicBehaviour, FREE_STATION, BUSY_STATION, TRANSPORT_MOVING_TO_STATION, \
     TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGED
-
-logger = logging.getLogger("StationAgent")
 
 
 class StationAgent(Agent):
@@ -213,8 +210,7 @@ class ChargeBehaviour(TimeoutBehaviour):
 
 class RegistrationBehaviour(CyclicBehaviour):
     async def on_start(self):
-        self.logger = logging.getLogger("StationRegistrationStrategy")
-        self.logger.debug("Strategy {} started in directory".format(type(self).__name__))
+        logger.debug("Strategy {} started in directory".format(type(self).__name__))
 
     def set_registration(self, decision):
         self.agent.registration = decision
@@ -308,8 +304,7 @@ class StationStrategyBehaviour(StrategyBehaviour):
     """
 
     async def on_start(self):
-        self.logger = logging.getLogger("StationStrategy")
-        self.logger.debug("Strategy {} started in station".format(type(self).__name__))
+        logger.debug("Strategy {} started in station".format(type(self).__name__))
 
     async def accept_transport(self, transport_id):
         """
@@ -329,8 +324,7 @@ class StationStrategyBehaviour(StrategyBehaviour):
         }
         reply.body = json.dumps(content)
         await self.send(reply)
-        self.logger.debug("Station {} accepted proposal for charge from transport {}".format(self.agent.name,
-                                                                                             transport_id))
+        logger.debug("Station {} accepted proposal for charge from transport {}".format(self.agent.name, transport_id))
 
     async def refuse_transport(self, transport_id):
         """
@@ -348,8 +342,7 @@ class StationStrategyBehaviour(StrategyBehaviour):
         reply.body = json.dumps(content)
 
         await self.send(reply)
-        self.logger.debug("Station {} refused proposal for charge from transport {}".format(self.agent.name,
-                                                                                            transport_id))
+        logger.debug("Station {} refused proposal for charge from transport {}".format(self.agent.name, transport_id))
 
     async def run(self):
         msg = await self.receive(timeout=5)
@@ -359,14 +352,12 @@ class StationStrategyBehaviour(StrategyBehaviour):
             transport_id = msg.sender
             if performative == PROPOSE_PERFORMATIVE:
                 if self.agent.get_status() == FREE_STATION:
-                    self.logger.debug("Station {} received proposal from transport {}".format(self.agent.name,
-                                                                                              transport_id))
+                    logger.debug("Station {} received proposal from transport {}".format(self.agent.name, transport_id))
                     await self.accept_transport(transport_id)
                 else:  # self.agent.get_status() == BUSY_STATION
                     await self.refuse_transport(transport_id)
             elif performative == CANCEL_PERFORMATIVE:
-                self.logger.warning(
-                    "Station {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
+                logger.warning("Station {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
                 self.agent.deassigning_place()
             elif performative == ACCEPT_PERFORMATIVE:
                 self.agent.assigning_place()

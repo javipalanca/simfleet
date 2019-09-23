@@ -1,7 +1,5 @@
 import json
-import logging
-
-logger = logging.getLogger()
+from loguru import logger
 
 
 def hide_passwords(item, key=None):

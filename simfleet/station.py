@@ -191,21 +191,38 @@ class StationAgent(Agent):
             self.set_status(FREE_STATION)
         self.set_available_places(p + 1)
 
-    async def charging_transport(self, need):
+    async def charging_transport(self, need, transport_id):
         total_time = need / self.get_power()
         now = datetime.datetime.now()
         start_at = now + datetime.timedelta(seconds=total_time)
-        logger.info("Station {} started charging at {} for {} seconds.".format(self.name, now, total_time))
-        charge_behaviour = ChargeBehaviour(start_at=start_at)
+        logger.info(
+            "Station {} started charging at {} for {} seconds, at {}".format(self.name, now, total_time, start_at))
+        charge_behaviour = ChargeBehaviour(start_at=start_at, transport_id=transport_id)
         self.add_behaviour(charge_behaviour)
 
 
 class ChargeBehaviour(TimeoutBehaviour):
+    def __init__(self, start_at, transport_id):
+        self.transport_id = transport_id
+        super().__init__(start_at)
+
+    async def charging_complete(self):
+        """
+        Send a message to the transport agent that the vehicle load has been completed
+        """
+        reply = Message()
+        reply.to = str(self.transport_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", INFORM_PERFORMATIVE)
+        content = {"status": TRANSPORT_CHARGED}
+        reply.body = json.dumps(content)
+        await self.send(reply)
 
     async def run(self):
         logger.info("Station {} finished charging.".format(self.agent.name))
         self.set("current_station", None)
         self.agent.deassigning_place()
+        await self.charging_complete()
 
 
 class RegistrationBehaviour(CyclicBehaviour):
@@ -259,21 +276,6 @@ class TravelBehaviour(CyclicBehaviour):
     async def on_start(self):
         logger.debug("Station {} started TravelBehavior.".format(self.agent.name))
 
-    async def charging_complete(self, transport_id):
-        """
-        Send a message to the transport agent that the vehicle load has been completed
-
-        Args:
-            transport_id (str): the jid of the transport
-        """
-        reply = Message()
-        reply.to = str(transport_id)
-        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        reply.set_metadata("performative", INFORM_PERFORMATIVE)
-        content = {"status": TRANSPORT_CHARGED}
-        reply.body = json.dumps(content)
-        await self.send(reply)
-
     async def run(self):
         try:
             msg = await self.receive(timeout=5)
@@ -288,8 +290,7 @@ class TravelBehaviour(CyclicBehaviour):
                     logger.info("Transport {} comming to station {}.".format(transport_id, self.agent.name))
                 elif status == TRANSPORT_IN_STATION_PLACE:
                     logger.info("Transport {} in station {}.".format(msg.sender.localpart, self.agent.name))
-                    await self.agent.charging_transport(content["need"])
-                    await self.charging_complete(transport_id)
+                    await self.agent.charging_transport(content["need"], transport_id)
         except Exception as e:
             logger.error("EXCEPTION in Travel Behaviour of Customer {}: {}".format(self.agent.name, e))
 

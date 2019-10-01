@@ -74,9 +74,6 @@ class StationAgent(Agent):
     def run_strategy(self):
         """
         Sets the strategy for the transport agent.
-
-        Args:
-            strategy_class (``RegistrationBehaviour``): The class to be used. Must inherit from ``RegistrationBehaviour``
         """
         if not self.running_strategy:
             template = Template()
@@ -89,7 +86,6 @@ class StationAgent(Agent):
         Sets the status of registration
         Args:
             status (boolean): True if the transport agent has registered or False if not
-
         """
         self.registration = status
 
@@ -98,7 +94,6 @@ class StationAgent(Agent):
         Sets the directory JID address
         Args:
             directory_id (str): the DirectoryAgent jid
-
         """
         self.directory_id = directory_id
 

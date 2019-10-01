@@ -1,11 +1,12 @@
 import asyncio
 import json
 
+from loguru import logger
 from spade.behaviour import State, FSMBehaviour
 
-from simfleet.transport import TaxiStrategyBehaviour
 from simfleet.helpers import PathRequestException
 from simfleet.protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE
+from simfleet.transport import TaxiStrategyBehaviour
 from simfleet.utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_MOVING_TO_PASSENGER
 
 
@@ -20,7 +21,7 @@ class TaxiWaitingState(TaxiStrategyBehaviour, State):
         if not msg:
             self.set_next_state(TRANSPORT_WAITING)
             return
-        self.logger.info("received: {}".format(msg.body))
+        logger.info("received: {}".format(msg.body))
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
         if performative == REQUEST_PERFORMATIVE:
@@ -41,14 +42,14 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour, State):
     async def run(self):
         msg = await self.receive(timeout=60)
         if not msg:
-            self.logger.info("No approval msg received. Still waiting.")
+            logger.info("No approval msg received. Still waiting.")
             self.set_next_state(TRANSPORT_WAITING_FOR_APPROVAL)
             return
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
         if performative == ACCEPT_PERFORMATIVE:
             try:
-                self.logger.info("Got accept. Picking up passenger.")
+                logger.info("Got accept. Picking up passenger.")
                 await self.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])
                 self.set_next_state(TRANSPORT_MOVING_TO_PASSENGER)
                 return
@@ -62,7 +63,7 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour, State):
                 return
 
         elif performative == REFUSE_PERFORMATIVE:
-            self.logger.info("Got refuse :(")
+            logger.info("Got refuse :(")
             self.set_next_state(TRANSPORT_WAITING)
             return
 
@@ -85,7 +86,7 @@ class TaxiMovingState(TaxiStrategyBehaviour, State):
         passenger_in_taxi_event.clear()
         self.agent.watch_value("passenger_in_taxi", passenger_in_taxi_callback)
         await passenger_in_taxi_event.wait()
-        self.logger.info("Transport is free again.")
+        logger.info("Transport is free again.")
         return self.set_next_state(TRANSPORT_WAITING)
 
 
@@ -103,4 +104,3 @@ class FSMTaxiStrategyBehaviour(FSMBehaviour):
         self.add_transition(TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_WAITING)
         self.add_transition(TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_WAITING_FOR_APPROVAL)
         self.add_transition(TRANSPORT_MOVING_TO_PASSENGER, TRANSPORT_WAITING)
-

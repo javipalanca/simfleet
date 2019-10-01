@@ -1,8 +1,7 @@
 import datetime
-import datetime
 import json
-import logging
 
+from loguru import logger
 from spade.agent import Agent
 from spade.behaviour import TimeoutBehaviour
 from spade.message import Message
@@ -13,8 +12,6 @@ from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, 
     REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
 from .utils import StrategyBehaviour, CyclicBehaviour, FREE_STATION, BUSY_STATION, TRANSPORT_MOVING_TO_STATION, \
     TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGED
-
-logger = logging.getLogger("StationAgent")
 
 
 class StationAgent(Agent):
@@ -189,27 +186,43 @@ class StationAgent(Agent):
             self.set_status(FREE_STATION)
         self.set_available_places(p + 1)
 
-    async def charging_transport(self, need):
+    async def charging_transport(self, need, transport_id):
         total_time = need / self.get_power()
         now = datetime.datetime.now()
         start_at = now + datetime.timedelta(seconds=total_time)
-        logger.info("Station {} started charging at {} for {} seconds.".format(self.name, now, total_time))
-        charge_behaviour = ChargeBehaviour(start_at=start_at)
+        logger.info(
+            "Station {} started charging at {} for {} seconds, at {}".format(self.name, now, total_time, start_at))
+        charge_behaviour = ChargeBehaviour(start_at=start_at, transport_id=transport_id)
         self.add_behaviour(charge_behaviour)
 
 
 class ChargeBehaviour(TimeoutBehaviour):
+    def __init__(self, start_at, transport_id):
+        self.transport_id = transport_id
+        super().__init__(start_at)
+
+    async def charging_complete(self):
+        """
+        Send a message to the transport agent that the vehicle load has been completed
+        """
+        reply = Message()
+        reply.to = str(self.transport_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", INFORM_PERFORMATIVE)
+        content = {"status": TRANSPORT_CHARGED}
+        reply.body = json.dumps(content)
+        await self.send(reply)
 
     async def run(self):
         logger.info("Station {} finished charging.".format(self.agent.name))
         self.set("current_station", None)
         self.agent.deassigning_place()
+        await self.charging_complete()
 
 
 class RegistrationBehaviour(CyclicBehaviour):
     async def on_start(self):
-        self.logger = logging.getLogger("StationRegistrationStrategy")
-        self.logger.debug("Strategy {} started in directory".format(type(self).__name__))
+        logger.debug("Strategy {} started in directory".format(type(self).__name__))
 
     def set_registration(self, decision):
         self.agent.registration = decision
@@ -258,21 +271,6 @@ class TravelBehaviour(CyclicBehaviour):
     async def on_start(self):
         logger.debug("Station {} started TravelBehavior.".format(self.agent.name))
 
-    async def charging_complete(self, transport_id):
-        """
-        Send a message to the transport agent that the vehicle load has been completed
-
-        Args:
-            transport_id (str): the jid of the transport
-        """
-        reply = Message()
-        reply.to = str(transport_id)
-        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        reply.set_metadata("performative", INFORM_PERFORMATIVE)
-        content = {"status": TRANSPORT_CHARGED}
-        reply.body = json.dumps(content)
-        await self.send(reply)
-
     async def run(self):
         try:
             msg = await self.receive(timeout=5)
@@ -287,8 +285,7 @@ class TravelBehaviour(CyclicBehaviour):
                     logger.info("Transport {} comming to station {}.".format(transport_id, self.agent.name))
                 elif status == TRANSPORT_IN_STATION_PLACE:
                     logger.info("Transport {} in station {}.".format(msg.sender.localpart, self.agent.name))
-                    await self.agent.charging_transport(content["need"])
-                    await self.charging_complete(transport_id)
+                    await self.agent.charging_transport(content["need"], transport_id)
         except Exception as e:
             logger.error("EXCEPTION in Travel Behaviour of Customer {}: {}".format(self.agent.name, e))
 
@@ -303,8 +300,7 @@ class StationStrategyBehaviour(StrategyBehaviour):
     """
 
     async def on_start(self):
-        self.logger = logging.getLogger("StationStrategy")
-        self.logger.debug("Strategy {} started in station".format(type(self).__name__))
+        logger.debug("Strategy {} started in station".format(type(self).__name__))
 
     async def accept_transport(self, transport_id):
         """
@@ -324,8 +320,7 @@ class StationStrategyBehaviour(StrategyBehaviour):
         }
         reply.body = json.dumps(content)
         await self.send(reply)
-        self.logger.debug("Station {} accepted proposal for charge from transport {}".format(self.agent.name,
-                                                                                             transport_id))
+        logger.debug("Station {} accepted proposal for charge from transport {}".format(self.agent.name, transport_id))
 
     async def refuse_transport(self, transport_id):
         """
@@ -343,8 +338,7 @@ class StationStrategyBehaviour(StrategyBehaviour):
         reply.body = json.dumps(content)
 
         await self.send(reply)
-        self.logger.debug("Station {} refused proposal for charge from transport {}".format(self.agent.name,
-                                                                                            transport_id))
+        logger.debug("Station {} refused proposal for charge from transport {}".format(self.agent.name, transport_id))
 
     async def run(self):
         msg = await self.receive(timeout=5)
@@ -354,14 +348,12 @@ class StationStrategyBehaviour(StrategyBehaviour):
             transport_id = msg.sender
             if performative == PROPOSE_PERFORMATIVE:
                 if self.agent.get_status() == FREE_STATION:
-                    self.logger.debug("Station {} received proposal from transport {}".format(self.agent.name,
-                                                                                              transport_id))
+                    logger.debug("Station {} received proposal from transport {}".format(self.agent.name, transport_id))
                     await self.accept_transport(transport_id)
                 else:  # self.agent.get_status() == BUSY_STATION
                     await self.refuse_transport(transport_id)
             elif performative == CANCEL_PERFORMATIVE:
-                self.logger.warning(
-                    "Station {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
+                logger.warning("Station {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
                 self.agent.deassigning_place()
             elif performative == ACCEPT_PERFORMATIVE:
                 self.agent.assigning_place()

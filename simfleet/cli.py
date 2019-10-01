@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 
 """Console script for SimFleet."""
-import click
 import logging
 import sys
 import time
 
+import click
+from loguru import logger
 from spade import quit_spade
 
 from .config import SimfleetConfig
 from .simulator import SimulatorAgent
-
-logger = logging.getLogger()
 
 
 @click.command()
@@ -29,9 +28,11 @@ def main(name, output, oformat, max_time, autorun, config, verbose):
     Console script for SimFleet.
     """
     if verbose > 0:
-        logging.basicConfig(level=logging.DEBUG)
+        logger.remove()
+        logger.add(sys.stderr, level="DEBUG")
     else:
-        logging.basicConfig(level=logging.INFO)
+        logger.remove()
+        logger.add(sys.stderr, level="INFO")
 
     logging.getLogger("aiohttp").setLevel(logging.WARNING)
     logging.getLogger("aioopenssl").setLevel(logging.WARNING)

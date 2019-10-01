@@ -1,15 +1,13 @@
 import json
-import logging
+from collections import defaultdict
 
 import requests
-from collections import defaultdict
+from loguru import logger
 from requests.adapters import HTTPAdapter
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
 from spade.template import Template
 from urllib3 import Retry
-
-logger = logging.getLogger("RouteAgent")
 
 
 class RouteAgent(Agent):

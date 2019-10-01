@@ -5,13 +5,10 @@ These functions are useful for the develop of new strategies.
 """
 
 import json
-import logging
 import os
 import random
 
 from geopy.distance import vincenty
-
-logger = logging.getLogger()
 
 
 def random_position():

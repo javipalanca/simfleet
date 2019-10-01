@@ -1,6 +1,8 @@
 import json
 import random
 
+from loguru import logger
+
 from .customer import CustomerStrategyBehaviour
 from .fleetmanager import FleetManagerStrategyBehaviour
 from .helpers import PathRequestException
@@ -27,11 +29,11 @@ class DelegateRequestBehaviour(FleetManagerStrategyBehaviour):
             await self.send_registration()
 
         msg = await self.receive(timeout=5)
-        self.logger.debug("Manager received message: {}".format(msg))
+        logger.debug("Manager received message: {}".format(msg))
         if msg:
             for transport in self.get_transport_agents().values():
                 msg.to = str(transport["jid"])
-                self.logger.debug("Manager sent request to transport {}".format(transport["name"]))
+                logger.debug("Manager sent request to transport {}".format(transport["name"]))
                 await self.send(msg)
 
 
@@ -48,18 +50,18 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
     async def run(self):
         if self.agent.needs_charging():
             if self.agent.stations is None or len(self.agent.stations) < 1:
-                self.logger.warning("Transport {} looking for a station.".format(self.agent.name))
+                logger.warning("Transport {} looking for a station.".format(self.agent.name))
                 await self.send_get_stations()
             else:
                 station = random.choice(self.agent.stations)
-                self.logger.info("Transport {} reserving station {}.".format(self.agent.name, station))
+                logger.info("Transport {} reserving station {}.".format(self.agent.name, station))
                 await self.send_proposal(station)
                 self.agent.status = TRANSPORT_WAITING_FOR_STATION_APPROVAL
 
         msg = await self.receive(timeout=5)
         if not msg:
             return
-        self.logger.debug("Transport received message: {}".format(msg))
+        logger.debug("Transport received message: {}".format(msg))
         try:
             content = json.loads(msg.body)
         except TypeError:
@@ -71,12 +73,12 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
         if protocol == QUERY_PROTOCOL:
             if performative == INFORM_PERFORMATIVE:
                 self.agent.stations = content
-                self.logger.info("Got list of current stations: {}".format(self.agent.stations))
+                logger.info("Got list of current stations: {}".format(self.agent.stations))
             elif performative == CANCEL_PERFORMATIVE:
-                self.logger.info("Cancellation of request for stations information.")
+                logger.info("Cancellation of request for stations information.")
 
         elif protocol == REQUEST_PROTOCOL:
-            self.logger.debug("Transport {} received request protocol from customer/station.".format(self.agent.name))
+            logger.debug("Transport {} received request protocol from customer/station.".format(self.agent.name))
 
             if performative == REQUEST_PERFORMATIVE:
                 if self.agent.status == TRANSPORT_WAITING:
@@ -89,43 +91,43 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
 
             elif performative == ACCEPT_PERFORMATIVE:
                 if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
-                    self.logger.debug("Transport {} got accept from {}".format(self.agent.name,
-                                                                               content["customer_id"]))
+                    logger.debug("Transport {} got accept from {}".format(self.agent.name,
+                                                                          content["customer_id"]))
                     try:
                         self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
                         await self.pick_up_customer(content["customer_id"], content["origin"], content["dest"])
                     except PathRequestException:
-                        self.logger.error("Transport {} could not get a path to customer {}. Cancelling..."
-                                          .format(self.agent.name, content["customer_id"]))
+                        logger.error("Transport {} could not get a path to customer {}. Cancelling..."
+                                     .format(self.agent.name, content["customer_id"]))
                         self.agent.status = TRANSPORT_WAITING
                         await self.cancel_proposal(content["customer_id"])
                     except Exception as e:
-                        self.logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
+                        logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
                         await self.cancel_proposal(content["customer_id"])
                         self.agent.status = TRANSPORT_WAITING
                 else:
                     await self.cancel_proposal(content["customer_id"])
 
             elif performative == REFUSE_PERFORMATIVE:
-                self.logger.debug("Transport {} got refusal from customer/station".format(self.agent.name))
+                logger.debug("Transport {} got refusal from customer/station".format(self.agent.name))
                 if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
                     self.agent.status = TRANSPORT_WAITING
 
             elif performative == INFORM_PERFORMATIVE:
                 if self.agent.status == TRANSPORT_WAITING_FOR_STATION_APPROVAL:
-                    self.logger.info("Transport {} got accept from station {}".format(self.agent.name,
-                                                                                      content["station_id"]))
+                    logger.info("Transport {} got accept from station {}".format(self.agent.name,
+                                                                                 content["station_id"]))
                     try:
                         self.agent.status = TRANSPORT_MOVING_TO_STATION
                         await self.send_confirmation_travel(content["station_id"])
                         await self.go_to_the_station(content["station_id"], content["dest"])
                     except PathRequestException:
-                        self.logger.error("Transport {} could not get a path to station {}. Cancelling..."
-                                          .format(self.agent.name, content["station_id"]))
+                        logger.error("Transport {} could not get a path to station {}. Cancelling..."
+                                     .format(self.agent.name, content["station_id"]))
                         self.agent.status = TRANSPORT_WAITING
                         await self.cancel_proposal(content["station_id"])
                     except Exception as e:
-                        self.logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
+                        logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
                         await self.cancel_proposal(content["station_id"])
                         self.agent.status = TRANSPORT_WAITING
                 elif self.agent.status == TRANSPORT_CHARGING:
@@ -134,7 +136,7 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
                         await self.agent.drop_station()
 
             elif performative == CANCEL_PERFORMATIVE:
-                self.logger.info("Cancellation of request for {} information".format(self.agent.fleet_type))
+                logger.info("Cancellation of request for {} information".format(self.agent.fleet_type))
 
 
 ################################################################
@@ -158,7 +160,7 @@ class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
                     self.agent.fleetmanagers = json.loads(msg.body)
                     return
                 elif performative == CANCEL_PERFORMATIVE:
-                    self.logger.info("Cancellation of request for {} information".format(self.agent.type_service))
+                    logger.info("Cancellation of request for {} information".format(self.agent.type_service))
                     return
 
         if self.agent.status == CUSTOMER_WAITING:
@@ -171,8 +173,8 @@ class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
             transport_id = msg.sender
             if performative == PROPOSE_PERFORMATIVE:
                 if self.agent.status == CUSTOMER_WAITING:
-                    self.logger.debug("Customer {} received proposal from transport {}".format(self.agent.name,
-                                                                                               transport_id))
+                    logger.debug(
+                        "Customer {} received proposal from transport {}".format(self.agent.name, transport_id))
                     await self.accept_transport(transport_id)
                     self.agent.status = CUSTOMER_ASSIGNED
                 else:
@@ -180,6 +182,6 @@ class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
 
             elif performative == CANCEL_PERFORMATIVE:
                 if self.agent.transport_assigned == str(transport_id):
-                    self.logger.warning(
+                    logger.warning(
                         "Customer {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
                     self.agent.status = CUSTOMER_WAITING

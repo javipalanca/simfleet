@@ -1,6 +1,5 @@
 import io
 import json
-import logging
 import os
 import threading
 import time
@@ -8,6 +7,7 @@ import time
 import faker
 import pandas as pd
 from aiohttp import web as aioweb
+from loguru import logger
 from spade.agent import Agent
 from tabulate import tabulate
 
@@ -21,8 +21,6 @@ from .utils import load_class, status_to_str, avg
 from .utils import request_path as async_request_path
 
 faker_factory = faker.Factory.create()
-
-logger = logging.getLogger()
 
 
 class SimulatorAgent(Agent):

@@ -1,7 +1,7 @@
 import json
-import logging
 from collections import defaultdict
 
+from loguru import logger
 from spade.agent import Agent
 from spade.behaviour import PeriodicBehaviour, CyclicBehaviour
 from spade.message import Message
@@ -16,8 +16,6 @@ from .utils import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_IN
     TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGING, \
     CUSTOMER_IN_DEST, CUSTOMER_LOCATION, TRANSPORT_MOVING_TO_STATION, chunk_path, request_path, StrategyBehaviour, \
     TRANSPORT_NEEDS_CHARGING
-
-logger = logging.getLogger("TransportAgent")
 
 MIN_AUTONOMY = 2
 ONESECOND_IN_MS = 1000
@@ -494,8 +492,7 @@ class TransportAgent(Agent):
 
 class RegistrationBehaviour(CyclicBehaviour):
     async def on_start(self):
-        self.logger = logging.getLogger("TransportRegistrationStrategy")
-        self.logger.debug("Strategy {} started in transport".format(type(self).__name__))
+        logger.debug("Strategy {} started in transport".format(type(self).__name__))
 
     async def send_registration(self):
         """
@@ -546,8 +543,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
     """
 
     async def on_start(self):
-        self.logger = logging.getLogger("TransportStrategy")
-        self.logger.debug("Strategy {} started in transport {}".format(type(self).__name__, self.agent.name))
+        logger.debug("Strategy {} started in transport {}".format(type(self).__name__, self.agent.name))
 
     async def pick_up_customer(self, customer_id, origin, dest):
         """
@@ -644,9 +640,9 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
         await self.send(msg)
-        self.logger.info("Transport {} asked for stations to Directory {} for type {}.".format(self.agent.name,
-                                                                                               self.agent.directory_id,
-                                                                                               self.agent.request))
+        logger.info("Transport {} asked for stations to Directory {} for type {}.".format(self.agent.name,
+                                                                                          self.agent.directory_id,
+                                                                                          self.agent.request))
 
     async def send_proposal(self, customer_id, content=None):
         """

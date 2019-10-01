@@ -1,21 +1,18 @@
 import asyncio
 import json
 import os
-import sys
-import time
-import logging
 import socket
+import sys
 import uuid
-from importlib import import_module
 from abc import ABCMeta
+from importlib import import_module
 
-from spade.message import Message
+from loguru import logger
 from spade.behaviour import CyclicBehaviour, OneShotBehaviour
+from spade.message import Message
 from spade.template import Template
 
 from .helpers import distance_in_meters, kmh_to_ms
-
-logger = logging.getLogger()
 
 TRANSPORT_WAITING = "TRANSPORT_WAITING"
 TRANSPORT_MOVING_TO_CUSTOMER = "TRANSPORT_MOVING_TO_CUSTOMER"

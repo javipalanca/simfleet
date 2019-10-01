@@ -55,25 +55,26 @@ class RegistrationBehaviour(CyclicBehaviour):
     async def on_start(self):
         logger.debug("Strategy {} started in directory".format(type(self).__name__))
 
-    def add_service(self, agent):
+    def add_service(self, content):
         """
-        Adds a new ``FleetManagerAgent`` to the store.
+        Adds a new service to the store.
 
         Args:
-            agent (``FleetManagerAgent``): the instance of the FleetManagerAgent to be added
+            content (dict): content to be added
         """
         service = self.get("service_agents")
-        if agent["type"] in service:
-            service[agent["type"]].append(agent["jid"])
+        if content["type"] in service:
+            service[content["type"]][content["jid"]] = content
         else:
-            service[agent["type"]] = [agent["jid"]]
+            service[content["type"]] = {content["jid"]: content}
 
     def remove_service(self, service_type, agent):
         """
-        Erase a ``FleetManagerAgent`` to the store.
+        Erase a service from the store.
 
         Args:
-            agent (``FleetManagerAgent``): the instance of the FleetManagerAgent to be erased
+            service_type (str): the service type to be erased
+            agent (str): an str with the jid of the agent to be erased
         """
         del (self.get("service_agents")[service_type][agent])
         logger.debug("Deregistration of the Manager {} for service {}".format(agent, service_type))
@@ -105,12 +106,8 @@ class RegistrationBehaviour(CyclicBehaviour):
 
 class DirectoryStrategyBehaviour(StrategyBehaviour):
     """
-        Class from which to inherit to create a directory strategy.
-        You must overload the :func:`run` method
-
-        Helper functions:
-            * :func:`get_transport_agents`
-        """
+    Class from which to inherit to create a directory strategy.
+    """
 
     async def on_start(self):
         logger.debug("Strategy {} started in directory".format(type(self).__name__))

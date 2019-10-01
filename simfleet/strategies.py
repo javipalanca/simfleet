@@ -53,7 +53,7 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
                 logger.warning("Transport {} looking for a station.".format(self.agent.name))
                 await self.send_get_stations()
             else:
-                station = random.choice(self.agent.stations)
+                station = random.choice(list(self.agent.stations.keys()))
                 logger.info("Transport {} reserving station {}.".format(self.agent.name, station))
                 await self.send_proposal(station)
                 self.agent.status = TRANSPORT_WAITING_FOR_STATION_APPROVAL
@@ -73,7 +73,7 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
         if protocol == QUERY_PROTOCOL:
             if performative == INFORM_PERFORMATIVE:
                 self.agent.stations = content
-                logger.info("Got list of current stations: {}".format(self.agent.stations))
+                logger.info("Got list of current stations: {}".format(list(self.agent.stations.keys())))
             elif performative == CANCEL_PERFORMATIVE:
                 logger.info("Cancellation of request for stations information.")
 
@@ -110,8 +110,7 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
 
             elif performative == REFUSE_PERFORMATIVE:
                 logger.debug("Transport {} got refusal from customer/station".format(self.agent.name))
-                if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
-                    self.agent.status = TRANSPORT_WAITING
+                self.agent.status = TRANSPORT_WAITING
 
             elif performative == INFORM_PERFORMATIVE:
                 if self.agent.status == TRANSPORT_WAITING_FOR_STATION_APPROVAL:

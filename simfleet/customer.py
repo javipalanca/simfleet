@@ -337,7 +337,7 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
                 "origin": self.agent.current_pos,
                 "dest": self.agent.dest
             }
-        for fleetmanager in self.agent.fleetmanagers:  # Send a message to all FleetManager
+        for fleetmanager in self.agent.fleetmanagers.keys():  # Send a message to all FleetManagers
             msg = Message()
             msg.to = str(fleetmanager)
             msg.set_metadata("protocol", REQUEST_PROTOCOL)

@@ -42,6 +42,9 @@ class SimfleetConfig(object):
         self.__config["max_time"] = self.__config.get("max_time", max_time)
         self.__config["verbose"] = self.__config.get("verbose", verbose)
 
+        self.__config["coords"] = self.__config.get("coords", [39.47, -0.37])
+        self.__config["zoom"] = self.__config.get("zoom", 12)
+
         self.__config["transport_strategy"] = self.__config.get("transport_strategy",
                                                                 "simfleet.strategies.AcceptAlwaysStrategyBehaviour")
         self.__config["customer_strategy"] = self.__config.get("customer_strategy",

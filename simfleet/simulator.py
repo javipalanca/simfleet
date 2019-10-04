@@ -68,13 +68,7 @@ class SimulatorAgent(Agent):
         self.directory_strategy = None
         self.station_strategy = None
 
-        self.manager_types = ["taxi", "trucking", "food_delivery"]
-        self.type_generator = None
-
         logger.info("Starting SimFleet {}".format(self.pretty_name))
-
-        self.selection = None
-        self.manager_generator = None
 
         self.set_default_strategies(config.fleetmanager_strategy, config.transport_strategy, config.customer_strategy,
                                     config.directory_strategy, config.station_strategy)
@@ -102,6 +96,7 @@ class SimulatorAgent(Agent):
     async def setup(self):
         logger.info("Simulator agent running")
         self.web.add_get("/app", self.index_controller, "index.html")
+        self.web.add_get("/init", self.init_controller, None)
         self.web.add_get("/entities", self.entities_controller, None)
         self.web.add_get("/run", self.run_controller, None)
         self.web.add_get("/stop", self.stop_agents_controller, None)
@@ -400,6 +395,9 @@ class SimulatorAgent(Agent):
             dict: the name of the template, the data to be pre-processed in the template
         """
         return {"port": self.config.http_port, "ip": self.config.http_ip}
+
+    async def init_controller(self, request):
+        return {"coords": self.config.coords, "zoom": self.config.zoom}
 
     async def entities_controller(self, request):
         """

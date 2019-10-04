@@ -28,12 +28,20 @@ new Vue({
         }
     },
     mounted() {
+       this.init();
        this.loadEntities();
        setInterval(function () {
             this.loadEntities();
        }.bind(this), 100);
     },
     methods: {
+        init: function () {
+            axios.get("/init")
+                .then(data => {
+                    this.center = data.data.coords;
+                    this.zoom = data.data.zoom;
+                });
+            },
         loadEntities: function () {
             axios.get("/entities")
                 .then(data => {

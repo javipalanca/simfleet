@@ -48,7 +48,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 
 lint: ## check style with flake8
-	flake8 taxi_simulator tests
+	flake8 simfleet tests
 
 test: ## run tests quickly with the default Python
 	py.test
@@ -58,17 +58,17 @@ test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source taxi_simulator -m pytest
+	coverage run --source simfleet -m pytest
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
 docs: ## generate Sphinx HTML documentation, including API docs
-	rm -f docs/taxi_simulator.rst
+	rm -f docs/simfleet.rst
 	rm -f docs/modules.rst
-	rm -f docs/api/taxi_simulator.rst
+	rm -f docs/api/simfleet.rst
 	rm -f docs/api/modules.rst
-	sphinx-apidoc -o docs/api taxi_simulator
+	sphinx-apidoc -o docs/api simfleet
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 	$(BROWSER) docs/_build/html/index.html

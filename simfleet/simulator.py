@@ -288,7 +288,7 @@ class SimulatorAgent(Agent):
 
         print("Simulation Results")
         print(tabulate(self.df_avg, headers="keys", showindex=False, tablefmt="fancy_grid"))
-        print("Manager stats")
+        print("FleetManager stats")
         print(tabulate(self.manager_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
         print("Customer stats")
         print(tabulate(self.customer_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
@@ -340,9 +340,9 @@ class SimulatorAgent(Agent):
         """
         writer = pd.ExcelWriter(filename)
         self.df_avg.to_excel(writer, 'Simulation')
-        self.manager_df.to_excel(writer, 'Managers')
-        self.customer_df.to_excel(writer, 'Passengers')
-        self.transport_df.to_excel(writer, 'Taxis')
+        self.manager_df.to_excel(writer, 'FleetManagers')
+        self.customer_df.to_excel(writer, 'Customers')
+        self.transport_df.to_excel(writer, 'Transports')
         writer.save()
 
     # ////////////////////////////////////////////////////////////
@@ -444,7 +444,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "count": "1",
-                            "name": "Taxis",
+                            "name": "Transports",
                             "children": [ { "status": 11, "name": " transport2", "icon": "fa-transport" } ]
                         },
                         {

@@ -1,33 +1,34 @@
-==============
-Taxi Simulator
-==============
+========
+SimFleet
+========
 
 
-.. image:: https://img.shields.io/pypi/v/taxi_simulator.svg
-        :target: https://pypi.python.org/pypi/taxi_simulator
+.. image:: https://img.shields.io/pypi/v/simfleet.svg
+        :target: https://pypi.python.org/pypi/simfleet
 
-.. image:: https://img.shields.io/travis/javipalanca/taxi_simulator.svg
-        :target: https://travis-ci.org/javipalanca/taxi_simulator
+.. image:: https://img.shields.io/travis/javipalanca/simfleet.svg
+        :target: https://travis-ci.org/javipalanca/simfleet
 
-.. image:: https://readthedocs.org/projects/taxi-simulator/badge/?version=latest
-        :target: https://taxi-simulator.readthedocs.io/en/latest/?badge=latest
+.. image:: https://readthedocs.org/projects/simfleet/badge/?version=latest
+        :target: https://simfleet.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-.. image:: https://pyup.io/repos/github/javipalanca/taxi_simulator/shield.svg
-     :target: https://pyup.io/repos/github/javipalanca/taxi_simulator/
+.. image:: https://pyup.io/repos/github/javipalanca/simfleet/shield.svg
+     :target: https://pyup.io/repos/github/javipalanca/simfleet/
      :alt: Updates
 
 
-Agent-based taxi simulator to test strategies
+Agent-based fleet simulator to test strategies
 
 
 * Free software: MIT license
-* Documentation: https://taxi-simulator.readthedocs.io.
+* Documentation: https://simfleet.readthedocs.io.
 
 
 Features
 --------
 
+* Open Fleets simulator
 * Strategy pattern
 * Continuous simulator
 * Load scenarios

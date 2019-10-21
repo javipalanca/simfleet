@@ -36,7 +36,7 @@ class CustomerAgent(Agent):
         self.stopped = False
 
         self.directory_id = None
-        self.type_service = "Taxi"
+        self.type_service = "taxi"
 
     async def setup(self):
         try:

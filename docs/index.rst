@@ -1,4 +1,4 @@
-Welcome to Taxi Simulator's documentation!
+Welcome to SimFleet's documentation!
 ==========================================
 
 Contents:

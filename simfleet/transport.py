@@ -524,6 +524,7 @@ class RegistrationBehaviour(CyclicBehaviour):
                     self.agent.set_registration(True, content)
                     logger.info("[{}] Registration in the fleet manager accepted: {}.".format(self.agent.name,
                                                                                               self.agent.fleetmanager_id))
+                    self.kill(exit_code="Fleet Registration Accepted")
                 elif performative == REFUSE_PERFORMATIVE:
                     logger.warning("Registration in the fleet manager was rejected (check fleet type).")
                     self.kill(exit_code="Fleet Registration Rejected")

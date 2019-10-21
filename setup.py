@@ -29,11 +29,11 @@ test_requirements = parse_requirements("requirements_dev.txt")
 setup(
     name='simfleet',
     version='0.4.1',
-    description="Agent-based taxi simulator to test strategies",
+    description="Agent-based fleet simulator to test strategies",
     long_description=readme + '\n\n' + history,
     author="Javi Palanca",
     author_email='jpalanca@gmail.com',
-    url='https://github.com/javipalanca/taxi_simulator',
+    url='https://github.com/javipalanca/simfleet',
     packages=find_packages(include=['simfleet']),
     entry_points={
         'console_scripts': [

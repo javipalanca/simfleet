@@ -8,136 +8,136 @@ Developing New Strategies
 Introduction
 ============
 
-One of the main features of "Taxi Simulator" is the ability to change the default negotiation strategy of the agents that interact
-during the simulation: the Coordinator agent, the Taxi agents and the Passenger agents. The overall goal of the negotiation
-strategy of these three agent types is to decide which Taxi agent will transport each Passenger agent to its destination, making
-sure that no Passenger agent is left unattended. Additionally, the negotiation strategy may also try to optimize some metrics,
-such as the average time that Passenger agents are waiting to be served, or that the amount of gas spent by Taxi in their movements.
+One of the main features of "SimFleet" is the ability to change the default negotiation strategy of the agents that interact
+during the simulation: the Fleet Manager agents, the Transport agents and the Customer agents. The overall goal of the negotiation
+strategy of these three agent types is to decide which Transport agent will transport each Customer agent to its destination, making
+sure that no Customer agent is left unattended. Additionally, the negotiation strategy may also try to optimize some metrics,
+such as the average time that Customer agents are waiting to be served, or that the amount of gas spent by Transport in their movements.
 
 The negotiation strategy is based on two main elements. First, it is based on the internal logic of each agent type
-(Coordinator, Taxi and Passenger) and, in particular, on their respective *strategy behavior*, which includes the
+(FleetManager, Transport and Customer) and, in particular, on their respective *strategy behavior*, which includes the
 internal logic of each agent type regarding the negotiation process. And second, it is also based on the so-called `REQUEST`
 protocol, which comprises the types of messages exchanged among the three agent types during the negotiation.
 The following diagram presents the protocol in the typical FIPA format, where agents types are depicted as vertical lines
 and the exchanged message types (or "performatives") in horizontal arrows:
 
-.. image:: images/request_protocolv2.png
+.. image:: images/protocol_v3.png
    :scale: 100 %
    :align: center
 
-This chapter introduces first the current, default strategy of each agent type (Coordinator, Taxi and Passenger) and
+This chapter introduces first the current, default strategy of each agent type (FleetManager, Transport and Customer) and
 then explains how to introduce new strategies for any, or all, of them.
 
 
 
 
-Description of the Coordinator Agent
-------------------------------------
+Description of the FleetManager Agent
+-------------------------------------
 
-The Coordinator Agent is responsible for putting in contact the Passenger agents that need a taxi service, and the Taxi
-agents that may be available to offer these services. In short, the Coordinator Agent acts like a taxi call center, accepting
-the incoming requests from customers (Passenger agents) and forwarding these requests to the (appropriate) Taxi agents.
-In order to do so, the Coordinator agent knows the names and addresses of every Passenger and Taxi agent registered in
-the system.
+The FleetManager Agent is responsible for putting in contact the Customer agents that need a transport service, and the Transport
+agents that may be available to offer these services. In short, the FleetManager Agent acts like a transport call center, accepting
+the incoming requests from customers (Customer agents) and forwarding these requests to the (appropriate) Transport agents.
+In order to do so, the FleetManager has a registration protocol by which Transport agents subscribe to the Fleet Manager
+that represents their fleet. This is automatically done when a Transport agent is started.
 
-In the context of the Taxi Simulator, a "taxi service" involves, once a particular Passenger
-and Taxi agents have reached an agreement, the movement of the Taxi agent from its current position to the Passenger's position in
-order to pick the Passenger up, and then the transportation of the Passenger agent to its destination.
+In the context of SimFleet, a "transport service" involves, once a particular Customer and Transport agents have reached
+an agreement, the movement of the Transport agent from its current position to the Customer's position in
+order to pick the Customer up, and then the transportation of the Customer agent to its destination.
 
-The Coordinator Agent includes a single behavior, which is its strategy behavior, now described.
+The FleetManager Agent includes a single behavior, which is its strategy behavior, now described.
 
 
-Strategy Behaviour (`DelegateRequestTaxiBehaviour`)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Strategy Behaviour (`DelegateRequestBehaviour`)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The goal of the stategy behavior of the Coordinator Agent is basically to **receive** the "request" messages (`REQUEST_PERFORMATIVE`)
-sent by the Passenger agents that need a taxi service and, for each request, selecting the Taxi agent, or agents,
-that may perform the service,
-and **forward** the request to them. A `REQUEST_PERFORMATIVE` message includes the following fields::
+The goal of the stategy behavior of the FleetManager Agent is basically to **receive** the "request" messages (`REQUEST_PERFORMATIVE`)
+sent by the Customer agents that need a transport service and, for each request, selecting the Transport agent, or agents,
+that may perform the service, and **forward** the request to them. A `REQUEST_PERFORMATIVE` message includes the following fields::
 
-                "passenger_id": Id of the Passenger agent that performs the request.
-                "origin":       Current position of the Passenger, where the Taxi has to pick it up.
-                "dest":         Destination of the Passenger, where the Taxi needs to transport it.
+                "customer_id":  Id of the Customer agent that performs the request.
+                "origin":       Current position of the Customer, where the Transport has to pick it up.
+                "dest":         Destination of the Customer, where the Transport needs to transport it.
 
-The particular set of Taxi agents to which the request will be forwarded depends on the *allocation policy* of the Coordinator
-Agent, which is part of the strategy. In the default strategy behavior for the Coordinator agent (`DelegateRequestTaxiBehaviour`),
-the allocation policy is the simplest posible: it forwards every incoming request to **all** the Taxi agents,
+The particular set of Transport agents to which the request will be forwarded depends on the *allocation policy* of the FleetManager
+Agent, which is part of the strategy. In the default strategy behavior for the FleetManager agent (`DelegateRequestBehaviour`),
+the allocation policy is the simplest posible: it forwards every incoming request to **all** the Transport agents that are
+registered in its fleet,
 regardless of their current statuses or any other consideration (such as, for example, the last time they performed a service,
-or the distance between them and the Passenger agent).
+or the distance between them and the Customer agent).
 
-In the default strategy behavior, the set of incoming messages that may be delivered to the Coordinator Agent is reduced
-to the requests made by Passenger agents, and the behavior itself does not include multiple states. So, each incoming message
+In the default strategy behavior, the set of incoming messages that may be delivered to the FleetManager Agent is reduced
+to the requests made by Customer agents, and the behavior itself does not include multiple states. So, each incoming message
 is processed in the same way, and leaves the behavior in the same (unique) state.
 
-Once each request has been forwarded to some (or all) the Taxi agents, the goal of the Coordinator Agent for that request
-is achieved. This is the starting point to the negotiation between the Passenger that has issued the request and the
-Taxi agents that have received it, which is described in the following sections.
+Once each request has been forwarded to some (or all) the Transport agents, the goal of the FleetManager Agent for that request
+is achieved. This is the starting point to the negotiation between the Customer that has issued the request and the
+Transport agents that have received it, which is described in the following sections.
 
 
 
-Description of the Taxi Agents
-------------------------------
+Description of the Transport Agents
+-----------------------------------
 
-The Taxi agents represent vehicles which can transport Passenger agents from their current positions to their respective
-destinations. In order to do that, Taxi agents incorporate two behaviors: the strategy behavior and the moving behavior,
+The Transport agents represent vehicles which can transport Customer agents from their current positions to their respective
+destinations. In order to do that, Transport agents incorporate two behaviors: the strategy behavior and the moving behavior,
 now described.
 
 
 Strategy Behaviour (`AcceptAlwaysStrategyBehaviour`)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The goal of the strategy behavior of a Taxi agent is to negotiate with Passenger agents which are requesting a taxi service
-the conditions of the service offered by the Taxi, in order to achieve an agreement with these Passenger agents.
-When an agreement is reached between a particular Passenger and Taxi agents, then the Taxi agent picks up the
-Passenger agent and transport it to its destination (and starts the Moving Behavior, described below).
+The goal of the strategy behavior of a Transport agent is to negotiate with Customer agents which are requesting a transport service
+the conditions of the service offered by the Transport, in order to achieve an agreement with these Customer agents.
+When an agreement is reached between a particular Customer and Transport agents, then the Transport agent picks up the
+Customer agent and transport it to its destination (and starts the Moving Behavior, described below).
 
 The currently implemented, default strategy behavior is called `AcceptAlwaysStrategyBehaviour`, and has a direct
 relation with the `REQUEST` protocol explained above. In particular, the behavior can be thought of as a finite-state
-machine with some different states specifying the statuses of the Taxi agent regarding the strategy behavior, and
+machine with some different states specifying the statuses of the Transport agent regarding the strategy behavior, and
 some transitions between states, wich are triggered either by messages (of the `REQUEST` protocol) received by the
-Taxi agent, or by some other program conditions. This is depicted in the following diagram:
+Transport agent, or by some other program conditions. This is depicted in the following diagram:
 
-.. figure:: images/Taxi_FSM.png
+.. figure:: images/SimFleet_FSM.png
    :scale: 40 %
    :align: center
 
-   States and transitions of the strategy behavior of a Taxi agent.
+   States and transitions of the strategy behavior of a Transport agent.
 
 
 The semantics of each state are now described:
 
-* `TAXI_WAITING`: In this state, the Taxi agent is available (free) and waiting for requests from Passenger agents.
-  While in this state, if it receives a request message (`REQUEST_PERFORMATIVE`) from a particular Passenger agent,
-  it will send the Passenger a service proposal (`PROPOSE_PERFORMATIVE`) and it will change its state to
-  `TAXI_WAITING_FOR_APPROVAL`.
+* `TRANSPORT_WAITING`: In this state, the Transport agent is available (free) and waiting for requests from Customer agents.
+  While in this state, if it receives a request message (`REQUEST_PERFORMATIVE`) from a particular Customer agent,
+  it will send the Customer a service proposal (`PROPOSE_PERFORMATIVE`) and it will change its state to
+  `TRANSPORT_WAITING_FOR_APPROVAL`.
 
 
-* `TAXI_WAITING_FOR_APPROVAL`: In this state, the Taxi agent is waiting for the response message from a Passenger agent
+* `TRANSPORT_WAITING_FOR_APPROVAL`: In this state, the Transport agent is waiting for the response message from a Customer agent
   to which it has sent a service proposal message. While in this state, it may receive two alternative answers from
-  the Passenger agent: (1) the Passenger refuses the service proposal (`REFUSE_PERFORMATIVE`), in which case the Taxi
-  changes its state back to `TAXI_WAITING`; or (2) the Passenger accepts the proposal (`ACCEPT_PERFORMATIVE`), in
-  which case it will change to the state `TAXI_MOVING_TO_PASSENGER`.
+  the Customer agent: (1) the Customer refuses the service proposal (`REFUSE_PERFORMATIVE`), in which case the Transport
+  changes its state back to `TRANSPORT_WAITING`; or (2) the Customer accepts the proposal (`ACCEPT_PERFORMATIVE`), in
+  which case it will change to the state `TRANSPORT_MOVING_TO_PASSENGER`.
 
-* `TAXI_MOVING_TO_PASSENGER`: In this state, the Taxi agent and the Passenger agent have agreed to perform a taxi
-  service, and then the Taxi agent starts to travel to the Passenger location in order to pick it up. This is
-  the final state of the negotiation between the Taxi and a certain Passenger agent. In this state, the Taxi agent
-  executes the helper function `pick_up_passenger`, which automatically starts the so-called Moving Behavior
-  in the Taxi agent, described below. It also sends a message to the Travel Behavior of the Passenger agent, which
+* `TRANSPORT_MOVING_TO_PASSENGER`: In this state, the Transport agent and the Customer agent have agreed to perform a transport
+  service, and then the Transport agent starts to travel to the Customer location in order to pick it up. This is
+  the final state of the negotiation between the Transport and a certain Customer agent. In this state, the Transport agent
+  executes the helper function `pick_up_customer`, which automatically starts the so-called Moving Behavior
+  in the Transport agent, described below. It also sends a message to the Travel Behavior of the Customer agent, which
   starts that behavior (this is explained in the next section).
 
 
 Moving Behaviour
 ~~~~~~~~~~~~~~~~
-This behavior makes the Taxi agent to move to the current location of the Passenger agent with which it has reached
-an agreement to perform a taxi service. After picking the Passenger agent up, the Taxi will then transport it to
-its destination. During that travel, the behavior informs the Passenger agent of where the Taxi is and what it is
-doing (going to pick up the Passenger, taking the Passenger to its destination, reaching the destination, etc.). All
-this is performed by sending the Passenger agent some messages which belong of another, dedicated protocol
+This behavior makes the Transport agent to move to the current location of the Customer agent with which it has reached
+an agreement to perform a transport service. After picking the Customer agent up, the Transport will then transport it to
+its destination. During that travel, the behavior informs the Customer agent of where the Transport is and what it is
+doing (going to pick up the Customer, taking the Customer to its destination, reaching the destination, etc.). All
+this is performed by sending the Customer agent some messages which belong of another, dedicated protocol
 called `TRAVEL_PROTOCOL`.
 
-Once the Taxi reaches the Passenger agent's destination and the Passenger agent is informed about it, the state of
-the Taxi agent (of the strategy behavior) is here changed to `TAXI_WAITING`, indicating that it is now free,
-and hence making the Taxi agent available again to receiving new requests from other Passenger agents.
+Once the Transport reaches the Customer agent's destination and the Customer agent is informed about it, the state of
+the Transport agent (of the strategy behavior) is here changed to `TRANSPORT_WAITING`, indicating that it is now free,
+and hence making the Transport agent available again to receiving new requests from other Customer agents.
 
 .. warning::
   This behavior is internal and automatic, and it is not intended to be modified while developing
@@ -145,66 +145,67 @@ and hence making the Taxi agent available again to receiving new requests from o
 
 
 
-Description of the Passenger Agents
------------------------------------
+Description of the Customer Agents
+----------------------------------
 
-The Passenger agents represent people that need to go from one location of the city (their "current location") to
-another (their "destination"), and for doing so, they request a taxi service. Each Passenger agent requires a single
-taxi service and so, once transported to its destination, it reaches its final state and ends its execution. During
-that execution, Passenger agents incorporate two behaviors: the strategy behavior and the travel behavior, now described.
+The Customer agents represent people that need to go from one location of the city (their "current location") to
+another (their "destination") or packages that need to be moved from an origin to a destination,
+and for doing so, they request a transport service. Each Customer agent requires a single
+transport service and so, once transported to its destination, it reaches its final state and ends its execution. During
+that execution, Customer agents incorporate two behaviors: the strategy behavior and the travel behavior, now described.
 
 
 Strategy Behaviour
 ~~~~~~~~~~~~~~~~~~
 
-In the course of the `REQUEST` protocol, the request of a taxi service made by a Passenger agent is answered
-by one (or several) Taxi agents, each of which offering the Passenger their conditions to perform such service.
-The goal of the strategy behavior of a Passenger agent is to select the best of these taxi service proposals,
-according to its needs and/or preferences (e.g., to be picked up faster, to get the nearest available taxi,
+In the course of the `REQUEST` protocol, the request of a transport service made by a Customer agent is answered
+by one (or several) Transport agents, each of which offering the Customer their conditions to perform such service.
+The goal of the strategy behavior of a Customer agent is to select the best of these transport service proposals,
+according to its needs and/or preferences (e.g., to be picked up faster, to get the nearest available transport,
 to get the cheapest service, etc.).
 
 
-The currently implemented, default strategy behavior is called `AcceptFirstRequestTaxiBehaviour`. As in the
-strategy behavior of the Taxi agents above, here we can also consider the strategy as a finite-state machine related to
-the messages (of the `REQUEST` protocol) received by the Passenger agent, as depicted below:
+The currently implemented, default strategy behavior is called `AcceptFirstRequestBehaviour`. As in the
+strategy behavior of the Transport agents above, here we can also consider the strategy as a finite-state machine related to
+the messages (of the `REQUEST` protocol) received by the Customer agent, as depicted below:
 
 
-.. figure:: images/Passenger_FSM.png
+.. figure:: images/Customer_FSM.png
    :scale: 40 %
    :align: center
 
-   States and transitions of the strategy behavior of a Passenger agent.
+   States and transitions of the strategy behavior of a Customer agent.
 
 The semantics of each state are now described:
 
-* `PASSENGER_WAITING`: In this state, the Passenger agent requires a taxi service and, periodically, sends a
-  request for that service until one (or many) Taxi agent proposals (`PROPOSE_PERFORMATIVE`) are received.
-  When the Passenger accepts a particular proposal (in the current implementation, always the first one it
-  receives while in this state) then it communicates so to the proposing Taxi agent, and changes its own status
-  to `PASSENGER_ASSIGNED`.
+* `CUSTOMER_WAITING`: In this state, the Customer agent requires a transport service and, periodically, sends a
+  request for that service until one (or many) Transport agent proposals (`PROPOSE_PERFORMATIVE`) are received.
+  When the Customer accepts a particular proposal (in the current implementation, always the first one it
+  receives while in this state) then it communicates so to the proposing Transport agent, and changes its own status
+  to `CUSTOMER_ASSIGNED`.
 
 
-* `PASSENGER_ASSIGNED`: In this state, the Passenger agent has been assigned to a particular taxi, and the taxi service
-  is being produced. The Passenger side of the taxi service is implemented by activating the Travel Behavior, described
-  below, which is started by a message sent by the Taxi agent (in its helper function `pick_up_passenger`).
-  If something goes wrong (for example, an exception is raised during the taxi service) or the Taxi agent voluntarily
-  wants to cancel the service, then the Taxi agent sends a `CANCEL_PERFORMATIVE` to the Passenger agent, which
-  would then change its status back to `PASSENGER_WAITING`, initiating the request process again.
+* `CUSTOMER_ASSIGNED`: In this state, the Customer agent has been assigned to a particular transport, and the transport service
+  is being produced. The Customer side of the transport service is implemented by activating the Travel Behavior, described
+  below, which is started by a message sent by the Transport agent (in its helper function `pick_up_customer`).
+  If something goes wrong (for example, an exception is raised during the transport service) or the Transport agent voluntarily
+  wants to cancel the service, then the Transport agent sends a `CANCEL_PERFORMATIVE` to the Customer agent, which
+  would then change its status back to `CUSTOMER_WAITING`, initiating the request process again.
 
 
 
 Travel Behaviour
 ~~~~~~~~~~~~~~~~
 
-This behavior is activated (in the Passenger agent) when a Taxi agent decides to pick up the Passenger agent, by
-means of a message sent by the Taxi (inside the Taxi agent's helper function `pick_up_passenger`). This message,
-as well as other messages sent by the Taxi agent to this behavior, belongs to a protocol called the `TRAVEL_PROTOCOL`.
+This behavior is activated (in the Customer agent) when a Transport agent decides to pick up the Customer agent, by
+means of a message sent by the Transport (inside the Transport agent's helper function `pick_up_customer`). This message,
+as well as other messages sent by the Transport agent to this behavior, belongs to a protocol called the `TRAVEL_PROTOCOL`.
 
 The messages of the `TRAVEL_PROTOCOL` drive the transitions between the different states of this behavior, in
 the same way that the `REQUEST_PROTOCOL` does for the strategy behavior. In particular, the states of this behavior
-are: `PASSENGER_IN_TAXI`, when the Taxi agent has reached the Passenger agent's position and has picked it up; and
-`PASSENGER_IN_DEST`, when the Taxi agent has reached the Passenger agent's destination. This would be the final state
-of the Passenger agent.
+are: `CUSTOMER_IN_TRANSPORT`, when the Transport agent has reached the Customer agent's position and has picked it up; and
+`CUSTOMER_IN_DEST`, when the Transport agent has reached the Customer agent's destination. This would be the final state
+of the Customer agent.
 
 .. warning::
   This behavior is internal and automatic, and it is not intended to be modified while developing
@@ -212,35 +213,35 @@ of the Passenger agent.
 
 
 
-The Negotiation Process between Taxi and Passenger Agents
----------------------------------------------------------
+The Negotiation Process between Transport and Customer Agents
+-------------------------------------------------------------
 
-After separately explaining the strategy behavior of Taxi and Passenger agents, this section tries to relate both behaviors.
+After separately explaining the strategy behavior of Transport and Customer agents, this section tries to relate both behaviors.
 This is important to understand how these two agent types interact with each other in order to coordinate and reach the overall
 goals of the simulation.
 
 In particular, there are three key aspects (embedded within the strategy behaviors) which influence the overall
 coordination process implemented in the simulator, as now described:
 
-* The conditions of a taxi service proposal. The current implementation does not consider any special condition other
-  than the Taxi agent being free (available to perform the service). Some aspects that could be included in a taxi proposal
-  would be, for example, the current location of the taxi, the proposed fare, the route to take the Passenger agent to its
+* The conditions of a transport service proposal. The current implementation does not consider any special condition other
+  than the Transport agent being free (available to perform the service). Some aspects that could be included in a transport proposal
+  would be, for example, the current location of the transport, the proposed fare, the route to take the Customer agent to its
   destination, etc.
 
-* The preferences of passengers in order to select a particular taxi proposal. In the current implementation, the
-  Passenger agents always accept the first proposal received from a Taxi agent. In a more sophisticated negotiation,
-  some internal goals/conditions of the Passenger agent could be taken into account in order to select a "better" proposal.
-  These might include, for example, the expected waiting time until the Taxi agent arrives, the amount of money that
-  the service is expected to cost, the brand of the Taxi vehicle, etc.
+* The preferences of customers in order to select a particular transport proposal. In the current implementation, the
+  Customer agents always accept the first proposal received from a Transport agent. In a more sophisticated negotiation,
+  some internal goals/conditions of the Customer agent could be taken into account in order to select a "better" proposal.
+  These might include, for example, the expected waiting time until the Transport agent arrives, the amount of money that
+  the service is expected to cost, the brand of the Transport vehicle, etc.
 
-* The possibility of a taxi to voluntarily cancel an ongoing taxi service after a proposal has been accepted by a passenger.
-  This may happen only before the pasenger has been picked up, that is, while the taxi is moving from its initial position
-  to the location where the passenger is waiting for it. In the current implementation, a taxi service cancellation can
+* The possibility of a transport to voluntarily cancel an ongoing transport service after a proposal has been accepted by a customer.
+  This may happen only before the pasenger has been picked up, that is, while the transport is moving from its initial position
+  to the location where the customer is waiting for it. In the current implementation, a transport service cancellation can
   only be produced if some exception is raised while the service is being produced (for example, if the software calculating
-  a route for the Taxi agent fails to produce a valid route). Since new Passenger (and maybe Taxi) agents can appear at
-  any time while the simulation is running, a voluntary cancellation of taxi services could improve the overall
-  transportation of passengers throughout the simulation, allowing for a "dynamic reallocation" of passengers
-  to taxis, even when taxi services where already committed.
+  a route for the Transport agent fails to produce a valid route). Since new Customer (and maybe Transport) agents can appear at
+  any time while the simulation is running, a voluntary cancellation of transport services could improve the overall
+  transportation of customers throughout the simulation, allowing for a "dynamic reallocation" of customers
+  to transports, even when transport services where already committed.
 
 
 
@@ -248,7 +249,7 @@ coordination process implemented in the simulator, as now described:
 
 Agent Foundations
 =================
-The architecture of Taxi Simulator is built on top of a multi-agent system platform called SPADE. Although it is not necessary to
+The architecture of SimFleet is built on top of a multi-agent system platform called SPADE. Although it is not necessary to
 build new agents in order to develop new coordination strategies (the simulator provides all the necessary agents), it
 is interesting to know how they work and what methods they provide for the creation of coordination strategies.
 
@@ -456,15 +457,15 @@ that match that template:
 
 
 These are the basics of SPADE programming. You will not need to create all these structures, templates and classes
-in order to use `Taxi Simulator`, but it is always better to know the foundations before getting down to business.
+in order to use `SimFleet`, but it is always better to know the foundations before getting down to business.
 
 
 How to Implement your own Strategies
 ====================================
 
-Taxi simulator is designed for students to implement and test new strategies that lead to system optimization. The
-goal of this educational simulator is to make it easier for students to work with new coordination strategies without
-having to introduce major modifications to the application. For this purpose, Taxi Simulator incorporates the so-called
+SimFleet is designed for users to implement and test new strategies that lead to system optimization. The
+goal of this simulator is to make it easier for users to work with new coordination strategies without
+having to introduce major modifications to the application. For this purpose, SimFleet incorporates the so-called
 Strategy design pattern, which is now introduced.
 
 
@@ -488,15 +489,15 @@ Following this implementation, the context object can call the current strategy 
 algorithm was implemented. This design pattern was created, among others, by a group of authors commonly known as the
 **Gang of Four** (E. Gamma, R. Helm, R. Johnson and J. Vlissides), and it is well presented in [GangOfFour95]_.
 
-Taxi Simulator uses the *Strategy Pattern* in order to enable students to implement three different strategies (one for the
-coordinator agent, one for the taxi agent and one for the passenger agent) without having to develop new agents or
+SimFleet uses the *Strategy Pattern* in order to enable students to implement three different strategies (one for the
+coordinator agent, one for the transport agent and one for the customer agent) without having to develop new agents or
 entering in the complexity of the simulator. Thanks to this pattern, students can develop their strategies in an external
 file and pass it as an argument when the simulator is run.
 
-Taxi Simulator implements one interface for each of these three agents, with each interface also providing some helper
+SimFleet implements one interface for each of these three agents, with each interface also providing some helper
 functions that intend to facilitate the most common actions of each (subclassed) agent. These three interfaces inherit
-from the :class:`StrategyBehaviour` class and are called: :class:`CoordinatorStrategyBehaviour`,
-:class:`TaxiStrategyBehaviour` and :class:`PassengerStrategyBehaviour`.
+from the :class:`StrategyBehaviour` class and are called: :class:`FleetManagerStrategyBehaviour`,
+:class:`TransportStrategyBehaviour` and :class:`CustomerStrategyBehaviour`.
 
 .. figure:: images/strategybehavior.png
     :align: center
@@ -526,91 +527,103 @@ The ``set`` and ``get`` functions allow to store persistent information in the
 agent and to recover it at any moment. The store uses a *key-value* interface to store custom-defined data.
 
 There is also a very useful helper function which is the **logger**. This is not a single function but a system of logs
-which can be used to generate debug information at different levels. There are four levels of logging which are now
+which can be used to generate debug information at different levels. There are five levels of logging which are now
 presented, in order of importance:
 
 * **DEBUG**
-    Used with ``self.logger.debug("my debug message")``. These messages are only shown when the simulator is
+    Used with ``logger.debug("my debug message")``. These messages are only shown when the simulator is
     called with the ``-v`` option. This is usually superfluous information.
 * **INFO**
-    Used with ``self.logger.info("my info message")``. These messages are always shown and are the regular
+    Used with ``logger.info("my info message")``. These messages are always shown and are the regular
     information shown in logs.
 * **WARNING**
-    Used with ``self.logger.warn("my warning message")``. These messages are always shown and are used to
+    Used with ``logger.warn("my warning message")``. These messages are always shown and are used to
     show warnings to the user.
 * **ERROR**
-    Used with ``self.logger.error("my error message")``. These messages are always shown are are used to show
+    Used with ``logger.error("my error message")``. These messages are always shown are are used to show
     errors to the user.
+* **SUCCESS**
+    Used with ``logger.success("my success message")``. These messages are always shown are are used to show
+    success to the user.
+
+In order to use this logger just remember to import the ``loguru`` library as follows:
+
+.. code-block:: python
+
+    from loguru import logger
 
 
-Developing the Coordinator Agent Strategy
------------------------------------------
+Developing the FleetManager Agent Strategy
+------------------------------------------
 
-In order to develop a new strategy for the Coordinator Agent, you need to create a class that inherits from
-``CoordinatorStrategyBehaviour``. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
+In order to develop a new strategy for the FleetManager Agent, you need to create a class that inherits from
+``FleetManagerStrategyBehaviour``. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
 that inherits from the ``StrategyBehaviour``, it has all the previously presented helper functions for
 communication and storing data inside the agent.
 
-Following the *REQUEST* protocol, the Coordinator agent is supposed to receive every request for a taxi service
-from passengers and to carry out the action that your strategy determines (note that, in the default strategy
-``DelegateRequestTaxiBehaviour``, the coordinator delegates the decision to the taxis themselves by redirecting all
-requests to all taxis without any previous, additional reasoning). The code of the ``DelegateRequestTaxiBehaviour``
-is presented below.
+Following the *REQUEST* protocol, the FleetManager agent is supposed to receive every request for a transport service
+from customers and to carry out the action that your strategy determines (note that, in the default strategy
+``DelegateRequestBehaviour``, the fleet manager delegates the decision to the transports themselves by redirecting all
+requests to all their registered transports without any previous, additional reasoning).
+The code of the ``DelegateRequestBehaviour`` is presented below.
 
-The place in the code where your coordinator strategy must be coded is the ``run`` coroutine. This
+The place in the code where your fleet manager strategy must be coded is the ``run`` coroutine. This
 function is executed in an infinite loop until the agent stops. In addition, you may also overload the ``on_start``
 and the ``on_end`` coroutines, in order to execute code before the creation of the strategy or after its destruction,
 if needed.
 
 Code
 ~~~~
-This is the code of the default coordinator strategy :class:`DelegateRequestTaxiBehaviour`:
+This is the code of the default fleet manager strategy :class:`DelegateRequestBehaviour`:
 
 .. code-block:: python
 
-    from taxi_simulator.coordinator import CoordinatorStrategyBehaviour
+    from simfleet.fleetmanager import FleetManagerStrategyBehaviour
 
-    class DelegateRequestTaxiBehaviour(CoordinatorStrategyBehaviour):
+    async def run(self):
+        if not self.agent.registration:
+            # Register into Directory Agent to make your fleet public
+            await self.send_registration()
 
-        async def run(self):
-            msg = await self.receive(timeout=5)
-            if msg:
-                for taxi in self.get_taxi_agents():
-                    msg.to = str(taxi.jid)
-                    self.logger.debug("Coordinator sent request to taxi {}".format(taxi.name))
-                    await self.send(msg)
+        msg = await self.receive(timeout=5)
+        logger.debug("Manager received message: {}".format(msg))
+        if msg:
+            # Redirect request to all your registered transports
+            for transport in self.get_transport_agents().values():
+                msg.to = str(transport["jid"])
+                logger.debug("Manager sent request to transport {}".format(transport["name"]))
+                await self.send(msg)
 
 
 Helpers
 ~~~~~~~
 
-The coordinator agent incorporates two helper functions that allow the agent to recover a list of
-all the taxi agents and passenger agents registered in the system. These functions are:
+The coordinator agent incorporates two helper functions:
 
-* ``get_taxi_agents``
+* ``send_registration``
 
-    Returns a list of the taxi agents.
+    Registers its fleet in the Directory agent. This way customers can find their fleet and request for services.
 
-* ``get_passenger_agents``
+* ``get_transport_agents``
 
-    Returns a list of the passenger agents.
+    Returns a list of the transports that are registered in that fleet.
 
-Developing the Taxi Agent Strategy
-----------------------------------
-To develop a new strategy for the Taxi Agent, you need to create a class that inherits from
-``TaxiStrategyBehaviour``. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
+Developing the Transport Agent Strategy
+---------------------------------------
+To develop a new strategy for the Transport Agent, you need to create a class that inherits from
+``TransportStrategyBehaviour``. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
 that inherits from the ``StrategyBehaviour``, it has all the previously presented helper functions for
 communication and storing data inside the agent.
 
-The taxi strategy is intended to receive requests from passengers, forwarded by the coordinator agent, and then to send
-proposals to these passengers in order to be selected by the corresponding passenger. If a taxi proposal is accepted,
-then the taxi begins the process of going to the passenger's current position, picking the passenger up, and taking the passenger
+The transport strategy is intended to receive requests from customers, forwarded by its fleet manager agent, and then to send
+proposals to these customers in order to be selected by the corresponding customer. If a transport proposal is accepted,
+then the transport begins the process of going to the customer's current position, picking the customer up, and taking the customer
 to the requested destination.
 
 .. warning::
-    The process that implies a taxi movement is out of the scope of the strategy and should not be addressed by the
+    The process that implies a transport movement is out of the scope of the strategy and should not be addressed by the
     strategy implementation. This pasenger-transfer process is automatically triggered when the strategy executes the
-    helper coroutine ``pick_up_passenger`` (which is supposed to be the last action of a taxi strategy).
+    helper coroutine ``pick_up_customer`` (which is supposed to be the last action of a transport strategy).
 
 The place in the code where your coordinator strategy must be coded is the ``run`` coroutine. This
 function is executed in an infinite loop until the agent stops. In addition, you may also overload the ``on_start``
@@ -619,103 +632,152 @@ if needed.
 
 Code
 ~~~~
-The default strategy of a taxi is to accept every passenger's requests if the taxi is not assigned to any other passenger
-or waiting a confirmation from any passenger. This is the code of the default taxi strategy ``AcceptAlwaysStrategyBehaviour``:
+The default strategy of a transport is to accept every customer's requests if the transport is not assigned to any other customer
+or waiting a confirmation from any customer. This is the code of the default transport strategy ``AcceptAlwaysStrategyBehaviour``:
 
 .. code-block:: python
 
-    from taxi_simulator.taxi import TaxiStrategyBehaviour
+    from simfleet.transport import TransportStrategyBehaviour
 
-    class AcceptAlwaysStrategyBehaviour(TaxiStrategyBehaviour):
-
+    class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
         async def run(self):
+            if self.agent.needs_charging():
+                if self.agent.stations is None or len(self.agent.stations) < 1:
+                    logger.warning("Transport {} looking for a station.".format(self.agent.name))
+                    await self.send_get_stations()
+                else:
+                    station = random.choice(list(self.agent.stations.keys()))
+                    logger.info("Transport {} reserving station {}.".format(self.agent.name, station))
+                    await self.send_proposal(station)
+                    self.agent.status = TRANSPORT_WAITING_FOR_STATION_APPROVAL
+
             msg = await self.receive(timeout=5)
             if not msg:
                 return
-            self.logger.info("Taxi received message: {}".format(msg))
-            content = json.loads(msg.body)
+            logger.debug("Transport received message: {}".format(msg))
+            try:
+                content = json.loads(msg.body)
+            except TypeError:
+                content = {}
+
             performative = msg.get_metadata("performative")
+            protocol = msg.get_metadata("protocol")
 
-            self.logger.debug("Taxi {} received request protocol from passenger {}.".format(self.agent.name,
-                                                                                            content["passenger_id"]))
-            if performative == REQUEST_PERFORMATIVE:
-                if self.agent.status == TAXI_WAITING:
-                    await self.send_proposal(content["passenger_id"], {})
-                    self.agent.status = TAXI_WAITING_FOR_APPROVAL
+            if protocol == QUERY_PROTOCOL:
+                if performative == INFORM_PERFORMATIVE:
+                    self.agent.stations = content
+                    logger.info("Got list of current stations: {}".format(list(self.agent.stations.keys())))
+                elif performative == CANCEL_PERFORMATIVE:
+                    logger.info("Cancellation of request for stations information.")
 
-            elif performative == ACCEPT_PERFORMATIVE:
-                if self.agent.status == TAXI_WAITING_FOR_APPROVAL:
-                    self.logger.debug("Taxi {} got accept from {}".format(self.agent.name,
-                                                                          content["passenger_id"]))
-                    try:
-                        self.agent.status = TAXI_MOVING_TO_PASSENGER
-                        await self.pick_up_passenger(content["passenger_id"], content["origin"], content["dest"])
-                    except PathRequestException:
-                        self.logger.error("Taxi {} could not get a path to passenger {}. Cancelling..."
-                                          .format(self.agent.name, content["passenger_id"]))
-                        self.agent.status = TAXI_WAITING
-                        await self.cancel_proposal(content["passenger_id"])
-                    except Exception as e:
-                        self.logger.error("Unexpected error in taxi {}: {}".format(self.agent.name, e))
-                        await self.cancel_proposal(content["passenger_id"])
-                        self.agent.status = TAXI_WAITING
-                else:
-                    await self.cancel_proposal(content["passenger_id"])
+            elif protocol == REQUEST_PROTOCOL:
+                logger.debug("Transport {} received request protocol from customer/station.".format(self.agent.name))
 
-            elif performative == REFUSE_PERFORMATIVE:
-                self.logger.debug("Taxi {} got refusal from {}".format(self.agent.name,
-                                                                       content["passenger_id"]))
-                if self.agent.status == TAXI_WAITING_FOR_APPROVAL:
-                    self.agent.status = TAXI_WAITING
+                if performative == REQUEST_PERFORMATIVE:
+                    if self.agent.status == TRANSPORT_WAITING:
+                        if not self.has_enough_autonomy(content["origin"], content["dest"]):
+                            await self.cancel_proposal(content["customer_id"])
+                            self.agent.status = TRANSPORT_NEEDS_CHARGING
+                        else:
+                            await self.send_proposal(content["customer_id"], {})
+                            self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
+
+                elif performative == ACCEPT_PERFORMATIVE:
+                    if self.agent.status == TRANSPORT_WAITING_FOR_APPROVAL:
+                        logger.debug("Transport {} got accept from {}".format(self.agent.name,
+                                                                              content["customer_id"]))
+                        try:
+                            self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
+                            await self.pick_up_customer(content["customer_id"], content["origin"], content["dest"])
+                        except PathRequestException:
+                            logger.error("Transport {} could not get a path to customer {}. Cancelling..."
+                                         .format(self.agent.name, content["customer_id"]))
+                            self.agent.status = TRANSPORT_WAITING
+                            await self.cancel_proposal(content["customer_id"])
+                        except Exception as e:
+                            logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
+                            await self.cancel_proposal(content["customer_id"])
+                            self.agent.status = TRANSPORT_WAITING
+                    else:
+                        await self.cancel_proposal(content["customer_id"])
+
+                elif performative == REFUSE_PERFORMATIVE:
+                    logger.debug("Transport {} got refusal from customer/station".format(self.agent.name))
+                    self.agent.status = TRANSPORT_WAITING
+
+                elif performative == INFORM_PERFORMATIVE:
+                    if self.agent.status == TRANSPORT_WAITING_FOR_STATION_APPROVAL:
+                        logger.info("Transport {} got accept from station {}".format(self.agent.name,
+                                                                                     content["station_id"]))
+                        try:
+                            self.agent.status = TRANSPORT_MOVING_TO_STATION
+                            await self.send_confirmation_travel(content["station_id"])
+                            await self.go_to_the_station(content["station_id"], content["dest"])
+                        except PathRequestException:
+                            logger.error("Transport {} could not get a path to station {}. Cancelling..."
+                                         .format(self.agent.name, content["station_id"]))
+                            self.agent.status = TRANSPORT_WAITING
+                            await self.cancel_proposal(content["station_id"])
+                        except Exception as e:
+                            logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
+                            await self.cancel_proposal(content["station_id"])
+                            self.agent.status = TRANSPORT_WAITING
+                    elif self.agent.status == TRANSPORT_CHARGING:
+                        if content["status"] == TRANSPORT_CHARGED:
+                            self.agent.transport_charged()
+                            await self.agent.drop_station()
+
+                elif performative == CANCEL_PERFORMATIVE:
+                    logger.info("Cancellation of request for {} information".format(self.agent.fleet_type))
 
 Helpers
 ~~~~~~~
 
-There are some helper coroutines that are specific for the taxi strategy:
+There are some helper coroutines that are specific for the transport strategy:
 
 .. code-block:: python
 
-            async def send_proposal(self, passenger_id, content=None)
-            async def cancel_proposal(self, passenger_id, content=None)
-            async def pick_up_passenger(self, passenger_id, origin, dest)
+            async def send_proposal(self, customer_id, content=None)
+            async def cancel_proposal(self, customer_id, content=None)
+            async def pick_up_customer(self, customer_id, origin, dest)
 
 
 The definition and purpose of each of them is now introduced:
 
 * ``send_proposal``
 
-    This helper function simplifies the composition and sending of a message containing a proposal to a passenger. It sends a
-    ``Message`` to ``passenger_id`` using the **REQUEST_PROTOCOL** and a **PROPOSE_PERFORMATIVE**. It optionally
-    accepts a `content` parameter where you can include any additional information you may want the passenger to analyze.
+    This helper function simplifies the composition and sending of a message containing a proposal to a customer. It sends a
+    ``Message`` to ``customer_id`` using the **REQUEST_PROTOCOL** and a **PROPOSE_PERFORMATIVE**. It optionally
+    accepts a `content` parameter where you can include any additional information you may want the customer to analyze.
 
 * ``cancel_proposal``
 
-    This helper function simplifies the composition and sending of a message to a passenger to cancel a proposal. It sends a
-    ``Message`` to ``passenger_id`` using the **REQUEST_PROTOCOL** and a **CANCEL_PERFORMATIVE**. It optionally
-    accepts a `content` parameter where you can include any additional information you may want the passenger to analyze.
+    This helper function simplifies the composition and sending of a message to a customer to cancel a proposal. It sends a
+    ``Message`` to ``customer_id`` using the **REQUEST_PROTOCOL** and a **CANCEL_PERFORMATIVE**. It optionally
+    accepts a `content` parameter where you can include any additional information you may want the customer to analyze.
 
-* ``pick_up_passenger``
+* ``pick_up_customer``
 
-    This helper function triggers the **TRAVEL_PROTOCOL** of a taxi, which is the protocol that is used to transport a
-    passenger from her current position to her destination. This is a very important and particular function. Invoking
+    This helper function triggers the **TRAVEL_PROTOCOL** of a transport, which is the protocol that is used to transport a
+    customer from her current position to her destination. This is a very important and particular function. Invoking
     this function is normally the last instruction of this strategy, since it means that the purpose of the strategy
-    is accomplished (until the **TRAVEL_PROTOCOL** ends and the taxi is again free and able to receive new requests
-    from some other passengers).
+    is accomplished (until the **TRAVEL_PROTOCOL** ends and the transport is again free and able to receive new requests
+    from some other customers).
 
-    The ``pick_up_passenger`` helper receives as parameters the id of the passenger and the coordinates of the
-    passenger's current position (``origin``) and its destination (``dest``).
+    The ``pick_up_customer`` helper receives as parameters the id of the customer and the coordinates of the
+    customer's current position (``origin``) and its destination (``dest``).
 
 
-Developing the Passenger Agent Strategy
----------------------------------------
+Developing the Customer Agent Strategy
+--------------------------------------
 
-To develop a new strategy for the Passenger Agent, you need to create a class that inherits from
-``PassengerStrategyBehaviour``. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
+To develop a new strategy for the Customer Agent, you need to create a class that inherits from
+``CustomerStrategyBehaviour``. Since this is a cyclic behaviour class that follows the *Strategy Pattern* and
 that inherits from the ``StrategyBehaviour``, it has all the previously presented helper functions for
 communication and storing data inside the agent.
 
-The passenger strategy is intended to ask the coordinator agent for a taxi service, then wait for taxi proposals and, after
-evaluating them, choosing a particular taxi proposal which will take the passenger to her destination.
+The customer strategy is intended to ask a fleet manager agent for a transport service, then wait for transport proposals and, after
+evaluating them, choosing a particular transport proposal which will take the customer to her destination.
 
 The place in the code where your coordinator strategy must be coded is the ``run`` coroutine. This
 function is executed in an infinite loop until the agent stops. In addition, you may also overload the ``on_start``
@@ -725,48 +787,63 @@ if needed.
 
 Code
 ~~~~
-The default strategy of a Passenger agent is a dummy strategy that simply accepts the first proposal it receives.
-This is the code of the default passenger strategy ``AcceptFirstRequestTaxiBehaviour``:
+The default strategy of a Customer agent is a dummy strategy that simply accepts the first proposal it receives.
+This is the code of the default customer strategy ``AcceptFirstRequestBehaviour``:
 
 .. code-block:: python
 
-    from taxi_simulator.passenger import PassengerStrategyBehaviour
+    from simfleet.customer import CustomerStrategyBehaviour
 
-    class AcceptFirstRequestTaxiBehaviour(PassengerStrategyBehaviour):
+    class AcceptFirstRequestTransportBehaviour(CustomerStrategyBehaviour):
 
         async def run(self):
-            if self.agent.status == PASSENGER_WAITING:
+            if self.agent.fleetmanagers is None:
+                await self.send_get_managers(self.agent.fleet_type)
+
+                msg = await self.receive(timeout=5)
+                if msg:
+                    performative = msg.get_metadata("performative")
+                    if performative == INFORM_PERFORMATIVE:
+                        self.agent.fleetmanagers = json.loads(msg.body)
+                        return
+                    elif performative == CANCEL_PERFORMATIVE:
+                        logger.info("Cancellation of request for {} information".format(self.agent.type_service))
+                        return
+
+            if self.agent.status == CUSTOMER_WAITING:
                 await self.send_request(content={})
 
             msg = await self.receive(timeout=5)
 
             if msg:
                 performative = msg.get_metadata("performative")
-                taxi_id = msg.sender
+                transport_id = msg.sender
                 if performative == PROPOSE_PERFORMATIVE:
-                    if self.agent.status == PASSENGER_WAITING:
-                        self.logger.debug("Passenger {} received proposal from taxi {}".format(self.agent.name,
-                                                                                               taxi_id))
-                        await self.accept_taxi(taxi_id)
-                        self.agent.status = PASSENGER_ASSIGNED
+                    if self.agent.status == CUSTOMER_WAITING:
+                        logger.debug(
+                            "Customer {} received proposal from transport {}".format(self.agent.name, transport_id))
+                        await self.accept_transport(transport_id)
+                        self.agent.status = CUSTOMER_ASSIGNED
                     else:
-                        await self.refuse_taxi(taxi_id)
+                        await self.refuse_transport(transport_id)
 
                 elif performative == CANCEL_PERFORMATIVE:
-                    if self.agent.taxi_assigned == str(taxi_id):
-                        self.logger.warning("Passenger {} received a CANCEL from Taxi {}.".format(self.agent.name, taxi_id))
-                        self.agent.status = PASSENGER_WAITING
+                    if self.agent.transport_assigned == str(transport_id):
+                        logger.warning(
+                            "Customer {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
+                        self.agent.status = CUSTOMER_WAITING
 
 
 Helpers
 ~~~~~~~
-There are some helper coroutines that are specific for the passenger strategy:
+There are some helper coroutines that are specific for the customer strategy:
 
 .. code-block:: python
 
     async def send_request(self, content=None)
-    async def accept_taxi(self, taxi_aid)
-    async def refuse_taxi(self, taxi_aid)
+    async def accept_transport(self, transport_aid)
+    async def refuse_transport(self, transport_aid)
+    async def send_get_managers(content=None)
 
 
 The definition and purpose of each of them is now introduced:
@@ -775,33 +852,28 @@ The definition and purpose of each of them is now introduced:
 
     This helper is useful to make a new request without building the entire message (the function makes it for you).
     It creates a ``Message`` with a **REQUEST** performative and sends it to the coordinator agent. In addition, you can
-    append a content to the request message to be used by the coordinator agent or the taxi agents (e.g. your origin
+    append a content to the request message to be used by the coordinator agent or the transport agents (e.g. your origin
     coordinates or your destination coordinates).
 
-* ``accept_taxi``
+* ``accept_transport``
 
-    This is a helper function to send an acceptance message to a ``taxi_id``. It sends a ``Message`` with an
-    **ACCEPT** performative to the selected taxi.
+    This is a helper function to send an acceptance message to a ``transport_id``. It sends a ``Message`` with an
+    **ACCEPT** performative to the selected transport.
 
-* ``refuse_taxi``
+* ``refuse_transport``
 
-    This is a helper function to refuse a proposal from a ``taxi_id``. It sends a ``Message`` with an **REFUSE**
-    performative to the taxi whose proposal is being refused.
+    This is a helper function to refuse a proposal from a ``transport_id``. It sends a ``Message`` with an **REFUSE**
+    performative to the transport whose proposal is being refused.
+
+* ``send_get_managers``
+
+    This helpers makes a query to the Directory agent to find all the fleet managers that provide a fleet service of
+    type `content`. Thus, you can filter those fleet managers that provide the transport service that you are looking for.
 
 Other Helpers
 -------------
-Taxi Simulator also includes a ``helpers`` module which provides some general support methods that may be useful
+SimFleet also includes a ``helpers`` module which provides some general support methods that may be useful
 for any agent. These functions are now introduced:
-
-* ``random_position``
-
-    This helper function returns a random position in the map for being used if you need to create a new coordinate.
-
-    Example:
-
-    .. code-block:: python
-
-        assert random_position() == [39.253, -0.341]
 
 * ``are_close``
 
@@ -829,56 +901,70 @@ for any agent. These functions are now introduced:
 How to Implement New Strategies (Level 1) -- Recommendations
 ============================================================
 
-At this point is time for you to implement your own strategies to optimize the problem of dispatching taxis to passengers.
+At this point is time for you to implement your own strategies to optimize the problem of dispatching transports to customers.
 In this chapter we have shown you the tools to create these strategies. You have to create a file (in this example we
 are using ``my_strategy_file.py``) and develop the strategies to be tested following the next template:
 
 .. code-block:: python
 
-    from taxi_simulator.coordinator import CoordinatorStrategyBehaviour
-    from taxi_simulator.passenger import PassengerStrategyBehaviour
-    from taxi_simulator.taxi import TaxiStrategyBehaviour
+    from simfleet.coordinator import FleetManagerStrategyBehaviour
+    from simfleet.customer import CustomerStrategyBehaviour
+    from simfleet.transport import TransportStrategyBehaviour
 
     ################################################################
     #                                                              #
-    #                     Coordinator Strategy                     #
+    #                     FleetManager Strategy                     #
     #                                                              #
     ################################################################
-    class MyCoordinatorStrategy(CoordinatorStrategyBehaviour):
+    class MyFleetManagerStrategy(FleetManagerStrategyBehaviour):
         async def run(self):
            # Your code here
 
     ################################################################
     #                                                              #
-    #                         Taxi Strategy                        #
+    #                         Transport Strategy                        #
     #                                                              #
     ################################################################
-    class MyTaxiStrategy(TaxiStrategyBehaviour):
+    class MyTransportStrategy(TransportStrategyBehaviour):
         async def run(self):
            # Your code here
 
     ################################################################
     #                                                              #
-    #                       Passenger Strategy                     #
+    #                       Customer Strategy                     #
     #                                                              #
     ################################################################
-    class MyPassengerStrategy(PassengerStrategyBehaviour):
+    class MyCustomerStrategy(CustomerStrategyBehaviour):
         async def run(self):
            # Your code here
 
 
 In this file, three strategies have been created for the three types of agent handled by the simulator. We have called
-these strategies ``MyCoordinatorStrategy``, ``MyTaxiStrategy`` and ``MyPassengerStrategy``.
+these strategies ``MyFleetManagerStrategy``, ``MyTransportStrategy`` and ``MyCustomerStrategy``.
 
-To run the simulator with your new strategies the command line interface accepts three parameters with the name of the
+To run the simulator with your new strategies the configuration file accepts three parameters with the name of the
 file (without extension) and the name of the class of each strategy.
+
+.. code-block:: json
+
+    {
+        "fleets": [...],
+        "transports": [...],
+        "customers": [...],
+        "stations": [...],
+        "simulation_name": "My Config",
+        "max_time": 1000,
+        "transport_strategy": "my_strategy_file.MyTransportStrategy",
+        "customer_strategy": "my_strategy_file.MyCustomerStrategy",
+        "fleetmanager_strategy": "my_strategy_file.MyFleetManagerStrategy",
+        ...
+        "host": "localhost",
+    }
+
 
 .. code-block:: bash
 
- $ taxi_simulator --host 127.0.0.1
-                  --taxi my_strategy_file.MyTaxiStrategy
-                  --passenger my_strategy_file.MyPassengerStrategy
-                  --coordinator my_strategy_file.MyCoordinatorStrategy
+ $ simfleet --config my_custom_simulation.json
 
 .. warning::
     The file must be in the current working directory and it must be referenced *without* the extension (if the file is

@@ -15,42 +15,25 @@ sure that no Customer agent is left unattended. Additionally, the negotiation st
 such as the average time that Customer agents are waiting to be served, or that the amount of gas spent by Transport in their movements.
 
 The negotiation strategy is based on two main elements. First, it is based on the internal logic of each agent type
-(FleetManager, Transport and Customer) and, in particular, on their respective *strategy behavior*, which includes the
+(FleetManager, Transport and Customer) and, in particular, on their respective *strategy behaviour*, which includes the
 internal logic of each agent type regarding the negotiation process. And second, it is also based on the so-called `REQUEST`
 protocol, which comprises the types of messages exchanged among the three agent types during the negotiation.
 The following diagram presents the protocol in the typical FIPA format, where agents types are depicted as vertical lines
 and the exchanged message types (or "performatives") in horizontal arrows:
 
 .. image:: images/protocol_v3.png
-   :scale: 100 %
+   :scale: 80 %
    :align: center
 
 This chapter introduces first the current, default strategy of each agent type (FleetManager, Transport and Customer) and
 then explains how to introduce new strategies for any, or all, of them.
 
 
+Fleet Manager Strategy Behaviour (`DelegateRequestBehaviour`)
+-------------------------------------------------------------
 
-
-Description of the FleetManager Agent
--------------------------------------
-
-The FleetManager Agent is responsible for putting in contact the Customer agents that need a transport service, and the Transport
-agents that may be available to offer these services. In short, the FleetManager Agent acts like a transport call center, accepting
-the incoming requests from customers (Customer agents) and forwarding these requests to the (appropriate) Transport agents.
-In order to do so, the FleetManager has a registration protocol by which Transport agents subscribe to the Fleet Manager
-that represents their fleet. This is automatically done when a Transport agent is started.
-
-In the context of SimFleet, a "transport service" involves, once a particular Customer and Transport agents have reached
-an agreement, the movement of the Transport agent from its current position to the Customer's position in
-order to pick the Customer up, and then the transportation of the Customer agent to its destination.
-
-The FleetManager Agent includes a single behavior, which is its strategy behavior, now described.
-
-
-Strategy Behaviour (`DelegateRequestBehaviour`)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The goal of the stategy behavior of the FleetManager Agent is basically to **receive** the "request" messages (`REQUEST_PERFORMATIVE`)
+The FleetManager Agent includes a single behaviour, which is its strategy behaviour, now described.
+The goal of the stategy behaviour of the FleetManager Agent is basically to **receive** the "request" messages (`REQUEST_PERFORMATIVE`)
 sent by the Customer agents that need a transport service and, for each request, selecting the Transport agent, or agents,
 that may perform the service, and **forward** the request to them. A `REQUEST_PERFORMATIVE` message includes the following fields::
 
@@ -59,49 +42,46 @@ that may perform the service, and **forward** the request to them. A `REQUEST_PE
                 "dest":         Destination of the Customer, where the Transport needs to transport it.
 
 The particular set of Transport agents to which the request will be forwarded depends on the *allocation policy* of the FleetManager
-Agent, which is part of the strategy. In the default strategy behavior for the FleetManager agent (`DelegateRequestBehaviour`),
+Agent, which is part of the strategy. In the default strategy behaviour for the FleetManager agent (`DelegateRequestBehaviour`),
 the allocation policy is the simplest posible: it forwards every incoming request to **all** the Transport agents that are
 registered in its fleet,
 regardless of their current statuses or any other consideration (such as, for example, the last time they performed a service,
 or the distance between them and the Customer agent).
 
-In the default strategy behavior, the set of incoming messages that may be delivered to the FleetManager Agent is reduced
-to the requests made by Customer agents, and the behavior itself does not include multiple states. So, each incoming message
-is processed in the same way, and leaves the behavior in the same (unique) state.
+In the default strategy behaviour, the set of incoming messages that may be delivered to the FleetManager Agent is reduced
+to the requests made by Customer agents, and the behaviour itself does not include multiple states. So, each incoming message
+is processed in the same way, and leaves the behaviour in the same (unique) state.
 
 Once each request has been forwarded to some (or all) the Transport agents, the goal of the FleetManager Agent for that request
 is achieved. This is the starting point to the negotiation between the Customer that has issued the request and the
 Transport agents that have received it, which is described in the following sections.
 
 
+Transport Agents Behaviours
+---------------------------
 
-Description of the Transport Agents
------------------------------------
-
-The Transport agents represent vehicles which can transport Customer agents from their current positions to their respective
-destinations. In order to do that, Transport agents incorporate two behaviors: the strategy behavior and the moving behavior,
-now described.
+Transport agents incorporate two behaviours: the strategy behaviour and the moving behaviour, now described.
 
 
 Strategy Behaviour (`AcceptAlwaysStrategyBehaviour`)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The goal of the strategy behavior of a Transport agent is to negotiate with Customer agents which are requesting a transport service
+The goal of the strategy behaviour of a Transport agent is to negotiate with Customer agents which are requesting a transport service
 the conditions of the service offered by the Transport, in order to achieve an agreement with these Customer agents.
 When an agreement is reached between a particular Customer and Transport agents, then the Transport agent picks up the
-Customer agent and transport it to its destination (and starts the Moving Behavior, described below).
+Customer agent and transport it to its destination (and starts the Moving behaviour, described below).
 
-The currently implemented, default strategy behavior is called `AcceptAlwaysStrategyBehaviour`, and has a direct
-relation with the `REQUEST` protocol explained above. In particular, the behavior can be thought of as a finite-state
-machine with some different states specifying the statuses of the Transport agent regarding the strategy behavior, and
+The currently implemented, default strategy behaviour is called `AcceptAlwaysStrategyBehaviour`, and has a direct
+relation with the `REQUEST` protocol explained above. In particular, the behaviour can be thought of as a finite-state
+machine with some different states specifying the statuses of the Transport agent regarding the strategy behaviour, and
 some transitions between states, wich are triggered either by messages (of the `REQUEST` protocol) received by the
 Transport agent, or by some other program conditions. This is depicted in the following diagram:
 
 .. figure:: images/SimFleet_FSM.png
-   :scale: 40 %
+   :scale: 80 %
    :align: center
 
-   States and transitions of the strategy behavior of a Transport agent.
+   States and transitions of the strategy behaviour of a Transport agent.
 
 
 The semantics of each state are now described:
@@ -116,65 +96,60 @@ The semantics of each state are now described:
   to which it has sent a service proposal message. While in this state, it may receive two alternative answers from
   the Customer agent: (1) the Customer refuses the service proposal (`REFUSE_PERFORMATIVE`), in which case the Transport
   changes its state back to `TRANSPORT_WAITING`; or (2) the Customer accepts the proposal (`ACCEPT_PERFORMATIVE`), in
-  which case it will change to the state `TRANSPORT_MOVING_TO_PASSENGER`.
+  which case it will change to the state `TRANSPORT_MOVING_TO_CUSTOMER`.
 
-* `TRANSPORT_MOVING_TO_PASSENGER`: In this state, the Transport agent and the Customer agent have agreed to perform a transport
+* `TRANSPORT_MOVING_TO_CUSTOMER`: In this state, the Transport agent and the Customer agent have agreed to perform a transport
   service, and then the Transport agent starts to travel to the Customer location in order to pick it up. This is
-  the final state of the negotiation between the Transport and a certain Customer agent. In this state, the Transport agent
-  executes the helper function `pick_up_customer`, which automatically starts the so-called Moving Behavior
-  in the Transport agent, described below. It also sends a message to the Travel Behavior of the Customer agent, which
-  starts that behavior (this is explained in the next section).
+  the final state of the negotiation between the Transport and a certain Customer agent. When the Transport agent arrives
+  to the Customer's position, the Transport agent executes the helper function `pick_up_customer`, which automatically
+  starts the so-called Moving behaviour in the Transport agent, described below. It also sends a message to the Travel
+  behaviour of the Customer agent, which starts that behaviour (this is explained in the next section).
 
 
 Moving Behaviour
 ~~~~~~~~~~~~~~~~
-This behavior makes the Transport agent to move to the current location of the Customer agent with which it has reached
+This behaviour makes the Transport agent to move to the current location of the Customer agent with which it has reached
 an agreement to perform a transport service. After picking the Customer agent up, the Transport will then transport it to
-its destination. During that travel, the behavior informs the Customer agent of where the Transport is and what it is
+its destination. During that travel, the behaviour informs the Customer agent of where the Transport is and what it is
 doing (going to pick up the Customer, taking the Customer to its destination, reaching the destination, etc.). All
 this is performed by sending the Customer agent some messages which belong of another, dedicated protocol
 called `TRAVEL_PROTOCOL`.
 
 Once the Transport reaches the Customer agent's destination and the Customer agent is informed about it, the state of
-the Transport agent (of the strategy behavior) is here changed to `TRANSPORT_WAITING`, indicating that it is now free,
+the Transport agent (of the strategy behaviour) is here changed to `TRANSPORT_WAITING`, indicating that it is now free,
 and hence making the Transport agent available again to receiving new requests from other Customer agents.
 
 .. warning::
-  This behavior is internal and automatic, and it is not intended to be modified while developing
+  This behaviour is internal and automatic, and it is not intended to be modified while developing
   new negotiation strategies. The same applies to the `TRAVEL_PROTOCOL` protocol.
 
 
 
-Description of the Customer Agents
-----------------------------------
+Customer Agents Behaviours
+--------------------------
 
-The Customer agents represent people that need to go from one location of the city (their "current location") to
-another (their "destination") or packages that need to be moved from an origin to a destination,
-and for doing so, they request a transport service. Each Customer agent requires a single
-transport service and so, once transported to its destination, it reaches its final state and ends its execution. During
-that execution, Customer agents incorporate two behaviors: the strategy behavior and the travel behavior, now described.
-
+Customer agents incorporate two behaviours: the strategy behaviour and the travel behaviour, now described.
 
 Strategy Behaviour
 ~~~~~~~~~~~~~~~~~~
 
 In the course of the `REQUEST` protocol, the request of a transport service made by a Customer agent is answered
 by one (or several) Transport agents, each of which offering the Customer their conditions to perform such service.
-The goal of the strategy behavior of a Customer agent is to select the best of these transport service proposals,
+The goal of the strategy behaviour of a Customer agent is to select the best of these transport service proposals,
 according to its needs and/or preferences (e.g., to be picked up faster, to get the nearest available transport,
 to get the cheapest service, etc.).
 
 
-The currently implemented, default strategy behavior is called `AcceptFirstRequestBehaviour`. As in the
-strategy behavior of the Transport agents above, here we can also consider the strategy as a finite-state machine related to
+The currently implemented default strategy behaviour is called `AcceptFirstRequestBehaviour`. As in the
+strategy behaviour of the Transport agents above, here we can also consider the strategy as a finite-state machine related to
 the messages (of the `REQUEST` protocol) received by the Customer agent, as depicted below:
 
 
 .. figure:: images/Customer_FSM.png
-   :scale: 40 %
+   :scale: 80 %
    :align: center
 
-   States and transitions of the strategy behavior of a Customer agent.
+   States and transitions of the strategy behaviour of a Customer agent.
 
 The semantics of each state are now described:
 
@@ -186,7 +161,7 @@ The semantics of each state are now described:
 
 
 * `CUSTOMER_ASSIGNED`: In this state, the Customer agent has been assigned to a particular transport, and the transport service
-  is being produced. The Customer side of the transport service is implemented by activating the Travel Behavior, described
+  is being performed. The Customer side of the transport service is implemented by activating the Travel behaviour, described
   below, which is started by a message sent by the Transport agent (in its helper function `pick_up_customer`).
   If something goes wrong (for example, an exception is raised during the transport service) or the Transport agent voluntarily
   wants to cancel the service, then the Transport agent sends a `CANCEL_PERFORMATIVE` to the Customer agent, which
@@ -197,18 +172,18 @@ The semantics of each state are now described:
 Travel Behaviour
 ~~~~~~~~~~~~~~~~
 
-This behavior is activated (in the Customer agent) when a Transport agent decides to pick up the Customer agent, by
+This behaviour is activated (in the Customer agent) when a Transport agent decides to pick up the Customer agent, by
 means of a message sent by the Transport (inside the Transport agent's helper function `pick_up_customer`). This message,
-as well as other messages sent by the Transport agent to this behavior, belongs to a protocol called the `TRAVEL_PROTOCOL`.
+as well as other messages sent by the Transport agent to this behaviour, belongs to a protocol called `TRAVEL_PROTOCOL`.
 
-The messages of the `TRAVEL_PROTOCOL` drive the transitions between the different states of this behavior, in
-the same way that the `REQUEST_PROTOCOL` does for the strategy behavior. In particular, the states of this behavior
+The messages of the `TRAVEL_PROTOCOL` drive the transitions between the different states of this behaviour, in
+the same way that the `REQUEST_PROTOCOL` does for the strategy behaviour. In particular, the states of this behaviour
 are: `CUSTOMER_IN_TRANSPORT`, when the Transport agent has reached the Customer agent's position and has picked it up; and
 `CUSTOMER_IN_DEST`, when the Transport agent has reached the Customer agent's destination. This would be the final state
 of the Customer agent.
 
 .. warning::
-  This behavior is internal and automatic, and it is not intended to be modified while developing
+  This behaviour is internal and automatic, and it is not intended to be modified while developing
   new negotiation strategies. The same applies to the `TRAVEL_PROTOCOL` protocol.
 
 
@@ -216,11 +191,11 @@ of the Customer agent.
 The Negotiation Process between Transport and Customer Agents
 -------------------------------------------------------------
 
-After separately explaining the strategy behavior of Transport and Customer agents, this section tries to relate both behaviors.
+After separately explaining the strategy behaviour of Transport and Customer agents, this section tries to relate both behaviours.
 This is important to understand how these two agent types interact with each other in order to coordinate and reach the overall
 goals of the simulation.
 
-In particular, there are three key aspects (embedded within the strategy behaviors) which influence the overall
+In particular, there are three key aspects (embedded within the strategy behaviours) which influence the overall
 coordination process implemented in the simulator, as now described:
 
 * The conditions of a transport service proposal. The current implementation does not consider any special condition other
@@ -235,13 +210,13 @@ coordination process implemented in the simulator, as now described:
   the service is expected to cost, the brand of the Transport vehicle, etc.
 
 * The possibility of a transport to voluntarily cancel an ongoing transport service after a proposal has been accepted by a customer.
-  This may happen only before the pasenger has been picked up, that is, while the transport is moving from its initial position
+  This may happen only before the customer has been picked up, that is, while the transport is moving from its initial position
   to the location where the customer is waiting for it. In the current implementation, a transport service cancellation can
   only be produced if some exception is raised while the service is being produced (for example, if the software calculating
   a route for the Transport agent fails to produce a valid route). Since new Customer (and maybe Transport) agents can appear at
   any time while the simulation is running, a voluntary cancellation of transport services could improve the overall
   transportation of customers throughout the simulation, allowing for a "dynamic reallocation" of customers
-  to transports, even when transport services where already committed.
+  to transports, even when transport services were already committed.
 
 
 
@@ -277,25 +252,25 @@ some XMPP extensions to provide extended features to its agents, such as remote 
 In order to fully understand how SPADE works, it is necessary to know how the agents are made up and how they
 communicate. In the following sections we will summarize the SPADE agent model and its communication API.
 
-Agent Model: Behaviors
+Agent Model: Behaviours
 ~~~~~~~~~~~~~~~~~~~~~~
 SPADE agents are threaded-based objects that can be run concurrently and that are connected to a SPADE platform, which
 internally runs an XMPP server. Each agent must provide an ID and password in order to be allowed to connect to the platform.
 The agent ID is called JID and has the form of an email: a user name string plus a "`@`" character plus the IP address
 of the SPADE server to connect to (e.g. `my_agent@127.0.0.1`).
 
-The internal components of the SPADE agents that provide their intelligence are the **Behaviors**. A behavior is a task
-that an agent can run using some pre-defined repeating pattern. For example, the most basic behavior type (pattern) is the so-called
-cyclic behavior, which repeatedly executes the same method over and over again, indefinitely. This is the way to develop
-typical behaviors that wait for a perception, reason about it and finally execute an action, and then wait for the next
+The internal components of the SPADE agents that provide their intelligence are the **Behaviours**. A behaviour is a task
+that an agent can run using some pre-defined repeating pattern. For example, the most basic behaviour type (pattern) is the so-called
+cyclic behaviour, which repeatedly executes the same method over and over again, indefinitely. This is the way to develop
+typical behaviours that wait for a perception, reason about it and finally execute an action, and then wait for the next
 perception.
 
-The following example is a sample of an agent with a cyclic behavior (``spade.behaviour.CyclicBehaviour`` type) that waits for
+The following example is a sample of an agent with a cyclic behaviour (``spade.behaviour.CyclicBehaviour`` type) that waits for
 a perception from the keyboard input, reasons on it and executes an action, and continues to do so indefinitely until
-the user presses Ctrl+C. In order to build a behavior, you need to inherit from the type of behavior you want
+the user presses Ctrl+C. In order to build a behaviour, you need to inherit from the type of behaviour you want
 (in the case of this example, the cyclic behaviour is implemented in the class ``spade.behaviour.CyclicBehaviour``)
-and overload the coroutine ``run`` where the body of the behavior is implemented. If needed, you can also overload
-the ``on_start`` and ``on_end`` coroutines in order to execute actions on the initialization or shutdown of a behavior,
+and overload the coroutine ``run`` where the body of the behaviour is implemented. If needed, you can also overload
+the ``on_start`` and ``on_end`` coroutines in order to execute actions on the initialization or shutdown of a behaviour,
 respectively.
 
 .. code-block:: python
@@ -308,7 +283,7 @@ respectively.
         class MyBehaviour(spade.behaviour.CyclicBehaviour):
 
             async def on_start(self):
-                print("Initialization of behavior")
+                print("Initialization of behaviour")
 
             async def run(self):
                 # wait for perception, raw_input is a blocking call
@@ -319,12 +294,12 @@ respectively.
                 print("You are {age} years old.".format(age=age))
 
             async def on_end(self):
-                print("Shutdown of behavior")
+                print("Shutdown of behaviour")
 
-        def setup(self):
-            # Create behavior
+        async def setup(self):
+            # Create behaviour
             behaviour = self.MyBehaviour()
-            # Register behavior in agent
+            # Register behaviour in agent
             self.add_behaviour(behaviour)
 
     if __name__ == "__main__":
@@ -337,15 +312,15 @@ respectively.
                 break
         a.stop()
 
-Along with the cyclic repeating pattern (or type), SPADE also provides several other types of behaviors, such as
-like one-shot behaviors, periodic behaviors, finite-state machine behaviors, etc. It is important to note that
-SPADE agents can execute many behaviors simultaneously, from the same or different types.
+Along with the cyclic repeating pattern (or type), SPADE also provides several other types of behaviours, such as
+like one-shot behaviours, periodic behaviours, finite-state machine behaviours, etc. It is important to note that
+SPADE agents can execute many behaviours simultaneously, from the same or different types.
 
 
 Communication API, Messages and Templates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Communication is one of the cornerstones of any multi-agent system, and SPADE is no exception. Agents can send and receive
-messages using a simple API, and more importantly, they can receive them in certain behaviors according to templates they can
+messages using a simple API, and more importantly, they can receive them in certain behaviours according to templates they can
 define.
 
 A ``spade.message.Message`` is the class that needs to be filled in order to send a message. A
@@ -396,17 +371,17 @@ For example:
 
                 await self.send(msg)  # send the message
 
-        def setup(self):
+        async def setup(self):
             print "MyAgent starting..."
             behav = self.SendBehav()
             self.add_behaviour(behav)
 
-The reception of messages is particular in SPADE, since messages can only be received by behaviors, and so
-SPADE provides each behavior executed by any agent with its own mailbox, and defines a mechanism in
-order to configure the particular behavior that must receive each message, according to the message type.
+The reception of messages is particular in SPADE, since messages can only be received by behaviours, and so
+SPADE provides each behaviour executed by any agent with its own mailbox, and defines a mechanism in
+order to configure the particular behaviour that must receive each message, according to the message type.
 This mechanism is carried out with `Templates`. When an agent receives a new message it checks if the message matches each
-of the behaviors using a template with which they where registered. If there is a match, the message is delivered to the
-mailbox of the corresponding behavior, and will be read when the behavior executes the ``receive`` method. Otherwise,
+of the behaviours using a template with which they where registered. If there is a match, the message is delivered to the
+mailbox of the corresponding behaviour, and will be read when the behaviour executes the ``receive`` method. Otherwise,
 the message will be dropped.
 
 .. note::
@@ -427,7 +402,7 @@ A ``spade.template.Template`` is created using the same API of ``spade.message.M
     A ``spade.template.Template`` accepts boolean operators to combine `Templates`
     (e.g. ``my_tpl = Template( template1 & template2)``)
 
-At this point we can present a full example on how to build an agent that registers a behavior with a template and receives messages
+At this point we can present a full example on how to build an agent that registers a behaviour with a template and receives messages
 that match that template:
 
 .. code-block:: python
@@ -448,7 +423,7 @@ that match that template:
                 else:
                     print("I waited 10 seconds but got no message")
 
-        def setup(self):
+        async def setup(self):
             recv_behav = self.ReceiveBehav()
             template = spade.template.Template()
             template.set_metadata("ontology", "myOntology")
@@ -489,9 +464,9 @@ Following this implementation, the context object can call the current strategy 
 algorithm was implemented. This design pattern was created, among others, by a group of authors commonly known as the
 **Gang of Four** (E. Gamma, R. Helm, R. Johnson and J. Vlissides), and it is well presented in [GangOfFour95]_.
 
-SimFleet uses the *Strategy Pattern* in order to enable students to implement three different strategies (one for the
-coordinator agent, one for the transport agent and one for the customer agent) without having to develop new agents or
-entering in the complexity of the simulator. Thanks to this pattern, students can develop their strategies in an external
+SimFleet uses the *Strategy Pattern* in order to enable users to implement three different strategies (one for the
+fleet manager agent, one for the transport agent and one for the customer agent) without having to develop new agents or
+entering in the complexity of the simulator. Thanks to this pattern, users can develop their strategies in an external
 file and pass it as an argument when the simulator is run.
 
 SimFleet implements one interface for each of these three agents, with each interface also providing some helper
@@ -540,11 +515,11 @@ presented, in order of importance:
     Used with ``logger.warn("my warning message")``. These messages are always shown and are used to
     show warnings to the user.
 * **ERROR**
-    Used with ``logger.error("my error message")``. These messages are always shown are are used to show
+    Used with ``logger.error("my error message")``. These messages are always shown and are used to show
     errors to the user.
 * **SUCCESS**
-    Used with ``logger.success("my success message")``. These messages are always shown are are used to show
-    success to the user.
+    Used with ``logger.success("my success message")``. These messages are always shown and are used to show
+    success messages to the user.
 
 In order to use this logger just remember to import the ``loguru`` library as follows:
 
@@ -598,7 +573,7 @@ This is the code of the default fleet manager strategy :class:`DelegateRequestBe
 Helpers
 ~~~~~~~
 
-The coordinator agent incorporates two helper functions:
+The fleet manager agent incorporates two helper functions:
 
 * ``send_registration``
 
@@ -622,17 +597,17 @@ to the requested destination.
 
 .. warning::
     The process that implies a transport movement is out of the scope of the strategy and should not be addressed by the
-    strategy implementation. This pasenger-transfer process is automatically triggered when the strategy executes the
+    strategy implementation. This customer-transfer process is automatically triggered when the strategy executes the
     helper coroutine ``pick_up_customer`` (which is supposed to be the last action of a transport strategy).
 
-The place in the code where your coordinator strategy must be coded is the ``run`` coroutine. This
+The place in the code where your transport strategy must be coded is the ``run`` coroutine. This
 function is executed in an infinite loop until the agent stops. In addition, you may also overload the ``on_start``
 and the ``on_end`` coroutines, in order to execute code before the creation of the strategy or after its destruction,
 if needed.
 
 Code
 ~~~~
-The default strategy of a transport is to accept every customer's requests if the transport is not assigned to any other customer
+The default strategy of a transport is to accept any customers' request if the transport is not assigned to any other customer
 or waiting a confirmation from any customer. This is the code of the default transport strategy ``AcceptAlwaysStrategyBehaviour``:
 
 .. code-block:: python
@@ -779,7 +754,7 @@ communication and storing data inside the agent.
 The customer strategy is intended to ask a fleet manager agent for a transport service, then wait for transport proposals and, after
 evaluating them, choosing a particular transport proposal which will take the customer to her destination.
 
-The place in the code where your coordinator strategy must be coded is the ``run`` coroutine. This
+The place in the code where your customer strategy must be coded is the ``run`` coroutine. This
 function is executed in an infinite loop until the agent stops. In addition, you may also overload the ``on_start``
 and the ``on_end`` coroutines, in order to execute code before the creation of the strategy or after its destruction,
 if needed.
@@ -840,19 +815,26 @@ There are some helper coroutines that are specific for the customer strategy:
 
 .. code-block:: python
 
+    async def send_get_managers(content=None)
     async def send_request(self, content=None)
     async def accept_transport(self, transport_aid)
     async def refuse_transport(self, transport_aid)
-    async def send_get_managers(content=None)
 
 
 The definition and purpose of each of them is now introduced:
 
+* ``send_get_managers``
+
+    This helper makes a query to the Directory agent to find all the fleet managers that provide a fleet service of
+    type `content`. Thus, you can filter those fleet managers that provide the transport service that you are looking for.
+    It is expected for the user to store the response of this query in the ``self.agent.fleetmanagers`` variable as
+    a dictionary. This variable will be used by the next helper.
+
 * ``send_request``
 
     This helper is useful to make a new request without building the entire message (the function makes it for you).
-    It creates a ``Message`` with a **REQUEST** performative and sends it to the coordinator agent. In addition, you can
-    append a content to the request message to be used by the coordinator agent or the transport agents (e.g. your origin
+    It creates a ``Message`` with a **REQUEST** performative and sends it to all the fleet manager agents stored in ``self.agent.fleetmanagers``.
+    In addition, you can append a content to the request message to be used by the fleet manager agent or the transport agents (e.g. your origin
     coordinates or your destination coordinates).
 
 * ``accept_transport``
@@ -864,11 +846,6 @@ The definition and purpose of each of them is now introduced:
 
     This is a helper function to refuse a proposal from a ``transport_id``. It sends a ``Message`` with an **REFUSE**
     performative to the transport whose proposal is being refused.
-
-* ``send_get_managers``
-
-    This helpers makes a query to the Directory agent to find all the fleet managers that provide a fleet service of
-    type `content`. Thus, you can filter those fleet managers that provide the transport service that you are looking for.
 
 Other Helpers
 -------------
@@ -898,7 +875,7 @@ for any agent. These functions are now introduced:
         assert distance_in_meters([-0.37565, 39.44447], [-0.40392, 39.45293]) == 3264.7134341427977
 
 
-How to Implement New Strategies (Level 1) -- Recommendations
+How to Implement New Strategies -- Recommendations
 ============================================================
 
 At this point is time for you to implement your own strategies to optimize the problem of dispatching transports to customers.
@@ -907,13 +884,13 @@ are using ``my_strategy_file.py``) and develop the strategies to be tested follo
 
 .. code-block:: python
 
-    from simfleet.coordinator import FleetManagerStrategyBehaviour
+    from simfleet.fleetmanager import FleetManagerStrategyBehaviour
     from simfleet.customer import CustomerStrategyBehaviour
     from simfleet.transport import TransportStrategyBehaviour
 
     ################################################################
     #                                                              #
-    #                     FleetManager Strategy                     #
+    #                     FleetManager Strategy                    #
     #                                                              #
     ################################################################
     class MyFleetManagerStrategy(FleetManagerStrategyBehaviour):
@@ -922,7 +899,7 @@ are using ``my_strategy_file.py``) and develop the strategies to be tested follo
 
     ################################################################
     #                                                              #
-    #                         Transport Strategy                        #
+    #                         Transport Strategy                   #
     #                                                              #
     ################################################################
     class MyTransportStrategy(TransportStrategyBehaviour):
@@ -931,7 +908,7 @@ are using ``my_strategy_file.py``) and develop the strategies to be tested follo
 
     ################################################################
     #                                                              #
-    #                       Customer Strategy                     #
+    #                       Customer Strategy                      #
     #                                                              #
     ################################################################
     class MyCustomerStrategy(CustomerStrategyBehaviour):

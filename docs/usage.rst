@@ -8,9 +8,44 @@ Usage
 =====
 
 Using SimFleet is as easy as running the application in a command line. There are two use modes: a command-line
-interface and a graphical web-based view. You can run simulations using only the command line or using the more easy and
-intuitive graphical user interface. Running SimFleet without your own developed coordination strategies is posible
+interface and a graphical web-based view. You can run simulations using only the command line or using the easier and
+intuitive graphical user interface. Running SimFleet without your own developed strategies is posible
 since the application comes with a set of default strategies. Let's explore how to use both user interfaces.
+
+SimFleet entities summary
+=========================
+
+In SimFleet there are three types of agent that interact among them during simulations. These are the Fleet Manager
+agent, the Transport agent, and the Customer agent.
+
+Description of the Customer Agents
+----------------------------------
+
+The Customer agents represent people that need to go from one location of the city (their "current location") to
+another (their "destination") or packages that need to be moved from an origin to a destination.
+For doing so, each Customer agent requests a single
+transport service and, once it is transported to its destination, it reaches its final state and ends its execution.
+
+Description of the Transport Agent
+----------------------------------
+
+The Transport agents represent vehicles which can transport Customer agents from their current positions to their respective
+destinations.
+
+Description of the FleetManager Agent
+-------------------------------------
+
+The FleetManager Agent is responsible for putting in contact the Customer agents that need a transport service, and the Transport
+agents that may be available to offer these services. In short, the FleetManager Agent acts like a transport call center, accepting
+the incoming requests from customers (Customer agents) and forwarding these requests to the (appropriate) Transport agents.
+In order to do so, the FleetManager has a registration protocol by which Transport agents subscribe to the Fleet Manager
+that represents their fleet. This is automatically done when a Transport agent is started.
+
+In the context of SimFleet, a "transport service" involves, once a particular Customer and Transport agents have reached
+an agreement, the movement of the Transport agent from its current position to the Customer's position in
+order to pick the Customer up, and then the transportation of the Customer agent to its destination.
+
+
 
 Command-line interface
 ======================
@@ -29,75 +64,75 @@ the simulations are printed.
 .. code-block:: console
 
     $ simfleet --config myconfig.json
-2019-10-18 16:24:07.049 | INFO     | simfleet.config:load_config:75 - Reading config myconfig.json
-2019-10-18 16:24:07.062 | INFO     | simfleet.simulator:__init__:71 - Starting SimFleet (SimFleet)
-2019-10-18 16:24:07.064 | INFO     | simfleet.simulator:load_icons:172 - Reading icons
-2019-10-18 16:24:07.158 | INFO     | simfleet.directory:setup:40 - Directory agent running
-2019-10-18 16:24:07.159 | INFO     | simfleet.simulator:__init__:91 - Creating 0 managers, 0 transports, 0 customers and 0 stations.
-2019-10-18 16:24:07.159 | INFO     | simfleet.simulator:load_scenario:116 - Loading scenario...
-2019-10-18 16:24:07.162 | INFO     | simfleet.route:setup:28 - Route agent running
-2019-10-18 16:24:07.162 | WARNING  | simfleet.route:load_cache:74 - Could not load cache file.
-2019-10-18 16:24:07.226 | INFO     | simfleet.simulator:setup:97 - Simulator agent running
-2019-10-18 16:24:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
+    1970-01-01 16:24:07.049 | INFO     | simfleet.config:load_config:75 - Reading config myconfig.json
+    1970-01-01 16:24:07.062 | INFO     | simfleet.simulator:__init__:71 - Starting SimFleet (SimFleet)
+    1970-01-01 16:24:07.064 | INFO     | simfleet.simulator:load_icons:172 - Reading icons
+    1970-01-01 16:24:07.158 | INFO     | simfleet.directory:setup:40 - Directory agent running
+    1970-01-01 16:24:07.159 | INFO     | simfleet.simulator:__init__:91 - Creating 0 managers, 0 transports, 0 customers and 0 stations.
+    1970-01-01 16:24:07.159 | INFO     | simfleet.simulator:load_scenario:116 - Loading scenario...
+    1970-01-01 16:24:07.162 | INFO     | simfleet.route:setup:28 - Route agent running
+    1970-01-01 16:24:07.162 | WARNING  | simfleet.route:load_cache:74 - Could not load cache file.
+    1970-01-01 16:24:07.226 | INFO     | simfleet.simulator:setup:97 - Simulator agent running
+    1970-01-01 16:24:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
 
-^C
+    ^C
 
-2019-10-18 16:24:21.292 | INFO     | simfleet.simulator:stop:258 -
-Terminating... (0.0 seconds elapsed)
-Simulation Results
-╒═══════════════════╤════════════════════╤══════════════════╤═══════════════════╤════════════╤═══════════════════════╕
-│ Simulation Name   │   Avg Waiting Time │   Avg Total Time │   Simulation Time │   Max Time │ Simulation Finished   │
-╞═══════════════════╪════════════════════╪══════════════════╪═══════════════════╪════════════╪═══════════════════════╡
-│ SimFleet          │                  0 │                0 │                 0 │       1000 │ False                 │
-╘═══════════════════╧════════════════════╧══════════════════╧═══════════════════╧════════════╧═══════════════════════╛
-Fleet Manager stats
-╒══════════════╤═══════════════════════╤════════╕
-│ fleet_name   │ transports_in_fleet   │ type   │
-╞══════════════╪═══════════════════════╪════════╡
-╘══════════════╧═══════════════════════╧════════╛
-Customer stats
-╒════════╤════════════════╤══════════════╤══════════╕
-│ name   │ waiting_time   │ total_time   │ status   │
-╞════════╪════════════════╪══════════════╪══════════╡
-╘════════╧════════════════╧══════════════╧══════════╛
-Transport stats
-╒════════╤═══════════════╤════════════╤══════════╕
-│ name   │ assignments   │ distance   │ status   │
-╞════════╪═══════════════╪════════════╪══════════╡
-╘════════╧═══════════════╧════════════╧══════════╛
-Station stats
-╒════════╤══════════╤════════════════════╤═════════╕
-│ name   │ status   │ available_places   │ power   │
-╞════════╪══════════╪════════════════════╪═════════╡
-╘════════╧══════════╧════════════════════╧═════════╛
-2019-10-18 16:24:21.360 | INFO     | simfleet.simulator:stop:258 -
-Terminating... (0.0 seconds elapsed)
-Simulation Results
-╒═══════════════════╤════════════════════╤══════════════════╤═══════════════════╤════════════╤═══════════════════════╕
-│ Simulation Name   │   Avg Waiting Time │   Avg Total Time │   Simulation Time │   Max Time │ Simulation Finished   │
-╞═══════════════════╪════════════════════╪══════════════════╪═══════════════════╪════════════╪═══════════════════════╡
-│ SimFleet          │                  0 │                0 │                 0 │       1000 │ False                 │
-╘═══════════════════╧════════════════════╧══════════════════╧═══════════════════╧════════════╧═══════════════════════╛
-Manager stats
-╒══════════════╤═══════════════════════╤════════╕
-│ fleet_name   │ transports_in_fleet   │ type   │
-╞══════════════╪═══════════════════════╪════════╡
-╘══════════════╧═══════════════════════╧════════╛
-Customer stats
-╒════════╤════════════════╤══════════════╤══════════╕
-│ name   │ waiting_time   │ total_time   │ status   │
-╞════════╪════════════════╪══════════════╪══════════╡
-╘════════╧════════════════╧══════════════╧══════════╛
-Transport stats
-╒════════╤═══════════════╤════════════╤══════════╕
-│ name   │ assignments   │ distance   │ status   │
-╞════════╪═══════════════╪════════════╪══════════╡
-╘════════╧═══════════════╧════════════╧══════════╛
-Station stats
-╒════════╤══════════╤════════════════════╤═════════╕
-│ name   │ status   │ available_places   │ power   │
-╞════════╪══════════╪════════════════════╪═════════╡
-╘════════╧══════════╧════════════════════╧═════════╛
+    1970-01-01 16:24:21.292 | INFO     | simfleet.simulator:stop:258 -
+    Terminating... (0.0 seconds elapsed)
+    Simulation Results
+    ╒═══════════════════╤════════════════════╤══════════════════╤═══════════════════╤════════════╤═══════════════════════╕
+    │ Simulation Name   │   Avg Waiting Time │   Avg Total Time │   Simulation Time │   Max Time │ Simulation Finished   │
+    ╞═══════════════════╪════════════════════╪══════════════════╪═══════════════════╪════════════╪═══════════════════════╡
+    │ SimFleet          │                  0 │                0 │                 0 │       1000 │ False                 │
+    ╘═══════════════════╧════════════════════╧══════════════════╧═══════════════════╧════════════╧═══════════════════════╛
+    Fleet Manager stats
+    ╒══════════════╤═══════════════════════╤════════╕
+    │ fleet_name   │ transports_in_fleet   │ type   │
+    ╞══════════════╪═══════════════════════╪════════╡
+    ╘══════════════╧═══════════════════════╧════════╛
+    Customer stats
+    ╒════════╤════════════════╤══════════════╤══════════╕
+    │ name   │ waiting_time   │ total_time   │ status   │
+    ╞════════╪════════════════╪══════════════╪══════════╡
+    ╘════════╧════════════════╧══════════════╧══════════╛
+    Transport stats
+    ╒════════╤═══════════════╤════════════╤══════════╕
+    │ name   │ assignments   │ distance   │ status   │
+    ╞════════╪═══════════════╪════════════╪══════════╡
+    ╘════════╧═══════════════╧════════════╧══════════╛
+    Station stats
+    ╒════════╤══════════╤════════════════════╤═════════╕
+    │ name   │ status   │ available_places   │ power   │
+    ╞════════╪══════════╪════════════════════╪═════════╡
+    ╘════════╧══════════╧════════════════════╧═════════╛
+    1970-01-01 16:24:21.360 | INFO     | simfleet.simulator:stop:258 -
+    Terminating... (0.0 seconds elapsed)
+    Simulation Results
+    ╒═══════════════════╤════════════════════╤══════════════════╤═══════════════════╤════════════╤═══════════════════════╕
+    │ Simulation Name   │   Avg Waiting Time │   Avg Total Time │   Simulation Time │   Max Time │ Simulation Finished   │
+    ╞═══════════════════╪════════════════════╪══════════════════╪═══════════════════╪════════════╪═══════════════════════╡
+    │ SimFleet          │                  0 │                0 │                 0 │       1000 │ False                 │
+    ╘═══════════════════╧════════════════════╧══════════════════╧═══════════════════╧════════════╧═══════════════════════╛
+    Manager stats
+    ╒══════════════╤═══════════════════════╤════════╕
+    │ fleet_name   │ transports_in_fleet   │ type   │
+    ╞══════════════╪═══════════════════════╪════════╡
+    ╘══════════════╧═══════════════════════╧════════╛
+    Customer stats
+    ╒════════╤════════════════╤══════════════╤══════════╕
+    │ name   │ waiting_time   │ total_time   │ status   │
+    ╞════════╪════════════════╪══════════════╪══════════╡
+    ╘════════╧════════════════╧══════════════╧══════════╛
+    Transport stats
+    ╒════════╤═══════════════╤════════════╤══════════╕
+    │ name   │ assignments   │ distance   │ status   │
+    ╞════════╪═══════════════╪════════════╪══════════╡
+    ╘════════╧═══════════════╧════════════╧══════════╛
+    Station stats
+    ╒════════╤══════════╤════════════════════╤═════════╕
+    │ name   │ status   │ available_places   │ power   │
+    ╞════════╪══════════╪════════════════════╪═════════╡
+    ╘════════╧══════════╧════════════════════╧═════════╛
 
 However, if you don't use some options when running the simulator there will be no default transports nor customers. That's
 why stats are empty. To run a simulation with some parameters you must fill a configuration file where the simulation scenario
@@ -153,6 +188,8 @@ to load the same information repeatedly. A scenario file must be coded in JSON f
 The most important fields that the scenario file must include are a customers list and a transports list. Each customer must include the
 following fields:
 
++--------------------------------------------------------------------------------------+
+|  Customers                                                                           |
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
@@ -173,6 +210,8 @@ following fields:
 
 For transports the fields are as follows:
 
++---------------------------------------------------------------------------------------------+
+|  Transports                                                                                 |
 +------------------+--------------------------------------------------------------------------+
 |  Field           |  Description                                                             |
 +==================+==========================================================================+
@@ -199,6 +238,8 @@ For transports the fields are as follows:
 
 For fleet managers the fields are as follows:
 
++--------------------------------------------------------------------------------------+
+|  Fleet managers                                                                      |
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
@@ -280,7 +321,6 @@ An example of a config file with two customers, two transports and one fleet man
         "transport_strategy": "simfleet.strategies.AcceptAlwaysStrategyBehaviour",
         "customer_strategy": "simfleet.strategies.AcceptFirstRequestBehaviour",
         "fleetmanager_strategy": "simfleet.strategies.DelegateRequestBehaviour",
-        "directory_strategy": "simfleet.directory.DirectoryStrategyBehaviour",
         "station_strategy": "simfleet.station.StationStrategyBehaviour",
         "route_name": "route",
         "route_password": "route_passwd",
@@ -289,10 +329,13 @@ An example of a config file with two customers, two transports and one fleet man
         "host": "localhost",
         "xmpp_port": 5222,
         "http_port": 9000,
-        "http_ip": "127.0.0.1"
+        "http_ip": "127.0.0.1",
+        "coords": [40.4167754, -3.7037902],
+        "zoom": 14
     }
 
-
+The rest of configuration parameters are referred to general settings of the simulator such as ``coords`` and ``zoom``
+which allows the user to set up the coordinates and zoom of the city where the simulation is run.
 
 
 Saving the simulation results
@@ -316,11 +359,11 @@ accessed via any web browser and is designed as a viewer for your running simula
 To open it just visit the address shown on the screen when you run the simulator and access that website.
 
 .. hint::
-    The Simulator agent is who raises the GUI and shows the address in the debug:
+    The Simulator agent is who raises the GUI and shows the address in the console output:
 
     .. code-block:: console
 
-        2019-10-18 16:24:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
+        1970-01-01 16:24:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
 
     This address is (in most cases): `http://127.0.0.1:9000/app <http://127.0.0.1:9000/app>`_
 
@@ -354,7 +397,7 @@ destinations.
     Simulation in progress
 
 Notice that when a transport picks up a customer, the customer's icon disappears from the map view (since it
-is inside the transport) and is no longer viewed (it's also not shown when it arrives to its desination). However, you can
+is inside the transport) and is no longer viewed (it's also not shown when it arrives to its destination). However, you can
 check at any time your customers status in the tree view of the Control Panel.
 
 The code colors in the tree view indicate the status of a transport or a customer. The legend of colors is as follows:
@@ -394,8 +437,8 @@ The code colors in the tree view indicate the status of a transport or a custome
     Every time than a bullet is pulsing means that the agent is moving.
 
 
-When a transport is moving it's also shown in the GUI the path that the transport is folowing. The color of the path indicates the
-type of movement than the transport is doing. A yellow path indicates that the transport is going to pick up the customer.
+When a transport is moving it's also shown in the GUI the path that the transport is following. The color of the path indicates the
+type of movement that the transport is doing. A yellow path indicates that the transport is going to pick up the customer.
 On the other hand, a blue path indicates that the transport is taking the customer to his destination.
 
 

@@ -28,7 +28,7 @@ test_requirements = parse_requirements("requirements_dev.txt")
 
 setup(
     name='simfleet',
-    version='0.4.1',
+    version='1.0.0',
     description="Agent-based fleet simulator to test strategies",
     long_description=readme + '\n\n' + history,
     author="Javi Palanca",

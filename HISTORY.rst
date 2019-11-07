@@ -2,6 +2,15 @@
 History
 =======
 
+1.0.1 (2019-11-07)
+------------------
+
+* SPADE and pandas version upgraded.
+* Stop simulation fixed.
+* Aesthetic changes.
+* Minor bug fixes.
+* Updated documentation.
+
 1.0.0 (2019-11-05)
 ------------------
 

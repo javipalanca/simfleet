@@ -1,5 +1,6 @@
 import json
 import time
+from asyncio import CancelledError
 
 from loguru import logger
 from spade.agent import Agent
@@ -231,10 +232,10 @@ class CustomerAgent(Agent):
         t = self.get_waiting_time()
         return {
             "id": self.agent_id,
-            "position": self.current_pos,
-            "dest": self.dest,
+            "position": [float("{0:.6f}".format(coord)) for coord in self.current_pos],
+            "dest": [float("{0:.6f}".format(coord)) for coord in self.dest],
             "status": self.status,
-            "transport": self.transport_assigned,
+            "transport": self.transport_assigned.split("@")[0] if self.transport_assigned else None,
             "waiting": float("{0:.2f}".format(t)) if t else None,
             "icon": self.icon
         }
@@ -277,6 +278,8 @@ class TravelBehaviour(CyclicBehaviour):
                 elif status == CUSTOMER_LOCATION:
                     coords = content["location"]
                     self.agent.set_position(coords)
+        except CancelledError:
+            logger.debug("Cancelling async tasks...")
         except Exception as e:
             logger.error("EXCEPTION in Travel Behaviour of Customer {}: {}".format(self.agent.name, e))
 

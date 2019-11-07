@@ -1,38 +1,38 @@
 <template>
     <ul id="treeview-ul" class="list-group" style="list-style-type: none;">
       <li>
-          <div class=" bold list-group-item" @click="toggleTaxi">
+          <div class=" bold list-group-item" @click="toggleTransport">
             <span class="icon expand-icon glyphicon"
-                    :class="{'glyphicon-chevron-down': openTaxi, 'glyphicon-chevron-right': !openTaxi}">
+                    :class="{'glyphicon-chevron-down': openTransport, 'glyphicon-chevron-right': !openTransport}">
             </span>
-              Taxis
+              Transports
             <span class="badge">{{transports.length}}</span>
           </div>
       </li>
 
-      <li v-for="o in transports" v-show="openTaxi">
-          <div class="list-group-item" v-tooltip.top="{content: status2str(o.status), delay:100}">
-              <span  class="fa fa-taxi" ></span>  {{ o.id }}
-              <status-indicator positive v-if="o.status == 'TRANSPORT_WAITING'"></status-indicator>
-              <status-indicator intermediary v-else-if="o.status == 'TRANSPORT_WAITING_FOR_APPROVAL'"></status-indicator>
-              <status-indicator intermediary pulse v-else-if="o.status == 'TRANSPORT_MOVING_TO_CUSTOMER'"></status-indicator>
-              <status-indicator active pulse v-else-if="o.status == 'TRANSPORT_MOVING_TO_DESTINATION'"></status-indicator>
+      <li v-for="transport in transports" v-show="openTransport">
+          <div class="list-group-item" v-tooltip.top="{content: status2str(transport.status), delay:100}">
+              <img v-bind:src="transport.icon_url" height="20px"/>  {{transport.id}}
+              <status-indicator positive v-if="transport.status == 'TRANSPORT_WAITING'"></status-indicator>
+              <status-indicator intermediary v-else-if="transport.status == 'TRANSPORT_WAITING_FOR_APPROVAL'"></status-indicator>
+              <status-indicator intermediary pulse v-else-if="transport.status == 'TRANSPORT_MOVING_TO_CUSTOMER'"></status-indicator>
+              <status-indicator active pulse v-else-if="transport.status == 'TRANSPORT_MOVING_TO_DESTINATION'"></status-indicator>
           </div>
       </li>
 
       <li>
-          <div class=" bold list-group-item" @click="togglePass">
+          <div class=" bold list-group-item" @click="toggleCustomer">
             <span class="icon expand-icon glyphicon"
-                    :class="{'glyphicon-chevron-down': openPass, 'glyphicon-chevron-right': !openPass}">
+                    :class="{'glyphicon-chevron-down': openCustomer, 'glyphicon-chevron-right': !openCustomer}">
             </span>
-              Passengers
+              Customers
             <span class="badge">{{customers.length}}</span>
           </div>
       </li>
 
-      <li v-for="customer in customers" v-show="openPass">
+      <li v-for="customer in customers" v-show="openCustomer">
           <div class="list-group-item" v-tooltip.top="{content: status2str(customer.status), delay:100}">
-              <span  class="fa fa-user" ></span>  {{customer.id}}
+              <img v-bind:src="customer.icon_url" height="20px"/>  {{customer.id}}
               <status-indicator v-if="customer.status == 'CUSTOMER_WAITING'"></status-indicator>
               <status-indicator intermediary v-else-if="customer.status == 'CUSTOMER_ASSIGNED'"></status-indicator>
               <status-indicator active pulse v-else-if="customer.status == 'CUSTOMER_IN_TRANSPORT'"></status-indicator>
@@ -57,8 +57,8 @@
         data: function () {
             return {
               open: true,
-              openTaxi: true,
-              openPass: true
+              openTransport: true,
+              openCustomer: true
             }
         },
         computed: {
@@ -72,11 +72,11 @@
                 this.open = !this.open
               }
             },
-            toggleTaxi: function () {
-                this.openTaxi = !this.openTaxi
+            toggleTransport: function () {
+                this.openTransport = !this.openTransport
             },
-            togglePass: function () {
-                this.openPass = !this.openPass
+            toggleCustomer: function () {
+                this.openCustomer = !this.openCustomer
             },
             status2str: function(status) {
                 switch(status){
@@ -107,8 +107,6 @@
   font-weight: bold;
 }
 ul {
-  /*padding-left: 1em;
-  line-height: 1.5em;*/
   -webkit-padding-start: 0;
   list-style-type: none;
 }

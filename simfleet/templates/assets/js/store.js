@@ -90,11 +90,13 @@ let update_item_in_collection = function (collection, item, get_popup) {
         item.latlng = L.latLng(item.position[0], item.position[1]);
         item.popup = get_popup(item);
         item.visible = true;
+        item.icon_url = item.icon;
         if(item.icon) {
             item.icon = L.icon({iconUrl: item.icon, iconSize: [38, 55]});
         }
         else {
-            item.icon = L.icon({iconUrl: 'assets/img/ban.png', iconSize: [38, 55]});
+            item.icon = L.icon({iconUrl: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+                iconSize: [38, 55]});
         }
         collection.push(item)
     }
@@ -103,11 +105,9 @@ let update_item_in_collection = function (collection, item, get_popup) {
         collection[p].popup = get_popup(item);
         collection[p].speed = item.speed;
         collection[p].status = item.status;
+        collection[p].icon_url = item.icon;
         if(item.icon) {
-            item.icon = L.icon({iconUrl: item.icon, iconSize: [38, 55]});
-        }
-        else {
-            item.icon = L.icon({iconUrl: 'assets/img/ban.png', iconSize: [38, 55]});
+            collection[p].icon = L.icon({iconUrl: item.icon, iconSize: [38, 55]});
         }
         collection[p].visible = item.status !== "CUSTOMER_IN_TRANSPORT" &&
                                 item.status !== "CUSTOMER_IN_DEST" &&
@@ -122,11 +122,9 @@ let update_station_in_collection = function (collection, item, get_popup) {
         item.latlng = L.latLng(item.position[0], item.position[1]);
         item.popup = get_popup(item);
         item.visible = true;
+        item.icon_url = item.icon;
         if(item.icon) {
             item.icon = L.icon({iconUrl: item.icon, iconSize: [38, 55]});
-        }
-        else {
-            item.icon = L.icon({iconUrl: 'assets/img/ban.png', iconSize: [38, 55]});
         }
         collection.push(item)
     }
@@ -135,11 +133,9 @@ let update_station_in_collection = function (collection, item, get_popup) {
         collection[p].power = item.power;
         collection[p].places = item.places;
         collection[p].status = item.status;
+        item.icon_url = item.icon;
         if(item.icon) {
             item.icon = L.icon({iconUrl: item.icon, iconSize: [38, 55]});
-        }
-        else {
-            item.icon = L.icon({iconUrl: 'assets/img/ban.png', iconSize: [38, 55]});
         }
     }
 };

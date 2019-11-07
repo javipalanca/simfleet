@@ -64,75 +64,75 @@ the simulations are printed.
 .. code-block:: console
 
     $ simfleet --config myconfig.json
-    1970-01-01 16:24:07.049 | INFO     | simfleet.config:load_config:75 - Reading config myconfig.json
-    1970-01-01 16:24:07.062 | INFO     | simfleet.simulator:__init__:71 - Starting SimFleet (SimFleet)
-    1970-01-01 16:24:07.064 | INFO     | simfleet.simulator:load_icons:172 - Reading icons
-    1970-01-01 16:24:07.158 | INFO     | simfleet.directory:setup:40 - Directory agent running
-    1970-01-01 16:24:07.159 | INFO     | simfleet.simulator:__init__:91 - Creating 0 managers, 0 transports, 0 customers and 0 stations.
-    1970-01-01 16:24:07.159 | INFO     | simfleet.simulator:load_scenario:116 - Loading scenario...
-    1970-01-01 16:24:07.162 | INFO     | simfleet.route:setup:28 - Route agent running
-    1970-01-01 16:24:07.162 | WARNING  | simfleet.route:load_cache:74 - Could not load cache file.
-    1970-01-01 16:24:07.226 | INFO     | simfleet.simulator:setup:97 - Simulator agent running
-    1970-01-01 16:24:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
+    2015-10-21 16:29:07.049 | INFO     | simfleet.config:load_config:75 - Reading config myconfig.json
+    2015-10-21 16:29:07.062 | INFO     | simfleet.simulator:__init__:71 - Starting SimFleet (SimFleet)
+    2015-10-21 16:29:07.064 | INFO     | simfleet.simulator:load_icons:172 - Reading icons
+    2015-10-21 16:29:07.158 | INFO     | simfleet.directory:setup:40 - Directory agent running
+    2015-10-21 16:29:07.159 | INFO     | simfleet.simulator:__init__:91 - Creating 0 managers, 0 transports, 0 customers and 0 stations.
+    2015-10-21 16:29:07.159 | INFO     | simfleet.simulator:load_scenario:116 - Loading scenario...
+    2015-10-21 16:29:07.162 | INFO     | simfleet.route:setup:28 - Route agent running
+    2015-10-21 16:29:07.162 | WARNING  | simfleet.route:load_cache:74 - Could not load cache file.
+    2015-10-21 16:29:07.226 | INFO     | simfleet.simulator:setup:97 - Simulator agent running
+    2015-10-21 16:29:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
 
     ^C
 
-    1970-01-01 16:24:21.292 | INFO     | simfleet.simulator:stop:258 -
+    2015-10-21 16:29:21.292 | INFO     | simfleet.simulator:stop:258 -
     Terminating... (0.0 seconds elapsed)
     Simulation Results
-    ╒═══════════════════╤════════════════════╤══════════════════╤═══════════════════╤════════════╤═══════════════════════╕
-    │ Simulation Name   │   Avg Waiting Time │   Avg Total Time │   Simulation Time │   Max Time │ Simulation Finished   │
-    ╞═══════════════════╪════════════════════╪══════════════════╪═══════════════════╪════════════╪═══════════════════════╡
-    │ SimFleet          │                  0 │                0 │                 0 │       1000 │ False                 │
-    ╘═══════════════════╧════════════════════╧══════════════════╧═══════════════════╧════════════╧═══════════════════════╛
+    +===================+====================+==================+===================+============+=======================+
+    | Simulation Name   |   Avg Waiting Time |   Avg Total Time |   Simulation Time |   Max Time | Simulation Finished   |
+    +===================+====================+==================+===================+============+=======================╡
+    | SimFleet          |                  0 |                0 |                 0 |       1000 | False                 |
+    +===================+====================+==================+===================+============+=======================+
     Fleet Manager stats
-    ╒══════════════╤═══════════════════════╤════════╕
-    │ fleet_name   │ transports_in_fleet   │ type   │
-    ╞══════════════╪═══════════════════════╪════════╡
-    ╘══════════════╧═══════════════════════╧════════╛
+    +==============+=======================+========+
+    | fleet_name   | transports_in_fleet   | type   |
+    +==============+=======================+========╡
+    +==============+=======================+========+
     Customer stats
-    ╒════════╤════════════════╤══════════════╤══════════╕
-    │ name   │ waiting_time   │ total_time   │ status   │
-    ╞════════╪════════════════╪══════════════╪══════════╡
-    ╘════════╧════════════════╧══════════════╧══════════╛
+    +========+================+==============+==========+
+    | name   | waiting_time   | total_time   | status   |
+    +========+================+==============+==========╡
+    +========+================+==============+==========+
     Transport stats
-    ╒════════╤═══════════════╤════════════╤══════════╕
-    │ name   │ assignments   │ distance   │ status   │
-    ╞════════╪═══════════════╪════════════╪══════════╡
-    ╘════════╧═══════════════╧════════════╧══════════╛
+    +========+===============+============+==========+
+    | name   | assignments   | distance   | status   |
+    +========+===============+============+==========╡
+    +========+===============+============+==========+
     Station stats
-    ╒════════╤══════════╤════════════════════╤═════════╕
-    │ name   │ status   │ available_places   │ power   │
-    ╞════════╪══════════╪════════════════════╪═════════╡
-    ╘════════╧══════════╧════════════════════╧═════════╛
-    1970-01-01 16:24:21.360 | INFO     | simfleet.simulator:stop:258 -
+    +========+==========+====================+=========+
+    | name   | status   | available_places   | power   |
+    +========+==========+====================+=========╡
+    +========+==========+====================+=========+
+    2015-10-21 16:29:21.360 | INFO     | simfleet.simulator:stop:258 -
     Terminating... (0.0 seconds elapsed)
     Simulation Results
-    ╒═══════════════════╤════════════════════╤══════════════════╤═══════════════════╤════════════╤═══════════════════════╕
-    │ Simulation Name   │   Avg Waiting Time │   Avg Total Time │   Simulation Time │   Max Time │ Simulation Finished   │
-    ╞═══════════════════╪════════════════════╪══════════════════╪═══════════════════╪════════════╪═══════════════════════╡
-    │ SimFleet          │                  0 │                0 │                 0 │       1000 │ False                 │
-    ╘═══════════════════╧════════════════════╧══════════════════╧═══════════════════╧════════════╧═══════════════════════╛
+    +===================+====================+==================+===================+============+=======================+
+    | Simulation Name   |   Avg Waiting Time |   Avg Total Time |   Simulation Time |   Max Time | Simulation Finished   |
+    +===================+====================+==================+===================+============+=======================╡
+    | SimFleet          |                  0 |                0 |                 0 |       1000 | False                 |
+    +===================+====================+==================+===================+============+=======================+
     Manager stats
-    ╒══════════════╤═══════════════════════╤════════╕
-    │ fleet_name   │ transports_in_fleet   │ type   │
-    ╞══════════════╪═══════════════════════╪════════╡
-    ╘══════════════╧═══════════════════════╧════════╛
+    +==============+=======================+========+
+    | fleet_name   | transports_in_fleet   | type   |
+    +==============+=======================+========╡
+    +==============+=======================+========+
     Customer stats
-    ╒════════╤════════════════╤══════════════╤══════════╕
-    │ name   │ waiting_time   │ total_time   │ status   │
-    ╞════════╪════════════════╪══════════════╪══════════╡
-    ╘════════╧════════════════╧══════════════╧══════════╛
+    +========+================+==============+==========+
+    | name   | waiting_time   | total_time   | status   |
+    +========+================+==============+==========╡
+    +========+================+==============+==========+
     Transport stats
-    ╒════════╤═══════════════╤════════════╤══════════╕
-    │ name   │ assignments   │ distance   │ status   │
-    ╞════════╪═══════════════╪════════════╪══════════╡
-    ╘════════╧═══════════════╧════════════╧══════════╛
+    +========+===============+============+==========+
+    | name   | assignments   | distance   | status   |
+    +========+===============+============+==========╡
+    +========+===============+============+==========+
     Station stats
-    ╒════════╤══════════╤════════════════════╤═════════╕
-    │ name   │ status   │ available_places   │ power   │
-    ╞════════╪══════════╪════════════════════╪═════════╡
-    ╘════════╧══════════╧════════════════════╧═════════╛
+    +========+==========+====================+=========+
+    | name   | status   | available_places   | power   |
+    +========+==========+====================+=========╡
+    +========+==========+====================+=========+
 
 However, if you don't use some options when running the simulator there will be no default transports nor customers. That's
 why stats are empty. To run a simulation with some parameters you must fill a configuration file where the simulation scenario
@@ -263,65 +263,120 @@ An example of a config file with two customers, two transports and one fleet man
     {
         "fleets": [
             {
-                "name": "fleet1",
                 "password": "secret",
-                "fleet_type": "taxi"
+                "name": "fleetm1",
+                "fleet_type": "drone"
+            },
+            {
+                "password": "secret",
+                "name": "fleetm3",
+                "fleet_type": "food_delivery"
+            },
+            {
+                "password": "secret",
+                "name": "fleetm2",
+                "fleet_type": "drone"
             }
         ],
         "transports": [
             {
                 "speed": 2000,
-                "fleet": "fleet1@localhost",
-                "fleet_type": "taxi",
-                "position": [39.462618, -0.364888],
+                "fleet": "fleetm1@localhost",
+                "fleet_type": "drone",
+                "position": [40.41192762537371, -3.7105464935302734],
                 "password": "secret",
-                "name": "transport1",
-                "autonomy": 4
+                "name": "drone1"
             },
             {
                 "speed": 2000,
-                "fleet": "fleet2@localhost",
-                "fleet_type": "taxi",
-                "position": [39.463554, -0.403929],
+                "fleet": "fleetm1@localhost",
+                "fleet_type": "drone",
+                "position": [40.428655600133546,-3.6993885040283203],
                 "password": "secret",
-                "name": "transport2",
-                "autonomy": 400,
-                "current_autonomy": 50
+                "name": "drone2"
+            },
+            {
+                "speed": 2000,
+                "fleet": "fleetm2@localhost",
+                "fleet_type": "drone",
+                "position": [40.446424515534666, -3.6612796783447266],
+                "password": "secret",
+                "name": "drone3"
+            },
+            {
+                "speed": 2000,
+                "fleet": "fleetm3@localhost",
+                "fleet_type": "food_delivery",
+                "position": [40.44635919724081,-3.69140625],
+                "password": "secret",
+                "name": "bike1"
+            },
+            {
+                "speed": 2000,
+                "fleet": "fleetm3@localhost",
+                "fleet_type": "food_delivery",
+                "position": [40.42035747630869,-3.665142059326172],
+                "password": "secret",
+                "name": "bike2"
             }
         ],
         "customers": [
             {
-                "destination": [39.466394, -0.324807],
-                "position": [39.501382, -0.418753],
+                "destination": [40.446163241978304,-3.7075424194335938],
+                "position": [40.45171508652634,-3.677501678466797],
                 "password": "secret",
-                "name": "customer1",
-                "fleet_type": "taxi"
+                "name": "c1",
+                "fleet_type": "drone"
             },
             {
-                "destination": [39.46709, -0.391201],
-                "position": [39.460568, -0.352529],
+                "destination": [40.4068299938421,-3.670291900634765],
+                "position": [40.43087697137461,-3.716297149658203],
                 "password": "secret",
-                "name": "customer2",
-                "fleet_type": "taxi"
+                "name": "c2",
+                "fleet_type": "drone"
+            },
+            {
+                "destination": [40.43002763221108,-3.6797332763671875],
+                "position": [40.45759301026131,-3.664026260375976],
+                "password": "secret",
+                "name": "c3",
+                "fleet_type": "drone"
+            },
+            {
+                "destination": [40.45785423938172,-3.711318969726563],
+                "position": [40.440088345478614,-3.680849075317383],
+                "password": "secret",
+                "name": "f1",
+                "fleet_type": "food_delivery"
+            },
+            {
+                "destination": [40.458572614225545,-3.680419921875],
+                "position": [40.409770982232956,-3.6928653717041016],
+                "password": "secret",
+                "name": "f2",
+                "fleet_type": "food_delivery"
             }
         ],
         "stations": [
             {
                 "name": "station1",
                 "password": "secret",
-                "position": [39.463356, -0.376463],
+                "position": [40.424559,-3.7002277],
                 "places": 2,
                 "power": 50,
                 "icon": "gas_station"
             }
         ],
-        "simulation_name": "My Config",
+        "simulation_name": "Example Config",
         "max_time": 1000,
-        "verbose": 4,
+        "verbose": 1,
         "transport_strategy": "simfleet.strategies.AcceptAlwaysStrategyBehaviour",
         "customer_strategy": "simfleet.strategies.AcceptFirstRequestBehaviour",
         "fleetmanager_strategy": "simfleet.strategies.DelegateRequestBehaviour",
+        "directory_strategy": "simfleet.directory.DirectoryStrategyBehaviour",
         "station_strategy": "simfleet.station.StationStrategyBehaviour",
+        "fleetmanager_name": "fleetmanager",
+        "fleetmanager_password": "fleetmanager_passwd",
         "route_name": "route",
         "route_password": "route_passwd",
         "directory_name": "directory",
@@ -363,7 +418,7 @@ To open it just visit the address shown on the screen when you run the simulator
 
     .. code-block:: console
 
-        1970-01-01 16:24:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
+        2015-10-21 16:29:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
 
     This address is (in most cases): `http://127.0.0.1:9000/app <http://127.0.0.1:9000/app>`_
 

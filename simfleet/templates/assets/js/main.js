@@ -28,11 +28,11 @@ new Vue({
         }
     },
     mounted() {
-       this.init();
-       this.loadEntities();
-       setInterval(function () {
+        this.init();
+        this.loadEntities();
+        setInterval(function () {
             this.loadEntities();
-       }.bind(this), 100);
+        }.bind(this), 100);
     },
     methods: {
         init: function () {
@@ -41,7 +41,7 @@ new Vue({
                     this.center = data.data.coords;
                     this.zoom = data.data.zoom;
                 });
-            },
+        },
         loadEntities: function () {
             axios.get("/entities")
                 .then(data => {
@@ -52,7 +52,8 @@ new Vue({
                     this.$store.state.total_time = data.data.stats.totaltime;
                     this.$store.commit('update_simulation_status', data.data.stats);
                     this.$store.commit("update_tree", data.data.tree);
-                }).catch(error => {});
+                }).catch(error => {
+            });
         },
         set_speed: function (event, item) {
             event.target._icon.style[L.DomUtil.TRANSITION] = ('all ' + item.speed + 'ms linear');
@@ -62,10 +63,10 @@ new Vue({
         }
     },
     computed: {
-        transports()  {
+        transports() {
             return this.$store.getters.get_transports;
         },
-        customers()  {
+        customers() {
             return this.$store.getters.get_customers;
         },
         stations() {

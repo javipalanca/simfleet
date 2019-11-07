@@ -62,7 +62,7 @@ def main(name, output, oformat, max_time, autorun, config, verbose):
         except KeyboardInterrupt:
             break
 
-    simulator.stop()
+    simulator.stop().result()
     if output:
         simulator.write_file(output, oformat)
 

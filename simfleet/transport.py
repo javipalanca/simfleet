@@ -1,4 +1,5 @@
 import json
+from asyncio import CancelledError
 from collections import defaultdict
 
 from loguru import logger
@@ -56,8 +57,8 @@ class TransportAgent(Agent):
 
         self.request = "station"
         self.stations = None
-        self.current_autonomy_km = 20
-        self.max_autonomy_km = 20
+        self.current_autonomy_km = 2000
+        self.max_autonomy_km = 2000
         self.num_charges = 0
         self.set("current_station", None)
         self.current_station_dest = None
@@ -110,7 +111,7 @@ class TransportAgent(Agent):
         Sets the strategy for the transport agent.
 
         Args:
-            strategy_class (``TaxiStrategyBehaviour``): The class to be used. Must inherit from ``TaxiStrategyBehaviour``
+            strategy_class (``TransportStrategyBehaviour``): The class to be used. Must inherit from ``TransportStrategyBehaviour``
         """
         if not self.running_strategy:
             template1 = Template()
@@ -459,18 +460,18 @@ class TransportAgent(Agent):
         """
         return {
             "id": self.agent_id,
-            "position": self.get("current_pos"),
-            "dest": self.dest,
+            "position": [float("{0:.6f}".format(coord)) for coord in self.get("current_pos")],
+            "dest": [float("{0:.6f}".format(coord)) for coord in self.dest] if self.dest else None,
             "status": self.status,
             "speed": float("{0:.2f}".format(self.animation_speed)) if self.animation_speed else None,
             "path": self.get("path"),
-            "customer": self.get("current_customer") if self.get("current_customer") else None,
+            "customer": self.get("current_customer").split("@")[0] if self.get("current_customer") else None,
             "assignments": self.num_assignments,
             "distance": "{0:.2f}".format(sum(self.distances)),
             "autonomy": self.current_autonomy_km,
             "max_autonomy": self.max_autonomy_km,
             "service": self.fleet_type,
-            "fleet": self.fleetmanager_id,
+            "fleet": self.fleetmanager_id.split("@")[0],
             "icon": self.icon
         }
 
@@ -528,6 +529,8 @@ class RegistrationBehaviour(CyclicBehaviour):
                 elif performative == REFUSE_PERFORMATIVE:
                     logger.warning("Registration in the fleet manager was rejected (check fleet type).")
                     self.kill(exit_code="Fleet Registration Rejected")
+        except CancelledError:
+            logger.debug("Cancelling async tasks...")
         except Exception as e:
             logger.error("EXCEPTION in RegisterBehaviour of Transport {}: {}".format(self.agent.name, e))
 

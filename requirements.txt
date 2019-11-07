@@ -1,7 +1,7 @@
 Click>=6.0
 Jinja2==2.10.1
-spade>=3.0.9
-pandas==0.22.0
+spade>=3.1.4
+pandas>=0.25.3
 tabulate==0.8.2
 openpyxl==2.4.9
 urllib3==1.22

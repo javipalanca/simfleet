@@ -1,3 +1,4 @@
+import asyncio
 import io
 import json
 import os
@@ -205,7 +206,7 @@ class SimulatorAgent(Agent):
         """
         if self.config.max_time is None:
             return False
-        return self.time_is_out() or self.is_simulation_finish()
+        return self.time_is_out() or self.all_customers_in_destination()
 
     def time_is_out(self):
         """
@@ -220,7 +221,7 @@ class SimulatorAgent(Agent):
         """
         Starts the simulation
         """
-        self.clear_stopped_agents()
+        #  self.clear_stopped_agents()
         if not self.simulation_running:
             self.kill_simulator.clear()
             with self.simulation_mutex:
@@ -255,11 +256,13 @@ class SimulatorAgent(Agent):
         self.route_agent.stop().result()
         self.directory_agent.stop().result()
 
-        logger.info("\nTerminating... ({0:.1f} seconds elapsed)".format(self.simulation_time))
+        logger.info("Terminating... ({0:.1f} seconds elapsed)".format(self.simulation_time))
 
         self.stop_agents()
 
         self.print_stats()
+
+        return super().stop()
 
     def collect_stats(self):
         """
@@ -544,7 +547,7 @@ class SimulatorAgent(Agent):
             "is_running": self.simulation_running,
         }
 
-    def is_simulation_finish(self):
+    def all_customers_in_destination(self):
         """
         Checks whether the simulation has finished or not.
         A simulation is finished if all customers are at their destinations.
@@ -576,7 +579,8 @@ class SimulatorAgent(Agent):
             dict: no template is returned since this is an AJAX controller, a dict with status=done
         """
         logger.info("Stopping simulation...")
-        self.stop_agents()
+        coroutines = self.stop_agents()
+        await asyncio.gather(*coroutines)
         self.clear_agents()
         return {"status": "done"}
 
@@ -587,7 +591,8 @@ class SimulatorAgent(Agent):
         Returns:
             dict: no template is returned since this is an AJAX controller, a dict with status=done
         """
-        self.stop_agents()
+        coroutines = self.stop_agents()
+        await asyncio.gather(*coroutines)
         return {"status": "done"}
 
     async def download_stats_excel_controller(self, request):
@@ -607,10 +612,12 @@ class SimulatorAgent(Agent):
         writer = pd.ExcelWriter(output, engine='xlsxwriter')
 
         # Write the data frame to the StringIO object.
-        df_avg, transport_df, customer_df = self.get_stats_dataframes()
+        df_avg, transport_df, customer_df, manager_df, stations_df = self.get_stats_dataframes()
         df_avg.to_excel(writer, sheet_name='Simulation')
-        customer_df.to_excel(writer, sheet_name='Passengers')
-        transport_df.to_excel(writer, sheet_name='Taxis')
+        customer_df.to_excel(writer, sheet_name='Customers')
+        transport_df.to_excel(writer, sheet_name='Transports')
+        manager_df.to_excel(writer, sheet_name='FleetManagers')
+        stations_df.to_excel(writer, sheet_name='Stations')
         writer.save()
         xlsx_data = output.getvalue()
 
@@ -633,13 +640,14 @@ class SimulatorAgent(Agent):
         output = io.StringIO()
 
         # Write the data frame to the StringIO object.
-        df_avg, manager_df, transport_df, customer_df = self.get_stats_dataframes()
+        df_avg, transport_df, customer_df, manager_df, stations_df = self.get_stats_dataframes()
 
         data = {
             "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
-            "managers": json.loads(manager_df.to_json(orient="index")),
             "customers": json.loads(customer_df.to_json(orient="index")),
-            "transports": json.loads(transport_df.to_json(orient="index"))
+            "transports": json.loads(transport_df.to_json(orient="index")),
+            "fleetmanagers": json.loads(manager_df.to_json(orient="index")),
+            "stations": json.loads(stations_df.to_json(orient="index"))
         }
 
         json.dump(data, output, indent=4)
@@ -681,31 +689,30 @@ class SimulatorAgent(Agent):
         """
         self.kill_simulator.set()
         self.simulation_running = False
+        results = []
         if not self.simulation_time:
             self.simulation_time = time.time() - self.simulation_init_time if self.simulation_init_time else 0
-        '''with self.lock:
+        with self.lock:
             for name, agent in self.manager_agents.items():
                 logger.debug("Stopping manager {}".format(name))
-                agent.stop()
+                results.append(agent.stop())
                 agent.stopped = True
-        '''
         with self.lock:
             for name, agent in self.transport_agents.items():
                 logger.debug("Stopping transport {}".format(name))
-                agent.stop()
+                results.append(agent.stop())
                 agent.stopped = True
         with self.lock:
             for name, agent in self.customer_agents.items():
                 logger.debug("Stopping customer {}".format(name))
-                agent.stop()
-                agent.stop()
+                results.append(agent.stop())
                 agent.stopped = True
-        '''with self.lock:
+        with self.lock:
             for name, agent in self.station_agents.items():
                 logger.debug("Stopping station {}".format(name))
-                agent.stop()
+                results.append(agent.stop())
                 agent.stopped = True
-        '''
+        return results
 
     def get_manager_stats(self):
         """

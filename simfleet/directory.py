@@ -1,4 +1,5 @@
 import json
+from asyncio import CancelledError
 
 from loguru import logger
 from spade.agent import Agent
@@ -100,6 +101,8 @@ class RegistrationBehaviour(CyclicBehaviour):
                     self.add_service(content)
                     logger.debug("Registration in the dictionary {}".format(self.agent.name))
                     await self.send_confirmation(agent_id)
+        except CancelledError:
+            logger.debug("Cancelling async tasks...")
         except Exception as e:
             logger.error("EXCEPTION in DirectoryRegister Behaviour of Directory {}: {}".format(self.agent.name, e))
 

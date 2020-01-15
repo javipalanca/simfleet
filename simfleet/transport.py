@@ -50,6 +50,7 @@ class TransportAgent(Agent):
         self.num_assignments = 0
         self.stopped = False
         self.registration = False
+        self.is_launched = False
 
         self.directory_id = None
         self.fleet_type = None

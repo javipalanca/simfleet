@@ -257,7 +257,7 @@ class SimulatorAgent(Agent):
 
             for delay in self.delayed_launch_agents:
                 agents = self.delayed_launch_agents[delay]
-                start_time = datetime.fromtimestamp(self.simulation_init_time+delay)
+                start_time = datetime.fromtimestamp(self.simulation_init_time + delay)
                 self.add_behaviour(DelayedLaunchBehaviour(agents, start_at=start_time))
 
             logger.info("Simulation started.")
@@ -489,7 +489,8 @@ class SimulatorAgent(Agent):
             dict:  no template is returned since this is an AJAX controller, a dict with the list of transports, the list of customers, the tree view to be showed in the sidebar and the stats of the simulation.
         """
         result = {
-            "transports": [transport.to_json() for transport in self.transport_agents.values()],
+            "transports": [transport.to_json() for transport in self.transport_agents.values() if
+                           transport.is_launched],
             "customers": [customer.to_json() for customer in self.customer_agents.values()],
             "tree": self.generate_tree(),
             "stats": self.get_stats(),
@@ -901,6 +902,7 @@ class SimulatorAgent(Agent):
         self.add_transport(agent)
 
         if not delayed:
+            agent.is_launched = True
             self.submit(self.async_start_agent(agent))
 
         return agent
@@ -1083,5 +1085,5 @@ class DelayedLaunchBehaviour(TimeoutBehaviour):
 
     async def run(self):
         for agent in self.agents:
+            agent.is_launched = True
             await agent.start()
-

@@ -147,7 +147,6 @@ class SimulatorAgent(Agent):
             delay = transport["delay"] if "delay" in transport else None
 
             delayed = False
-
             if delay is not None:
                 delayed = True
 
@@ -170,10 +169,21 @@ class SimulatorAgent(Agent):
             target = customer["destination"]
             strategy = customer.get("strategy")
             icon = customer.get("icon")
+            delay = customer["delay"] if "delay" in customer else None
+
+            delayed = False
+            if delay is not None:
+                delayed = True
+
             agent = self.create_customer_agent(name, password, fleet_type, position=position, target=target,
-                                               strategy=strategy)
+                                               strategy=strategy, delayed=delayed)
 
             self.set_icon(agent, icon, default="customer")
+
+            if delay is not None:
+                if delay not in self.delayed_launch_agents:
+                    self.delayed_launch_agents[delay] = []
+                self.delayed_launch_agents[delay].append(agent)
 
         for station in self.config["stations"]:
             password = station["password"] if "password" in station else faker_factory.password()
@@ -494,7 +504,7 @@ class SimulatorAgent(Agent):
         result = {
             "transports": [transport.to_json() for transport in self.transport_agents.values() if
                            transport.is_launched],
-            "customers": [customer.to_json() for customer in self.customer_agents.values()],
+            "customers": [customer.to_json() for customer in self.customer_agents.values() if customer.is_launched],
             "tree": self.generate_tree(),
             "stats": self.get_stats(),
             "stations": [station.to_json() for station in self.station_agents.values()]
@@ -914,7 +924,7 @@ class SimulatorAgent(Agent):
 
         return agent
 
-    def create_customer_agent(self, name, password, fleet_type, position, strategy=None, target=None):
+    def create_customer_agent(self, name, password, fleet_type, position, strategy=None, target=None, delayed=False):
         """
         Create a customer agent.
 
@@ -925,6 +935,7 @@ class SimulatorAgent(Agent):
             fleet_type (str): type of he fleet to be or demand
             target (list, optional): destination coordinates of the agent
             speed (float, optional): speed of the vehicle
+            delayed (bool, optional): launching of the agent delayed or not
         """
         jid = f"{name}@{self.jid.domain}"
         agent = CustomerAgent(jid, password)
@@ -950,7 +961,9 @@ class SimulatorAgent(Agent):
 
         self.add_customer(agent)
 
-        self.submit(self.async_start_agent(agent))
+        if not delayed:
+            agent.is_launched = True
+            self.submit(self.async_start_agent(agent))
 
         return agent
 

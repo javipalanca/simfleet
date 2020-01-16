@@ -35,6 +35,7 @@ class CustomerAgent(Agent):
         self.pickup_time = None
         self.end_time = None
         self.stopped = False
+        self.is_launched = False
 
         self.directory_id = None
         self.type_service = "taxi"

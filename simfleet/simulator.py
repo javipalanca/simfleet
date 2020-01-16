@@ -4,12 +4,14 @@ import json
 import os
 import threading
 import time
+from datetime import datetime
 
 import faker
 import pandas as pd
 from aiohttp import web as aioweb
 from loguru import logger
 from spade.agent import Agent
+from spade.behaviour import TimeoutBehaviour
 from tabulate import tabulate
 
 from .customer import CustomerAgent
@@ -68,6 +70,8 @@ class SimulatorAgent(Agent):
         self.customer_strategy = None
         self.directory_strategy = None
         self.station_strategy = None
+
+        self.delayed_launch_agents = {}
 
         logger.info("Starting SimFleet {}".format(self.pretty_name))
 
@@ -140,12 +144,23 @@ class SimulatorAgent(Agent):
             current_autonomy = transport.get("current_autonomy")
             strategy = transport.get("strategy")
             icon = transport.get("icon")
+            delay = transport["delay"] if "delay" in transport else None
+
+            delayed = False
+
+            if delay is not None:
+                delayed = True
+
             agent = self.create_transport_agent(name, password, position=position, speed=speed, fleet_type=fleet_type,
                                                 fleetmanager=fleetmanager, strategy=strategy, autonomy=autonomy,
-                                                current_autonomy=current_autonomy)
-
+                                                current_autonomy=current_autonomy, delayed=delayed)
             if icon:
                 self.set_icon(agent, icon, default=fleet_type)
+
+            if delay is not None:
+                if delay not in self.delayed_launch_agents:
+                    self.delayed_launch_agents[delay] = []
+                self.delayed_launch_agents[delay].append(agent)
 
         for customer in self.config["customers"]:
             name = customer["name"]
@@ -240,6 +255,12 @@ class SimulatorAgent(Agent):
 
             self.simulation_running = True
             self.simulation_init_time = time.time()
+
+            for delay in self.delayed_launch_agents:
+                agents = self.delayed_launch_agents[delay]
+                start_time = datetime.fromtimestamp(self.simulation_init_time + delay)
+                self.add_behaviour(DelayedLaunchBehaviour(agents, start_at=start_time))
+
             logger.info("Simulation started.")
 
     def stop(self):
@@ -471,7 +492,8 @@ class SimulatorAgent(Agent):
             dict:  no template is returned since this is an AJAX controller, a dict with the list of transports, the list of customers, the tree view to be showed in the sidebar and the stats of the simulation.
         """
         result = {
-            "transports": [transport.to_json() for transport in self.transport_agents.values()],
+            "transports": [transport.to_json() for transport in self.transport_agents.values() if
+                           transport.is_launched],
             "customers": [customer.to_json() for customer in self.customer_agents.values()],
             "tree": self.generate_tree(),
             "stats": self.get_stats(),
@@ -857,7 +879,7 @@ class SimulatorAgent(Agent):
         return agent
 
     def create_transport_agent(self, name, password, fleet_type, fleetmanager, position, strategy=None, speed=None,
-                               autonomy=None, current_autonomy=None):
+                               autonomy=None, current_autonomy=None, delayed=False):
         jid = f"{name}@{self.jid.domain}"
         agent = TransportAgent(jid, password)
         logger.debug("Creating Transport {}".format(jid))
@@ -886,7 +908,9 @@ class SimulatorAgent(Agent):
 
         self.add_transport(agent)
 
-        self.submit(self.async_start_agent(agent))
+        if not delayed:
+            agent.is_launched = True
+            self.submit(self.async_start_agent(agent))
 
         return agent
 
@@ -1059,3 +1083,14 @@ class SimulatorAgent(Agent):
             list, float, float: the path as a list of points, the distance of the path, the estimated duration of the path
         """
         return async_request_path(self, origin, destination, self.route_id)
+
+
+class DelayedLaunchBehaviour(TimeoutBehaviour):
+    def __init__(self, agents, *args, **kwargs):
+        self.agents = agents
+        super().__init__(*args, **kwargs)
+
+    async def run(self):
+        for agent in self.agents:
+            agent.is_launched = True
+            await agent.start()

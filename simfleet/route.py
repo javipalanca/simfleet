@@ -16,10 +16,17 @@ class RouteAgent(Agent):
     It also caches the queries to avoid overloading the OSRM server.
     """
 
-    def __init__(self, agentjid, password):
+    def __init__(self, agentjid, password, host=None):
         super().__init__(agentjid, password)
 
         self.route_cache = defaultdict(dict)
+
+        if host is None:
+            self.route_host = 'http://router.project-osrm.org/'
+        else:
+            if host[(len(host) - 1)] != '/':
+                host = host + '/'
+            self.route_host = host
 
     async def setup(self):
         template = Template()
@@ -44,7 +51,7 @@ class RouteAgent(Agent):
             logger.debug("Got route from cache")
         except KeyError:
             logger.debug("Requesting new route from server ({},{}).".format(origin, destination))
-            path, distance, duration = self.request_route_to_server(origin, destination)
+            path, distance, duration = self.request_route_to_server(origin, destination, self.route_host)
             item = {"path": path, "distance": distance, "duration": duration}
             if path is not None:
                 self.route_cache[key] = item
@@ -75,19 +82,21 @@ class RouteAgent(Agent):
             self.route_cache = {}
 
     @staticmethod
-    def request_route_to_server(origin, destination):
+    def request_route_to_server(origin, destination, route_host):
         """
         Queries the OSRM for a path.
 
         Args:
             origin (list): origin coordinate (longitude, latitude)
             destination (list): target coordinate (longitude, latitude)
+            route_host (string): route to host server of OSRM service
 
         Returns:
             list, float, float = the path, the distance of the path and the estimated duration
         """
         try:
-            url = "http://osrm.gti-ia.upv.es/route/v1/car/{src1},{src2};{dest1},{dest2}?geometries=geojson&overview=full"
+
+            url = route_host + "route/v1/car/{src1},{src2};{dest1},{dest2}?geometries=geojson&overview=full"
             src1, src2, dest1, dest2 = origin[1], origin[0], destination[1], destination[0]
             url = url.format(src1=src1, src2=src2, dest1=dest1, dest2=dest2)
 

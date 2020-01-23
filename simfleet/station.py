@@ -285,7 +285,7 @@ class TravelBehaviour(CyclicBehaviour):
             if "status" in content:
                 status = content["status"]
                 if status == TRANSPORT_MOVING_TO_STATION:
-                    logger.info("Transport {} comming to station {}.".format(transport_id, self.agent.name))
+                    logger.info("Transport {} coming to station {}.".format(transport_id, self.agent.name))
                 elif status == TRANSPORT_IN_STATION_PLACE:
                     logger.info("Transport {} in station {}.".format(msg.sender.localpart, self.agent.name))
                     await self.agent.charging_transport(content["need"], transport_id)

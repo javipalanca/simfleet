@@ -79,7 +79,10 @@ class SimulatorAgent(Agent):
                                     config.directory_strategy, config.station_strategy)
 
         self.route_id = "{}@{}".format(config.route_name, self.host)
-        self.route_agent = RouteAgent(self.route_id, config.route_password)
+        if config.route_host is not None:
+            self.route_agent = RouteAgent(self.route_id, config.route_password, host=config.route_host)
+        else:
+            self.route_agent = RouteAgent(self.route_id, config.route_password)
         self.route_agent.start()
 
         self.clear_agents()

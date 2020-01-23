@@ -16,17 +16,14 @@ class RouteAgent(Agent):
     It also caches the queries to avoid overloading the OSRM server.
     """
 
-    def __init__(self, agentjid, password, host=None):
+    def __init__(self, agentjid, password, host):
         super().__init__(agentjid, password)
 
         self.route_cache = defaultdict(dict)
 
-        if host is None:
-            self.route_host = 'http://router.project-osrm.org/'
-        else:
-            if host[(len(host) - 1)] != '/':
-                host = host + '/'
-            self.route_host = host
+        if host[(len(host) - 1)] != '/':
+            host = host + '/'
+        self.route_host = host
 
     async def setup(self):
         template = Template()

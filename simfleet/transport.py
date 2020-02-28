@@ -196,7 +196,7 @@ class TransportAgent(Agent):
         else:  # elif self.status == TRANSPORT_MOVING_TO_DESTINATION:
             await self.drop_customer()
 
-    async def arrived_to_station(self):
+    async def arrived_to_station(self, station_id=None):
         """
         Informs that the transport has arrived to its destination.
         It recomputes the new destination and path if picking up a customer
@@ -204,6 +204,26 @@ class TransportAgent(Agent):
         """
         self.status = TRANSPORT_IN_STATION_PLACE
 
+        # ask for a place to charge
+        logger.info("Transport {} arrived to station {} and its waiting to charge".format(self.agent_id,
+                                                                                          self.get("current_station")))
+        reply = Message()
+        reply.to = self.get("current_station")
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+        await self.send(reply)
+
+        # WAIT FOR EXPLICIT CONFIRMATION THAT IT CAN CHARGE
+        # while True:
+        #     msg = await self.receive(timeout=5)
+        #     if msg:
+        #         performative = msg.get_metadata("performative")
+        #         if performative == ACCEPT_PERFORMATIVE:
+        #             await self.begin_charging()
+
+    async def begin_charging(self):
+
+        # trigger charging
         self.set("path", None)
         self.chunked_path = None
 
@@ -597,8 +617,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         moves along the path at the specified speed.
 
         Args:
-            customer_id (str): the id of the customer
-            origin (list): the coordinates of the current location of the customer
+            station_id (str): the id of the customer
             dest (list): the coordinates of the target destination of the customer
         """
         logger.info("Transport {} on route to station {}".format(self.agent.name, station_id))
@@ -613,6 +632,8 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         self.set("current_station", station_id)
         self.agent.current_station_dest = dest
         await self.send(reply)
+        # informs the TravelBehaviour of the station that the transport its coming
+
         self.agent.num_charges += 1
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
         self.agent.set_km_expense(travel_km)
@@ -686,6 +707,9 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         reply.body = json.dumps(content)
         await self.send(reply)
+
+    async def charge_allowed(self):
+        await self.agent.begin_charging()
 
     async def run(self):
         raise NotImplementedError

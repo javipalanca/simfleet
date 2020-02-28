@@ -10,7 +10,7 @@ from spade.template import Template
 
 from .helpers import random_position
 from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, \
-    REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
+    REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
 from .utils import StrategyBehaviour, CyclicBehaviour, FREE_STATION, BUSY_STATION, TRANSPORT_MOVING_TO_STATION, \
     TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGED
 
@@ -31,6 +31,9 @@ class StationAgent(Agent):
         self.status = None
         self.power = None
         self.stopped = False
+
+        # waiting waiting_list
+        self.waiting_list = list()
 
     async def setup(self):
         logger.info("Station agent running")
@@ -56,6 +59,15 @@ class StationAgent(Agent):
                 self.add_behaviour(travel_behaviour, template)
         except Exception as e:
             logger.error("EXCEPTION creating TravelBehaviour in Customer {}: {}".format(self.agent_id, e))
+
+    async def send(self, msg):
+        if not msg.sender:
+            msg.sender = str(self.jid)
+            logger.debug(f"Adding agent's jid as sender to message: {msg}")
+        aioxmpp_msg = msg.prepare()
+        await self.client.send(aioxmpp_msg)
+        msg.sent = True
+        self.traces.append(msg, category=str(self))
 
     def set_id(self, agent_id):
         """
@@ -178,14 +190,32 @@ class StationAgent(Agent):
         logger.info("Station {} assigned place. Available places are now {}.".format(self.name,
                                                                                      self.get_available_places()))
 
-    def deassigning_place(self):
+    async def deassigning_place(self):
         """
         Leave a space of the charging station, when the station has free spaces, the status will change to FREE_STATION
         """
-        p = self.get_available_places()
-        if p + 1:
-            self.set_status(FREE_STATION)
-        self.set_available_places(p + 1)
+        if self.waiting_list:
+            transport_id = self.waiting_list.pop(0)
+
+            logger.info(
+                "-----------------Station {} has a place to charge transport {}".format(self.agent_id, transport_id))
+            # confirm EXPLICITLY to transport it can start charging
+            reply = Message()
+            reply.to = str(transport_id)
+            reply.set_metadata("protocol", REQUEST_PROTOCOL)
+            reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+            content = {
+                "station_id": self.agent_id
+            }
+            reply.body = json.dumps(content)
+            await self.send(reply)
+            # await send_confirmation_to_transport(transport_id)
+
+        else:
+            p = self.get_available_places()
+            if p + 1:
+                self.set_status(FREE_STATION)
+            self.set_available_places(p + 1)
 
     async def charging_transport(self, need, transport_id):
         total_time = need / self.get_power()
@@ -217,7 +247,7 @@ class ChargeBehaviour(TimeoutBehaviour):
     async def run(self):
         logger.info("Station {} finished charging.".format(self.agent.name))
         self.set("current_station", None)
-        self.agent.deassigning_place()
+        await self.agent.deassigning_place()
         await self.charging_complete()
 
 
@@ -351,14 +381,29 @@ class StationStrategyBehaviour(StrategyBehaviour):
         if msg:
             performative = msg.get_metadata("performative")
             transport_id = msg.sender
-            if performative == PROPOSE_PERFORMATIVE:
-                if self.agent.get_status() == FREE_STATION:
-                    logger.debug("Station {} received proposal from transport {}".format(self.agent.name, transport_id))
-                    await self.accept_transport(transport_id)
-                else:  # self.agent.get_status() == BUSY_STATION
-                    await self.refuse_transport(transport_id)
-            elif performative == CANCEL_PERFORMATIVE:
+            if performative == CANCEL_PERFORMATIVE:
                 logger.warning("Station {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
-                self.agent.deassigning_place()
-            elif performative == ACCEPT_PERFORMATIVE:
-                self.agent.assigning_place()
+                await self.agent.deassigning_place()
+            elif performative == ACCEPT_PERFORMATIVE:  # comes from send_confirmation_travel
+                if self.agent.get_status() == FREE_STATION:
+                    logger.info("Station {} has a place to charge transport {}".format(self.agent.name, transport_id))
+                    # confirm EXPLICITLY to transport it can start charging
+                    reply = Message()
+                    reply.to = str(transport_id)
+                    reply.set_metadata("protocol", REQUEST_PROTOCOL)
+                    reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+                    content = {
+                        "station_id": self.agent.name
+                    }
+                    reply.body = json.dumps(content)
+                    await self.send(reply)
+                    self.agent.assigning_place()
+
+                else:  # self.agent.get_status() == BUSY_STATION
+                    # transport waits in a waiting_list until it is available to charge
+                    self.agent.waiting_list.append(str(transport_id))
+                    logger.info("****************************{} waiting in {} waiting_list".format(transport_id,
+                                                                                                   self.agent.name))
+                    logger.info("{} waiting_list is {}".format(self.agent.name, self.agent.waiting_list))
+                    # change refuse_transport
+                    # await self.refuse_transport(transport_id)

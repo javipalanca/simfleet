@@ -1,4 +1,5 @@
 import json
+import time
 from asyncio import CancelledError
 from collections import defaultdict
 
@@ -63,6 +64,11 @@ class TransportAgent(Agent):
         self.num_charges = 0
         self.set("current_station", None)
         self.current_station_dest = None
+
+        # waiting time statistics
+        self.waiting_in_queue_time = None
+        self.charge_time = None
+        self.total_waiting_time = None
 
     async def setup(self):
         try:
@@ -213,6 +219,9 @@ class TransportAgent(Agent):
         reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
         await self.send(reply)
 
+        # time waiting in station queue update
+        self.waiting_in_queue_time = time.time()
+
         # WAIT FOR EXPLICIT CONFIRMATION THAT IT CAN CHARGE
         # while True:
         #     msg = await self.receive(timeout=5)
@@ -235,6 +244,10 @@ class TransportAgent(Agent):
         self.status = TRANSPORT_CHARGING
         logger.info("Transport {} has started charging in the station {}.".format(self.agent_id,
                                                                                   self.get("current_station")))
+
+        # time waiting in station queue update
+        self.charge_time = time.time()
+        self.total_waiting_time += self.charge_time - self.waiting_in_queue_time
 
     def needs_charging(self):
         return (self.status == TRANSPORT_NEEDS_CHARGING) or \
@@ -569,6 +582,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
 
     async def on_start(self):
         logger.debug("Strategy {} started in transport {}".format(type(self).__name__, self.agent.name))
+        self.agent.total_waiting_time = 0.0
 
     async def pick_up_customer(self, customer_id, origin, dest):
         """

@@ -306,7 +306,7 @@ class SimulatorAgent(Agent):
         if self.config.simulation_name:
             df_avg["Simulation Name"] = self.config.simulation_name
             columns = ["Simulation Name"]
-        columns += ["Avg Waiting Time", "Avg Total Time", "Simulation Time"]
+        columns += ["Avg Customer Waiting Time", "Avg Customer Total Time", "Avg Transport Waiting Time", "Simulation Time"]
         if self.config.max_time:
             df_avg["Max Time"] = self.config.max_time
             columns += ["Max Time"]
@@ -572,9 +572,15 @@ class SimulatorAgent(Agent):
         else:
             waiting, total = 0, 0
 
+        if len(self.transport_agents) > 0:
+            t_waiting = avg([transport.total_waiting_time for transport in self.transport_agents.values()])
+        else:
+            t_waiting = 0
+
         return {
             "waiting": "{0:.2f}".format(waiting),
             "totaltime": "{0:.2f}".format(total),
+            "t_waiting": "{0:.2f}".format(t_waiting),
             "finished": self.is_simulation_finished(),
             "is_running": self.simulation_running,
         }
@@ -792,15 +798,19 @@ class SimulatorAgent(Agent):
             ``pandas.DataFrame``: the dataframe with the transports stats.
         """
         try:
-            names, assignments, distances, statuses = zip(*[(t.name, t.num_assignments,
-                                                             "{0:.2f}".format(sum(t.distances)),
-                                                             status_to_str(t.status))
-                                                            for t in self.transport_agents.values()])
+            names, assignments, distances, waiting_in_station_time, statuses, = zip(*[(t.name, t.num_assignments,
+                                                                                       "{0:.2f}".format(
+                                                                                           sum(t.distances)),
+                                                                                       t.total_waiting_time,
+                                                                                       status_to_str(t.status))
+                                                                                      for t in
+                                                                                      self.transport_agents.values()])
         except ValueError:
-            names, assignments, distances, statuses = [], [], [], []
+            names, assignments, distances, waiting_in_station_time, statuses = [], [], [], [], []
         df = pd.DataFrame.from_dict({"name": names,
                                      "assignments": assignments,
                                      "distance": distances,
+                                     "waiting_in_station_time": waiting_in_station_time,
                                      "status": statuses})
         return df
 
@@ -813,13 +823,17 @@ class SimulatorAgent(Agent):
             ``pandas.DataFrame``: the dataframe with the customers stats.
         """
         try:
-            names, status, places, power = zip(*[(p.name, p.status,
-                                                  p.available_places, p.power)
-                                                 for p in self.station_agents.values()])
+            names, status, places, power, charged_transports, max_queue_length = zip(*[(p.name, p.status,
+                                                                                        p.available_places, p.power,
+                                                                                        p.charged_transports,
+                                                                                        p.max_queue_length)
+                                                                                       for p in
+                                                                                       self.station_agents.values()])
         except ValueError:
-            names, status, places, power = [], [], [], []
+            names, status, places, power, charged_transports, max_queue_length = [], [], [], [], [], []
 
-        df = pd.DataFrame.from_dict({"name": names, "status": status, "available_places": places, "power": power})
+        df = pd.DataFrame.from_dict({"name": names, "status": status, "available_places": places, "power": power,
+                                     "charged_transports": charged_transports, "max_queue_length": max_queue_length})
         return df
 
     def get_stats_dataframes(self):
@@ -835,16 +849,19 @@ class SimulatorAgent(Agent):
         customer_df = self.get_customer_stats()
         customer_df = customer_df[["name", "waiting_time", "total_time", "status"]]
         transport_df = self.get_transport_stats()
-        transport_df = transport_df[["name", "assignments", "distance", "status"]]
+        transport_df = transport_df[["name", "assignments", "distance", "waiting_in_station_time", "status"]]
         station_df = self.get_station_stats()
-        station_df = station_df[["name", "status", "available_places", "power"]]
+        station_df = station_df[
+            ["name", "status", "available_places", "power", "charged_transports", "max_queue_length"]]
         stats = self.get_stats()
-        df_avg = pd.DataFrame.from_dict({"Avg Waiting Time": [stats["waiting"]],
-                                         "Avg Total Time": [stats["totaltime"]],
+        df_avg = pd.DataFrame.from_dict({"Avg Customer Waiting Time": [stats["waiting"]],
+                                         "Avg Customer Total Time": [stats["totaltime"]],
+                                         "Avg Transport Waiting Time": [stats["t_waiting"]],
                                          "Simulation Finished": [stats["finished"]],
                                          "Simulation Time": [self.get_simulation_time()]
                                          })
-        columns = ["Avg Waiting Time", "Avg Total Time", "Simulation Time", "Simulation Finished"]
+        columns = ["Avg Customer Waiting Time", "Avg Customer Total Time", "Avg Transport Waiting Time",
+                   "Simulation Time", "Simulation Finished"]
         df_avg = df_avg[columns]
 
         return df_avg, transport_df, customer_df, manager_df, station_df

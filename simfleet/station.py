@@ -35,6 +35,11 @@ class StationAgent(Agent):
         # waiting waiting_list
         self.waiting_list = list()
 
+        # statistics
+        self.charged_transports = 0
+        self.queue_length = 0
+        self.max_queue_length = 0
+
     async def setup(self):
         logger.info("Station agent running")
         self.set_type("station")
@@ -223,6 +228,8 @@ class StationAgent(Agent):
         start_at = now + datetime.timedelta(seconds=total_time)
         logger.info(
             "Station {} started charging at {} for {} seconds, at {}".format(self.name, now, total_time, start_at))
+        # charged transports update
+        self.charged_transports += 1
         charge_behaviour = ChargeBehaviour(start_at=start_at, transport_id=transport_id)
         self.add_behaviour(charge_behaviour)
 
@@ -402,6 +409,10 @@ class StationStrategyBehaviour(StrategyBehaviour):
                 else:  # self.agent.get_status() == BUSY_STATION
                     # transport waits in a waiting_list until it is available to charge
                     self.agent.waiting_list.append(str(transport_id))
+                    # list length statistics update
+                    self.agent.queue_length = len(self.agent.waiting_list)
+                    if self.agent.queue_length > self.agent.max_queue_length:
+                        self.agent.max_queue_length = self.agent.queue_length
                     logger.info("****************************{} waiting in {} waiting_list".format(transport_id,
                                                                                                    self.agent.name))
                     logger.info("{} waiting_list is {}".format(self.agent.name, self.agent.waiting_list))

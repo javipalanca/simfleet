@@ -1,5 +1,6 @@
 import datetime
 import json
+import time
 from asyncio import CancelledError
 
 from loguru import logger
@@ -40,7 +41,12 @@ class StationAgent(Agent):
         self.queue_length = 0
         self.max_queue_length = 0
 
+        self.transports_in_queue_time = None
+        self.empty_queue_time = None
+        self.total_waiting_time = None
+
     async def setup(self):
+        self.total_waiting_time = 0.0
         logger.info("Station agent running")
         self.set_type("station")
         self.set_status()
@@ -201,6 +207,14 @@ class StationAgent(Agent):
         """
         if self.waiting_list:
             transport_id = self.waiting_list.pop(0)
+            # time statistics update
+            if len(self.waiting_list) == 0:
+                self.empty_queue_time = time.time()
+                self.total_waiting_time += self.empty_queue_time - self.transports_in_queue_time
+            else:
+                self.empty_queue_time = time.time()
+                self.total_waiting_time += self.empty_queue_time - self.transports_in_queue_time
+                self.transports_in_queue_time = time.time()
 
             logger.info(
                 "-----------------Station {} has a place to charge transport {}".format(self.agent_id, transport_id))
@@ -407,14 +421,18 @@ class StationStrategyBehaviour(StrategyBehaviour):
                     self.agent.assigning_place()
 
                 else:  # self.agent.get_status() == BUSY_STATION
+                    # time statistics update
+                    if len(self.agent.waiting_list) == 0:
+                        self.agent.transports_in_queue_time = time.time()
                     # transport waits in a waiting_list until it is available to charge
                     self.agent.waiting_list.append(str(transport_id))
                     # list length statistics update
                     self.agent.queue_length = len(self.agent.waiting_list)
                     if self.agent.queue_length > self.agent.max_queue_length:
                         self.agent.max_queue_length = self.agent.queue_length
-                    logger.info("****************************{} waiting in {} waiting_list".format(transport_id,
+                    logger.info("********************{} waiting in {} waiting_list".format(transport_id,
                                                                                                    self.agent.name))
-                    logger.info("{} waiting_list is {}".format(self.agent.name, self.agent.waiting_list))
+                    logger.info("<<<<<<<<<<<<<<<<<<<<{} waiting_list is {}".format(self.agent.name, self.agent.waiting_list))
+
                     # change refuse_transport
                     # await self.refuse_transport(transport_id)

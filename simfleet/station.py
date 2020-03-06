@@ -195,7 +195,7 @@ class StationAgent(Agent):
         the status will change to BUSY_STATION
         """
         p = self.get_available_places()
-        if not p - 1:
+        if p - 1 <= 0:
             self.set_status(BUSY_STATION)
         self.set_available_places(p - 1)
         logger.info("Station {} assigned place. Available places are now {}.".format(self.name,

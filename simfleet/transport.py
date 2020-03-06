@@ -247,7 +247,9 @@ class TransportAgent(Agent):
 
         # time waiting in station queue update
         self.charge_time = time.time()
-        self.total_waiting_time += self.charge_time - self.waiting_in_queue_time
+        elapsed_time = self.charge_time - self.waiting_in_queue_time
+        if elapsed_time > 0.1:
+            self.total_waiting_time += elapsed_time
 
     def needs_charging(self):
         return (self.status == TRANSPORT_NEEDS_CHARGING) or \

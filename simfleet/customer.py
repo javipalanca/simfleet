@@ -246,7 +246,7 @@ class TravelBehaviour(CyclicBehaviour):
     """
     This is the internal behaviour that manages the movement of the customer.
     It is triggered when the transport informs the customer that it is going to the
-    customer's position until the customer is droppped in its destination.
+    customer's position until the customer is dropped in its destination.
     """
 
     async def on_start(self):

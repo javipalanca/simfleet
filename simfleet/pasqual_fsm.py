@@ -9,7 +9,7 @@ from spade.behaviour import State, FSMBehaviour
 
 from simfleet.helpers import PathRequestException, distance_in_meters
 from simfleet.protocol import REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, REQUEST_PROTOCOL, \
-    INFORM_PERFORMATIVE, CANCEL_PERFORMATIVE, PROPOSE_PERFORMATIVE
+    INFORM_PERFORMATIVE, CANCEL_PERFORMATIVE, PROPOSE_PERFORMATIVE, QUERY_PROTOCOL
 from simfleet.transport import TransportStrategyBehaviour
 from simfleet.utils import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_MOVING_TO_CUSTOMER, \
     TRANSPORT_NEEDS_CHARGING, TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGING, \
@@ -64,7 +64,7 @@ class TransportWaitingState(TransportStrategyBehaviour, State):
                 self.set_next_state(TRANSPORT_NEEDS_CHARGING)
                 return
             else:
-                await self.send_proposal(content["passenger_id"], {})
+                await self.send_proposal(content["customer_id"], {})
                 self.set_next_state(TRANSPORT_WAITING_FOR_APPROVAL)
                 return
         else:
@@ -82,6 +82,25 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
         if self.agent.stations is None or len(self.agent.stations) < 1:
             logger.warning("Transport {} looking for a station.".format(self.agent.name))
             await self.send_get_stations()
+
+            msg = await self.receive(timeout=5)
+            if not msg:
+                return
+            logger.debug("Transport received message: {}".format(msg))
+            try:
+                content = json.loads(msg.body)
+            except TypeError:
+                content = {}
+
+            performative = msg.get_metadata("performative")
+            protocol = msg.get_metadata("protocol")
+
+            if protocol == QUERY_PROTOCOL:
+                if performative == INFORM_PERFORMATIVE:
+                    self.agent.stations = content
+                    logger.info("Got list of current stations: {}".format(list(self.agent.stations.keys())))
+                elif performative == CANCEL_PERFORMATIVE:
+                    logger.info("Cancellation of request for stations information.")
             self.set_next_state(TRANSPORT_NEEDS_CHARGING)
             return
 
@@ -105,25 +124,34 @@ class TransportMovingToStationState(TransportStrategyBehaviour, State):
 
     async def on_start(self):
         await super().on_start()
-        self.agent.status = TRANSPORT_MOVING_TO_STATION
+        # self.agent.status = TRANSPORT_MOVING_TO_STATION
 
     async def run(self):
-        try:
-            station, position = self.agent.current_station_dest
-            # substituir per event arrived_to_station?
-            await self.go_to_the_station(station, position)
-            self.set_next_state(TRANSPORT_IN_STATION_PLACE)  # ???
+        if self.agent.status == TRANSPORT_IN_STATION_PLACE:
+            self.set_next_state(TRANSPORT_IN_STATION_PLACE)
+            return
+        elif self.agent.status == TRANSPORT_MOVING_TO_STATION:
+            self.set_next_state(TRANSPORT_MOVING_TO_STATION)
+            return
+        else:
+            try:
+                station, position = self.agent.current_station_dest
+                # substituir per event arrived_to_station?
+                await self.go_to_the_station(station, position) # esto no works
+                self.agent.status = TRANSPORT_MOVING_TO_STATION
+                self.set_next_state(TRANSPORT_MOVING_TO_STATION)
+                return
 
-        except PathRequestException:
-            logger.error("Transport {} could not get a path to station {}. Cancelling..."
-                         .format(self.agent.name, station))
-            await self.cancel_proposal(station)
-            self.set_next_state(TRANSPORT_WAITING)
-            return
-        except Exception as e:
-            logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
-            self.set_next_state(TRANSPORT_WAITING)
-            return
+            except PathRequestException:
+                logger.error("Transport {} could not get a path to station {}. Cancelling..."
+                             .format(self.agent.name, station))
+                await self.cancel_proposal(station)
+                self.set_next_state(TRANSPORT_WAITING)
+                return
+            except Exception as e:
+                logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
+                self.set_next_state(TRANSPORT_WAITING)
+                return
 
 
 class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
@@ -203,7 +231,7 @@ class TransportInStationState(TransportStrategyBehaviour, State):
     # car arrives to the station and waits in queue until receiving confirmation
     async def on_start(self):
         await super().on_start()
-        self.agent.status = TRANSPORT_IN_STATION_PLACE
+        # self.agent.status = TRANSPORT_IN_STATION_PLACE
 
     async def run(self):
         msg = await self.receive(timeout=60)
@@ -236,10 +264,10 @@ class TransportChargingState(TransportStrategyBehaviour, State):
     # car charges in a station
     async def on_start(self):
         await super().on_start()
-        self.agent.status = TRANSPORT_CHARGING # this change is already performed in function begin_charging() of class Transport
+        #self.agent.status = TRANSPORT_CHARGING # this change is already performed in function begin_charging() of class Transport
 
     async def run(self):
-        # awaiy "transport_charged" message
+        # await "transport_charged" message
         msg = await self.receive(timeout=60)
         if not msg:
             self.set_next_state(TRANSPORT_CHARGING)
@@ -254,6 +282,9 @@ class TransportChargingState(TransportStrategyBehaviour, State):
                 # canviar per un event?
                 self.set_next_state(TRANSPORT_WAITING)
                 return
+        else:
+            self.set_next_state(TRANSPORT_CHARGING)
+            return
 
 
 class FSMTransportStrategyBehaviour(FSMBehaviour):
@@ -282,6 +313,7 @@ class FSMTransportStrategyBehaviour(FSMBehaviour):
         self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_MOVING_TO_STATION)   # ??
         self.add_transition(TRANSPORT_IN_STATION_PLACE, TRANSPORT_IN_STATION_PLACE)     # waiting in station queue
         self.add_transition(TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGING)             # begin charging
+        self.add_transition(TRANSPORT_CHARGING, TRANSPORT_CHARGING)                     # waiting to finish charging
         self.add_transition(TRANSPORT_CHARGING, TRANSPORT_WAITING)                      # restart strategy
 
         self.add_transition(TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_WAITING)            # picked up customer or arrived to destination ??

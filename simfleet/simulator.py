@@ -306,7 +306,7 @@ class SimulatorAgent(Agent):
         if self.config.simulation_name:
             df_avg["Simulation Name"] = self.config.simulation_name
             columns = ["Simulation Name"]
-        columns += ["Avg Customer Waiting Time", "Avg Customer Total Time", "Avg Transport Waiting Time",
+        columns += ["Avg Customer Waiting Time", "Avg Customer Total Time", "Avg Transport Waiting Time", "Avg Distance",
                     "Simulation Time"]
         if self.config.max_time:
             df_avg["Max Time"] = self.config.max_time
@@ -575,13 +575,16 @@ class SimulatorAgent(Agent):
 
         if len(self.transport_agents) > 0:
             t_waiting = avg([transport.total_waiting_time for transport in self.transport_agents.values()])
+            distance = avg([sum(transport.distances) for transport in self.transport_agents.values()])
         else:
             t_waiting = 0
+            distance = 0
 
         return {
             "waiting": "{0:.2f}".format(waiting),
             "totaltime": "{0:.2f}".format(total),
             "t_waiting": "{0:.2f}".format(t_waiting),
+            "distance": "{0:.2f}".format(distance),
             "finished": self.is_simulation_finished(),
             "is_running": self.simulation_running,
         }
@@ -868,10 +871,11 @@ class SimulatorAgent(Agent):
         df_avg = pd.DataFrame.from_dict({"Avg Customer Waiting Time": [stats["waiting"]],
                                          "Avg Customer Total Time": [stats["totaltime"]],
                                          "Avg Transport Waiting Time": [stats["t_waiting"]],
+                                         "Avg Distance": [stats["distance"]],
                                          "Simulation Finished": [stats["finished"]],
                                          "Simulation Time": [self.get_simulation_time()]
                                          })
-        columns = ["Avg Customer Waiting Time", "Avg Customer Total Time", "Avg Transport Waiting Time",
+        columns = ["Avg Customer Waiting Time", "Avg Customer Total Time", "Avg Transport Waiting Time", "Avg Distance",
                    "Simulation Time", "Simulation Finished"]
         df_avg = df_avg[columns]
 

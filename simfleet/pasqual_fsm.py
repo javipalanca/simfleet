@@ -171,6 +171,8 @@ class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
             try:
                 logger.debug("Transport {} got accept from {}".format(self.agent.name,
                                                                       content["customer_id"]))
+                # new version
+                self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
                 await self.pick_up_customer(content["customer_id"], content["origin"], content["dest"])
                 self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
                 return
@@ -196,6 +198,21 @@ class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
             return
 
 
+class MyTransportMovingToCustomerState(TransportStrategyBehaviour, State):
+
+    async def on_start(self):
+        await super().on_start()
+        # self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
+
+    async def run(self):
+        if self.agent.status == TRANSPORT_WAITING:
+            self.set_next_state(TRANSPORT_WAITING)
+            logger.error("Transport is free again.")
+            return
+        else:
+            self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
+            return
+
 # SENSE CANVIS
 
 # Idees:
@@ -219,9 +236,11 @@ class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
 
     async def run(self):
         customer_in_transport_event.clear()
+        logger.error("Transport is moving to customer. . ." )
         self.agent.watch_value("customer_in_transport", customer_in_transport_callback)
         await customer_in_transport_event.wait()
-        logger.info("Transport is free again.")
+        # no s'está accedint a aquesta part del codi, segurament es canvia l'"status" de l'agent, però no l'estat
+        logger.error("Transport is free again.")
         return self.set_next_state(TRANSPORT_WAITING)
 
 # END SENSE CANVIS
@@ -293,7 +312,8 @@ class FSMTransportStrategyBehaviour(FSMBehaviour):
         self.add_state(TRANSPORT_WAITING, TransportWaitingState(), initial=True)
         self.add_state(TRANSPORT_NEEDS_CHARGING, TransportNeedsChargingState())
         self.add_state(TRANSPORT_WAITING_FOR_APPROVAL, TransportWaitingForApprovalState())
-        self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, TransportMovingToCustomerState())
+        # self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, TransportMovingToCustomerState())
+        self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, MyTransportMovingToCustomerState())
         self.add_state(TRANSPORT_MOVING_TO_STATION, TransportMovingToStationState())
         self.add_state(TRANSPORT_IN_STATION_PLACE, TransportInStationState())
         self.add_state(TRANSPORT_CHARGING, TransportChargingState())
@@ -316,13 +336,8 @@ class FSMTransportStrategyBehaviour(FSMBehaviour):
         self.add_transition(TRANSPORT_CHARGING, TRANSPORT_CHARGING)                     # waiting to finish charging
         self.add_transition(TRANSPORT_CHARGING, TRANSPORT_WAITING)                      # restart strategy
 
+        self.add_transition(TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_MOVING_TO_CUSTOMER)
         self.add_transition(TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_WAITING)            # picked up customer or arrived to destination ??
-
-    '''
-    async def on_start(self):
-        await super().on_start()
-        self.set_next_state(TRANSPORT_WAITING)
-    '''
 
 
 ################################################################

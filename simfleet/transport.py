@@ -1,5 +1,7 @@
+import asyncio
 import json
 import time
+import types
 from asyncio import CancelledError
 from collections import defaultdict
 
@@ -70,6 +72,19 @@ class TransportAgent(Agent):
         self.charge_time = None
         self.total_waiting_time = None
 
+        self.customer_in_transport_event = asyncio.Event(loop=self.loop)
+
+        def customer_in_transport_callback(old, new):
+            logger.error("CALLBACK")
+            # if event flag is False and new is None
+            if not self.customer_in_transport_event.is_set() and new is None:
+                logger.error("SETTING EVENT FLAG TO TRUE")
+                # Sets event flag to True, all coroutines waiting for it are awakened
+                self.customer_in_transport_event.set()
+
+        self.customer_in_transport_callback = customer_in_transport_callback
+        # self.customer_in_transport_callback = types.MethodType(customer_in_transport_callback, self)
+
     async def setup(self):
         try:
             template = Template()
@@ -81,6 +96,13 @@ class TransportAgent(Agent):
                 self.add_behaviour(register_behaviour, template)
         except Exception as e:
             logger.error("EXCEPTION creating RegisterBehaviour in Transport {}: {}".format(self.agent_id, e))
+
+    def set(self, key, value):
+        old = self.get(key)
+        super().set(key, value)
+        if key in self.__observers:
+            for callback in self.__observers[key]:
+                callback(old, value)
 
     def set_registration(self, status, content=None):
         """
@@ -268,6 +290,7 @@ class TransportAgent(Agent):
                                                                                        self.get("current_customer")))
         self.set("current_customer", None)
         self.set("customer_in_transport", None)
+        logger.error("There should now be a callback...")
 
     async def drop_station(self):
         """

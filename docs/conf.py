@@ -55,7 +55,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Taxi Simulator'
+project = u'SimFleet'
 copyright = u"2017, Javi Palanca"
 
 # The version info for the project you're documenting, acts as replacement
@@ -188,7 +188,7 @@ html_show_sourcelink = True
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'taxi_simulatordoc'
+htmlhelp_basename = 'simfleetdoc'
 
 # -- Options for LaTeX output ------------------------------------------
 
@@ -208,7 +208,7 @@ latex_elements = {
 # [howto/manual]).
 latex_documents = [
     ('index', 'simfleet.tex',
-     u'Taxi Simulator Documentation',
+     u'SimFleet Documentation',
      u'Javi Palanca', 'manual'),
 ]
 
@@ -239,7 +239,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'simfleet',
-     u'Taxi Simulator Documentation',
+     u'SimFleet Documentation',
      [u'Javi Palanca'], 1)
 ]
 
@@ -254,7 +254,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     ('index', 'simfleet',
-     u'Taxi Simulator Documentation',
+     u'SimFleet Documentation',
      u'Javi Palanca',
      'simfleet',
      'One line description of project.',

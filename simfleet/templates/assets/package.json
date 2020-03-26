@@ -1,6 +1,6 @@
 {
-  "name": "taxi_simulator",
-  "description": "Taxi Simulator based on agents",
+  "name": "simfleet",
+  "description": "Fleet Simulator based on agents",
   "version": "1.0.0",
   "author": "jpalanca <jpalanca@gmail.com>",
   "license": "MIT",

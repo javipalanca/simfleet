@@ -6,5 +6,5 @@ Information on specific functions, classes, and methods.
 .. toctree::
    :glob:
 
-   api/taxi_simulator
+   api/simfleet
 

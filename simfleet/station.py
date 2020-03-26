@@ -1,5 +1,6 @@
 import datetime
 import json
+from asyncio import CancelledError
 
 from loguru import logger
 from spade.agent import Agent
@@ -257,6 +258,8 @@ class RegistrationBehaviour(CyclicBehaviour):
                 if performative == ACCEPT_PERFORMATIVE:
                     self.set_registration(True)
                     logger.info("Registration in the directory")
+        except CancelledError:
+            logger.debug("Cancelling async tasks...")
         except Exception as e:
             logger.error("EXCEPTION in RegisterBehaviour of Station {}: {}".format(self.agent.name, e))
 
@@ -282,12 +285,14 @@ class TravelBehaviour(CyclicBehaviour):
             if "status" in content:
                 status = content["status"]
                 if status == TRANSPORT_MOVING_TO_STATION:
-                    logger.info("Transport {} comming to station {}.".format(transport_id, self.agent.name))
+                    logger.info("Transport {} coming to station {}.".format(transport_id, self.agent.name))
                 elif status == TRANSPORT_IN_STATION_PLACE:
                     logger.info("Transport {} in station {}.".format(msg.sender.localpart, self.agent.name))
                     await self.agent.charging_transport(content["need"], transport_id)
+        except CancelledError:
+            logger.debug("Cancelling async tasks...")
         except Exception as e:
-            logger.error("EXCEPTION in Travel Behaviour of Customer {}: {}".format(self.agent.name, e))
+            logger.error("EXCEPTION in Travel Behaviour of Station {}: {}".format(self.agent.name, e))
 
 
 class StationStrategyBehaviour(StrategyBehaviour):

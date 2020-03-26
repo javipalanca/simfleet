@@ -44,7 +44,7 @@ class DelegateRequestBehaviour(FleetManagerStrategyBehaviour):
 ################################################################
 class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
     """
-    The default strategy for the Taxi agent. By default it accepts every request it receives if available.
+    The default strategy for the Transport agent. By default it accepts every request it receives if available.
     """
 
     async def run(self):

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-"""Top-level package for Taxi Simulator."""
+"""Top-level package for SimFleet."""
 
 __author__ = """Javi Palanca"""
 __email__ = 'jpalanca@gmail.com'
-__version__ = '0.4.1'
+__version__ = '1.0.1'

@@ -7,20 +7,55 @@ Quickstart
 Usage
 =====
 
-Using Taxi Simulator is as easy as running the application in a command line. There are two use modes: a command-line
-interface and a graphical web-based view. You can run simulations using only the command line or using the more easy and
-intuitive graphical user interface. Running Taxi Simulator without your own developed coordination strategies is posible
+Using SimFleet is as easy as running the application in a command line. There are two use modes: a command-line
+interface and a graphical web-based view. You can run simulations using only the command line or using the easier and
+intuitive graphical user interface. Running SimFleet without your own developed strategies is posible
 since the application comes with a set of default strategies. Let's explore how to use both user interfaces.
+
+SimFleet entities summary
+=========================
+
+In SimFleet there are three types of agent that interact among them during simulations. These are the Fleet Manager
+agent, the Transport agent, and the Customer agent.
+
+Description of the Customer Agents
+----------------------------------
+
+The Customer agents represent people that need to go from one location of the city (their "current location") to
+another (their "destination") or packages that need to be moved from an origin to a destination.
+For doing so, each Customer agent requests a single
+transport service and, once it is transported to its destination, it reaches its final state and ends its execution.
+
+Description of the Transport Agent
+----------------------------------
+
+The Transport agents represent vehicles which can transport Customer agents from their current positions to their respective
+destinations.
+
+Description of the FleetManager Agent
+-------------------------------------
+
+The FleetManager Agent is responsible for putting in contact the Customer agents that need a transport service, and the Transport
+agents that may be available to offer these services. In short, the FleetManager Agent acts like a transport call center, accepting
+the incoming requests from customers (Customer agents) and forwarding these requests to the (appropriate) Transport agents.
+In order to do so, the FleetManager has a registration protocol by which Transport agents subscribe to the Fleet Manager
+that represents their fleet. This is automatically done when a Transport agent is started.
+
+In the context of SimFleet, a "transport service" involves, once a particular Customer and Transport agents have reached
+an agreement, the movement of the Transport agent from its current position to the Customer's position in
+order to pick the Customer up, and then the transportation of the Customer agent to its destination.
+
+
 
 Command-line interface
 ======================
 
-After installing Taxi Simulator open a command-line and type ``taxi_simulator --host your_xmpp_server``. This starts a
-simulator without any options and runs the coordinator agent. The console will output the default logging
+After installing SimFleet open a command-line and type ``simfleet --config config_file.json``. This starts a
+simulator with the configuration specified at the JSON file and runs the simulator agent. The console will output the default logging
 information and you can terminate the simulator by pressing ``Ctrl+C``. When you terminate the simulator the results of
 the simulations are printed.
 
-.. warning:: Note that ``your_xmpp_server`` is a fake address. You need to have an XMPP server where the simulator
+..  Note that ``your_xmpp_server`` is a fake address. You need to have an XMPP server where the simulator
     connects to. You can use your own XMPP server or use any of the public XMPP servers (List of public servers is
     `here <https://list.jabber.at>`).
 
@@ -28,181 +63,334 @@ the simulations are printed.
 
 .. code-block:: console
 
-    $ taxi_simulator --host 127.0.0.1
-    INFO:root:Starting Taxi Simulator
-    INFO:CoordinatorAgent:Coordinator agent running
-    INFO:CoordinatorAgent:Web interface running at http://127.0.0.1:9000/app
-    INFO:root:Creating 0 taxis and 0 passengers.
-    INFO:RouteAgent:Route agent running
-    WARNING:RouteAgent:Could not load cache file.
+    $ simfleet --config myconfig.json
+    2015-10-21 16:29:07.049 | INFO     | simfleet.config:load_config:75 - Reading config myconfig.json
+    2015-10-21 16:29:07.062 | INFO     | simfleet.simulator:__init__:71 - Starting SimFleet (SimFleet)
+    2015-10-21 16:29:07.064 | INFO     | simfleet.simulator:load_icons:172 - Reading icons
+    2015-10-21 16:29:07.158 | INFO     | simfleet.directory:setup:40 - Directory agent running
+    2015-10-21 16:29:07.159 | INFO     | simfleet.simulator:__init__:91 - Creating 0 managers, 0 transports, 0 customers and 0 stations.
+    2015-10-21 16:29:07.159 | INFO     | simfleet.simulator:load_scenario:116 - Loading scenario...
+    2015-10-21 16:29:07.162 | INFO     | simfleet.route:setup:28 - Route agent running
+    2015-10-21 16:29:07.162 | WARNING  | simfleet.route:load_cache:74 - Could not load cache file.
+    2015-10-21 16:29:07.226 | INFO     | simfleet.simulator:setup:97 - Simulator agent running
+    2015-10-21 16:29:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
 
     ^C
-    INFO:root: Terminating... (0.0 seconds elapsed)
+
+    2015-10-21 16:29:21.292 | INFO     | simfleet.simulator:stop:258 -
+    Terminating... (0.0 seconds elapsed)
     Simulation Results
-    ╒════════════════════╤══════════════════╤═══════════════════╤═══════════════════════╕
-    │   Avg Waiting Time │   Avg Total Time │   Simulation Time │ Simulation Finished   │
-    ╞════════════════════╪══════════════════╪═══════════════════╪═══════════════════════╡
-    │                  0 │                0 │                 0 │ True                  │
-    ╘════════════════════╧══════════════════╧═══════════════════╧═══════════════════════╛
-    Passenger stats
-    ╒════════╤════════════════╤══════════════╤══════════╕
-    │ name   │ waiting_time   │ total_time   │ status   │
-    ╞════════╪════════════════╪══════════════╪══════════╡
-    ╘════════╧════════════════╧══════════════╧══════════╛
-    Taxi stats
-    ╒════════╤═══════════════╤════════════╤══════════╕
-    │ name   │ assignments   │ distance   │ status   │
-    ╞════════╪═══════════════╪════════════╪══════════╡
-    ╘════════╧═══════════════╧════════════╧══════════╛
+    +===================+====================+==================+===================+============+=======================+
+    | Simulation Name   |   Avg Waiting Time |   Avg Total Time |   Simulation Time |   Max Time | Simulation Finished   |
+    +===================+====================+==================+===================+============+=======================╡
+    | SimFleet          |                  0 |                0 |                 0 |       1000 | False                 |
+    +===================+====================+==================+===================+============+=======================+
+    Fleet Manager stats
+    +==============+=======================+========+
+    | fleet_name   | transports_in_fleet   | type   |
+    +==============+=======================+========╡
+    +==============+=======================+========+
+    Customer stats
+    +========+================+==============+==========+
+    | name   | waiting_time   | total_time   | status   |
+    +========+================+==============+==========╡
+    +========+================+==============+==========+
+    Transport stats
+    +========+===============+============+==========+
+    | name   | assignments   | distance   | status   |
+    +========+===============+============+==========╡
+    +========+===============+============+==========+
+    Station stats
+    +========+==========+====================+=========+
+    | name   | status   | available_places   | power   |
+    +========+==========+====================+=========╡
+    +========+==========+====================+=========+
+    2015-10-21 16:29:21.360 | INFO     | simfleet.simulator:stop:258 -
+    Terminating... (0.0 seconds elapsed)
+    Simulation Results
+    +===================+====================+==================+===================+============+=======================+
+    | Simulation Name   |   Avg Waiting Time |   Avg Total Time |   Simulation Time |   Max Time | Simulation Finished   |
+    +===================+====================+==================+===================+============+=======================╡
+    | SimFleet          |                  0 |                0 |                 0 |       1000 | False                 |
+    +===================+====================+==================+===================+============+=======================+
+    Manager stats
+    +==============+=======================+========+
+    | fleet_name   | transports_in_fleet   | type   |
+    +==============+=======================+========╡
+    +==============+=======================+========+
+    Customer stats
+    +========+================+==============+==========+
+    | name   | waiting_time   | total_time   | status   |
+    +========+================+==============+==========╡
+    +========+================+==============+==========+
+    Transport stats
+    +========+===============+============+==========+
+    | name   | assignments   | distance   | status   |
+    +========+===============+============+==========╡
+    +========+===============+============+==========+
+    Station stats
+    +========+==========+====================+=========+
+    | name   | status   | available_places   | power   |
+    +========+==========+====================+=========╡
+    +========+==========+====================+=========+
 
-However, if you don't use some options when running the simulator there will be no default taxis nor passengers. That's
-why stats are empty. To run a simulation with some parameters you can use the command-line interface options.
+However, if you don't use some options when running the simulator there will be no default transports nor customers. That's
+why stats are empty. To run a simulation with some parameters you must fill a configuration file where the simulation scenario
+is defined.
 
-To show these options you can enter the ``--help`` command:
+To show he command line interface options you can enter the ``--help`` command:
 
 .. code-block:: console
 
-    $ taxi_simulator --help
+    $ simfleet --help
 
-    Usage: taxi_simulator [OPTIONS]
+    Usage: simfleet [OPTIONS]
 
-      Console script for taxi_simulator.
+  Console script for SimFleet.
 
     Options:
-      -n, --name TEXT                Name of the simulation execution.
-      -o, --output TEXT              Filename to save simulation results.
-      -of, --oformat [json|excel]    Output format used to save simulation
-                                     results. (default: json)
-      -mt, --max-time INTEGER        Maximum simulation time (in seconds).
-      -r, --autorun                  Run simulation as soon as the agents are
-                                     ready.
-      -t, --taxi TEXT                Taxi strategy class (default:
-                                     AcceptAlwaysStrategyBehaviour).
-      -p, --passenger TEXT           Passenger strategy class (default:
-                                     AcceptFirstRequestTaxiBehaviour).
-      -c, --coordinator TEXT         Coordinator strategy class (default:
-                                     DelegateRequestTaxiBehaviour).
-      --port INTEGER                 Web interface port (default: 9000).
-      -nt, --num-taxis INTEGER       Number of initial taxis to create (default:
-                                     0).
-      -np, --num-passengers INTEGER  Number of initial passengers to create
-                                     (default: 0).
-      --scenario TEXT                Filename of JSON file with initial scenario
-                                     description.
-      -cn, --coordinator-name TEXT   Coordinator agent name (default:
-                                     coordinator).
-      --coord-passwd TEXT            Coordinator agent password (default:
-                                     coordinator_passwd).
-      -rn, --route-name TEXT         Route agent name (default: route).
-      --route-passwd TEXT            Route agent password (default: route_passwd).
-      --host TEXT                    XMPP server address
-      -ip, --ip-address TEXT         IP to serve web (default: 127.0.0.1).
-      -v, --verbose                  Show verbose debug level: -v level 1, -vv
-                                     level 2, -vvv level 3, -vvvv level 4
-      --help                         Show this message and exit.
+      -n, --name TEXT              Name of the simulation execution.
+      -o, --output TEXT            Filename to save simulation results.
+      -of, --oformat [json|excel]  Output format used to save simulation results.
+                                   (default: json)
+      -mt, --max-time INTEGER      Maximum simulation time (in seconds).
+      -r, --autorun                Run simulation as soon as the agents are ready.
+      -c, --config TEXT            Filename of JSON file with initial config.
+      -v, --verbose                Show verbose debug level: -v level 1, -vv level
+                                   2, -vvv level 3, -vvvv level 4
+      --help                       Show this message and exit.
 
-Running a simulation from the command-line
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To run a quick simulation from the command-line you need to set up a few arguments: the number of taxis, the number of
-passengers and (optionally) the maximum time of simulation.
-The argument ``--num-taxis`` (or ``-nt``` initializates the specified number of taxis in random positions of the map.
-The argument ``--num-passengers`` (or ``-np``` initializates the specified number of passengers in random positions of
-the map and with a random destination for each one. If you want limit the simulation time tou can use the ``--max-time``
-argument (or ``-mt``) to set the maximum number of seconds after which the simulation will end. Finally, the
-``--autorun`` argument (or ``-r``) automatically runs the simulation (this argument is important when you are not using
-the graphical interface, since it is the only way to start the simulation).
+The output of a simulation shows some statistics of the simulation, with the `Average Total Time`, which
+represents the average time of customers from the moment they request a transport until they are delivered to their
+destination, and the `Average Waiting Time`, which is the average time of customers from requesting a transport to being
+picked up. This information is also shown for each customer along with their status at the end of the simulation.
 
-.. warning:: The ``--host`` argument is important to specify where your XMPP server is (localhost or external)
-
-Example:
-
-.. code-block:: console
-
-    $ taxi_simulator --host 127.0.0.1 --num-taxis 2 --num-passengers 2 --max-time 60 --autorun
-    INFO:root:Starting Taxi Simulator
-    INFO:CoordinatorAgent:Coordinator agent running
-    INFO:CoordinatorAgent:Web interface running at http://127.0.0.1:9000/app
-    INFO:root:Creating 2 taxis and 2 passengers.
-    INFO:RouteAgent:Route agent running
-    INFO:CoordinatorAgent:Simulation started.
-    INFO:PassengerAgent:Passenger michelle08 asked for a taxi to [39.469057, -0.406452].
-    INFO:PassengerAgent:Passenger schapman asked for a taxi to [39.465762, -0.382746].
-    INFO:TaxiAgent:Taxi stevencortez sent proposal to passenger michelle08
-    INFO:TaxiAgent:Taxi austin05 sent proposal to passenger michelle08
-    INFO:PassengerAgent:Passenger michelle08 accepted proposal from taxi stevencortez@127.0.0.1
-    INFO:PassengerAgent:Passenger michelle08 refused proposal from taxi austin05@127.0.0.1
-    INFO:TaxiAgent:Taxi stevencortez on route to passenger michelle08
-    INFO:PassengerAgent:Passenger michelle08 informed of status: 11
-    INFO:PassengerAgent:Passenger michelle08 waiting for taxi.
-    INFO:TaxiAgent:Taxi stevencortez has arrived to destination.
-    INFO:PassengerAgent:Passenger schapman asked for a taxi to [39.465762, -0.382746].
-    INFO:TaxiAgent:Taxi austin05 sent proposal to passenger schapman
-    INFO:PassengerAgent:Passenger schapman accepted proposal from taxi austin05@127.0.0.1
-    INFO:TaxiAgent:Taxi austin05 on route to passenger schapman
-    INFO:PassengerAgent:Passenger schapman informed of status: 11
-    INFO:PassengerAgent:Passenger schapman waiting for taxi.
-    INFO:TaxiAgent:Taxi stevencortez has picked up the passenger michelle08@127.0.0.1.
-    INFO:PassengerAgent:Passenger michelle08 informed of status: 12
-    INFO:PassengerAgent:Passenger michelle08 in taxi.
-    INFO:TaxiAgent:Taxi stevencortez has arrived to destination.
-    INFO:TaxiAgent:Taxi stevencortez has dropped the passenger michelle08@127.0.0.1 in destination.
-    INFO:PassengerAgent:Passenger michelle08 informed of status: 22
-    INFO:PassengerAgent:Passenger michelle08 arrived to destination after 10.8725750446 seconds.
-    INFO:TaxiAgent:Taxi austin05 has arrived to destination.
-    INFO:TaxiAgent:Taxi austin05 has picked up the passenger schapman@127.0.0.1.
-    INFO:PassengerAgent:Passenger schapman informed of status: 12
-    INFO:PassengerAgent:Passenger schapman in taxi.
-    INFO:TaxiAgent:Taxi austin05 has arrived to destination.
-    INFO:TaxiAgent:Taxi austin05 has dropped the passenger schapman@127.0.0.1 in destination.
-    INFO:PassengerAgent:Passenger schapman informed of status: 22
-    INFO:PassengerAgent:Passenger schapman arrived to destination after 22.221298933 seconds.
-    INFO:root:
-    Terminating... (22.7 seconds elapsed)
-    INFO:CoordinatorAgent:Stopping taxi stevencortez
-    INFO:CoordinatorAgent:Stopping taxi austin05
-    INFO:CoordinatorAgent:Stopping passenger michelle08
-    INFO:CoordinatorAgent:Stopping passenger schapman
-    Simulation Results
-    ╒════════════════════╤══════════════════╤═══════════════════╤════════════╤═══════════════════════╕
-    │   Avg Total Time   │ Avg Waiting Time │   Simulation Time │   Max Time │ Simulation Finished   │
-    ╞════════════════════╪══════════════════╪═══════════════════╪════════════╪═══════════════════════╡
-    │              22.69 │            16.55 │           22.6766 │         60 │ True                  │
-    ╘════════════════════╧══════════════════╧═══════════════════╧════════════╧═══════════════════════╛
-    Passenger stats
-    ╒══════════════════════╤════════════════╤══════════════╤═══════════════════╕
-    │ name                 │  total_time    │ waiting_time │ status            │
-    ╞══════════════════════╪════════════════╪══════════════╪═══════════════════╡
-    │ michelle08@127.0.0.1 │        22.685  │      10.8726 │ PASSENGER_IN_DEST │
-    ├──────────────────────┼────────────────┼──────────────┼───────────────────┤
-    │ schapman@127.0.0.1   │        22.6845 │      22.2213 │ PASSENGER_IN_DEST │
-    ╘══════════════════════╧════════════════╧══════════════╧═══════════════════╛
-    Taxi stats
-    ╒════════════════════════╤═══════════════╤════════════╤══════════════╕
-    │ name                   │   assignments │   distance │ status       │
-    ╞════════════════════════╪═══════════════╪════════════╪══════════════╡
-    │ stevencortez@127.0.0.1 │             1 │     4835.1 │ TAXI_WAITING │
-    ├────────────────────────┼───────────────┼────────────┼──────────────┤
-    │ austin05@127.0.0.1     │             1 │     7885.2 │ TAXI_WAITING │
-    ╘════════════════════════╧═══════════════╧════════════╧══════════════╛
-
-By analyzing the output of the simulation we can see what events have occurred and how the simulation has been
-developed. There were created two taxis ( ``stevencortez`` and ``austin05``) and two passengers (``michelle08`` and
-``schapman``). After the negotiation provided by the default strategies included in Taxi Simulator, taxi ``stevencortez``
-was assigned to passenger ``michelle08`` and taxi ``austin05`` was assigned to passenger ``schapman``. After 22 seconds
-of simulation both passengers were delivered in their destinations and taxis are free again to attend more passenger
-requests.
-
-The output of the simulation also shows some statistics of the simulation, with the `Average Total Time`, which
-represents the average time of passengers from the moment they request a taxi until they are delivered to their
-destination, and the `Average Waiting Time`, which is the average time of passengers from requesting a taxi to being
-picked up. This information is also shown  for each passenger along with their status at the end of the simulation.
-
-In the case of taxis, the shown information includes the number of assignments of each taxi (how many passengers it has
+In the case of transports, the shown information includes the number of assignments of each transport (how many customers it has
 delivered), the total distance it has traveled and its final status.
 
 This information is going to be useful for the development of new strategies that improve the system balancing or for
-debugging errors if a taxi or a passenger gets stuck or any other unexpected situation occurs.
+debugging errors if a transport or a customer gets stuck or any other unexpected situation occurs.
+
+The last but no less important option is the verbosity option. It allows you to specify how verbose you want the
+simulator to be. The number of ``v`` letters you pass to the option indicates the level of verbosity (e.g. ``-v`` is
+**DEBUG** verbosity and ``-vvvv`` is the highest level of verbosity where the internal messages of the platform are
+shown).
+
+
+The Config file: Loading Scenarios
+==================================
+
+The ability to load scenarios to SimFleet allows us to repeat the same experiment as many times as we want with
+the same initial conditions. SimFleet supports to load a *config* file that defines all the fields that you need
+to load the same information repeatedly. A scenario file must be coded in JSON format.
+
+The most important fields that the scenario file must include are a customers list and a transports list. Each customer must include the
+following fields:
+
++--------------------------------------------------------------------------------------+
+|  Customers                                                                           |
++-------------+------------------------------------------------------------------------+
+|  Field      |  Description                                                           |
++=============+========================================================================+
+| position    |    Initial coordinates of the customer                                 |
++-------------+------------------------------------------------------------------------+
+| destination |   Destination coordinates of the customer                              |
++-------------+------------------------------------------------------------------------+
+| name        |   Name of the customer                                                 |
++-------------+------------------------------------------------------------------------+
+| password    |   Password for registering the customer in the platform (optional)     |
++-------------+------------------------------------------------------------------------+
+| fleet_type  |   Fleet type that the customer wants to use                            |
++-------------+------------------------------------------------------------------------+
+| icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
++-------------+------------------------------------------------------------------------+
+| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
++-------------+------------------------------------------------------------------------+
+
+For transports the fields are as follows:
+
++---------------------------------------------------------------------------------------------+
+|  Transports                                                                                 |
++------------------+--------------------------------------------------------------------------+
+|  Field           |  Description                                                             |
++==================+==========================================================================+
+| position         |   Initial coordinates of the transport                                   |
++------------------+--------------------------------------------------------------------------+
+| name             |   Name of the transport                                                  |
++------------------+--------------------------------------------------------------------------+
+| password         |   Password for registering the transport in the platform (optional)      |
++------------------+--------------------------------------------------------------------------+
+| speed            |   Speed of the transport (in meters per second)  (optional)              |
++------------------+--------------------------------------------------------------------------+
+| fleet_type       |   Fleet type that the customer wants to use                              |
++------------------+--------------------------------------------------------------------------+
+| fleet            |   The fleet manager's JID to be subscribed to (optional)                 |
++------------------+--------------------------------------------------------------------------+
+| autonomy         |   The maximum autonomy of the transport (in km)   (optional)             |
++------------------+--------------------------------------------------------------------------+
+| current_autonomy |   The initial autonomy of the transport (in km)   (optional)             |
++------------------+--------------------------------------------------------------------------+
+| icon             |   Custom icon (in base64 format) to be used by the transport  (optional) |
++------------------+--------------------------------------------------------------------------+
+| strategy         |   Custom strategy file in the format module.file.Class  (optional)       |
++------------------+--------------------------------------------------------------------------+
+
+For fleet managers the fields are as follows:
+
++--------------------------------------------------------------------------------------+
+|  Fleet managers                                                                      |
++-------------+------------------------------------------------------------------------+
+|  Field      |  Description                                                           |
++=============+========================================================================+
+| position    |   Initial coordinates of the manager                                   |
++-------------+------------------------------------------------------------------------+
+| name        |   Name of the manager                                                  |
++-------------+------------------------------------------------------------------------+
+| password    |   Password for registering the manager in the platform (optional)      |
++-------------+------------------------------------------------------------------------+
+| fleet_type  |   Fleet type that the agent manages                                    |
++-------------+------------------------------------------------------------------------+
+| icon        |   Custom icon (in base64 format) to be used by the manager  (optional) |
++-------------+------------------------------------------------------------------------+
+| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
++-------------+------------------------------------------------------------------------+
+
+An example of a config file with two customers, two transports and one fleet manager:
+
+.. code-block:: json
+
+    {
+        "fleets": [
+            {
+                "password": "secret",
+                "name": "fleetm1",
+                "fleet_type": "drone"
+            },
+            {
+                "password": "secret",
+                "name": "fleetm3",
+                "fleet_type": "food_delivery"
+            },
+            {
+                "password": "secret",
+                "name": "fleetm2",
+                "fleet_type": "drone"
+            }
+        ],
+        "transports": [
+            {
+                "speed": 2000,
+                "fleet": "fleetm1@localhost",
+                "fleet_type": "drone",
+                "position": [40.41192762537371, -3.7105464935302734],
+                "password": "secret",
+                "name": "drone1"
+            },
+            {
+                "speed": 2000,
+                "fleet": "fleetm1@localhost",
+                "fleet_type": "drone",
+                "position": [40.428655600133546,-3.6993885040283203],
+                "password": "secret",
+                "name": "drone2"
+            },
+            {
+                "speed": 2000,
+                "fleet": "fleetm2@localhost",
+                "fleet_type": "drone",
+                "position": [40.446424515534666, -3.6612796783447266],
+                "password": "secret",
+                "name": "drone3"
+            },
+            {
+                "speed": 2000,
+                "fleet": "fleetm3@localhost",
+                "fleet_type": "food_delivery",
+                "position": [40.44635919724081,-3.69140625],
+                "password": "secret",
+                "name": "bike1"
+            },
+            {
+                "speed": 2000,
+                "fleet": "fleetm3@localhost",
+                "fleet_type": "food_delivery",
+                "position": [40.42035747630869,-3.665142059326172],
+                "password": "secret",
+                "name": "bike2"
+            }
+        ],
+        "customers": [
+            {
+                "destination": [40.446163241978304,-3.7075424194335938],
+                "position": [40.45171508652634,-3.677501678466797],
+                "password": "secret",
+                "name": "c1",
+                "fleet_type": "drone"
+            },
+            {
+                "destination": [40.4068299938421,-3.670291900634765],
+                "position": [40.43087697137461,-3.716297149658203],
+                "password": "secret",
+                "name": "c2",
+                "fleet_type": "drone"
+            },
+            {
+                "destination": [40.43002763221108,-3.6797332763671875],
+                "position": [40.45759301026131,-3.664026260375976],
+                "password": "secret",
+                "name": "c3",
+                "fleet_type": "drone"
+            },
+            {
+                "destination": [40.45785423938172,-3.711318969726563],
+                "position": [40.440088345478614,-3.680849075317383],
+                "password": "secret",
+                "name": "f1",
+                "fleet_type": "food_delivery"
+            },
+            {
+                "destination": [40.458572614225545,-3.680419921875],
+                "position": [40.409770982232956,-3.6928653717041016],
+                "password": "secret",
+                "name": "f2",
+                "fleet_type": "food_delivery"
+            }
+        ],
+        "stations": [
+            {
+                "name": "station1",
+                "password": "secret",
+                "position": [40.424559,-3.7002277],
+                "places": 2,
+                "power": 50,
+                "icon": "gas_station"
+            }
+        ],
+        "simulation_name": "Example Config",
+        "max_time": 1000,
+        "verbose": 1,
+        "transport_strategy": "simfleet.strategies.AcceptAlwaysStrategyBehaviour",
+        "customer_strategy": "simfleet.strategies.AcceptFirstRequestBehaviour",
+        "fleetmanager_strategy": "simfleet.strategies.DelegateRequestBehaviour",
+        "directory_strategy": "simfleet.directory.DirectoryStrategyBehaviour",
+        "station_strategy": "simfleet.station.StationStrategyBehaviour",
+        "fleetmanager_name": "fleetmanager",
+        "fleetmanager_password": "fleetmanager_passwd",
+        "route_name": "route",
+        "route_password": "route_passwd",
+        "directory_name": "directory",
+        "directory_password": "directory_passwd",
+        "host": "localhost",
+        "xmpp_port": 5222,
+        "http_port": 9000,
+        "http_ip": "127.0.0.1",
+        "coords": [40.4167754, -3.7037902],
+        "zoom": 14
+    }
+
+The rest of configuration parameters are referred to general settings of the simulator such as ``coords`` and ``zoom``
+which allows the user to set up the coordinates and zoom of the city where the simulation is run.
 
 
 Saving the simulation results
@@ -216,55 +404,33 @@ Example:
 
 .. code-block:: console
 
-    $ taxi_simulator --host 127.0.0.1 --name "My Simulation" --output results.xls --oformat excel
-
-
-Advanced options
-~~~~~~~~~~~~~~~~
-
-There are other options that are less common and that you probably don't need to use very often. These are options that
-allow you to change connection ports or default name and password of the coordinator agent. Use them only if there is a
-port or name conflict.
-
-The last but no less important option is the verbosity option. It allows you to specify how verbose you want the
-simulator to be. The number of ``v`` letters you pass to the option indicates the level of verbosity (e.g. ``-v`` is
-**DEBUG** verbosity and ``-vvvv`` is the highest level of verbosity where the internal messages of the platform are
-shown).
-
-
-.. note::
-    You may have noticed that we haven't discussed three very important options that are: ``--taxi``, ``--passenger``,
-    and ``--coordinator``. These options are used to inject new strategies to the simulator and we'll be discussed in a
-    later chapter.
-    Also, the ``--scenario`` option will be fully explained in a later section.
+    $ simfleet --config myconfig.json --name "My Simulation" --output results.xls --oformat excel
 
 
 Graphical User Interface
 ========================
-A much more user-friendly way to use Taxi Simulator is through the built-in graphical user interface. This interface is
-accessed via any web browser. Just look at the address shown on the screen when you run the simulator and access that
-website.
+A much more user-friendly way to use SimFleet is through the built-in graphical user interface. This interface is
+accessed via any web browser and is designed as a viewer for your running simulations.
+To open it just visit the address shown on the screen when you run the simulator and access that website.
 
 .. hint::
-    The Coordinator agent is who raises the GUI and shows the address in the debug:
+    The Simulator agent is who raises the GUI and shows the address in the console output:
 
     .. code-block:: console
 
-        INFO:CoordinatorAgent:Web interface running at http://127.0.0.1:9000/app
+        2015-10-21 16:29:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
 
     This address is (in most cases): `http://127.0.0.1:9000/app <http://127.0.0.1:9000/app>`_
 
 Once you visit the GUI address you see an interface like this:
 
-.. figure:: images/screen1.png
+.. figure:: images/screen3.png
     :align: center
     :alt: GUI at startup
 
     GUI at startup
 
 In the GUI you can see a map of the city on the right and a Control Panel with various options on the left:
-
-#. Two selectors to set the number of taxis and passengers and an **Add** button. When this button is pressed the number of taxis and passengers that are in the input boxes are created in random positions inside the map. This form is very similar to the command line option, except that you can add Taxi and Passenger agents at any time during the simulation.
 
 #. A **Run** button that starts the simulation.
 
@@ -274,25 +440,25 @@ In the GUI you can see a map of the city on the right and a Control Panel with v
 
 #. A **Download** button to get the stats of the simulation in excel or json format.
 
-#. A collapsable tree view with the taxis and passengers that are included in the simulation, with a color bullet that indicates their current status.
+#. A collapsable tree view with the transports and customers that are included in the simulation, with a color bullet that indicates their current status.
 
-If the **Run** buttons is pressed the simulation shows how the taxis move to the passengers and deliver them to their
+If the **Run** button is pressed the simulation shows how the transports move to the customers and deliver them to their
 destinations.
 
-.. figure:: images/screen2.png
+.. figure:: images/madrid.png
     :align: center
     :alt: Simulation in progress
 
     Simulation in progress
 
-Notice that when a taxi picks up a passenger, the passenger's icon disappears from the map view (since it
-is inside the taxi) and is no longer viewed (it's also not shown when it arrives to its desination). However, you can
-check at any time your passengers status in the tree view of the Control Panel.
+Notice that when a transport picks up a customer, the customer's icon disappears from the map view (since it
+is inside the transport) and is no longer viewed (it's also not shown when it arrives to its destination). However, you can
+check at any time your customers status in the tree view of the Control Panel.
 
-The code colors in the tree view indicate the status of a taxi or a passenger. The legend of colors is as follows:
+The code colors in the tree view indicate the status of a transport or a customer. The legend of colors is as follows:
 
 +--------------------------------------+---------------------------------+
-|                Taxis                 |             Passengers          |
+|              Transports              |            Customers            |
 +--------------+-----------------------+---------------+-----------------+
 |  Bullet      |     Status            |  Bullet       |     Status      |
 +==============+=======================+===============+=================+
@@ -300,7 +466,7 @@ The code colors in the tree view indicate the status of a taxi or a passenger. T
 +--------------+-----------------------+---------------+-----------------+
 | |inter|      | WAITING FOR APPROVAL  | |inter|       |  ASSIGNED       |
 +--------------+-----------------------+---------------+-----------------+
-| |interpulse| | MOVING TO PASSENGER   | |activepulse| |  IN TAXI        |
+| |interpulse| | MOVING TO CUSTOMER    | |activepulse| |  IN TRANSPORT   |
 +--------------+-----------------------+---------------+-----------------+
 | |activepulse|| MOVING TO DESTINATION | |positive|    |  IN DESTINATION |
 +--------------+-----------------------+---------------+-----------------+
@@ -326,102 +492,14 @@ The code colors in the tree view indicate the status of a taxi or a passenger. T
     Every time than a bullet is pulsing means that the agent is moving.
 
 
-When a taxi is moving it's also shown in the GUI the path that the taxi is folowing. The color of the path indicates the
-type of movement than the taxi is doing. A yellow path indicates that the taxi is going to pick up the passenger.
-On the other hand, a blue path indicates that the taxi is taking the passenger to his destination.
+When a transport is moving it's also shown in the GUI the path that the transport is following. The color of the path indicates the
+type of movement that the transport is doing. A yellow path indicates that the transport is going to pick up the customer.
+On the other hand, a blue path indicates that the transport is taking the customer to his destination.
 
 
 .. note::
-    A simulation is finished when all taxis are free (and waiting for new passengers) and all passengers are in their
+    A simulation is finished when all transports are free (and waiting for new customers) and all customers are in their
     destinations (i.e. all bullets are green).
 
 
-Loading Scenarios
-=================
-
-Adding agents using both the graphical interface and command line is convenient and fast, but if you want to perform
-repeatable experiments where you choose where agents appear and what the destinations of the passengers are (rather than
-random data) then you need the mechanism of the **scenarios**.
-
-The ability to load scenarios to Taxi Simulator allows us to repeat the same experiment as many times as we want with
-the same initial conditions. Taxi Simulator supports to load a *scenario* file that defines all the fields that you need
-to load the same information repeatedly. A scenario file must be coded in JSON format.
-
-The fields that the scenario file must include are a passengers list and a taxis list. Each passenger must include the
-following fields:
-
-+-----------+--------------------------------------------------------------------+
-|  Field    |  Description                                                       |
-+===========+====================================================================+
-| position  |     Initial coordinates of the passenger                           |
-+-----------+--------------------------------------------------------------------+
-| dest      |    Destination coordinates of the passenger                        |
-+-----------+--------------------------------------------------------------------+
-| name      |    Name of the passenger                                           |
-+-----------+--------------------------------------------------------------------+
-| password  | Password for registering the passenger in the platform (optional)  |
-+-----------+--------------------------------------------------------------------+
-
-For taxis the fields are as follows:
-
-+-----------+--------------------------------------------------------------------+
-|  Field    |  Description                                                       |
-+===========+====================================================================+
-|position   |   Initial coordinates of the taxi                                  |
-+-----------+--------------------------------------------------------------------+
-|name       |   Name of the taxi                                                 |
-+-----------+--------------------------------------------------------------------+
-|password   |   Password for registering the taxi in the platform (optional)     |
-+-----------+--------------------------------------------------------------------+
-|speed      |   Speed of the taxi (in meters per second)                         |
-+-----------+--------------------------------------------------------------------+
-
-An example of a scenario file with two passengers and two taxis:
-
-.. code-block:: json
-
-    {
-        "passengers": [
-            {
-                "dest": [ 39.463356, -0.376463 ],
-                "position": [ 39.460568, -0.352529 ],
-                "name": "michaelstewart",
-                "password": "T3TnmjuI(m"
-            },
-            {
-                "dest": [ 39.49529, -0.401478 ],
-                "position": [ 39.49529, -0.401478 ],
-                "name": "ghiggins",
-                "password": "@5wPA$Mx#O"
-            }
-        ],
-        "taxis": [
-            {
-                "position": [ 39.462618, -0.364888 ],
-                "name": "taxi1",
-                "password": "$JM!Zcwh0R",
-                "speed": 2000
-            },
-            {
-                "position": [ 39.478458, -0.406736 ],
-                "password": "_bx1TBEiu8",
-                "name": "taxi2",
-                "speed": 2000
-            }
-        ]
-    }
-
-
-Finally, to load a scenario in a simulation use the ``--scenario`` option with the filename of the JSON file:
-
-.. code-block:: console
-
-    $ taxi_simulator --host 127.0.0.1 --scenario my_scenario.json
-
-    INFO:root:Starting Taxi Simulator
-    INFO:CoordinatorAgent:Coordinator agent running
-    INFO:CoordinatorAgent:Web interface running at http://127.0.0.1:9000/app
-    INFO:root:Creating 0 taxis and 0 passengers.
-    INFO:root:Loading scenario my_scenario.json
-    INFO:RouteAgent:Route agent running
 

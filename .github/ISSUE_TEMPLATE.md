@@ -1,4 +1,4 @@
-* Taxi Simulator version:
+* SimFleet version:
 * Python version:
 * Operating System:
 

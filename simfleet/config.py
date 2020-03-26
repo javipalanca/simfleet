@@ -58,6 +58,7 @@ class SimfleetConfig(object):
 
         self.__config["fleetmanager_name"] = self.__config.get("fleetmanager_name", "fleetmanager")
         self.__config["fleetmanager_password"] = self.__config.get("fleetmanager_passwd", "fleetmanager_passwd")
+        self.__config["route_host"] = self.__config.get("route_host", "http://router.project-osrm.org/")
         self.__config["route_name"] = self.__config.get("route_name", "route")
         self.__config["route_password"] = self.__config.get("route_passwd", "route_passwd")
         self.__config["directory_name"] = self.__config.get("directory_name", "directory")

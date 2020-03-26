@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
-import logging
+from asyncio import CancelledError
 
 import faker
 from loguru import logger
@@ -174,6 +174,8 @@ class TransportRegistrationForFleetBehaviour(CyclicBehaviour):
                 if performative == ACCEPT_PERFORMATIVE:
                     self.agent.set_registration(True)
                     logger.info("Registration in the dictionary of services")
+        except CancelledError:
+            logger.debug("Cancelling async tasks...")
         except Exception as e:
             logger.error("EXCEPTION in RegisterBehaviour of Manager {}: {}".format(self.agent.name, e))
 

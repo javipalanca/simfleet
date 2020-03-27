@@ -90,6 +90,7 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
 
             msg = await self.receive(timeout=5)
             if not msg:
+                self.set_next_state(TRANSPORT_NEEDS_CHARGING)
                 return
             logger.debug("Transport received message: {}".format(msg))
             try:
@@ -121,44 +122,40 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
         station = closest_station[0]
         self.agent.current_station_dest = (station, self.agent.stations[station]["position"])
         logger.info("Transport {} selected station {}.".format(self.agent.name, station))
-        self.set_next_state(TRANSPORT_MOVING_TO_STATION)
-        return
+        try:
+            station, position = self.agent.current_station_dest
+            await self.go_to_the_station(station, position)
+            self.set_next_state(TRANSPORT_MOVING_TO_STATION)
+            return
+
+        except PathRequestException:
+            logger.error("Transport {} could not get a path to station {}. Cancelling..."
+                         .format(self.agent.name, station))
+            await self.cancel_proposal(station)
+            self.set_next_state(TRANSPORT_WAITING)
+            return
+        except Exception as e:
+            logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
+            self.set_next_state(TRANSPORT_WAITING)
+            return
 
 
 class TransportMovingToStationState(TransportStrategyBehaviour, State):
 
     async def on_start(self):
         await super().on_start()
-        # self.agent.status = TRANSPORT_MOVING_TO_STATION
+        self.agent.status = TRANSPORT_MOVING_TO_STATION
         logger.debug("SSSSSSSSSSSSSSS I'm in Transport Moving to Station SSSSSSSSSSSSSSSSS")
 
-
     async def run(self):
-        if self.agent.status == TRANSPORT_IN_STATION_PLACE:
-            self.set_next_state(TRANSPORT_IN_STATION_PLACE)
-            return
-        elif self.agent.status == TRANSPORT_MOVING_TO_STATION:
-            self.set_next_state(TRANSPORT_MOVING_TO_STATION)
-            return
-        else:
-            try:
-                station, position = self.agent.current_station_dest
-                # substituir per event arrived_to_station?
-                await self.go_to_the_station(station, position)  # esto no works
-                self.agent.status = TRANSPORT_MOVING_TO_STATION
-                self.set_next_state(TRANSPORT_MOVING_TO_STATION)
-                return
 
-            except PathRequestException:
-                logger.error("Transport {} could not get a path to station {}. Cancelling..."
-                             .format(self.agent.name, station))
-                await self.cancel_proposal(station)
-                self.set_next_state(TRANSPORT_WAITING)
-                return
-            except Exception as e:
-                logger.error("Unexpected error in transport {}: {}".format(self.agent.name, e))
-                self.set_next_state(TRANSPORT_WAITING)
-                return
+        self.agent.transport_in_station_place_event.clear()
+        logger.error("EVENT ::: Transport is moving to station. . .")
+        self.agent.watch_value("in_station_place", self.agent.transport_in_station_place_callback)
+        await self.agent.transport_in_station_place_event.wait()
+        logger.error("EVENT ::: Transport is in station place.")
+        return self.set_next_state(TRANSPORT_IN_STATION_PLACE)
+
 
 
 class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
@@ -207,61 +204,6 @@ class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
             return
 
 
-class MyTransportMovingToCustomerState(TransportStrategyBehaviour, State):
-
-    async def on_start(self):
-        await super().on_start()
-        # self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
-        logger.debug("SSSSSSSSSSSSSSS I'm in MY Transport Moving To Customer State SSSSSSSSSSSSSSSSS")
-
-
-    async def run(self):
-        if self.agent.status == TRANSPORT_WAITING:
-            self.set_next_state(TRANSPORT_WAITING)
-            logger.error("Transport is free again.")
-            return
-        else:
-            self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
-            logger.error(". . . I'm still moving to customer . . .")
-            return
-
-
-# SENSE CANVIS
-
-'''
-class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
-
-    async def on_start(self):
-        await super().on_start()
-        self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
-        self.agent.customer_in_transport_event = asyncio.Event(loop=self.agent.loop)
-
-        def customer_in_transport_callback(old, new):
-            logger.error("CALLBACK")
-            if not self.agent.customer_in_transport_event.is_set() and new is None:
-                logger.error("SETTING EVENT TO FLAG TO TRUE")
-                self.agent.customer_in_transport_event.set()
-
-        self.agent.customer_in_transport_callback = customer_in_transport_callback
-
-    async def run(self):
-        # Defining callback
-        # customer_in_transport_event = asyncio.Event(loop=self.agent.loop)
-        # reset internal flag to False. coroutines calling
-        # wait() will block until set() is called
-        self.agent.customer_in_transport_event.clear()
-        logger.error("EVENT ::: Transport is moving to customer. . .")
-        # Registers an observer callback to be run when the "customer_in_transport" is changed
-        self.agent.watch_value("customer_in_transport", self.agent.customer_in_transport_callback)
-        # block behaviour until another coroutine calls set()
-        logger.error("EVENT ::: Transport is watching_value. . .")
-        await self.agent.customer_in_transport_event.wait()
-        # no s'está accedint a aquesta part del codi, segurament es canvia l'"status" de l'agent, però no l'estat
-        logger.error("EVENT ::: Transport is free again.")
-        return self.set_next_state(TRANSPORT_WAITING)
-'''
-
-
 class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
 
     async def on_start(self):
@@ -292,7 +234,7 @@ class TransportInStationState(TransportStrategyBehaviour, State):
     # car arrives to the station and waits in queue until receiving confirmation
     async def on_start(self):
         await super().on_start()
-        # self.agent.status = TRANSPORT_IN_STATION_PLACE
+        self.agent.status = TRANSPORT_IN_STATION_PLACE
         logger.debug("SSSSSSSSSSSSSSS I'm in Transport In Station Place State SSSSSSSSSSSSSSSSS")
 
 
@@ -377,8 +319,10 @@ class FSMTransportStrategyBehaviour(FSMBehaviour):
 
         self.add_transition(TRANSPORT_NEEDS_CHARGING, TRANSPORT_NEEDS_CHARGING)  # waiting for station list
         self.add_transition(TRANSPORT_NEEDS_CHARGING, TRANSPORT_MOVING_TO_STATION)  # going to station
-        self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE)  # arrive to station
-        self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_MOVING_TO_STATION)  # ??
+        self.add_transition(TRANSPORT_NEEDS_CHARGING, TRANSPORT_WAITING)  # exception in go_to_the_station(station, position)
+        self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE)  # arrived to station
+        # self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_MOVING_TO_STATION)  #
+        # self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_WAITING)  # ??
         self.add_transition(TRANSPORT_IN_STATION_PLACE, TRANSPORT_IN_STATION_PLACE)  # waiting in station queue
         self.add_transition(TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGING)  # begin charging
         self.add_transition(TRANSPORT_CHARGING, TRANSPORT_CHARGING)  # waiting to finish charging

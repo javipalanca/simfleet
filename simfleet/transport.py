@@ -72,8 +72,18 @@ class TransportAgent(Agent):
         self.charge_time = None
         self.total_waiting_time = None
 
-        self.customer_in_transport_event = asyncio.Event(loop=self.loop)
+        # Transport in station place event
+        self.set("in_station_place", None) # new
+        self.transport_in_station_place_event = asyncio.Event(loop=self.loop)
+        def transport_in_station_place_callback(old, new):
+            logger.error("station callback")
+            if not self.transport_in_station_place_event.is_set() and new is True:
+                logger.error("station event flag to true")
+                self.transport_in_station_place_event.set()
+        self.transport_in_station_place_callback = transport_in_station_place_callback
 
+        # Customer in transport event
+        self.customer_in_transport_event = asyncio.Event(loop=self.loop)
         def customer_in_transport_callback(old, new):
             logger.error("CALLBACK")
             # if event flag is False and new is None
@@ -81,9 +91,8 @@ class TransportAgent(Agent):
                 logger.error("SETTING EVENT FLAG TO TRUE")
                 # Sets event flag to True, all coroutines waiting for it are awakened
                 self.customer_in_transport_event.set()
-
         self.customer_in_transport_callback = customer_in_transport_callback
-        # self.customer_in_transport_callback = types.MethodType(customer_in_transport_callback, self)
+
 
     async def setup(self):
         try:
@@ -230,11 +239,14 @@ class TransportAgent(Agent):
         It recomputes the new destination and path if picking up a customer
         or drops it and goes to WAITING status again.
         """
-        self.status = TRANSPORT_IN_STATION_PLACE
+        # self.status = TRANSPORT_IN_STATION_PLACE
 
         # ask for a place to charge
         logger.info("Transport {} arrived to station {} and its waiting to charge".format(self.agent_id,
                                                                                           self.get("current_station")))
+        logger.error("There should now be a callback...")
+        self.set("in_station_place", True) # new
+
         reply = Message()
         reply.to = self.get("current_station")
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
@@ -447,6 +459,7 @@ class TransportAgent(Agent):
             if self.status == TRANSPORT_MOVING_TO_STATION:
                 await self.arrived_to_station()
             else:
+                logger.error("My status is {} but i'm executing arrived_to_destination".format(self.status))
                 await self.arrived_to_destination()
 
     def get_position(self):
@@ -659,6 +672,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
             station_id (str): the id of the customer
             dest (list): the coordinates of the target destination of the customer
         """
+
         logger.info("Transport {} on route to station {}".format(self.agent.name, station_id))
         reply = Message()
         reply.to = station_id
@@ -748,6 +762,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         await self.send(reply)
 
     async def charge_allowed(self):
+        self.set("in_station_place", None) # new
         await self.agent.begin_charging()
 
     async def run(self):

@@ -49,10 +49,9 @@ class TransportWaitingState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Waiting State SSSSSSSSSSSSSSSSS")
+        logger.error("SSSSSSSSSSSSSSS I'm in Transport Waiting State SSSSSSSSSSSSSSSSS")
 
     async def run(self):
-        logger.error("I'm waiting again...")
         msg = await self.receive(timeout=60)
         if not msg:
             self.set_next_state(TRANSPORT_WAITING)
@@ -80,7 +79,7 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_NEEDS_CHARGING
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Needs Charging State SSSSSSSSSSSSSSSSS")
+        logger.error("SSSSSSSSSSSSSSS I'm in Transport Needs Charging State SSSSSSSSSSSSSSSSS")
 
 
     async def run(self):
@@ -145,15 +144,13 @@ class TransportMovingToStationState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_STATION
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Moving to Station SSSSSSSSSSSSSSSSS")
+        logger.error("SSSSSSSSSSSSSSS I'm in Transport Moving to Station SSSSSSSSSSSSSSSSS")
 
     async def run(self):
 
         self.agent.transport_in_station_place_event.clear()
-        logger.error("EVENT ::: Transport is moving to station. . .")
         self.agent.watch_value("in_station_place", self.agent.transport_in_station_place_callback)
         await self.agent.transport_in_station_place_event.wait()
-        logger.error("EVENT ::: Transport is in station place.")
         return self.set_next_state(TRANSPORT_IN_STATION_PLACE)
 
 
@@ -163,7 +160,7 @@ class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Waiting For Approval State SSSSSSSSSSSSSSSSS")
+        logger.error("SSSSSSSSSSSSSSS I'm in Transport Waiting For Approval State SSSSSSSSSSSSSSSSS")
 
 
     async def run(self):
@@ -209,21 +206,18 @@ class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Moving To Customer State SSSSSSSSSSSSSSSSS")
+        logger.error("SSSSSSSSSSSSSSS I'm in Transport Moving To Customer State SSSSSSSSSSSSSSSSS")
 
 
     async def run(self):
         # Reset internal flag to False. coroutines calling
         # wait() will block until set() is called
         self.agent.customer_in_transport_event.clear()
-        logger.error("EVENT ::: Transport is moving to customer. . .")
         # Registers an observer callback to be run when the "customer_in_transport" is changed
         self.agent.watch_value("customer_in_transport", self.agent.customer_in_transport_callback)
         # block behaviour until another coroutine calls set()
-        logger.error("EVENT ::: Transport is watching_value. . .")
         await self.agent.customer_in_transport_event.wait()
         # no s'está accedint a aquesta part del codi
-        logger.error("EVENT ::: Transport is free again.")
         return self.set_next_state(TRANSPORT_WAITING)
 
 
@@ -235,7 +229,7 @@ class TransportInStationState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_IN_STATION_PLACE
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport In Station Place State SSSSSSSSSSSSSSSSS")
+        logger.error("SSSSSSSSSSSSSSS I'm in Transport In Station Place State SSSSSSSSSSSSSSSSS")
 
 
     async def run(self):
@@ -269,7 +263,7 @@ class TransportChargingState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         # self.agent.status = TRANSPORT_CHARGING # this change is already performed in function begin_charging() of class Transport
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Charging State SSSSSSSSSSSSSSSSS")
+        logger.error("SSSSSSSSSSSSSSS I'm in Transport Charging State SSSSSSSSSSSSSSSSS")
 
 
     async def run(self):

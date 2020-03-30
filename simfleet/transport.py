@@ -76,19 +76,15 @@ class TransportAgent(Agent):
         self.set("in_station_place", None) # new
         self.transport_in_station_place_event = asyncio.Event(loop=self.loop)
         def transport_in_station_place_callback(old, new):
-            logger.error("station callback")
             if not self.transport_in_station_place_event.is_set() and new is True:
-                logger.error("station event flag to true")
                 self.transport_in_station_place_event.set()
         self.transport_in_station_place_callback = transport_in_station_place_callback
 
         # Customer in transport event
         self.customer_in_transport_event = asyncio.Event(loop=self.loop)
         def customer_in_transport_callback(old, new):
-            logger.error("CALLBACK")
             # if event flag is False and new is None
             if not self.customer_in_transport_event.is_set() and new is None:
-                logger.error("SETTING EVENT FLAG TO TRUE")
                 # Sets event flag to True, all coroutines waiting for it are awakened
                 self.customer_in_transport_event.set()
         self.customer_in_transport_callback = customer_in_transport_callback
@@ -244,7 +240,6 @@ class TransportAgent(Agent):
         # ask for a place to charge
         logger.info("Transport {} arrived to station {} and its waiting to charge".format(self.agent_id,
                                                                                           self.get("current_station")))
-        logger.error("There should now be a callback...")
         self.set("in_station_place", True) # new
 
         reply = Message()
@@ -302,7 +297,6 @@ class TransportAgent(Agent):
                                                                                        self.get("current_customer")))
         self.set("current_customer", None)
         self.set("customer_in_transport", None)
-        logger.error("There should now be a callback...")
 
     async def drop_station(self):
         """
@@ -459,7 +453,6 @@ class TransportAgent(Agent):
             if self.status == TRANSPORT_MOVING_TO_STATION:
                 await self.arrived_to_station()
             else:
-                logger.error("My status is {} but i'm executing arrived_to_destination".format(self.status))
                 await self.arrived_to_destination()
 
     def get_position(self):

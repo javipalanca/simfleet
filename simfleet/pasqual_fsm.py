@@ -49,7 +49,7 @@ class TransportWaitingState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING
-        logger.error("SSSSSSSSSSSSSSS I'm in Transport Waiting State SSSSSSSSSSSSSSSSS")
+        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Waiting State SSSSSSSSSSSSSSSSS")
 
     async def run(self):
         msg = await self.receive(timeout=60)
@@ -79,7 +79,7 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_NEEDS_CHARGING
-        logger.error("SSSSSSSSSSSSSSS I'm in Transport Needs Charging State SSSSSSSSSSSSSSSSS")
+        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Needs Charging State SSSSSSSSSSSSSSSSS")
 
 
     async def run(self):
@@ -144,7 +144,7 @@ class TransportMovingToStationState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_STATION
-        logger.error("SSSSSSSSSSSSSSS I'm in Transport Moving to Station SSSSSSSSSSSSSSSSS")
+        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Moving to Station SSSSSSSSSSSSSSSSS")
 
     async def run(self):
 
@@ -160,7 +160,7 @@ class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
-        logger.error("SSSSSSSSSSSSSSS I'm in Transport Waiting For Approval State SSSSSSSSSSSSSSSSS")
+        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Waiting For Approval State SSSSSSSSSSSSSSSSS")
 
 
     async def run(self):
@@ -206,7 +206,7 @@ class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
-        logger.error("SSSSSSSSSSSSSSS I'm in Transport Moving To Customer State SSSSSSSSSSSSSSSSS")
+        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Moving To Customer State SSSSSSSSSSSSSSSSS")
 
 
     async def run(self):
@@ -229,7 +229,7 @@ class TransportInStationState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_IN_STATION_PLACE
-        logger.error("SSSSSSSSSSSSSSS I'm in Transport In Station Place State SSSSSSSSSSSSSSSSS")
+        logger.debug("SSSSSSSSSSSSSSS I'm in Transport In Station Place State SSSSSSSSSSSSSSSSS")
 
 
     async def run(self):
@@ -263,7 +263,7 @@ class TransportChargingState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         # self.agent.status = TRANSPORT_CHARGING # this change is already performed in function begin_charging() of class Transport
-        logger.error("SSSSSSSSSSSSSSS I'm in Transport Charging State SSSSSSSSSSSSSSSSS")
+        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Charging State SSSSSSSSSSSSSSSSS")
 
 
     async def run(self):

@@ -1,10 +1,10 @@
 import asyncio
 import io
 import json
-import os
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 
 import faker
 import pandas as pd
@@ -20,8 +20,7 @@ from .fleetmanager import FleetManagerAgent
 from .route import RouteAgent
 from .station import StationAgent
 from .transport import TransportAgent
-from .utils import load_class, status_to_str, avg
-from .utils import request_path as async_request_path
+from .utils import load_class, status_to_str, avg, request_path as async_request_path
 
 faker_factory = faker.Factory.create()
 
@@ -84,8 +83,10 @@ class SimulatorAgent(Agent):
 
         self.clear_agents()
 
+        self.base_path = Path(__file__).resolve().parent
+
         self._icons = None
-        icons_path = os.path.dirname(__file__) + os.sep + "templates" + os.sep + "data" + os.sep + "img_transports.json"
+        icons_path = self.base_path / "templates" / "data" / "img_transports.json"
         self.load_icons(icons_path)
 
         self.create_directory_agent(name=config.directory_name, password=config.directory_password)
@@ -96,7 +97,7 @@ class SimulatorAgent(Agent):
                                                                                                 config.num_stations))
         self.load_scenario()
 
-        self.template_path = os.path.dirname(__file__) + os.sep + "templates"
+        self.template_path = self.base_path / "templates"
 
     async def setup(self):
         logger.info("Simulator agent running")
@@ -109,9 +110,9 @@ class SimulatorAgent(Agent):
         self.web.add_get("/download/excel/", self.download_stats_excel_controller, None, raw=True)
         self.web.add_get("/download/json/", self.download_stats_json_controller, None, raw=True)
 
-        self.web.app.router.add_static("/assets", os.path.dirname(os.path.realpath(__file__)) + "/templates/assets")
+        self.web.app.router.add_static("/assets", str(self.template_path / "assets"))
 
-        self.web.start(hostname=self.config.http_ip, port=self.config.http_port, templates_path=self.template_path)
+        self.web.start(hostname=self.config.http_ip, port=self.config.http_port, templates_path=str(self.template_path))
         logger.info("Web interface running at http://{}:{}/app".format(self.config.http_ip, self.config.http_port))
 
     def load_scenario(self):
@@ -194,7 +195,7 @@ class SimulatorAgent(Agent):
             self.set_icon(agent, icon, default="electric_station")
 
     def load_icons(self, filename):
-        with open(filename, 'r') as f:
+        with filename.open() as f:
             logger.info("Reading icons {}".format(filename))
             self._icons = json.load(f)
 

@@ -32,6 +32,7 @@ class StationAgent(Agent):
         self.status = None
         self.power = None
         self.stopped = False
+        self.ready = False
 
         # waiting waiting_list
         self.waiting_list = list()
@@ -69,7 +70,8 @@ class StationAgent(Agent):
                 logger.warning("Customer {} could not create TravelBehaviour. Retrying...".format(self.agent_id))
                 self.add_behaviour(travel_behaviour, template)
         except Exception as e:
-            logger.error("EXCEPTION creating TravelBehaviour in Customer {}: {}".format(self.agent_id, e))
+            logger.error("EXCEPTION creating TravelBehaviour in Station {}: {}".format(self.agent_id, e))
+        self.ready = True
 
     async def send(self, msg):
         if not msg.sender:

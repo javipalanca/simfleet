@@ -50,6 +50,7 @@ class TransportAgent(Agent):
         self.set("customer_in_transport", None)
         self.num_assignments = 0
         self.stopped = False
+        self.ready = False
         self.registration = False
         self.is_launched = False
 
@@ -73,6 +74,7 @@ class TransportAgent(Agent):
             while not self.has_behaviour(register_behaviour):
                 logger.warning("Transport {} could not create RegisterBehaviour. Retrying...".format(self.agent_id))
                 self.add_behaviour(register_behaviour, template)
+            self.ready = True
         except Exception as e:
             logger.error("EXCEPTION creating RegisterBehaviour in Transport {}: {}".format(self.agent_id, e))
 

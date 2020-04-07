@@ -34,6 +34,7 @@ class FleetManagerAgent(Agent):
         self.directory_id = None
         self.fleet_icon = None
         self.stopped = False
+        self.ready = False
         self.clear_agents()
 
     def clear_agents(self):
@@ -52,6 +53,7 @@ class FleetManagerAgent(Agent):
             while not self.has_behaviour(register_behaviour):
                 logger.warning("Manager {} could not create RegisterBehaviour. Retrying...".format(self.agent_id))
                 self.add_behaviour(register_behaviour, template)
+            self.ready = True
         except Exception as e:
             logger.error("EXCEPTION creating RegisterBehaviour in Manager {}: {}".format(self.agent_id, e))
 

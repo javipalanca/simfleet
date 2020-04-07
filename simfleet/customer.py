@@ -35,6 +35,7 @@ class CustomerAgent(Agent):
         self.pickup_time = None
         self.end_time = None
         self.stopped = False
+        self.ready = False
         self.is_launched = False
 
         self.directory_id = None
@@ -49,6 +50,7 @@ class CustomerAgent(Agent):
             while not self.has_behaviour(travel_behaviour):
                 logger.warning("Customer {} could not create TravelBehaviour. Retrying...".format(self.agent_id))
                 self.add_behaviour(travel_behaviour, template)
+            self.ready = True
         except Exception as e:
             logger.error("EXCEPTION creating TravelBehaviour in Customer {}: {}".format(self.agent_id, e))
 

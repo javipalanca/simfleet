@@ -251,6 +251,10 @@ class SimulatorAgent(Agent):
         if not self.simulation_running:
             self.kill_simulator.clear()
             with self.simulation_mutex:
+                all_agents = list(self.manager_agents.values()) + list(self.transport_agents.values()) + list(self.customer_agents.values()) + list(self.station_agents.values())
+                while not all([agent.ready for agent in all_agents]):
+                    logger.debug("Waiting for all agents to be ready")
+                    time.sleep(1)
                 for manager in self.manager_agents.values():
                     manager.run_strategy()
                     logger.debug(f"Running strategy {self.fleetmanager_strategy} to manager {manager.name}")

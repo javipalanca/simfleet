@@ -31,6 +31,7 @@ class StationAgent(Agent):
         self.status = None
         self.power = None
         self.stopped = False
+        self.ready = False
 
     async def setup(self):
         logger.info("Station agent running")
@@ -55,7 +56,8 @@ class StationAgent(Agent):
                 logger.warning("Customer {} could not create TravelBehaviour. Retrying...".format(self.agent_id))
                 self.add_behaviour(travel_behaviour, template)
         except Exception as e:
-            logger.error("EXCEPTION creating TravelBehaviour in Customer {}: {}".format(self.agent_id, e))
+            logger.error("EXCEPTION creating TravelBehaviour in Station {}: {}".format(self.agent_id, e))
+        self.ready = True
 
     def set_id(self, agent_id):
         """

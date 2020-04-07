@@ -49,14 +49,14 @@ class TransportWaitingState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Waiting State SSSSSSSSSSSSSSSSS")
+        logger.debug("SSSSSSSSSSSSSSS {} in Transport Waiting State SSSSSSSSSSSSSSSSS".format(self.agent.jid))
 
     async def run(self):
         msg = await self.receive(timeout=60)
         if not msg:
             self.set_next_state(TRANSPORT_WAITING)
             return
-        logger.info("received: {}".format(msg.body))
+        logger.info("Transport {} received: {}".format(self.agent.jid, msg.body))
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
         if performative == REQUEST_PERFORMATIVE:
@@ -79,8 +79,7 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_NEEDS_CHARGING
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Needs Charging State SSSSSSSSSSSSSSSSS")
-
+        logger.debug("SSSSSSSSSSSSSSS {} in Transport Needs Charging State SSSSSSSSSSSSSSSSS".format(self.agent.jid))
 
     async def run(self):
         if self.agent.stations is None or len(self.agent.stations) < 1:
@@ -126,7 +125,6 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
             await self.go_to_the_station(station, position)
             self.set_next_state(TRANSPORT_MOVING_TO_STATION)
             return
-
         except PathRequestException:
             logger.error("Transport {} could not get a path to station {}. Cancelling..."
                          .format(self.agent.name, station))
@@ -144,15 +142,78 @@ class TransportMovingToStationState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_STATION
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Moving to Station SSSSSSSSSSSSSSSSS")
+        logger.debug("SSSSSSSSSSSSSSS {} in Transport Moving to Station SSSSSSSSSSSSSSSSS".format(self.agent.jid))
 
     async def run(self):
-
-        self.agent.transport_in_station_place_event.clear()
+        if self.agent.get("in_station_place"):
+            logger.warning("Transport {} already in station place".format(self.agent.jid))
+            await self.agent.request_access_station()
+            return self.set_next_state(TRANSPORT_IN_STATION_PLACE)
+        self.agent.transport_in_station_place_event.clear() #new
         self.agent.watch_value("in_station_place", self.agent.transport_in_station_place_callback)
         await self.agent.transport_in_station_place_event.wait()
+        await self.agent.request_access_station() #new
         return self.set_next_state(TRANSPORT_IN_STATION_PLACE)
 
+
+class TransportInStationState(TransportStrategyBehaviour, State):
+    # car arrives to the station and waits in queue until receiving confirmation
+    async def on_start(self):
+        await super().on_start()
+        logger.debug("SSSSSSSSSSSSSSS {} in Transport In Station Place State SSSSSSSSSSSSSSSSS".format(self.agent.jid))
+        self.agent.status = TRANSPORT_IN_STATION_PLACE
+
+    async def run(self):
+        # await self.agent.request_access_station()
+        # self.agent.status = TRANSPORT_IN_STATION_PLACE
+        msg = await self.receive(timeout=60)
+        if not msg:
+            self.set_next_state(TRANSPORT_IN_STATION_PLACE)
+            return
+        content = json.loads(msg.body)
+        performative = msg.get_metadata("performative")
+        if performative == ACCEPT_PERFORMATIVE:
+            if content.get('station_id') is not None:
+                # debug
+                logger.info(
+                    "++++++++++++++++++++++++++Transport {} received a message with ACCEPT_PERFORMATIVE from {}".format(
+                        self.agent.name, content["station_id"]))
+                await self.charge_allowed()
+                self.set_next_state(TRANSPORT_CHARGING)
+                return
+
+        else:
+            # if the message I receive is not an ACCEPT, I keep waiting in the queue
+            self.set_next_state(TRANSPORT_IN_STATION_PLACE)
+            return
+
+
+class TransportChargingState(TransportStrategyBehaviour, State):
+    # car charges in a station
+    async def on_start(self):
+        await super().on_start()
+        # self.agent.status = TRANSPORT_CHARGING # this change is already performed in function begin_charging() of class Transport
+        logger.debug("SSSSSSSSSSSSSSS {} in Transport Charging State SSSSSSSSSSSSSSSSS".format(self.agent.jid))
+
+    async def run(self):
+        # await "transport_charged" message
+        msg = await self.receive(timeout=60)
+        if not msg:
+            self.set_next_state(TRANSPORT_CHARGING)
+            return
+        content = json.loads(msg.body)
+        protocol = msg.get_metadata("protocol")
+        performative = msg.get_metadata("performative")
+        if protocol == REQUEST_PROTOCOL and performative == INFORM_PERFORMATIVE:
+            if content["status"] == TRANSPORT_CHARGED:
+                self.agent.transport_charged()
+                await self.agent.drop_station()
+                # canviar per un event?
+                self.set_next_state(TRANSPORT_WAITING)
+                return
+        else:
+            self.set_next_state(TRANSPORT_CHARGING)
+            return
 
 
 class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
@@ -160,8 +221,8 @@ class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Waiting For Approval State SSSSSSSSSSSSSSSSS")
-
+        logger.debug(
+            "SSSSSSSSSSSSSSS {} in Transport Waiting For Approval State SSSSSSSSSSSSSSSSS".format(self.agent.jid))
 
     async def run(self):
         msg = await self.receive(timeout=60)
@@ -176,9 +237,15 @@ class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
                                                                       content["customer_id"]))
                 # new version
                 self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
-                await self.pick_up_customer(content["customer_id"], content["origin"], content["dest"])
-                self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
-                return
+                if not self.check_and_decrease_autonomy(content["origin"], content["dest"]):
+                    await self.cancel_proposal(content["customer_id"])
+                    # self.agent.status = TRANSPORT_NEEDS_CHARGING
+                    self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+                    return
+                else:
+                    await self.pick_up_customer(content["customer_id"], content["origin"], content["dest"])
+                    self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
+                    return
             except PathRequestException:
                 logger.error("Transport {} could not get a path to customer {}. Cancelling..."
                              .format(self.agent.name, content["customer_id"]))
@@ -206,8 +273,8 @@ class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Moving To Customer State SSSSSSSSSSSSSSSSS")
-
+        logger.debug(
+            "SSSSSSSSSSSSSSS {} in Transport Moving To Customer State SSSSSSSSSSSSSSSSS".format(self.agent.jid))
 
     async def run(self):
         # Reset internal flag to False. coroutines calling
@@ -219,72 +286,6 @@ class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
         await self.agent.customer_in_transport_event.wait()
         # no s'está accedint a aquesta part del codi
         return self.set_next_state(TRANSPORT_WAITING)
-
-
-# END SENSE CANVIS
-
-
-class TransportInStationState(TransportStrategyBehaviour, State):
-    # car arrives to the station and waits in queue until receiving confirmation
-    async def on_start(self):
-        await super().on_start()
-        self.agent.status = TRANSPORT_IN_STATION_PLACE
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport In Station Place State SSSSSSSSSSSSSSSSS")
-
-
-    async def run(self):
-        msg = await self.receive(timeout=60)
-        if not msg:
-            self.set_next_state(TRANSPORT_IN_STATION_PLACE)
-            return
-        content = json.loads(msg.body)
-        performative = msg.get_metadata("performative")
-        if performative == ACCEPT_PERFORMATIVE:
-            if content.get('station_id') is not None:
-                # debug
-                logger.info(
-                    "++++++++++++++++++++++++++Transport {} received a message with ACCEPT_PERFORMATIVE from {}".format(
-                        self.agent.name, content["station_id"]))
-
-                # CANVIAR PER EVENT?
-
-                await self.charge_allowed()
-                self.set_next_state(TRANSPORT_CHARGING)
-                return
-
-        else:
-            # if the message I receive is not an ACCEPT, I keep waiting in the queue
-            self.set_next_state(TRANSPORT_IN_STATION_PLACE)
-            return
-
-
-class TransportChargingState(TransportStrategyBehaviour, State):
-    # car charges in a station
-    async def on_start(self):
-        await super().on_start()
-        # self.agent.status = TRANSPORT_CHARGING # this change is already performed in function begin_charging() of class Transport
-        logger.debug("SSSSSSSSSSSSSSS I'm in Transport Charging State SSSSSSSSSSSSSSSSS")
-
-
-    async def run(self):
-        # await "transport_charged" message
-        msg = await self.receive(timeout=60)
-        if not msg:
-            self.set_next_state(TRANSPORT_CHARGING)
-            return
-        content = json.loads(msg.body)
-        protocol = msg.get_metadata("protocol")
-        performative = msg.get_metadata("performative")
-        if protocol == REQUEST_PROTOCOL and performative == INFORM_PERFORMATIVE:
-            if content["status"] == TRANSPORT_CHARGED:
-                self.agent.transport_charged()
-                await self.agent.drop_station()
-                # canviar per un event?
-                self.set_next_state(TRANSPORT_WAITING)
-                return
-        else:
-            self.set_next_state(TRANSPORT_CHARGING)
-            return
 
 
 class FSMTransportStrategyBehaviour(FSMBehaviour):
@@ -313,7 +314,8 @@ class FSMTransportStrategyBehaviour(FSMBehaviour):
 
         self.add_transition(TRANSPORT_NEEDS_CHARGING, TRANSPORT_NEEDS_CHARGING)  # waiting for station list
         self.add_transition(TRANSPORT_NEEDS_CHARGING, TRANSPORT_MOVING_TO_STATION)  # going to station
-        self.add_transition(TRANSPORT_NEEDS_CHARGING, TRANSPORT_WAITING)  # exception in go_to_the_station(station, position)
+        self.add_transition(TRANSPORT_NEEDS_CHARGING,
+                            TRANSPORT_WAITING)  # exception in go_to_the_station(station, position)
         self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE)  # arrived to station
         # self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_MOVING_TO_STATION)  #
         # self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_WAITING)  # ??

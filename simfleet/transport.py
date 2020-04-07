@@ -74,6 +74,7 @@ class TransportAgent(Agent):
 
         # Transport in station place event
         self.set("in_station_place", None) # new
+
         self.transport_in_station_place_event = asyncio.Event(loop=self.loop)
         def transport_in_station_place_callback(old, new):
             if not self.transport_in_station_place_event.is_set() and new is True:
@@ -108,6 +109,10 @@ class TransportAgent(Agent):
         if key in self.__observers:
             for callback in self.__observers[key]:
                 callback(old, value)
+
+    def sleep(self, seconds):
+        # await asyncio.sleep(seconds)
+        time.sleep(seconds)
 
     def set_registration(self, status, content=None):
         """
@@ -235,17 +240,21 @@ class TransportAgent(Agent):
         It recomputes the new destination and path if picking up a customer
         or drops it and goes to WAITING status again.
         """
-        # self.status = TRANSPORT_IN_STATION_PLACE
+        # self.status = TRANSPORT_IN_STATION_PLACE new
 
         # ask for a place to charge
         logger.info("Transport {} arrived to station {} and its waiting to charge".format(self.agent_id,
                                                                                           self.get("current_station")))
         self.set("in_station_place", True) # new
 
+
+    async def request_access_station(self):
+
         reply = Message()
         reply.to = self.get("current_station")
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+        logger.debug("{} requesting access to {}".format(self.name, self.get("current_station"), reply.body))
         await self.send(reply)
 
         # time waiting in station queue update
@@ -269,6 +278,9 @@ class TransportAgent(Agent):
             "status": TRANSPORT_IN_STATION_PLACE,
             "need": self.max_autonomy_km - self.current_autonomy_km
         }
+        logger.debug("Transport {} with autonomy {} tells {} that it needs to charge "
+                     "{} km/autonomy".format(self.agent_id, self.current_autonomy_km, self.get("current_station"),
+                            self.max_autonomy_km - self.current_autonomy_km))
         await self.inform_station(data)
         self.status = TRANSPORT_CHARGING
         logger.info("Transport {} has started charging in the station {}.".format(self.agent_id,
@@ -627,6 +639,15 @@ class TransportStrategyBehaviour(StrategyBehaviour):
             origin (list): the coordinates of the current location of the customer
             dest (list): the coordinates of the target destination of the customer
         """
+
+        # # Update autonomy
+        # if not self.check_and_decrease_autonomy(self, origin, dest):
+        #     logger.error("Transport {} was on route to {} without enough autonomy".format(
+        #         self.agent.name, customer_id))
+        #     raise Exception
+        # else: logger.warning("Transport {} updated its autonomy before going to pick up {}".format(
+        #     self.agent.name, customer_id))
+
         logger.info("Transport {} on route to customer {}".format(self.agent.name, customer_id))
         reply = Message()
         reply.to = customer_id
@@ -666,6 +687,8 @@ class TransportStrategyBehaviour(StrategyBehaviour):
             dest (list): the coordinates of the target destination of the customer
         """
 
+        self.status = TRANSPORT_MOVING_TO_STATION
+
         logger.info("Transport {} on route to station {}".format(self.agent.name, station_id))
         reply = Message()
         reply.to = station_id
@@ -684,9 +707,10 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
         self.agent.set_km_expense(travel_km)
         try:
-            logger.info("{} going to station {}".format(self.agent.name, station_id))
+            logger.info("{} move_to station {}".format(self.agent.name, station_id))
             await self.agent.move_to(self.agent.current_station_dest)
         except AlreadyInDestination:
+            logger.debug("{} is already in the stations' {} position. . .".format(self.agent.name, station_id))
             await self.agent.arrived_to_station()
 
     def has_enough_autonomy(self, customer_orig, customer_dest):
@@ -694,6 +718,20 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         if autonomy <= MIN_AUTONOMY:
             logger.warning("{} has not enough autonomy ({}).".format(self.agent.name, autonomy))
             return False
+        travel_km = self.agent.calculate_km_expense(self.get("current_pos"), customer_orig, customer_dest)
+        logger.debug("Transport {} has autonomy {} when max autonomy is {} and needs {} for the trip".format(self.agent.name,
+                                                                                                              self.agent.current_autonomy_km,
+                                                                                                              self.agent.max_autonomy_km,
+                                                                                                              travel_km))
+        if autonomy - travel_km < MIN_AUTONOMY:
+            logger.warning("{} has not enough autonomy to do travel ({} for {} km).".format(self.agent.name,
+                                                                                            autonomy, travel_km))
+            return False
+        # self.agent.set_km_expense(travel_km)  # TODO
+        return True
+
+    def check_and_decrease_autonomy(self, customer_orig, customer_dest):
+        autonomy = self.agent.get_autonomy()
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), customer_orig, customer_dest)
         if autonomy - travel_km < MIN_AUTONOMY:
             logger.warning("{} has not enough autonomy to do travel ({} for {} km).".format(self.agent.name,

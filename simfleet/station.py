@@ -189,7 +189,7 @@ class StationAgent(Agent):
             "icon": self.icon
         }
 
-    def assigning_place(self):
+    async def assigning_place(self):
         """
         Set a space in the charging station for the transport that has been accepted, when the available spaces are zero,
         the status will change to BUSY_STATION
@@ -338,7 +338,8 @@ class TravelBehaviour(CyclicBehaviour):
                 if status == TRANSPORT_MOVING_TO_STATION:
                     logger.info("Transport {} coming to station {}.".format(transport_id, self.agent.name))
                 elif status == TRANSPORT_IN_STATION_PLACE:
-                    logger.info("Transport {} in station {}.".format(msg.sender.localpart, self.agent.name))
+                    # logger.info("Transport {} in station {}.".format(msg.sender.localpart, self.agent.name))
+                    logger.info("Station {} is going to start charging transport {}".format(self.agent.name, transport_id))
                     await self.agent.charging_transport(content["need"], transport_id)
         except CancelledError:
             logger.debug("Cancelling async tasks...")
@@ -418,7 +419,8 @@ class StationStrategyBehaviour(StrategyBehaviour):
                     }
                     reply.body = json.dumps(content)
                     await self.send(reply)
-                    self.agent.assigning_place()
+                    await self.agent.assigning_place()
+                    #self.agent.assigning_place()
 
                 else:  # self.agent.get_status() == BUSY_STATION
                     # time statistics update
@@ -430,9 +432,9 @@ class StationStrategyBehaviour(StrategyBehaviour):
                     self.agent.queue_length = len(self.agent.waiting_list)
                     if self.agent.queue_length > self.agent.max_queue_length:
                         self.agent.max_queue_length = self.agent.queue_length
-                    logger.info("********************{} waiting in {} waiting_list".format(transport_id,
+                    logger.warning("********************{} waiting in {} waiting_list".format(transport_id,
                                                                                                    self.agent.name))
-                    logger.info("<<<<<<<<<<<<<<<<<<<<{} waiting_list is {}".format(self.agent.name, self.agent.waiting_list))
+                    logger.warning("<<<<<<<<<<<<<<<<<<<<{} waiting_list is {}".format(self.agent.name, self.agent.waiting_list))
 
                     # change refuse_transport
                     # await self.refuse_transport(transport_id)

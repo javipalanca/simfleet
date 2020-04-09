@@ -44,7 +44,7 @@ class FleetManagerAgent(Agent):
         self.set("transport_agents", {})
 
     async def setup(self):
-        logger.info("FleetManager agent running")
+        logger.info("FleetManager agent {} running".format(self.name))
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)

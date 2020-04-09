@@ -38,7 +38,7 @@ class DirectoryAgent(Agent):
         self.add_behaviour(self.strategy(), template)
 
     async def setup(self):
-        logger.info("Directory agent running")
+        logger.info("Directory agent {} running".format(self.name))
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)
@@ -150,7 +150,7 @@ class DirectoryStrategyBehaviour(StrategyBehaviour):
             agent_id = msg.sender
             request = msg.body
             if performative == REQUEST_PERFORMATIVE:
-                logger.info("Directory {} received message from customer/transport {}".format(self.agent.name,
+                logger.debug("Directory {} received message from customer/transport {}".format(self.agent.name,
                                                                                               agent_id))
                 if request in self.get("service_agents"):
                     await self.send_services(agent_id, msg.body)

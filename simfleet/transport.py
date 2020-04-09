@@ -1,7 +1,6 @@
 import asyncio
 import json
 import time
-import types
 from asyncio import CancelledError
 from collections import defaultdict
 
@@ -74,23 +73,26 @@ class TransportAgent(Agent):
         self.total_waiting_time = None
 
         # Transport in station place event
-        self.set("in_station_place", None) # new
+        self.set("in_station_place", None)  # new
 
         self.transport_in_station_place_event = asyncio.Event(loop=self.loop)
+
         def transport_in_station_place_callback(old, new):
             if not self.transport_in_station_place_event.is_set() and new is True:
                 self.transport_in_station_place_event.set()
+
         self.transport_in_station_place_callback = transport_in_station_place_callback
 
         # Customer in transport event
         self.customer_in_transport_event = asyncio.Event(loop=self.loop)
+
         def customer_in_transport_callback(old, new):
             # if event flag is False and new is None
             if not self.customer_in_transport_event.is_set() and new is None:
                 # Sets event flag to True, all coroutines waiting for it are awakened
                 self.customer_in_transport_event.set()
-        self.customer_in_transport_callback = customer_in_transport_callback
 
+        self.customer_in_transport_callback = customer_in_transport_callback
 
     async def setup(self):
         try:
@@ -247,8 +249,7 @@ class TransportAgent(Agent):
         # ask for a place to charge
         logger.info("Transport {} arrived to station {} and its waiting to charge".format(self.agent_id,
                                                                                           self.get("current_station")))
-        self.set("in_station_place", True) # new
-
+        self.set("in_station_place", True)  # new
 
     async def request_access_station(self):
 
@@ -282,7 +283,7 @@ class TransportAgent(Agent):
         }
         logger.debug("Transport {} with autonomy {} tells {} that it needs to charge "
                      "{} km/autonomy".format(self.agent_id, self.current_autonomy_km, self.get("current_station"),
-                            self.max_autonomy_km - self.current_autonomy_km))
+                                             self.max_autonomy_km - self.current_autonomy_km))
         await self.inform_station(data)
         self.status = TRANSPORT_CHARGING
         logger.info("Transport {} has started charging in the station {}.".format(self.agent_id,
@@ -463,7 +464,7 @@ class TransportAgent(Agent):
         if self.status == TRANSPORT_MOVING_TO_DESTINATION:
             await self.inform_customer(CUSTOMER_LOCATION, {"location": self.get("current_pos")})
         if self.is_in_destination():
-            logger.info("Transport {} has arrived to destination.".format(self.agent_id))
+            logger.info("Transport {} has arrived to destination. Status: {}".format(self.agent_id, self.status))
             if self.status == TRANSPORT_MOVING_TO_STATION:
                 await self.arrived_to_station()
             else:
@@ -578,7 +579,7 @@ class RegistrationBehaviour(CyclicBehaviour):
         """
         Send a ``spade.message.Message`` with a proposal to manager to register.
         """
-        logger.info(
+        logger.debug(
             "Transport {} sent proposal to register to manager {}".format(self.agent.name, self.agent.fleetmanager_id))
         content = {
             "name": self.agent.name,
@@ -721,10 +722,11 @@ class TransportStrategyBehaviour(StrategyBehaviour):
             logger.warning("{} has not enough autonomy ({}).".format(self.agent.name, autonomy))
             return False
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), customer_orig, customer_dest)
-        logger.debug("Transport {} has autonomy {} when max autonomy is {} and needs {} for the trip".format(self.agent.name,
-                                                                                                              self.agent.current_autonomy_km,
-                                                                                                              self.agent.max_autonomy_km,
-                                                                                                              travel_km))
+        logger.debug(
+            "Transport {} has autonomy {} when max autonomy is {} and needs {} for the trip".format(self.agent.name,
+                                                                                                    self.agent.current_autonomy_km,
+                                                                                                    self.agent.max_autonomy_km,
+                                                                                                    travel_km))
         if autonomy - travel_km < MIN_AUTONOMY:
             logger.warning("{} has not enough autonomy to do travel ({} for {} km).".format(self.agent.name,
                                                                                             autonomy, travel_km))
@@ -752,9 +754,9 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
         await self.send(msg)
-        logger.info("Transport {} asked for stations to Directory {} for type {}.".format(self.agent.name,
-                                                                                          self.agent.directory_id,
-                                                                                          self.agent.request))
+        logger.debug("Transport {} asked for stations to Directory {} for type {}.".format(self.agent.name,
+                                                                                           self.agent.directory_id,
+                                                                                           self.agent.request))
 
     async def send_proposal(self, customer_id, content=None):
         """
@@ -795,7 +797,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         await self.send(reply)
 
     async def charge_allowed(self):
-        self.set("in_station_place", None) # new
+        self.set("in_station_place", None)  # new
         await self.agent.begin_charging()
 
     async def run(self):

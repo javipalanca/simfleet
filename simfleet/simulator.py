@@ -204,7 +204,7 @@ class SimulatorAgent(Agent):
             fleet_type = "default" if default is None else default
         icon = self._icons[fleet_type].pop(0)
         self._icons[fleet_type].append(icon)
-        logger.info("Got icon for fleet type {}".format(fleet_type))
+        logger.debug("Got icon for fleet type {}".format(fleet_type))
         return icon
 
     def set_icon(self, agent, icon, default=None):
@@ -251,7 +251,8 @@ class SimulatorAgent(Agent):
         if not self.simulation_running:
             self.kill_simulator.clear()
             with self.simulation_mutex:
-                all_agents = list(self.manager_agents.values()) + list(self.transport_agents.values()) + list(self.customer_agents.values()) + list(self.station_agents.values())
+                all_agents = list(self.manager_agents.values()) + list(self.transport_agents.values()) + list(
+                    self.customer_agents.values()) + list(self.station_agents.values())
                 while not all([agent.ready for agent in all_agents]):
                     logger.debug("Waiting for all agents to be ready")
                     time.sleep(1)
@@ -311,7 +312,8 @@ class SimulatorAgent(Agent):
         if self.config.simulation_name:
             df_avg["Simulation Name"] = self.config.simulation_name
             columns = ["Simulation Name"]
-        columns += ["Avg Customer Waiting Time", "Avg Customer Total Time", "Avg Transport Waiting Time", "Avg Distance",
+        columns += ["Avg Customer Waiting Time", "Avg Customer Total Time", "Avg Transport Waiting Time",
+                    "Avg Distance",
                     "Simulation Time"]
         if self.config.max_time:
             df_avg["Max Time"] = self.config.max_time
@@ -839,14 +841,15 @@ class SimulatorAgent(Agent):
                 else:
                     avg_waiting_time.append(0)
 
-            names, status, places, power, charged_transports, max_queue_length, total_waiting_time = zip(*[(p.name, p.status,
-                                                                                                      p.available_places,
-                                                                                                      p.power,
-                                                                                                      p.charged_transports,
-                                                                                                      p.max_queue_length,
-                                                                                                      p.total_waiting_time)
-                                                                                                     for p in
-                                                                                                     self.station_agents.values()])
+            names, status, places, power, charged_transports, max_queue_length, total_waiting_time = zip(
+                *[(p.name, p.status,
+                   p.available_places,
+                   p.power,
+                   p.charged_transports,
+                   p.max_queue_length,
+                   p.total_waiting_time)
+                  for p in
+                  self.station_agents.values()])
         except ValueError:
             names, status, places, power, charged_transports, max_queue_length, total_waiting_time, avg_waiting_time = [], [], [], [], [], [], [], []
 
@@ -871,7 +874,8 @@ class SimulatorAgent(Agent):
         transport_df = transport_df[["name", "assignments", "distance", "waiting_in_station_time", "status"]]
         station_df = self.get_station_stats()
         station_df = station_df[
-            ["name", "status", "available_places", "power", "charged_transports", "max_queue_length", "total_waiting_time",  "avg_waiting_time"]]
+            ["name", "status", "available_places", "power", "charged_transports", "max_queue_length",
+             "total_waiting_time", "avg_waiting_time"]]
         stats = self.get_stats()
         df_avg = pd.DataFrame.from_dict({"Avg Customer Waiting Time": [stats["waiting"]],
                                          "Avg Customer Total Time": [stats["totaltime"]],

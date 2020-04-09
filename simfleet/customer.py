@@ -321,9 +321,9 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
         await self.send(msg)
-        logger.info("Customer {} asked for managers to directory {} for type {}.".format(self.agent.name,
-                                                                                         self.agent.directory_id,
-                                                                                         self.agent.type_service))
+        logger.debug("Customer {} asked for managers to directory {} for type {}.".format(self.agent.name,
+                                                                                          self.agent.directory_id,
+                                                                                          self.agent.type_service))
 
     async def send_request(self, content=None):
         """
@@ -343,14 +343,17 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
                 "origin": self.agent.current_pos,
                 "dest": self.agent.dest
             }
-        for fleetmanager in self.agent.fleetmanagers.keys():  # Send a message to all FleetManagers
-            msg = Message()
-            msg.to = str(fleetmanager)
-            msg.set_metadata("protocol", REQUEST_PROTOCOL)
-            msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-            msg.body = json.dumps(content)
-            await self.send(msg)
-        logger.info("Customer {} asked for a transport to {}.".format(self.agent.name, self.agent.dest))
+        if self.agent.fleetmanagers is not None:
+            for fleetmanager in self.agent.fleetmanagers.keys():  # Send a message to all FleetManagers
+                msg = Message()
+                msg.to = str(fleetmanager)
+                msg.set_metadata("protocol", REQUEST_PROTOCOL)
+                msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+                msg.body = json.dumps(content)
+                await self.send(msg)
+            logger.info("Customer {} asked for a transport to {}.".format(self.agent.name, self.agent.dest))
+        else:
+            logger.warning("Customer {} has no fleet managers.".format(self.agent.name))
 
     async def accept_transport(self, transport_id):
         """

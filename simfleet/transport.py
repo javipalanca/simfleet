@@ -710,7 +710,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
         self.agent.set_km_expense(travel_km)
         try:
-            logger.info("{} move_to station {}".format(self.agent.name, station_id))
+            logger.debug("{} move_to station {}".format(self.agent.name, station_id))
             await self.agent.move_to(self.agent.current_station_dest)
         except AlreadyInDestination:
             logger.debug("{} is already in the stations' {} position. . .".format(self.agent.name, station_id))
@@ -722,11 +722,9 @@ class TransportStrategyBehaviour(StrategyBehaviour):
             logger.warning("{} has not enough autonomy ({}).".format(self.agent.name, autonomy))
             return False
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), customer_orig, customer_dest)
-        logger.debug(
-            "Transport {} has autonomy {} when max autonomy is {} and needs {} for the trip".format(self.agent.name,
-                                                                                                    self.agent.current_autonomy_km,
-                                                                                                    self.agent.max_autonomy_km,
-                                                                                                    travel_km))
+        logger.debug("Transport {} has autonomy {} when max autonomy is {}"
+                     " and needs {} for the trip".format(self.agent.name, self.agent.current_autonomy_km,
+                                                         self.agent.max_autonomy_km, travel_km))
         if autonomy - travel_km < MIN_AUTONOMY:
             logger.warning("{} has not enough autonomy to do travel ({} for {} km).".format(self.agent.name,
                                                                                             autonomy, travel_km))

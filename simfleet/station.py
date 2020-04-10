@@ -218,8 +218,7 @@ class StationAgent(Agent):
                 self.total_waiting_time += self.empty_queue_time - self.transports_in_queue_time
                 self.transports_in_queue_time = time.time()
 
-            logger.info(
-                "-----------------Station {} has a place to charge transport {}".format(self.agent_id, transport_id))
+            logger.debug("Station {} has a place to charge transport {}".format(self.agent_id, transport_id))
             # confirm EXPLICITLY to transport it can start charging
             reply = Message()
             reply.to = str(transport_id)
@@ -243,7 +242,8 @@ class StationAgent(Agent):
         now = datetime.datetime.now()
         start_at = now + datetime.timedelta(seconds=total_time)
         logger.info(
-            "Station {} started charging at {} for {} seconds, at {}".format(self.name, now, total_time, start_at))
+            "Station {} started charging transport {} for {} seconds. From {} to {}.".format(self.name, transport_id,
+                                                                                             total_time, now, start_at))
         # charged transports update
         self.charged_transports += 1
         charge_behaviour = ChargeBehaviour(start_at=start_at, transport_id=transport_id)
@@ -268,7 +268,7 @@ class ChargeBehaviour(TimeoutBehaviour):
         await self.send(reply)
 
     async def run(self):
-        logger.info("Station {} finished charging.".format(self.agent.name))
+        logger.debug("Station {} finished charging.".format(self.agent.name))
         self.set("current_station", None)
         await self.agent.deassigning_place()
         await self.charging_complete()
@@ -435,9 +435,5 @@ class StationStrategyBehaviour(StrategyBehaviour):
                     self.agent.queue_length = len(self.agent.waiting_list)
                     if self.agent.queue_length > self.agent.max_queue_length:
                         self.agent.max_queue_length = self.agent.queue_length
-                    # logger.warning("********************{} waiting in {} waiting_list".format(transport_id, self.agent.name))
-                    logger.info("{} waiting at {}, whose waiting list is {}".format(transport_id, self.agent.name,
-                                                                                    self.agent.waiting_list))
-
-                    # change refuse_transport
-                    # await self.refuse_transport(transport_id)
+                    logger.info("{} is waiting at {}, whose waiting list is {}".format(transport_id, self.agent.name,
+                                                                                       self.agent.waiting_list))

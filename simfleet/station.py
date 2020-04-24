@@ -134,7 +134,7 @@ class StationAgent(Agent):
             self.current_pos = coords
         else:
             self.current_pos = random_position()
-        logger.debug("Customer {} position is {}".format(self.agent_id, self.current_pos))
+        logger.debug("Station {} position is {}".format(self.agent_id, self.current_pos))
 
     def get_position(self):
         """

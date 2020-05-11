@@ -5,13 +5,14 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import List
 
 import faker
 import pandas as pd
 from aiohttp import web as aioweb
 from loguru import logger
 from spade.agent import Agent
-from spade.behaviour import TimeoutBehaviour
+from spade.behaviour import TimeoutBehaviour, OneShotBehaviour
 from tabulate import tabulate
 
 from .customer import CustomerAgent
@@ -133,8 +134,46 @@ class SimulatorAgent(Agent):
         while len(self.manager_agents) < self.config.num_managers:
             time.sleep(0.1)
 
-        for transport in self.config["transports"]:
+        all_coroutines = []
+        try:
+            future = self.submit(self.async_create_agents_batch_transport(self.config["transports"]))
+            all_coroutines += future.result()
+        except Exception as e:
+            logger.exception("EXCEPTION creating Transport agents batch {}".format(e))
+        try:
+            future = self.submit(self.async_create_agents_batch_customer(self.config["customers"]))
+            all_coroutines += future.result()
+        except Exception as e:
+            logger.exception("EXCEPTION creating Customer agents batch {}".format(e))
+        try:
+            future = self.submit(self.async_create_agents_batch_station(self.config["stations"]))
+            all_coroutines += future.result()
+        except Exception as e:
+            logger.exception("EXCEPTION creating Station agents batch {}".format(e))
+
+        assert all([asyncio.iscoroutine(x) for x in all_coroutines])
+        self.submit(self.gather_batch(all_coroutines))
+
+    async def gather_batch(self, all_coroutines):
+        agents_batch = 20
+        number = max(len(all_coroutines), 0)
+        iterations = [agents_batch] * (number // agents_batch)
+        if number % agents_batch:
+            iterations.append(number % agents_batch)
+        current_index = 0
+        for iteration in iterations:
+            logger.info("Agent Batch Creation. Iteration current_index = {}".format(current_index))
+            current_coros = all_coroutines[current_index:current_index + iteration]
+            current_index += iteration
+            await asyncio.sleep(0.1)
+            await asyncio.gather(*current_coros)
+        logger.success("All agents gathered")
+
+    async def async_create_agents_batch_transport(self, agents: list) -> List:
+        coros = []
+        for transport in agents:
             name = transport["name"]
+            logger.debug("transport creation batch = {}".format(name))
             password = transport["password"] if "password" in transport else faker_factory.password()
             position = transport["position"]
             fleetmanager = transport["fleet"]
@@ -151,19 +190,25 @@ class SimulatorAgent(Agent):
             if delay is not None:
                 delayed = True
 
-            agent = self.create_transport_agent(name, password, position=position, speed=speed, fleet_type=fleet_type,
+            agent = self.create_transport_agent(name, password, position=position, speed=speed,
+                                                fleet_type=fleet_type,
                                                 fleetmanager=fleetmanager, strategy=strategy, autonomy=autonomy,
                                                 current_autonomy=current_autonomy, delayed=delayed)
-            if icon:
-                self.set_icon(agent, icon, default=fleet_type)
+            self.set_icon(agent, icon, default="transport")
 
             if delay is not None:
                 if delay not in self.delayed_launch_agents:
                     self.delayed_launch_agents[delay] = []
                 self.delayed_launch_agents[delay].append(agent)
+            else:
+                coros.append(agent.start())
+        return coros
 
-        for customer in self.config["customers"]:
+    async def async_create_agents_batch_customer(self, agents: list) -> List:
+        coros = []
+        for customer in agents:
             name = customer["name"]
+            logger.debug("customer creation batch = {}".format(name))
             password = customer["password"] if "password" in customer else faker_factory.password()
             fleet_type = customer["fleet_type"]
             position = customer["position"]
@@ -185,14 +230,23 @@ class SimulatorAgent(Agent):
                 if delay not in self.delayed_launch_agents:
                     self.delayed_launch_agents[delay] = []
                 self.delayed_launch_agents[delay].append(agent)
+            else:
+                coros.append(agent.start())
+        return coros
 
-        for station in self.config["stations"]:
+    async def async_create_agents_batch_station(self, agents: list) -> List:
+        coros = []
+        for station in agents:
+            logger.debug("station creation batch = {}".format(station["name"]))
             password = station["password"] if "password" in station else faker_factory.password()
             strategy = station.get("strategy")
             icon = station.get("icon")
             agent = self.create_station_agent(station["name"], password, position=station["position"],
                                               power=station["power"], places=station["places"], strategy=strategy)
             self.set_icon(agent, icon, default="electric_station")
+
+            coros.append(agent.start())
+        return coros
 
     def load_icons(self, filename):
         with filename.open() as f:
@@ -247,37 +301,46 @@ class SimulatorAgent(Agent):
         """
         Starts the simulation
         """
-        #  self.clear_stopped_agents()
-        if not self.simulation_running:
-            self.kill_simulator.clear()
-            with self.simulation_mutex:
-                all_agents = list(self.manager_agents.values()) + list(self.transport_agents.values()) + list(
-                    self.customer_agents.values()) + list(self.station_agents.values())
-                while not all([agent.ready for agent in all_agents]):
-                    logger.debug("Waiting for all agents to be ready")
-                    time.sleep(1)
-                for manager in self.manager_agents.values():
-                    manager.run_strategy()
-                    logger.debug(f"Running strategy {self.fleetmanager_strategy} to manager {manager.name}")
-                for transport in self.transport_agents.values():
-                    transport.run_strategy()
-                    logger.debug(f"Running strategy {self.transport_strategy} to transport {transport.name}")
-                for customer in self.customer_agents.values():
-                    customer.run_strategy()
-                    logger.debug(f"Running strategy {self.customer_strategy} to customer {customer.name}")
-                for station in self.station_agents.values():
-                    station.run_strategy()
-                    logger.debug(f"Running strategy {self.directory_strategy} to station {station.name}")
 
-            self.simulation_running = True
-            self.simulation_init_time = time.time()
+        class RunBehaviour(OneShotBehaviour):
+            async def run(self):
+                #  self.clear_stopped_agents()
+                if not self.agent.simulation_running:
+                    self.agent.kill_simulator.clear()
+                    with self.agent.simulation_mutex:
+                        all_agents = list(self.agent.manager_agents.values()) + list(
+                            self.agent.transport_agents.values()) + list(
+                            self.agent.customer_agents.values()) + list(
+                            self.agent.station_agents.values())  # TODO exclude delayed agents
+                        while not all([agent.ready for agent in all_agents]):
+                            logger.debug("Waiting for all agents to be ready")
+                            await asyncio.sleep(0.5)
+                        for manager in self.agent.manager_agents.values():
+                            manager.run_strategy()
+                            logger.debug(
+                                f"Running strategy {self.agent.fleetmanager_strategy} to manager {manager.name}")
+                        for transport in self.agent.transport_agents.values():
+                            transport.run_strategy()
+                            logger.debug(
+                                f"Running strategy {self.agent.transport_strategy} to transport {transport.name}")
+                        for customer in self.agent.customer_agents.values():
+                            customer.run_strategy()
+                            logger.debug(f"Running strategy {self.agent.customer_strategy} to customer {customer.name}")
+                        for station in self.agent.station_agents.values():
+                            station.run_strategy()
+                            logger.debug(f"Running strategy {self.agent.directory_strategy} to station {station.name}")
 
-            for delay in self.delayed_launch_agents:
-                agents = self.delayed_launch_agents[delay]
-                start_time = datetime.fromtimestamp(self.simulation_init_time + delay)
-                self.add_behaviour(DelayedLaunchBehaviour(agents, start_at=start_time))
+                    self.agent.simulation_running = True
+                    self.agent.simulation_init_time = time.time()
 
-            logger.info("Simulation started.")
+                    for delay in self.agent.delayed_launch_agents:
+                        agents = self.agent.delayed_launch_agents[delay]
+                        start_time = datetime.fromtimestamp(self.agent.simulation_init_time + delay)
+                        self.agent.add_behaviour(DelayedLaunchBehaviour(agents, start_at=start_time))
+
+                    logger.success("Simulation started.")
+
+        self.add_behaviour(RunBehaviour())
 
     def stop(self):
         """
@@ -960,8 +1023,7 @@ class SimulatorAgent(Agent):
         self.add_transport(agent)
 
         if not delayed:
-            agent.is_launched = True
-            self.submit(self.async_start_agent(agent))
+            agent.is_launched = True  # TODO
 
         return agent
 
@@ -972,10 +1034,10 @@ class SimulatorAgent(Agent):
         Args:
             name (str): name of the agent
             password (str): password of the agent
-            position (list): initial coordinates of the agent
             fleet_type (str): type of he fleet to be or demand
+            position (list): initial coordinates of the agent
+            strategy (class, optional): strategy class of the agent
             target (list, optional): destination coordinates of the agent
-            speed (float, optional): speed of the vehicle
             delayed (bool, optional): launching of the agent delayed or not
         """
         jid = f"{name}@{self.jid.domain}"
@@ -983,7 +1045,7 @@ class SimulatorAgent(Agent):
         logger.debug("Creating Customer {}".format(jid))
         agent.set_id(name)
         agent.set_directory(self.get_directory().jid)
-        logger.debug("Assigning type {} to customer {}".format(fleet_type, name))
+        logger.debug("Assigning fleet type {} to customer {}".format(fleet_type, name))
         agent.set_fleet_type(fleet_type)
         agent.set_route_agent(self.route_id)
         agent.set_directory(self.get_directory().jid)
@@ -1003,8 +1065,7 @@ class SimulatorAgent(Agent):
         self.add_customer(agent)
 
         if not delayed:
-            agent.is_launched = True
-            self.submit(self.async_start_agent(agent))
+            agent.is_launched = True  # TODO
 
         return agent
 
@@ -1016,9 +1077,9 @@ class SimulatorAgent(Agent):
             name (str): name of the agent
             password (str): password of the agent
             position (list): initial coordinates of the agent
-            fleet_type (str): type of he fleet to be or demand
-            target (list, optional): destination coordinates of the agent
-            speed (float, optional): speed of the vehicle
+            power (int): power of the station agent in kW
+            places (int): destination coordinates of the agent
+            strategy (class, optional): strategy class of the agent
         """
         jid = f"{name}@{self.jid.domain}"
         agent = StationAgent(jid, password)
@@ -1043,7 +1104,7 @@ class SimulatorAgent(Agent):
 
         self.add_station(agent)
 
-        self.submit(self.async_start_agent(agent))
+        agent.is_launched = True  # TODO
 
         return agent
 

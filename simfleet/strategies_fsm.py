@@ -80,11 +80,12 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
         logger.debug("{} in Transport Needs Charging State".format(self.agent.jid))
 
     async def run(self):
-        if self.agent.stations is None or len(self.agent.stations) < 1:
+        if self.agent.stations is None or len(self.agent.stations) < 1 and not self.get(name="stations_requested"):
             logger.info("Transport {} looking for a station.".format(self.agent.name))
+            self.set(name="stations_requested", value=True)
             await self.send_get_stations()
 
-            msg = await self.receive(timeout=5)
+            msg = await self.receive(timeout=600)
             if not msg:
                 self.set_next_state(TRANSPORT_NEEDS_CHARGING)
                 return
@@ -103,9 +104,14 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
                     logger.info("Transport {} got list of current stations: {}".format(self.agent.name, len(
                         list(self.agent.stations.keys()))))
                 elif performative == CANCEL_PERFORMATIVE:
-                    logger.info("Cancellation of request for stations information.")
-            self.set_next_state(TRANSPORT_NEEDS_CHARGING)
-            return
+                    logger.info(
+                        "Transport {} got a cancellation of request for stations information.".format(self.agent.name))
+                    self.set(name="stations_requested", value=False)
+                    self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+                    return
+            else:
+                self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+                return
 
         station_positions = []
         for key in self.agent.stations.keys():
@@ -340,18 +346,18 @@ class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
         if self.agent.fleetmanagers is None:
             await self.send_get_managers(self.agent.fleet_type)
 
-            msg = await self.receive(timeout=5)
+            msg = await self.receive(timeout=300)
             if msg:
                 protocol = msg.get_metadata("protocol")
                 if protocol == QUERY_PROTOCOL:
                     performative = msg.get_metadata("performative")
                     if performative == INFORM_PERFORMATIVE:
                         self.agent.fleetmanagers = json.loads(msg.body)
-                        logger.debug("{} Get fleet managers {}".format(self.agent.name, self.agent.fleetmanagers))
-                        return
+                        logger.info("{} got fleet managers {}".format(self.agent.name, self.agent.fleetmanagers))
                     elif performative == CANCEL_PERFORMATIVE:
-                        logger.debug("Cancellation of request for {} information".format(self.agent.type_service))
-                        return
+                        logger.info("{} got cancellation of request for {} information".format(self.agent.name,
+                                                                                               self.agent.type_service))
+            return
 
         if self.agent.status == CUSTOMER_WAITING:
             await self.send_request(content={})

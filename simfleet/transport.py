@@ -247,8 +247,8 @@ class TransportAgent(Agent):
         # self.status = TRANSPORT_IN_STATION_PLACE new
 
         # ask for a place to charge
-        logger.info("Transport {} arrived to station {} and its waiting to charge".format(self.agent_id,
-                                                                                          self.get("current_station")))
+        logger.info("Transport {} arrived to station {} and is waiting to charge".format(self.agent_id,
+                                                                                         self.get("current_station")))
         self.set("in_station_place", True)  # new
 
     async def request_access_station(self):
@@ -669,6 +669,8 @@ class TransportStrategyBehaviour(StrategyBehaviour):
             await self.agent.move_to(self.agent.current_customer_orig)
         except AlreadyInDestination:
             await self.agent.arrived_to_destination()
+        except PathRequestException as e:
+            raise e
 
     async def send_confirmation_travel(self, station_id):
         logger.info("Transport {} sent confirmation to station {}".format(self.agent.name, station_id))

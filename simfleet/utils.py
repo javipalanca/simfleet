@@ -112,6 +112,7 @@ class RequestRouteBehaviour(OneShotBehaviour):
             if msg is None:
                 logger.warning("There was an error requesting the route (timeout)")
                 self.exit_code = {"type": "error"}
+                self.kill()
                 return
 
             self.kill(json.loads(msg.body))
@@ -156,6 +157,11 @@ async def request_path(agent, origin, destination, route_id):
         await asyncio.sleep(0.01)
 
     if behav.exit_code is {} or "type" in behav.exit_code and behav.exit_code["type"] == "error":
+        failed_route_queries = agent.get("failed_route_queries")
+        if failed_route_queries is None:
+            failed_route_queries = 0
+            agent.set("failed_route_queries", failed_route_queries)
+        agent.set("failed_route_queries", failed_route_queries + 1)
         return None, None, None
     else:
         return behav.exit_code["path"], behav.exit_code["distance"], behav.exit_code["duration"]

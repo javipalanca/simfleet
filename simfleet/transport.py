@@ -670,6 +670,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         except AlreadyInDestination:
             await self.agent.arrived_to_destination()
         except PathRequestException as e:
+            logger.error("Raising PathRequestException in pick_up_customer for {}".format(self.agent.name))
             raise e
 
     async def send_confirmation_travel(self, station_id):
@@ -706,7 +707,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         self.set("current_station", station_id)
         self.agent.current_station_dest = dest
         await self.send(reply)
-        # informs the TravelBehaviour of the station that the transport its coming
+        # informs the TravelBehaviour of the station that the transport is coming
 
         self.agent.num_charges += 1
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)

@@ -25,6 +25,10 @@ class RouteAgent(Agent):
             host = host + '/'
         self.route_host = host
 
+        self.queries_from_cache = 0
+        self.queries_from_server_succeeded = 0
+        self.queries_from_server_failed = 0
+
     async def setup(self):
         template = Template()
         template.set_metadata("performative", "route")
@@ -46,12 +50,16 @@ class RouteAgent(Agent):
         try:
             item = self.route_cache[key]
             logger.debug("Got route from cache")
+            self.queries_from_cache += 1
         except KeyError:
             logger.debug("Requesting new route from server ({},{}).".format(origin, destination))
             path, distance, duration = self.request_route_to_server(origin, destination, self.route_host)
             item = {"path": path, "distance": distance, "duration": duration}
             if path is not None:
                 self.route_cache[key] = item
+                self.queries_from_server_succeeded += 1
+            else:
+                self.queries_from_server_failed += 1
 
         return item
 
@@ -140,6 +148,7 @@ class RouteAgent(Agent):
             except Exception as e:
                 logger.error("Error requesting route: {}".format(e))
                 reply_content = {"type": "error", "body": str(e)}
+                self.queries_from_server_failed += 1
 
             if reply_content["path"] is None:
                 logger.error("Could not retrieve route.")

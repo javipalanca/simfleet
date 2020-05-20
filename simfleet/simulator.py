@@ -55,6 +55,7 @@ class SimulatorAgent(Agent):
         self.transport_df = None
         self.manager_df = None
         self.station_df = None
+        self.route_agent_df = None
 
         self.simulation_mutex = threading.Lock()
         self.simulation_running = False
@@ -369,7 +370,8 @@ class SimulatorAgent(Agent):
         Collects stats from all participant agents and from the simulation and stores it in three dataframes.
         """
 
-        df_avg, self.transport_df, self.customer_df, self.manager_df, self.station_df = self.get_stats_dataframes()
+        df_avg, self.transport_df, self.customer_df, self.manager_df, self.station_df, self.route_agent_df = \
+            self.get_stats_dataframes()
 
         columns = []
         if self.config.simulation_name:
@@ -401,6 +403,8 @@ class SimulatorAgent(Agent):
         print(tabulate(self.transport_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
         print("Station stats")
         print(tabulate(self.station_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print("Route agent Stats")
+        print(tabulate(self.route_agent_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
 
     def write_file(self, filename, fileformat="json"):
         """
@@ -724,12 +728,13 @@ class SimulatorAgent(Agent):
         writer = pd.ExcelWriter(output, engine='xlsxwriter')
 
         # Write the data frame to the StringIO object.
-        df_avg, transport_df, customer_df, manager_df, stations_df = self.get_stats_dataframes()
+        df_avg, transport_df, customer_df, manager_df, stations_df, route_agent_df = self.get_stats_dataframes()
         df_avg.to_excel(writer, sheet_name='Simulation')
         customer_df.to_excel(writer, sheet_name='Customers')
         transport_df.to_excel(writer, sheet_name='Transports')
         manager_df.to_excel(writer, sheet_name='FleetManagers')
         stations_df.to_excel(writer, sheet_name='Stations')
+        route_agent_df.to_excel(writer, sheet_name='RouteAgent')
         writer.save()
         xlsx_data = output.getvalue()
 
@@ -752,14 +757,15 @@ class SimulatorAgent(Agent):
         output = io.StringIO()
 
         # Write the data frame to the StringIO object.
-        df_avg, transport_df, customer_df, manager_df, stations_df = self.get_stats_dataframes()
+        df_avg, transport_df, customer_df, manager_df, stations_df, route_agent_df = self.get_stats_dataframes()
 
         data = {
             "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
             "customers": json.loads(customer_df.to_json(orient="index")),
             "transports": json.loads(transport_df.to_json(orient="index")),
             "fleetmanagers": json.loads(manager_df.to_json(orient="index")),
-            "stations": json.loads(stations_df.to_json(orient="index"))
+            "stations": json.loads(stations_df.to_json(orient="index")),
+            "route_agent": json.loads(route_agent_df.to_json(orient="index"))
         }
 
         json.dump(data, output, indent=4)
@@ -921,6 +927,26 @@ class SimulatorAgent(Agent):
                                      "total_waiting_time": total_waiting_time, "avg_waiting_time": avg_waiting_time})
         return df
 
+    def get_route_agent_stats(self):
+        """
+        Creates a dataframe with the route agent stats.
+        The dataframe includes the routes got from cache, the routes received from server successfully, and the routes
+         not received from server.
+
+        Returns:
+            ``pandas.DataFrame``: the dataframe with the route agent stats.
+        """
+        failed_route_queries = 0
+        for t in self.transport_agents.values():
+            if t.get("failed_route_queries") is not None:
+                failed_route_queries += t.get("failed_route_queries")
+
+        df = pd.DataFrame.from_dict({"routes_from_cache": [self.route_agent.queries_from_cache],
+                                     "routes_from_server_succeeded": [self.route_agent.queries_from_server_succeeded],
+                                     "routes_from_server_failed": [self.route_agent.queries_from_server_failed],
+                                     "routes_from_server_timeout_at_transport": [failed_route_queries]})
+        return df
+
     def get_stats_dataframes(self):
         """
         Collects simulation stats and returns 3 dataframes with the information:
@@ -939,6 +965,9 @@ class SimulatorAgent(Agent):
         station_df = station_df[
             ["name", "status", "available_places", "power", "charged_transports", "max_queue_length",
              "total_waiting_time", "avg_waiting_time"]]
+        route_agent_df = self.get_route_agent_stats()
+        route_agent_df = route_agent_df[["routes_from_cache", "routes_from_server_succeeded",
+                                         "routes_from_server_failed", "routes_from_server_timeout_at_transport"]]
         stats = self.get_stats()
         df_avg = pd.DataFrame.from_dict({"Avg Customer Waiting Time": [stats["waiting"]],
                                          "Avg Customer Total Time": [stats["totaltime"]],
@@ -951,7 +980,7 @@ class SimulatorAgent(Agent):
                    "Simulation Time", "Simulation Finished"]
         df_avg = df_avg[columns]
 
-        return df_avg, transport_df, customer_df, manager_df, station_df
+        return df_avg, transport_df, customer_df, manager_df, station_df, route_agent_df
 
     async def async_start_agent(self, agent):
         await agent.start()

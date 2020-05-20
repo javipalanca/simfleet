@@ -1,13 +1,11 @@
 import json
 from collections import defaultdict
 
-import requests
+import aiohttp
 from loguru import logger
-from requests.adapters import HTTPAdapter
 from spade.agent import Agent
-from spade.behaviour import CyclicBehaviour
+from spade.behaviour import CyclicBehaviour, OneShotBehaviour
 from spade.template import Template
-from urllib3 import Retry
 
 
 class RouteAgent(Agent):
@@ -21,8 +19,8 @@ class RouteAgent(Agent):
 
         self.route_cache = defaultdict(dict)
 
-        if host[(len(host) - 1)] != '/':
-            host = host + '/'
+        if host[(len(host) - 1)] != "/":
+            host = host + "/"
         self.route_host = host
 
     async def setup(self):
@@ -31,35 +29,11 @@ class RouteAgent(Agent):
         self.add_behaviour(self.RequestRouteBehaviour(), template)
         logger.info("Route agent running")
 
-    def get_route(self, origin, destination):
-        """
-        Checks the cache for a path, if not found then it queries the OSRM server.
-
-        Args:
-            origin (list): origin coordinate (longitude, latitude)
-            destination (list): target coordinate (longitude, latitude)
-
-        Returns:
-            dict: a dict with three keys: path, distance and duration
-        """
-        key = ",".join([str(origin), str(destination)])
-        try:
-            item = self.route_cache[key]
-            logger.debug("Got route from cache")
-        except KeyError:
-            logger.debug("Requesting new route from server ({},{}).".format(origin, destination))
-            path, distance, duration = self.request_route_to_server(origin, destination, self.route_host)
-            item = {"path": path, "distance": distance, "duration": duration}
-            if path is not None:
-                self.route_cache[key] = item
-
-        return item
-
     def persist_cache(self):
         """
         Persists the cache to a JSON file.
         """
-        with open("route_cache.json", 'w') as f:
+        with open("route_cache.json", "w") as f:
             try:
                 json.dump(self.route_cache, f)
                 logger.debug("Cache persisted.")
@@ -71,7 +45,7 @@ class RouteAgent(Agent):
         Loads the cache from file.
         """
         try:
-            with open("route_cache.json", 'r') as f:
+            with open("route_cache.json", "r") as f:
                 self.route_cache = json.load(f)
             logger.debug("Cache loaded.")
         except:
@@ -79,7 +53,7 @@ class RouteAgent(Agent):
             self.route_cache = {}
 
     @staticmethod
-    def request_route_to_server(origin, destination, route_host):
+    async def request_route_to_server(origin, destination, route_host):
         """
         Queries the OSRM for a path.
 
@@ -93,16 +67,21 @@ class RouteAgent(Agent):
         """
         try:
 
-            url = route_host + "route/v1/car/{src1},{src2};{dest1},{dest2}?geometries=geojson&overview=full"
-            src1, src2, dest1, dest2 = origin[1], origin[0], destination[1], destination[0]
+            url = (
+                route_host
+                + "route/v1/car/{src1},{src2};{dest1},{dest2}?geometries=geojson&overview=full"
+            )
+            src1, src2, dest1, dest2 = (
+                origin[1],
+                origin[0],
+                destination[1],
+                destination[0],
+            )
             url = url.format(src1=src1, src2=src2, dest1=dest1, dest2=dest2)
 
-            session = requests.Session()
-            retry = Retry(connect=3, backoff_factor=1.0)
-            adapter = HTTPAdapter(max_retries=retry)
-            session.mount(url, adapter)
-            result = session.get(url)
-            result = json.loads(result.content)
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    result = await response.json()
 
             path = result["routes"][0]["geometry"]["coordinates"]
             path = [[point[1], point[0]] for point in path]
@@ -111,7 +90,7 @@ class RouteAgent(Agent):
             if path[-1] != destination:
                 path.append(destination)
             return path, distance, duration
-        except Exception:
+        except Exception as e:
             return None, None, None
 
     class RequestRouteBehaviour(CyclicBehaviour):
@@ -133,9 +112,56 @@ class RouteAgent(Agent):
                 return
             logger.debug("Got route request message. {}".format(msg.body))
 
+            content = json.loads(msg.body)
+            reply = msg.make_reply()
+
+            self.agent.add_behaviour(
+                self.agent.AsyncRequestRouteBehaviour(
+                    reply, content["origin"], content["destination"]
+                )
+            )
+
+    class AsyncRequestRouteBehaviour(OneShotBehaviour):
+        """
+        Checks the cache for a path, if not found then it queries the OSRM server.
+
+        Args:
+            reply (Message): the message to be replied with the response
+            origin (list): origin coordinate (longitude, latitude)
+            destination (list): target coordinate (longitude, latitude)
+        """
+
+        def __init__(self, reply, origin, destination):
+            super().__init__()
+            self.reply = reply
+            self.origin = origin
+            self.destination = destination
+
+        async def run(self):
+
             try:
-                content = json.loads(msg.body)
-                reply_content = self.agent.get_route(content["origin"], content["destination"])
+                key = ",".join([str(self.origin), str(self.destination)])
+
+                if key in self.agent.route_cache:
+                    reply_content = self.agent.route_cache[key]
+                    logger.debug("Got route from cache")
+                else:
+                    logger.debug(
+                        "Requesting new route from server ({},{}).".format(
+                            self.origin, self.destination
+                        )
+                    )
+                    path, distance, duration = await self.agent.request_route_to_server(
+                        self.origin, self.destination, self.agent.route_host
+                    )
+                    reply_content = {
+                        "path": path,
+                        "distance": distance,
+                        "duration": duration,
+                    }
+                    if path is not None:
+                        self.agent.route_cache[key] = reply_content
+
                 reply_content["type"] = "success"
             except Exception as e:
                 logger.error("Error requesting route: {}".format(e))
@@ -145,7 +171,6 @@ class RouteAgent(Agent):
                 logger.error("Could not retrieve route.")
                 reply_content = {"type": "error", "body": "Could not retrieve route."}
 
-            reply = msg.make_reply()
-            reply.body = json.dumps(reply_content)
+            self.reply.body = json.dumps(reply_content)
 
-            await self.send(reply)
+            await self.send(self.reply)

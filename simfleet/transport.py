@@ -29,7 +29,7 @@ class TransportAgent(Agent):
         super().__init__(agentjid, password)
 
         self.fleetmanager_id = None
-        self.route_id = None
+        self.route_host = None
         self.strategy = None
         self.running_strategy = False
 
@@ -70,7 +70,8 @@ class TransportAgent(Agent):
         # waiting time statistics
         self.waiting_in_queue_time = None
         self.charge_time = None
-        self.total_waiting_time = None
+        self.total_waiting_time = 0.0
+        self.total_charging_time = 0.0
 
         # Transport in station place event
         self.set("in_station_place", None)  # new
@@ -189,14 +190,14 @@ class TransportAgent(Agent):
     def set_fleet_type(self, fleet_type):
         self.fleet_type = fleet_type
 
-    def set_route_agent(self, route_id):
+    def set_route_host(self, route_host):
         """
-        Sets the route agent JID address
+        Sets the route host server address
         Args:
-            route_id (str): the route agent jid
+            route_host (str): route host server address
 
         """
-        self.route_id = route_id
+        self.route_host = route_host
 
     async def send(self, msg):
         if not msg.sender:
@@ -294,6 +295,7 @@ class TransportAgent(Agent):
         elapsed_time = self.charge_time - self.waiting_in_queue_time
         if elapsed_time > 0.1:
             self.total_waiting_time += elapsed_time
+            logger.error("{} total waiting time: {}".format(self.name, self.total_waiting_time))
 
     def needs_charging(self):
         return (self.status == TRANSPORT_NEEDS_CHARGING) or \
@@ -301,6 +303,7 @@ class TransportAgent(Agent):
 
     def transport_charged(self):
         self.current_autonomy_km = self.max_autonomy_km
+        self.total_charging_time += time.time() - self.charge_time
 
     async def drop_customer(self):
         """
@@ -425,14 +428,15 @@ class TransportAgent(Agent):
 
     async def request_path(self, origin, destination):
         """
-        Requests a path between two points (origin and destination) using the RouteAgent service.
+        Requests a path between two points (origin and destination) using the route server.
 
         Args:
             origin (list): the coordinates of the origin of the requested path
             destination (list): the coordinates of the end of the requested path
 
         Returns:
-            list, float, float: A list of points that represent the path from origin to destination, the distance and the estimated duration
+            list, float, float: A list of points that represent the path from origin to destination, the distance and
+            the estimated duration
 
         Examples:
             >>> path, distance, duration = await self.request_path(origin=[0,0], destination=[1,1])
@@ -443,7 +447,7 @@ class TransportAgent(Agent):
             >>> print(duration)
             3.24
         """
-        return await request_path(self, origin, destination, self.route_id)
+        return await request_path(self, origin, destination, self.route_host)
 
     def set_initial_position(self, coords):
         self.set("current_pos", coords)
@@ -628,7 +632,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
 
     async def on_start(self):
         logger.debug("Strategy {} started in transport {}".format(type(self).__name__, self.agent.name))
-        self.agent.total_waiting_time = 0.0
+        # self.agent.total_waiting_time = 0.0
 
     async def pick_up_customer(self, customer_id, origin, dest):
         """
@@ -732,7 +736,6 @@ class TransportStrategyBehaviour(StrategyBehaviour):
             logger.warning("{} has not enough autonomy to do travel ({} for {} km).".format(self.agent.name,
                                                                                             autonomy, travel_km))
             return False
-        # self.agent.set_km_expense(travel_km)  # TODO
         return True
 
     def check_and_decrease_autonomy(self, customer_orig, customer_dest):
@@ -742,7 +745,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
             logger.warning("{} has not enough autonomy to do travel ({} for {} km).".format(self.agent.name,
                                                                                             autonomy, travel_km))
             return False
-        self.agent.set_km_expense(travel_km)  # TODO
+        self.agent.set_km_expense(travel_km)
         return True
 
     async def send_get_stations(self, content=None):

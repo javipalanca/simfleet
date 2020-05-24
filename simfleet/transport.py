@@ -295,7 +295,6 @@ class TransportAgent(Agent):
         elapsed_time = self.charge_time - self.waiting_in_queue_time
         if elapsed_time > 0.1:
             self.total_waiting_time += elapsed_time
-            logger.error("{} total waiting time: {}".format(self.name, self.total_waiting_time))
 
     def needs_charging(self):
         return (self.status == TRANSPORT_NEEDS_CHARGING) or \

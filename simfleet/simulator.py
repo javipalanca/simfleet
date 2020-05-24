@@ -307,8 +307,12 @@ class SimulatorAgent(Agent):
                         all_agents = list(self.agent.manager_agents.values()) + list(
                             self.agent.transport_agents.values()) + list(
                             self.agent.customer_agents.values()) + list(
-                            self.agent.station_agents.values())  # TODO exclude delayed agents
-                        while not all([agent.ready for agent in all_agents]):
+                            self.agent.station_agents.values())
+                        current_agents = []
+                        for agent in all_agents:
+                            if agent.is_launched:
+                                current_agents.append(agent)
+                        while not all([agent.ready for agent in current_agents]):
                             logger.debug("Waiting for all agents to be ready")
                             await asyncio.sleep(0.5)
                         for manager in self.agent.manager_agents.values():
@@ -973,7 +977,7 @@ class SimulatorAgent(Agent):
 
         agent.start().result()
 
-    def create_fleetmanager_agent(self, name, password, fleet_type, strategy=None, icon=None):
+    def create_fleetmanager_agent(self, name, password, fleet_type, strategy=None):
         jid = f"{name}@{self.jid.domain}"
         agent = FleetManagerAgent(jid, password)
         logger.debug("Creating FleetManager {}".format(jid))
@@ -991,6 +995,8 @@ class SimulatorAgent(Agent):
             agent.run_strategy()
 
         self.add_manager(agent)
+
+        agent.is_launched = True
 
         self.submit(self.async_start_agent(agent))
 

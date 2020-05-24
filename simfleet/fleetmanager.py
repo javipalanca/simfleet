@@ -34,6 +34,7 @@ class FleetManagerAgent(Agent):
         self.directory_id = None
         self.fleet_icon = None
         self.stopped = False
+        self.is_launched = False
         self.ready = False
         self.clear_agents()
 

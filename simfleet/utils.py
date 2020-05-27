@@ -243,7 +243,7 @@ def avg(array):
     return (sum(array_wo_nones, 0.0) / len(array_wo_nones)) if len(array_wo_nones) > 0 else 0.0
 
 
-async def request_route_to_server(origin, destination, route_host="http://osrm.gti-ia.upv.es/"):
+async def request_route_to_server(origin, destination, route_host="http://router.project-osrm.org/"):
     """
     Queries the OSRM for a path.
 

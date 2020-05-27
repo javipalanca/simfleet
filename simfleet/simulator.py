@@ -902,28 +902,28 @@ class SimulatorAgent(Agent):
             ``pandas.DataFrame``: the dataframe with the customers stats.
         """
         try:
-            avg_waiting_time = []
+            avg_busy_time = []
             for p in self.station_agents.values():
                 if p.charged_transports > 0:
-                    avg_waiting_time.append("{0:.2f}".format(p.total_waiting_time / p.charged_transports))
+                    avg_busy_time.append("{0:.2f}".format(p.total_busy_time / p.charged_transports))
                 else:
-                    avg_waiting_time.append(0)
+                    avg_busy_time.append(0)
 
-            names, status, places, power, charged_transports, max_queue_length, total_waiting_time = zip(
+            names, status, places, power, charged_transports, max_queue_length, total_busy_time = zip(
                 *[(p.name, p.status,
                    p.available_places,
                    p.power,
                    p.charged_transports,
                    p.max_queue_length,
-                   "{0:.2f}".format(p.total_waiting_time))
+                   "{0:.2f}".format(p.total_busy_time))
                   for p in
                   self.station_agents.values()])
         except ValueError:
-            names, status, places, power, charged_transports, max_queue_length, total_waiting_time, avg_waiting_time = [], [], [], [], [], [], [], []
+            names, status, places, power, charged_transports, max_queue_length, total_busy_time, avg_busy_time = [], [], [], [], [], [], [], []
 
         df = pd.DataFrame.from_dict({"name": names, "status": status, "available_places": places, "power": power,
                                      "charged_transports": charged_transports, "max_queue_length": max_queue_length,
-                                     "total_waiting_time": total_waiting_time, "avg_waiting_time": avg_waiting_time})
+                                     "total_busy_time": total_busy_time, "avg_busy_time": avg_busy_time})
         return df
 
     def get_stats_dataframes(self):
@@ -944,7 +944,7 @@ class SimulatorAgent(Agent):
         station_df = self.get_station_stats()
         station_df = station_df[
             ["name", "status", "available_places", "power", "charged_transports", "max_queue_length",
-             "total_waiting_time", "avg_waiting_time"]]
+             "total_busy_time", "avg_busy_time"]]
 
         stats = self.get_stats()
         df_avg = pd.DataFrame.from_dict({"Avg Customer Waiting Time": [stats["waiting"]],

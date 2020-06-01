@@ -60,7 +60,6 @@ class TransportWaitingState(TransportStrategyBehaviour, State):
         if performative == REQUEST_PERFORMATIVE:
             if not self.has_enough_autonomy(content["origin"], content["dest"]):
                 await self.cancel_proposal(content["customer_id"])
-                # self.agent.status = TRANSPORT_NEEDS_CHARGING
                 self.set_next_state(TRANSPORT_NEEDS_CHARGING)
                 return
             else:

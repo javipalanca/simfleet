@@ -60,7 +60,6 @@ class TransportWaitingState(TransportStrategyBehaviour, State):
         if performative == REQUEST_PERFORMATIVE:
             if not self.has_enough_autonomy(content["origin"], content["dest"]):
                 await self.cancel_proposal(content["customer_id"])
-                # self.agent.status = TRANSPORT_NEEDS_CHARGING
                 self.set_next_state(TRANSPORT_NEEDS_CHARGING)
                 return
             else:
@@ -80,11 +79,12 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
         logger.debug("{} in Transport Needs Charging State".format(self.agent.jid))
 
     async def run(self):
-        if self.agent.stations is None or len(self.agent.stations) < 1:
+        if self.agent.stations is None or len(self.agent.stations) < 1 and not self.get(name="stations_requested"):
             logger.info("Transport {} looking for a station.".format(self.agent.name))
+            self.set(name="stations_requested", value=True)
             await self.send_get_stations()
 
-            msg = await self.receive(timeout=5)
+            msg = await self.receive(timeout=600)
             if not msg:
                 self.set_next_state(TRANSPORT_NEEDS_CHARGING)
                 return
@@ -103,9 +103,14 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
                     logger.info("Transport {} got list of current stations: {}".format(self.agent.name, len(
                         list(self.agent.stations.keys()))))
                 elif performative == CANCEL_PERFORMATIVE:
-                    logger.info("Cancellation of request for stations information.")
-            self.set_next_state(TRANSPORT_NEEDS_CHARGING)
-            return
+                    logger.info(
+                        "Transport {} got a cancellation of request for stations information.".format(self.agent.name))
+                    self.set(name="stations_requested", value=False)
+                    self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+                    return
+            else:
+                self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+                return
 
         station_positions = []
         for key in self.agent.stations.keys():
@@ -113,8 +118,6 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
             station_positions.append((dic['jid'], dic['position']))
         closest_station = min(station_positions,
                               key=lambda x: distance_in_meters(x[1], self.agent.get_position()))
-        # closest_station = min( station_positions, key = lambda x: request_route_to_server(x[1], self.agent.get_position(), "http://osrm.gti-ia.upv.es/")[1])
-        # closest_station = min( list(self.agent.stations), key = lambda x: distance_in_meters( x['position'], self.agent.get_position() ) )
         logger.debug("Closest station {}".format(closest_station))
         station = closest_station[0]
         self.agent.current_station_dest = (station, self.agent.stations[station]["position"])
@@ -163,8 +166,6 @@ class TransportInStationState(TransportStrategyBehaviour, State):
         self.agent.status = TRANSPORT_IN_STATION_PLACE
 
     async def run(self):
-        # await self.agent.request_access_station()
-        # self.agent.status = TRANSPORT_IN_STATION_PLACE
         msg = await self.receive(timeout=60)
         if not msg:
             self.set_next_state(TRANSPORT_IN_STATION_PLACE)
@@ -173,7 +174,6 @@ class TransportInStationState(TransportStrategyBehaviour, State):
         performative = msg.get_metadata("performative")
         if performative == ACCEPT_PERFORMATIVE:
             if content.get('station_id') is not None:
-                # debug
                 logger.debug("Transport {} received a message with ACCEPT_PERFORMATIVE from {}".format(self.agent.name,
                                                                                                        content[
                                                                                                            "station_id"]))
@@ -191,7 +191,6 @@ class TransportChargingState(TransportStrategyBehaviour, State):
     # car charges in a station
     async def on_start(self):
         await super().on_start()
-        # self.agent.status = TRANSPORT_CHARGING # this change is already performed in function begin_charging() of class Transport
         logger.debug("{} in Transport Charging State".format(self.agent.jid))
 
     async def run(self):
@@ -237,7 +236,6 @@ class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
                 self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
                 if not self.check_and_decrease_autonomy(content["origin"], content["dest"]):
                     await self.cancel_proposal(content["customer_id"])
-                    # self.agent.status = TRANSPORT_NEEDS_CHARGING
                     self.set_next_state(TRANSPORT_NEEDS_CHARGING)
                     return
                 else:
@@ -281,7 +279,6 @@ class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
         self.agent.watch_value("customer_in_transport", self.agent.customer_in_transport_callback)
         # block behaviour until another coroutine calls set()
         await self.agent.customer_in_transport_event.wait()
-        # no s'está accedint a aquesta part del codi
         return self.set_next_state(TRANSPORT_WAITING)
 
 
@@ -293,7 +290,6 @@ class FSMTransportStrategyBehaviour(FSMBehaviour):
         self.add_state(TRANSPORT_WAITING_FOR_APPROVAL, TransportWaitingForApprovalState())
 
         self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, TransportMovingToCustomerState())
-        # self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, MyTransportMovingToCustomerState())
 
         self.add_state(TRANSPORT_MOVING_TO_STATION, TransportMovingToStationState())
         self.add_state(TRANSPORT_IN_STATION_PLACE, TransportInStationState())
@@ -314,8 +310,6 @@ class FSMTransportStrategyBehaviour(FSMBehaviour):
         self.add_transition(TRANSPORT_NEEDS_CHARGING,
                             TRANSPORT_WAITING)  # exception in go_to_the_station(station, position)
         self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE)  # arrived to station
-        # self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_MOVING_TO_STATION)  #
-        # self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_WAITING)  # ??
         self.add_transition(TRANSPORT_IN_STATION_PLACE, TRANSPORT_IN_STATION_PLACE)  # waiting in station queue
         self.add_transition(TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGING)  # begin charging
         self.add_transition(TRANSPORT_CHARGING, TRANSPORT_CHARGING)  # waiting to finish charging
@@ -340,18 +334,18 @@ class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
         if self.agent.fleetmanagers is None:
             await self.send_get_managers(self.agent.fleet_type)
 
-            msg = await self.receive(timeout=5)
+            msg = await self.receive(timeout=300)
             if msg:
                 protocol = msg.get_metadata("protocol")
                 if protocol == QUERY_PROTOCOL:
                     performative = msg.get_metadata("performative")
                     if performative == INFORM_PERFORMATIVE:
                         self.agent.fleetmanagers = json.loads(msg.body)
-                        logger.debug("{} Get fleet managers {}".format(self.agent.name, self.agent.fleetmanagers))
-                        return
+                        logger.info("{} got fleet managers {}".format(self.agent.name, self.agent.fleetmanagers))
                     elif performative == CANCEL_PERFORMATIVE:
-                        logger.debug("Cancellation of request for {} information".format(self.agent.type_service))
-                        return
+                        logger.info("{} got cancellation of request for {} information".format(self.agent.name,
+                                                                                               self.agent.type_service))
+            return
 
         if self.agent.status == CUSTOMER_WAITING:
             await self.send_request(content={})

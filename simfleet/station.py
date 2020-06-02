@@ -44,10 +44,10 @@ class StationAgent(Agent):
 
         self.transports_in_queue_time = None
         self.empty_queue_time = None
-        self.total_waiting_time = None
+        self.total_busy_time = None  # total time with some transport waiting in queue
 
     async def setup(self):
-        self.total_waiting_time = 0.0
+        self.total_busy_time = 0.0
         logger.info("Station agent {} running".format(self.name))
         self.set_type("station")
         self.set_status()
@@ -212,11 +212,7 @@ class StationAgent(Agent):
             # time statistics update
             if len(self.waiting_list) == 0:
                 self.empty_queue_time = time.time()
-                self.total_waiting_time += self.empty_queue_time - self.transports_in_queue_time
-            else:
-                self.empty_queue_time = time.time()
-                self.total_waiting_time += self.empty_queue_time - self.transports_in_queue_time
-                self.transports_in_queue_time = time.time()
+                self.total_busy_time += self.empty_queue_time - self.transports_in_queue_time
 
             logger.debug("Station {} has a place to charge transport {}".format(self.agent_id, transport_id))
             # confirm EXPLICITLY to transport it can start charging

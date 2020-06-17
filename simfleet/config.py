@@ -45,24 +45,41 @@ class SimfleetConfig(object):
         self.__config["coords"] = self.__config.get("coords", [39.47, -0.37])
         self.__config["zoom"] = self.__config.get("zoom", 12)
 
-        self.__config["transport_strategy"] = self.__config.get("transport_strategy",
-                                                                "simfleet.strategies.AcceptAlwaysStrategyBehaviour")
-        self.__config["customer_strategy"] = self.__config.get("customer_strategy",
-                                                               "simfleet.strategies.AcceptFirstRequestBehaviour")
-        self.__config["fleetmanager_strategy"] = self.__config.get("fleetmanager_strategy",
-                                                                   "simfleet.strategies.DelegateRequestBehaviour")
-        self.__config["directory_strategy"] = self.__config.get("directory_strategy",
-                                                                "simfleet.directory.DirectoryStrategyBehaviour")
-        self.__config["station_strategy"] = self.__config.get("station_strategy",
-                                                              "simfleet.station.StationStrategyBehaviour")
+        self.__config["transport_strategy"] = self.__config.get(
+            "transport_strategy", "simfleet.strategies.AcceptAlwaysStrategyBehaviour"
+        )
+        self.__config["customer_strategy"] = self.__config.get(
+            "customer_strategy", "simfleet.strategies.AcceptFirstRequestBehaviour"
+        )
+        self.__config["fleetmanager_strategy"] = self.__config.get(
+            "fleetmanager_strategy", "simfleet.strategies.DelegateRequestBehaviour"
+        )
+        self.__config["directory_strategy"] = self.__config.get(
+            "directory_strategy", "simfleet.directory.DirectoryStrategyBehaviour"
+        )
+        self.__config["station_strategy"] = self.__config.get(
+            "station_strategy", "simfleet.station.StationStrategyBehaviour"
+        )
 
-        self.__config["fleetmanager_name"] = self.__config.get("fleetmanager_name", "fleetmanager")
-        self.__config["fleetmanager_password"] = self.__config.get("fleetmanager_passwd", "fleetmanager_passwd")
-        self.__config["route_host"] = self.__config.get("route_host", "http://router.project-osrm.org/")
+        self.__config["fleetmanager_name"] = self.__config.get(
+            "fleetmanager_name", "fleetmanager"
+        )
+        self.__config["fleetmanager_password"] = self.__config.get(
+            "fleetmanager_passwd", "fleetmanager_passwd"
+        )
+        self.__config["route_host"] = self.__config.get(
+            "route_host", "http://router.project-osrm.org/"
+        )
         self.__config["route_name"] = self.__config.get("route_name", "route")
-        self.__config["route_password"] = self.__config.get("route_passwd", "route_passwd")
-        self.__config["directory_name"] = self.__config.get("directory_name", "directory")
-        self.__config["directory_password"] = self.__config.get("directory_passwd", "directory_passwd")
+        self.__config["route_password"] = self.__config.get(
+            "route_passwd", "route_passwd"
+        )
+        self.__config["directory_name"] = self.__config.get(
+            "directory_name", "directory"
+        )
+        self.__config["directory_password"] = self.__config.get(
+            "directory_passwd", "directory_passwd"
+        )
 
         self.__config["host"] = self.__config.get("host", "127.0.0.1")
         self.__config["xmpp_port"] = self.__config.get("xmpp_port", 5222)
@@ -72,7 +89,7 @@ class SimfleetConfig(object):
         logger.debug("Config loaded: {}".format(self))
 
     def load_config(self, filename):
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             logger.info("Reading config {}".format(filename))
             self.__config.update(json.load(f))
 
@@ -108,7 +125,7 @@ class SimfleetConfig(object):
         return self.__config[item]
 
     def __getattr__(self, item):
-        if item != "__config" and item in self.__config.keys():
+        if item != "__config" and item in self.__config:
             return self.__config[item]
         else:
             return super().__getattribute__(item)

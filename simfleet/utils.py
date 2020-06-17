@@ -64,7 +64,7 @@ def status_to_str(status_code):
         23: "CUSTOMER_LOCATION",
         24: "CUSTOMER_ASSIGNED",
         30: "FREE_STATION",
-        31: "BUSY_STATION"
+        31: "BUSY_STATION",
     }
     if status_code in statuses:
         return statuses[status_code]
@@ -75,6 +75,7 @@ class StrategyBehaviour(CyclicBehaviour, metaclass=ABCMeta):
     """
     The behaviour that all parent strategies must inherit from. It complies with the Strategy Pattern.
     """
+
     pass
 
 
@@ -155,10 +156,18 @@ async def request_path(agent, origin, destination, route_id):
     while not behav.is_killed():
         await asyncio.sleep(0.01)
 
-    if behav.exit_code is {} or "type" in behav.exit_code and behav.exit_code["type"] == "error":
+    if (
+        behav.exit_code is {}
+        or "type" in behav.exit_code
+        and behav.exit_code["type"] == "error"
+    ):
         return None, None, None
     else:
-        return behav.exit_code["path"], behav.exit_code["distance"], behav.exit_code["duration"]
+        return (
+            behav.exit_code["path"],
+            behav.exit_code["distance"],
+            behav.exit_code["duration"],
+        )
 
 
 def unused_port(hostname):
@@ -234,4 +243,8 @@ def avg(array):
         float: the average of the list without the Nones.
     """
     array_wo_nones = list(filter(None, array))
-    return (sum(array_wo_nones, 0.0) / len(array_wo_nones)) if len(array_wo_nones) > 0 else 0.0
+    return (
+        (sum(array_wo_nones, 0.0) / len(array_wo_nones))
+        if len(array_wo_nones) > 0
+        else 0.0
+    )

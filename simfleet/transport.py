@@ -8,15 +8,40 @@ from spade.behaviour import PeriodicBehaviour, CyclicBehaviour
 from spade.message import Message
 from spade.template import Template
 
-from .helpers import random_position, distance_in_meters, kmh_to_ms, PathRequestException, \
-    AlreadyInDestination
-from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE, \
-    REGISTER_PROTOCOL, REQUEST_PERFORMATIVE, \
-    ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, QUERY_PROTOCOL
-from .utils import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_IN_CUSTOMER_PLACE, \
-    TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGING, \
-    CUSTOMER_IN_DEST, CUSTOMER_LOCATION, TRANSPORT_MOVING_TO_STATION, chunk_path, request_path, StrategyBehaviour, \
-    TRANSPORT_NEEDS_CHARGING
+from .helpers import (
+    random_position,
+    distance_in_meters,
+    kmh_to_ms,
+    PathRequestException,
+    AlreadyInDestination,
+)
+from .protocol import (
+    REQUEST_PROTOCOL,
+    TRAVEL_PROTOCOL,
+    PROPOSE_PERFORMATIVE,
+    CANCEL_PERFORMATIVE,
+    INFORM_PERFORMATIVE,
+    REGISTER_PROTOCOL,
+    REQUEST_PERFORMATIVE,
+    ACCEPT_PERFORMATIVE,
+    REFUSE_PERFORMATIVE,
+    QUERY_PROTOCOL,
+)
+from .utils import (
+    TRANSPORT_WAITING,
+    TRANSPORT_MOVING_TO_CUSTOMER,
+    TRANSPORT_IN_CUSTOMER_PLACE,
+    TRANSPORT_MOVING_TO_DESTINATION,
+    TRANSPORT_IN_STATION_PLACE,
+    TRANSPORT_CHARGING,
+    CUSTOMER_IN_DEST,
+    CUSTOMER_LOCATION,
+    TRANSPORT_MOVING_TO_STATION,
+    chunk_path,
+    request_path,
+    StrategyBehaviour,
+    TRANSPORT_NEEDS_CHARGING,
+)
 
 MIN_AUTONOMY = 2
 ONESECOND_IN_MS = 1000
@@ -65,6 +90,9 @@ class TransportAgent(Agent):
         self.set("current_station", None)
         self.current_station_dest = None
 
+    def is_ready(self):
+        return not self.is_launched or (self.is_launched and self.ready)
+
     async def setup(self):
         try:
             template = Template()
@@ -72,11 +100,19 @@ class TransportAgent(Agent):
             register_behaviour = RegistrationBehaviour()
             self.add_behaviour(register_behaviour, template)
             while not self.has_behaviour(register_behaviour):
-                logger.warning("Transport {} could not create RegisterBehaviour. Retrying...".format(self.agent_id))
+                logger.warning(
+                    "Transport {} could not create RegisterBehaviour. Retrying...".format(
+                        self.agent_id
+                    )
+                )
                 self.add_behaviour(register_behaviour, template)
             self.ready = True
         except Exception as e:
-            logger.error("EXCEPTION creating RegisterBehaviour in Transport {}: {}".format(self.agent_id, e))
+            logger.error(
+                "EXCEPTION creating RegisterBehaviour in Transport {}: {}".format(
+                    self.agent_id, e
+                )
+            )
 
     def set_registration(self, status, content=None):
         """
@@ -143,7 +179,11 @@ class TransportAgent(Agent):
             fleetmanager_id (str): the fleetmanager jid
 
         """
-        logger.info("Setting fleet {} for agent {}".format(fleetmanager_id.split("@")[0], self.name))
+        logger.info(
+            "Setting fleet {} for agent {}".format(
+                fleetmanager_id.split("@")[0], self.name
+            )
+        )
         self.fleetmanager_id = fleetmanager_id
 
     def set_fleet_type(self, fleet_type):
@@ -181,7 +221,9 @@ class TransportAgent(Agent):
         """
         self.set("path", None)
         self.chunked_path = None
-        if not self.is_customer_in_transport():  # self.status == TRANSPORT_MOVING_TO_CUSTOMER:
+        if (
+            not self.is_customer_in_transport()
+        ):  # self.status == TRANSPORT_MOVING_TO_CUSTOMER:
             try:
                 self.set("customer_in_transport", self.get("current_customer"))
                 await self.move_to(self.current_customer_dest)
@@ -193,8 +235,11 @@ class TransportAgent(Agent):
             else:
                 await self.inform_customer(TRANSPORT_IN_CUSTOMER_PLACE)
                 self.status = TRANSPORT_MOVING_TO_DESTINATION
-                logger.info("Transport {} has picked up the customer {}.".format(self.agent_id,
-                                                                                 self.get("current_customer")))
+                logger.info(
+                    "Transport {} has picked up the customer {}.".format(
+                        self.agent_id, self.get("current_customer")
+                    )
+                )
         else:  # elif self.status == TRANSPORT_MOVING_TO_DESTINATION:
             await self.drop_customer()
 
@@ -211,16 +256,20 @@ class TransportAgent(Agent):
 
         data = {
             "status": TRANSPORT_IN_STATION_PLACE,
-            "need": self.max_autonomy_km - self.current_autonomy_km
+            "need": self.max_autonomy_km - self.current_autonomy_km,
         }
         await self.inform_station(data)
         self.status = TRANSPORT_CHARGING
-        logger.info("Transport {} has started charging in the station {}.".format(self.agent_id,
-                                                                                  self.get("current_station")))
+        logger.info(
+            "Transport {} has started charging in the station {}.".format(
+                self.agent_id, self.get("current_station")
+            )
+        )
 
     def needs_charging(self):
-        return (self.status == TRANSPORT_NEEDS_CHARGING) or \
-               (self.get_autonomy() <= MIN_AUTONOMY and self.status in [TRANSPORT_WAITING])
+        return (self.status == TRANSPORT_NEEDS_CHARGING) or (
+            self.get_autonomy() <= MIN_AUTONOMY and self.status in [TRANSPORT_WAITING]
+        )
 
     def transport_charged(self):
         self.current_autonomy_km = self.max_autonomy_km
@@ -231,8 +280,11 @@ class TransportAgent(Agent):
         """
         await self.inform_customer(CUSTOMER_IN_DEST)
         self.status = TRANSPORT_WAITING
-        logger.debug("Transport {} has dropped the customer {} in destination.".format(self.agent_id,
-                                                                                       self.get("current_customer")))
+        logger.debug(
+            "Transport {} has dropped the customer {} in destination.".format(
+                self.agent_id, self.get("current_customer")
+            )
+        )
         self.set("current_customer", None)
         self.set("customer_in_transport", None)
 
@@ -243,8 +295,11 @@ class TransportAgent(Agent):
         # data = {"status": TRANSPORT_LOADED}
         # await self.inform_station(data)
         self.status = TRANSPORT_WAITING
-        logger.debug("Transport {} has dropped the station {}.".format(self.agent_id,
-                                                                       self.get("current_station")))
+        logger.debug(
+            "Transport {} has dropped the station {}.".format(
+                self.agent_id, self.get("current_station")
+            )
+        )
         self.set("current_station", None)
 
     async def move_to(self, dest):
@@ -263,8 +318,12 @@ class TransportAgent(Agent):
         path = None
         distance, duration = 0, 0
         while counter > 0 and path is None:
-            logger.debug("Requesting path from {} to {}".format(self.get("current_pos"), dest))
-            path, distance, duration = await self.request_path(self.get("current_pos"), dest)
+            logger.debug(
+                "Requesting path from {} to {}".format(self.get("current_pos"), dest)
+            )
+            path, distance, duration = await self.request_path(
+                self.get("current_pos"), dest
+            )
             counter -= 1
         if path is None:
             raise PathRequestException("Error requesting route.")
@@ -288,7 +347,9 @@ class TransportAgent(Agent):
         if self.chunked_path:
             _next = self.chunked_path.pop(0)
             distance = distance_in_meters(self.get_position(), _next)
-            self.animation_speed = distance / kmh_to_ms(self.get("speed_in_kmh")) * ONESECOND_IN_MS
+            self.animation_speed = (
+                distance / kmh_to_ms(self.get("speed_in_kmh")) * ONESECOND_IN_MS
+            )
             await self.set_position(_next)
 
     async def inform_station(self, data=None):
@@ -333,8 +394,11 @@ class TransportAgent(Agent):
         Args:
             data (dict, optional): Complementary info about the cancellation
         """
-        logger.error("Transport {} could not get a path to customer {}.".format(self.agent_id,
-                                                                                self.get("current_customer")))
+        logger.error(
+            "Transport {} could not get a path to customer {}.".format(
+                self.agent_id, self.get("current_customer")
+            )
+        )
         if data is None:
             data = {}
         reply = Message()
@@ -342,8 +406,11 @@ class TransportAgent(Agent):
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         reply.body = json.dumps(data)
-        logger.debug("Transport {} sent cancel proposal to customer {}".format(self.agent_id,
-                                                                               self.get("current_customer")))
+        logger.debug(
+            "Transport {} sent cancel proposal to customer {}".format(
+                self.agent_id, self.get("current_customer")
+            )
+        )
         await self.send(reply)
 
     async def request_path(self, origin, destination):
@@ -383,11 +450,17 @@ class TransportAgent(Agent):
         else:
             self.set("current_pos", random_position())
 
-        logger.debug("Transport {} position is {}".format(self.agent_id, self.get("current_pos")))
+        logger.debug(
+            "Transport {} position is {}".format(self.agent_id, self.get("current_pos"))
+        )
         if self.status == TRANSPORT_MOVING_TO_DESTINATION:
-            await self.inform_customer(CUSTOMER_LOCATION, {"location": self.get("current_pos")})
+            await self.inform_customer(
+                CUSTOMER_LOCATION, {"location": self.get("current_pos")}
+            )
         if self.is_in_destination():
-            logger.info("Transport {} has arrived to destination.".format(self.agent_id))
+            logger.info(
+                "Transport {} has arrived to destination.".format(self.agent_id)
+            )
             if self.status == TRANSPORT_MOVING_TO_STATION:
                 await self.arrived_to_station()
             else:
@@ -425,7 +498,9 @@ class TransportAgent(Agent):
 
     def set_autonomy(self, autonomy, current_autonomy=None):
         self.max_autonomy_km = autonomy
-        self.current_autonomy_km = current_autonomy if current_autonomy is not None else autonomy
+        self.current_autonomy_km = (
+            current_autonomy if current_autonomy is not None else autonomy
+        )
 
     def get_autonomy(self):
         return self.current_autonomy_km
@@ -463,19 +538,27 @@ class TransportAgent(Agent):
         """
         return {
             "id": self.agent_id,
-            "position": [float("{0:.6f}".format(coord)) for coord in self.get("current_pos")],
-            "dest": [float("{0:.6f}".format(coord)) for coord in self.dest] if self.dest else None,
+            "position": [
+                float("{0:.6f}".format(coord)) for coord in self.get("current_pos")
+            ],
+            "dest": [float("{0:.6f}".format(coord)) for coord in self.dest]
+            if self.dest
+            else None,
             "status": self.status,
-            "speed": float("{0:.2f}".format(self.animation_speed)) if self.animation_speed else None,
+            "speed": float("{0:.2f}".format(self.animation_speed))
+            if self.animation_speed
+            else None,
             "path": self.get("path"),
-            "customer": self.get("current_customer").split("@")[0] if self.get("current_customer") else None,
+            "customer": self.get("current_customer").split("@")[0]
+            if self.get("current_customer")
+            else None,
             "assignments": self.num_assignments,
             "distance": "{0:.2f}".format(sum(self.distances)),
             "autonomy": self.current_autonomy_km,
             "max_autonomy": self.max_autonomy_km,
             "service": self.fleet_type,
             "fleet": self.fleetmanager_id.split("@")[0],
-            "icon": self.icon
+            "icon": self.icon,
         }
 
     class MovingBehaviour(PeriodicBehaviour):
@@ -503,11 +586,14 @@ class RegistrationBehaviour(CyclicBehaviour):
         Send a ``spade.message.Message`` with a proposal to manager to register.
         """
         logger.info(
-            "Transport {} sent proposal to register to manager {}".format(self.agent.name, self.agent.fleetmanager_id))
+            "Transport {} sent proposal to register to manager {}".format(
+                self.agent.name, self.agent.fleetmanager_id
+            )
+        )
         content = {
             "name": self.agent.name,
             "jid": str(self.agent.jid),
-            "fleet_type": self.agent.fleet_type
+            "fleet_type": self.agent.fleet_type,
         }
         msg = Message()
         msg.to = str(self.agent.fleetmanager_id)
@@ -526,16 +612,25 @@ class RegistrationBehaviour(CyclicBehaviour):
                 if performative == ACCEPT_PERFORMATIVE:
                     content = json.loads(msg.body)
                     self.agent.set_registration(True, content)
-                    logger.info("[{}] Registration in the fleet manager accepted: {}.".format(self.agent.name,
-                                                                                              self.agent.fleetmanager_id))
+                    logger.info(
+                        "[{}] Registration in the fleet manager accepted: {}.".format(
+                            self.agent.name, self.agent.fleetmanager_id
+                        )
+                    )
                     self.kill(exit_code="Fleet Registration Accepted")
                 elif performative == REFUSE_PERFORMATIVE:
-                    logger.warning("Registration in the fleet manager was rejected (check fleet type).")
+                    logger.warning(
+                        "Registration in the fleet manager was rejected (check fleet type)."
+                    )
                     self.kill(exit_code="Fleet Registration Rejected")
         except CancelledError:
             logger.debug("Cancelling async tasks...")
         except Exception as e:
-            logger.error("EXCEPTION in RegisterBehaviour of Transport {}: {}".format(self.agent.name, e))
+            logger.error(
+                "EXCEPTION in RegisterBehaviour of Transport {}: {}".format(
+                    self.agent.name, e
+                )
+            )
 
 
 class TransportStrategyBehaviour(StrategyBehaviour):
@@ -550,7 +645,11 @@ class TransportStrategyBehaviour(StrategyBehaviour):
     """
 
     async def on_start(self):
-        logger.debug("Strategy {} started in transport {}".format(type(self).__name__, self.agent.name))
+        logger.debug(
+            "Strategy {} started in transport {}".format(
+                type(self).__name__, self.agent.name
+            )
+        )
 
     async def pick_up_customer(self, customer_id, origin, dest):
         """
@@ -564,14 +663,14 @@ class TransportStrategyBehaviour(StrategyBehaviour):
             origin (list): the coordinates of the current location of the customer
             dest (list): the coordinates of the target destination of the customer
         """
-        logger.info("Transport {} on route to customer {}".format(self.agent.name, customer_id))
+        logger.info(
+            "Transport {} on route to customer {}".format(self.agent.name, customer_id)
+        )
         reply = Message()
         reply.to = customer_id
         reply.set_metadata("performative", INFORM_PERFORMATIVE)
         reply.set_metadata("protocol", TRAVEL_PROTOCOL)
-        content = {
-            "status": TRANSPORT_MOVING_TO_CUSTOMER
-        }
+        content = {"status": TRANSPORT_MOVING_TO_CUSTOMER}
         reply.body = json.dumps(content)
         self.set("current_customer", customer_id)
         self.agent.current_customer_orig = origin
@@ -584,7 +683,11 @@ class TransportStrategyBehaviour(StrategyBehaviour):
             await self.agent.arrived_to_destination()
 
     async def send_confirmation_travel(self, station_id):
-        logger.info("Transport {} sent confirmation to station {}".format(self.agent.name, station_id))
+        logger.info(
+            "Transport {} sent confirmation to station {}".format(
+                self.agent.name, station_id
+            )
+        )
         reply = Message()
         reply.to = station_id
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
@@ -603,14 +706,14 @@ class TransportStrategyBehaviour(StrategyBehaviour):
             origin (list): the coordinates of the current location of the customer
             dest (list): the coordinates of the target destination of the customer
         """
-        logger.info("Transport {} on route to station {}".format(self.agent.name, station_id))
+        logger.info(
+            "Transport {} on route to station {}".format(self.agent.name, station_id)
+        )
         reply = Message()
         reply.to = station_id
         reply.set_metadata("performative", INFORM_PERFORMATIVE)
         reply.set_metadata("protocol", TRAVEL_PROTOCOL)
-        content = {
-            "status": TRANSPORT_MOVING_TO_STATION
-        }
+        content = {"status": TRANSPORT_MOVING_TO_STATION}
         reply.body = json.dumps(content)
         self.set("current_station", station_id)
         self.agent.current_station_dest = dest
@@ -627,12 +730,19 @@ class TransportStrategyBehaviour(StrategyBehaviour):
     def has_enough_autonomy(self, customer_orig, customer_dest):
         autonomy = self.agent.get_autonomy()
         if autonomy <= MIN_AUTONOMY:
-            logger.warning("{} has not enough autonomy ({}).".format(self.agent.name, autonomy))
+            logger.warning(
+                "{} has not enough autonomy ({}).".format(self.agent.name, autonomy)
+            )
             return False
-        travel_km = self.agent.calculate_km_expense(self.get("current_pos"), customer_orig, customer_dest)
+        travel_km = self.agent.calculate_km_expense(
+            self.get("current_pos"), customer_orig, customer_dest
+        )
         if autonomy - travel_km < MIN_AUTONOMY:
-            logger.warning("{} has not enough autonomy to do travel ({} for {} km).".format(self.agent.name,
-                                                                                            autonomy, travel_km))
+            logger.warning(
+                "{} has not enough autonomy to do travel ({} for {} km).".format(
+                    self.agent.name, autonomy, travel_km
+                )
+            )
             return False
         self.agent.set_km_expense(travel_km)  # TODO
         return True
@@ -647,9 +757,11 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
         await self.send(msg)
-        logger.info("Transport {} asked for stations to Directory {} for type {}.".format(self.agent.name,
-                                                                                          self.agent.directory_id,
-                                                                                          self.agent.request))
+        logger.info(
+            "Transport {} asked for stations to Directory {} for type {}.".format(
+                self.agent.name, self.agent.directory_id, self.agent.request
+            )
+        )
 
     async def send_proposal(self, customer_id, content=None):
         """
@@ -662,7 +774,9 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         """
         if content is None:
             content = {}
-        logger.info("Transport {} sent proposal to {}".format(self.agent.name, customer_id))
+        logger.info(
+            "Transport {} sent proposal to {}".format(self.agent.name, customer_id)
+        )
         reply = Message()
         reply.to = customer_id
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
@@ -681,7 +795,11 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         """
         if content is None:
             content = {}
-        logger.info("Transport {} sent cancel proposal to customer {}".format(self.agent.name, customer_id))
+        logger.info(
+            "Transport {} sent cancel proposal to customer {}".format(
+                self.agent.name, customer_id
+            )
+        )
         reply = Message()
         reply.to = customer_id
         reply.set_metadata("protocol", REQUEST_PROTOCOL)

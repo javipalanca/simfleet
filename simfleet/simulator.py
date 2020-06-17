@@ -37,12 +37,18 @@ class SimulatorAgent(Agent):
     After these tasks are done in the Simulator constructor, the simulation is started when the ``run`` method is called.
     """
 
-    def __init__(self, config, agentjid="simulator@localhost", password="simulator123j3"):
+    def __init__(
+        self, config, agentjid="simulator@localhost", password="simulator123j3"
+    ):
         self.config = config
 
         super().__init__(jid=agentjid, password=password)
 
-        self.pretty_name = "({})".format(self.config.simulation_name) if self.config.simulation_name else ""
+        self.pretty_name = (
+            "({})".format(self.config.simulation_name)
+            if self.config.simulation_name
+            else ""
+        )
         self.verbose = self.config.verbose
 
         self.host = config.host
@@ -74,11 +80,18 @@ class SimulatorAgent(Agent):
 
         logger.info("Starting SimFleet {}".format(self.pretty_name))
 
-        self.set_default_strategies(config.fleetmanager_strategy, config.transport_strategy, config.customer_strategy,
-                                    config.directory_strategy, config.station_strategy)
+        self.set_default_strategies(
+            config.fleetmanager_strategy,
+            config.transport_strategy,
+            config.customer_strategy,
+            config.directory_strategy,
+            config.station_strategy,
+        )
 
         self.route_id = "{}@{}".format(config.route_name, self.host)
-        self.route_agent = RouteAgent(self.route_id, config.route_password, config.route_host)
+        self.route_agent = RouteAgent(
+            self.route_id, config.route_password, config.route_host
+        )
         self.route_agent.start()
 
         self.clear_agents()
@@ -89,12 +102,18 @@ class SimulatorAgent(Agent):
         icons_path = self.base_path / "templates" / "data" / "img_transports.json"
         self.load_icons(icons_path)
 
-        self.create_directory_agent(name=config.directory_name, password=config.directory_password)
+        self.create_directory_agent(
+            name=config.directory_name, password=config.directory_password
+        )
 
-        logger.info("Creating {} managers, {} transports, {} customers and {} stations.".format(config.num_managers,
-                                                                                                config.num_transport,
-                                                                                                config.num_customers,
-                                                                                                config.num_stations))
+        logger.info(
+            "Creating {} managers, {} transports, {} customers and {} stations.".format(
+                config.num_managers,
+                config.num_transport,
+                config.num_customers,
+                config.num_stations,
+            )
+        )
         self.load_scenario()
 
         self.template_path = self.base_path / "templates"
@@ -107,13 +126,25 @@ class SimulatorAgent(Agent):
         self.web.add_get("/run", self.run_controller, None)
         self.web.add_get("/stop", self.stop_agents_controller, None)
         self.web.add_get("/clean", self.clean_controller, None)
-        self.web.add_get("/download/excel/", self.download_stats_excel_controller, None, raw=True)
-        self.web.add_get("/download/json/", self.download_stats_json_controller, None, raw=True)
+        self.web.add_get(
+            "/download/excel/", self.download_stats_excel_controller, None, raw=True
+        )
+        self.web.add_get(
+            "/download/json/", self.download_stats_json_controller, None, raw=True
+        )
 
         self.web.app.router.add_static("/assets", str(self.template_path / "assets"))
 
-        self.web.start(hostname=self.config.http_ip, port=self.config.http_port, templates_path=str(self.template_path))
-        logger.info("Web interface running at http://{}:{}/app".format(self.config.http_ip, self.config.http_port))
+        self.web.start(
+            hostname=self.config.http_ip,
+            port=self.config.http_port,
+            templates_path=str(self.template_path),
+        )
+        logger.info(
+            "Web interface running at http://{}:{}/app".format(
+                self.config.http_ip, self.config.http_port
+            )
+        )
 
     def load_scenario(self):
         """
@@ -122,11 +153,17 @@ class SimulatorAgent(Agent):
         logger.info("Loading scenario...")
         for manager in self.config["fleets"]:
             name = manager["name"]
-            password = manager["password"] if "password" in manager else faker_factory.password()
+            password = (
+                manager["password"]
+                if "password" in manager
+                else faker_factory.password()
+            )
             fleet_type = manager["fleet_type"]
             strategy = manager.get("strategy")
             icon = manager.get("icon")
-            agent = self.create_fleetmanager_agent(name, password, fleet_type=fleet_type, strategy=strategy)
+            agent = self.create_fleetmanager_agent(
+                name, password, fleet_type=fleet_type, strategy=strategy
+            )
 
             self.set_icon(agent, icon, default=fleet_type)
 
@@ -135,7 +172,11 @@ class SimulatorAgent(Agent):
 
         for transport in self.config["transports"]:
             name = transport["name"]
-            password = transport["password"] if "password" in transport else faker_factory.password()
+            password = (
+                transport["password"]
+                if "password" in transport
+                else faker_factory.password()
+            )
             position = transport["position"]
             fleetmanager = transport["fleet"]
             fleet_type = transport["fleet_type"]
@@ -151,9 +192,18 @@ class SimulatorAgent(Agent):
             if delay is not None:
                 delayed = True
 
-            agent = self.create_transport_agent(name, password, position=position, speed=speed, fleet_type=fleet_type,
-                                                fleetmanager=fleetmanager, strategy=strategy, autonomy=autonomy,
-                                                current_autonomy=current_autonomy, delayed=delayed)
+            agent = self.create_transport_agent(
+                name,
+                password,
+                position=position,
+                speed=speed,
+                fleet_type=fleet_type,
+                fleetmanager=fleetmanager,
+                strategy=strategy,
+                autonomy=autonomy,
+                current_autonomy=current_autonomy,
+                delayed=delayed,
+            )
             if icon:
                 self.set_icon(agent, icon, default=fleet_type)
 
@@ -164,7 +214,11 @@ class SimulatorAgent(Agent):
 
         for customer in self.config["customers"]:
             name = customer["name"]
-            password = customer["password"] if "password" in customer else faker_factory.password()
+            password = (
+                customer["password"]
+                if "password" in customer
+                else faker_factory.password()
+            )
             fleet_type = customer["fleet_type"]
             position = customer["position"]
             target = customer["destination"]
@@ -176,8 +230,15 @@ class SimulatorAgent(Agent):
             if delay is not None:
                 delayed = True
 
-            agent = self.create_customer_agent(name, password, fleet_type, position=position, target=target,
-                                               strategy=strategy, delayed=delayed)
+            agent = self.create_customer_agent(
+                name,
+                password,
+                fleet_type,
+                position=position,
+                target=target,
+                strategy=strategy,
+                delayed=delayed,
+            )
 
             self.set_icon(agent, icon, default="customer")
 
@@ -187,11 +248,21 @@ class SimulatorAgent(Agent):
                 self.delayed_launch_agents[delay].append(agent)
 
         for station in self.config["stations"]:
-            password = station["password"] if "password" in station else faker_factory.password()
+            password = (
+                station["password"]
+                if "password" in station
+                else faker_factory.password()
+            )
             strategy = station.get("strategy")
             icon = station.get("icon")
-            agent = self.create_station_agent(station["name"], password, position=station["position"],
-                                              power=station["power"], places=station["places"], strategy=strategy)
+            agent = self.create_station_agent(
+                station["name"],
+                password,
+                position=station["position"],
+                power=station["power"],
+                places=station["places"],
+                strategy=strategy,
+            )
             self.set_icon(agent, icon, default="electric_station")
 
     def load_icons(self, filename):
@@ -251,29 +322,44 @@ class SimulatorAgent(Agent):
         if not self.simulation_running:
             self.kill_simulator.clear()
             with self.simulation_mutex:
-                all_agents = list(self.manager_agents.values()) + list(self.transport_agents.values()) + list(self.customer_agents.values()) + list(self.station_agents.values())
-                while not all([agent.ready for agent in all_agents]):
+                all_agents = (
+                    list(self.manager_agents.values())
+                    + list(self.transport_agents.values())
+                    + list(self.customer_agents.values())
+                    + list(self.station_agents.values())
+                )
+                while not all([agent.is_ready() for agent in all_agents]):
                     logger.debug("Waiting for all agents to be ready")
                     time.sleep(1)
                 for manager in self.manager_agents.values():
                     manager.run_strategy()
-                    logger.debug(f"Running strategy {self.fleetmanager_strategy} to manager {manager.name}")
+                    logger.debug(
+                        f"Running strategy {self.fleetmanager_strategy} to manager {manager.name}"
+                    )
                 for transport in self.transport_agents.values():
                     transport.run_strategy()
-                    logger.debug(f"Running strategy {self.transport_strategy} to transport {transport.name}")
+                    logger.debug(
+                        f"Running strategy {self.transport_strategy} to transport {transport.name}"
+                    )
                 for customer in self.customer_agents.values():
                     customer.run_strategy()
-                    logger.debug(f"Running strategy {self.customer_strategy} to customer {customer.name}")
+                    logger.debug(
+                        f"Running strategy {self.customer_strategy} to customer {customer.name}"
+                    )
                 for station in self.station_agents.values():
                     station.run_strategy()
-                    logger.debug(f"Running strategy {self.directory_strategy} to station {station.name}")
+                    logger.debug(
+                        f"Running strategy {self.directory_strategy} to station {station.name}"
+                    )
 
             self.simulation_running = True
             self.simulation_init_time = time.time()
-
             for delay in self.delayed_launch_agents:
                 agents = self.delayed_launch_agents[delay]
                 start_time = datetime.fromtimestamp(self.simulation_init_time + delay)
+                logger.debug(
+                    f"Scheduling delayed executions at {start_time} ({delay} seconds)."
+                )
                 self.add_behaviour(DelayedLaunchBehaviour(agents, start_at=start_time))
 
             logger.info("Simulation started.")
@@ -292,7 +378,9 @@ class SimulatorAgent(Agent):
         self.route_agent.stop().result()
         self.directory_agent.stop().result()
 
-        logger.info("Terminating... ({0:.1f} seconds elapsed)".format(self.simulation_time))
+        logger.info(
+            "Terminating... ({0:.1f} seconds elapsed)".format(self.simulation_time)
+        )
 
         self.stop_agents()
 
@@ -305,7 +393,13 @@ class SimulatorAgent(Agent):
         Collects stats from all participant agents and from the simulation and stores it in three dataframes.
         """
 
-        df_avg, self.transport_df, self.customer_df, self.manager_df, self.station_df = self.get_stats_dataframes()
+        (
+            df_avg,
+            self.transport_df,
+            self.customer_df,
+            self.manager_df,
+            self.station_df,
+        ) = self.get_stats_dataframes()
 
         columns = []
         if self.config.simulation_name:
@@ -326,15 +420,38 @@ class SimulatorAgent(Agent):
             self.collect_stats()
 
         print("Simulation Results")
-        print(tabulate(self.df_avg, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print(
+            tabulate(
+                self.df_avg, headers="keys", showindex=False, tablefmt="fancy_grid"
+            )
+        )
         print("FleetManager stats")
-        print(tabulate(self.manager_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print(
+            tabulate(
+                self.manager_df, headers="keys", showindex=False, tablefmt="fancy_grid"
+            )
+        )
         print("Customer stats")
-        print(tabulate(self.customer_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print(
+            tabulate(
+                self.customer_df, headers="keys", showindex=False, tablefmt="fancy_grid"
+            )
+        )
         print("Transport stats")
-        print(tabulate(self.transport_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print(
+            tabulate(
+                self.transport_df,
+                headers="keys",
+                showindex=False,
+                tablefmt="fancy_grid",
+            )
+        )
         print("Station stats")
-        print(tabulate(self.station_df, headers="keys", showindex=False, tablefmt="fancy_grid"))
+        print(
+            tabulate(
+                self.station_df, headers="keys", showindex=False, tablefmt="fancy_grid"
+            )
+        )
 
     def write_file(self, filename, fileformat="json"):
         """
@@ -363,10 +480,10 @@ class SimulatorAgent(Agent):
             "customers": json.loads(self.customer_df.to_json(orient="index")),
             "transports": json.loads(self.transport_df.to_json(orient="index")),
             "managers": json.loads(self.manager_df.to_json(orient="index")),
-            "stations": json.loads(self.station_df.to_json(orient="index"))
+            "stations": json.loads(self.station_df.to_json(orient="index")),
         }
 
-        with open(filename, 'w') as f:
+        with open(filename, "w") as f:
             f.seek(0)
             json.dump(data, f, indent=4)
 
@@ -378,10 +495,10 @@ class SimulatorAgent(Agent):
             filename (str): name of the excel file.
         """
         writer = pd.ExcelWriter(filename)
-        self.df_avg.to_excel(writer, 'Simulation')
-        self.manager_df.to_excel(writer, 'FleetManagers')
-        self.customer_df.to_excel(writer, 'Customers')
-        self.transport_df.to_excel(writer, 'Transports')
+        self.df_avg.to_excel(writer, "Simulation")
+        self.manager_df.to_excel(writer, "FleetManagers")
+        self.customer_df.to_excel(writer, "Customers")
+        self.transport_df.to_excel(writer, "Transports")
         writer.save()
 
     # ////////////////////////////////////////////////////////////
@@ -507,12 +624,19 @@ class SimulatorAgent(Agent):
             dict:  no template is returned since this is an AJAX controller, a dict with the list of transports, the list of customers, the tree view to be showed in the sidebar and the stats of the simulation.
         """
         result = {
-            "transports": [transport.to_json() for transport in self.transport_agents.values() if
-                           transport.is_launched],
-            "customers": [customer.to_json() for customer in self.customer_agents.values() if customer.is_launched],
+            "transports": [
+                transport.to_json()
+                for transport in self.transport_agents.values()
+                if transport.is_launched
+            ],
+            "customers": [
+                customer.to_json()
+                for customer in self.customer_agents.values()
+                if customer.is_launched
+            ],
             "tree": self.generate_tree(),
             "stats": self.get_stats(),
-            "stations": [station.to_json() for station in self.station_agents.values()]
+            "stations": [station.to_json() for station in self.station_agents.values()],
         }
         return result
 
@@ -524,7 +648,7 @@ class SimulatorAgent(Agent):
             dict: a dict with all the agents in the simulator, with their name, status and icon.
         """
         tree = {
-            "name": 'Agents',
+            "name": "Agents",
             "children": [
                 {
                     "name": "Transports",
@@ -533,9 +657,10 @@ class SimulatorAgent(Agent):
                         {
                             "name": " {}".format(i.name.split("@")[0]),
                             "status": i.status,
-                            "icon": "fa-taxi"
-                        } for i in self.transport_agents.values()
-                    ]
+                            "icon": "fa-taxi",
+                        }
+                        for i in self.transport_agents.values()
+                    ],
                 },
                 {
                     "name": "Customers",
@@ -544,12 +669,12 @@ class SimulatorAgent(Agent):
                         {
                             "name": " {}".format(i.name.split("@")[0]),
                             "status": i.status,
-                            "icon": "fa-user"
-                        } for i in self.customer_agents.values()
-                    ]
+                            "icon": "fa-user",
+                        }
+                        for i in self.customer_agents.values()
+                    ],
                 },
-
-            ]
+            ],
         }
         return tree
 
@@ -571,9 +696,19 @@ class SimulatorAgent(Agent):
 
         """
         if len(self.customer_agents) > 0:
-            waiting = avg([customer.get_waiting_time() for customer in self.customer_agents.values()])
+            waiting = avg(
+                [
+                    customer.get_waiting_time()
+                    for customer in self.customer_agents.values()
+                ]
+            )
             total = avg(
-                [customer.total_time() for customer in self.customer_agents.values() if customer.total_time()])
+                [
+                    customer.total_time()
+                    for customer in self.customer_agents.values()
+                    if customer.total_time()
+                ]
+            )
         else:
             waiting, total = 0, 0
 
@@ -594,7 +729,12 @@ class SimulatorAgent(Agent):
             bool: whether the simulation has finished or not.
         """
         if len(self.customer_agents) > 0:
-            return all([customer.is_in_destination() for customer in self.customer_agents.values()])
+            return all(
+                [
+                    customer.is_in_destination()
+                    for customer in self.customer_agents.values()
+                ]
+            )
         else:
             return False
 
@@ -639,29 +779,30 @@ class SimulatorAgent(Agent):
         Returns:
             Response: a Response of type "attachment" with the file content.
         """
-        headers = {
-            "Content-Disposition": "Attachment; filename=simulation.xlsx"
-        }
+        headers = {"Content-Disposition": "Attachment; filename=simulation.xlsx"}
 
         output = io.BytesIO()
 
         # Use a temp filename to keep pandas happy.
-        writer = pd.ExcelWriter(output, engine='xlsxwriter')
+        writer = pd.ExcelWriter(output, engine="xlsxwriter")
 
         # Write the data frame to the StringIO object.
-        df_avg, transport_df, customer_df, manager_df, stations_df = self.get_stats_dataframes()
-        df_avg.to_excel(writer, sheet_name='Simulation')
-        customer_df.to_excel(writer, sheet_name='Customers')
-        transport_df.to_excel(writer, sheet_name='Transports')
-        manager_df.to_excel(writer, sheet_name='FleetManagers')
-        stations_df.to_excel(writer, sheet_name='Stations')
+        (
+            df_avg,
+            transport_df,
+            customer_df,
+            manager_df,
+            stations_df,
+        ) = self.get_stats_dataframes()
+        df_avg.to_excel(writer, sheet_name="Simulation")
+        customer_df.to_excel(writer, sheet_name="Customers")
+        transport_df.to_excel(writer, sheet_name="Transports")
+        manager_df.to_excel(writer, sheet_name="FleetManagers")
+        stations_df.to_excel(writer, sheet_name="Stations")
         writer.save()
         xlsx_data = output.getvalue()
 
-        return aioweb.Response(
-            body=xlsx_data,
-            headers=headers
-        )
+        return aioweb.Response(body=xlsx_data, headers=headers)
 
     async def download_stats_json_controller(self, request):
         """
@@ -670,29 +811,30 @@ class SimulatorAgent(Agent):
         Returns:
             Response: a Response of type "attachment" with the file content.
         """
-        headers = {
-            "Content-Disposition": "Attachment; filename=simulation.json"
-        }
+        headers = {"Content-Disposition": "Attachment; filename=simulation.json"}
 
         output = io.StringIO()
 
         # Write the data frame to the StringIO object.
-        df_avg, transport_df, customer_df, manager_df, stations_df = self.get_stats_dataframes()
+        (
+            df_avg,
+            transport_df,
+            customer_df,
+            manager_df,
+            stations_df,
+        ) = self.get_stats_dataframes()
 
         data = {
             "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
             "customers": json.loads(customer_df.to_json(orient="index")),
             "transports": json.loads(transport_df.to_json(orient="index")),
             "fleetmanagers": json.loads(manager_df.to_json(orient="index")),
-            "stations": json.loads(stations_df.to_json(orient="index"))
+            "stations": json.loads(stations_df.to_json(orient="index")),
         }
 
         json.dump(data, output, indent=4)
 
-        return aioweb.Response(
-            body=output.getvalue(),
-            headers=headers
-        )
+        return aioweb.Response(body=output.getvalue(), headers=headers)
 
     def clear_agents(self):
         """
@@ -710,13 +852,25 @@ class SimulatorAgent(Agent):
         Removes from the transport and customer sets every agent that is stopped.
         """
         agents = self.get("manager_agents")
-        self.set("manager_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
+        self.set(
+            "manager_agents",
+            {jid: agent for jid, agent in agents.items() if not agent.stopped},
+        )
         agents = self.get("transport_agents")
-        self.set("transport_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
+        self.set(
+            "transport_agents",
+            {jid: agent for jid, agent in agents.items() if not agent.stopped},
+        )
         agents = self.get("customer_agents")
-        self.set("customer_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
+        self.set(
+            "customer_agents",
+            {jid: agent for jid, agent in agents.items() if not agent.stopped},
+        )
         agents = self.get("station_agents")
-        self.set("station_agents", {jid: agent for jid, agent in agents.items() if not agent.stopped})
+        self.set(
+            "station_agents",
+            {jid: agent for jid, agent in agents.items() if not agent.stopped},
+        )
         self.simulation_time = None
         self.simulation_init_time = None
 
@@ -728,7 +882,11 @@ class SimulatorAgent(Agent):
         self.simulation_running = False
         results = []
         if not self.simulation_time:
-            self.simulation_time = time.time() - self.simulation_init_time if self.simulation_init_time else 0
+            self.simulation_time = (
+                time.time() - self.simulation_init_time
+                if self.simulation_init_time
+                else 0
+            )
         with self.lock:
             for name, agent in self.manager_agents.items():
                 logger.debug("Stopping manager {}".format(name))
@@ -760,14 +918,18 @@ class SimulatorAgent(Agent):
             ``pandas.DataFrame``: the dataframe with the customers stats.
         """
         try:
-            names, quantities, types = zip(*[(manager.name,
-                                              manager.transports_in_fleet, manager.fleet_type)
-                                             for manager in self.manager_agents.values()])
+            names, quantities, types = zip(
+                *[
+                    (manager.name, manager.transports_in_fleet, manager.fleet_type)
+                    for manager in self.manager_agents.values()
+                ]
+            )
         except ValueError:
             names, quantities, types = [], [], []
 
         df = pd.DataFrame.from_dict(
-            {"fleet_name": names, "transports_in_fleet": quantities, "type": types})
+            {"fleet_name": names, "transports_in_fleet": quantities, "type": types}
+        )
         return df
 
     def get_customer_stats(self):
@@ -779,13 +941,28 @@ class SimulatorAgent(Agent):
             ``pandas.DataFrame``: the dataframe with the customers stats.
         """
         try:
-            names, waitings, totals, statuses = zip(*[(p.name, p.get_waiting_time(),
-                                                       p.total_time(), status_to_str(p.status))
-                                                      for p in self.customer_agents.values()])
+            names, waitings, totals, statuses = zip(
+                *[
+                    (
+                        p.name,
+                        p.get_waiting_time(),
+                        p.total_time(),
+                        status_to_str(p.status),
+                    )
+                    for p in self.customer_agents.values()
+                ]
+            )
         except ValueError:
             names, waitings, totals, statuses = [], [], [], []
 
-        df = pd.DataFrame.from_dict({"name": names, "waiting_time": waitings, "total_time": totals, "status": statuses})
+        df = pd.DataFrame.from_dict(
+            {
+                "name": names,
+                "waiting_time": waitings,
+                "total_time": totals,
+                "status": statuses,
+            }
+        )
         return df
 
     def get_transport_stats(self):
@@ -797,16 +974,27 @@ class SimulatorAgent(Agent):
             ``pandas.DataFrame``: the dataframe with the transports stats.
         """
         try:
-            names, assignments, distances, statuses = zip(*[(t.name, t.num_assignments,
-                                                             "{0:.2f}".format(sum(t.distances)),
-                                                             status_to_str(t.status))
-                                                            for t in self.transport_agents.values()])
+            names, assignments, distances, statuses = zip(
+                *[
+                    (
+                        t.name,
+                        t.num_assignments,
+                        "{0:.2f}".format(sum(t.distances)),
+                        status_to_str(t.status),
+                    )
+                    for t in self.transport_agents.values()
+                ]
+            )
         except ValueError:
             names, assignments, distances, statuses = [], [], [], []
-        df = pd.DataFrame.from_dict({"name": names,
-                                     "assignments": assignments,
-                                     "distance": distances,
-                                     "status": statuses})
+        df = pd.DataFrame.from_dict(
+            {
+                "name": names,
+                "assignments": assignments,
+                "distance": distances,
+                "status": statuses,
+            }
+        )
         return df
 
     def get_station_stats(self):
@@ -818,13 +1006,23 @@ class SimulatorAgent(Agent):
             ``pandas.DataFrame``: the dataframe with the customers stats.
         """
         try:
-            names, status, places, power = zip(*[(p.name, p.status,
-                                                  p.available_places, p.power)
-                                                 for p in self.station_agents.values()])
+            names, status, places, power = zip(
+                *[
+                    (p.name, p.status, p.available_places, p.power)
+                    for p in self.station_agents.values()
+                ]
+            )
         except ValueError:
             names, status, places, power = [], [], [], []
 
-        df = pd.DataFrame.from_dict({"name": names, "status": status, "available_places": places, "power": power})
+        df = pd.DataFrame.from_dict(
+            {
+                "name": names,
+                "status": status,
+                "available_places": places,
+                "power": power,
+            }
+        )
         return df
 
     def get_stats_dataframes(self):
@@ -844,12 +1042,20 @@ class SimulatorAgent(Agent):
         station_df = self.get_station_stats()
         station_df = station_df[["name", "status", "available_places", "power"]]
         stats = self.get_stats()
-        df_avg = pd.DataFrame.from_dict({"Avg Waiting Time": [stats["waiting"]],
-                                         "Avg Total Time": [stats["totaltime"]],
-                                         "Simulation Finished": [stats["finished"]],
-                                         "Simulation Time": [self.get_simulation_time()]
-                                         })
-        columns = ["Avg Waiting Time", "Avg Total Time", "Simulation Time", "Simulation Finished"]
+        df_avg = pd.DataFrame.from_dict(
+            {
+                "Avg Waiting Time": [stats["waiting"]],
+                "Avg Total Time": [stats["totaltime"]],
+                "Simulation Finished": [stats["finished"]],
+                "Simulation Time": [self.get_simulation_time()],
+            }
+        )
+        columns = [
+            "Avg Waiting Time",
+            "Avg Total Time",
+            "Simulation Time",
+            "Simulation Finished",
+        ]
         df_avg = df_avg[columns]
 
         return df_avg, transport_df, customer_df, manager_df, station_df
@@ -870,7 +1076,9 @@ class SimulatorAgent(Agent):
 
         agent.start().result()
 
-    def create_fleetmanager_agent(self, name, password, fleet_type, strategy=None, icon=None):
+    def create_fleetmanager_agent(
+        self, name, password, fleet_type, strategy=None, icon=None
+    ):
         jid = f"{name}@{self.jid.domain}"
         agent = FleetManagerAgent(jid, password)
         logger.debug("Creating FleetManager {}".format(jid))
@@ -893,8 +1101,19 @@ class SimulatorAgent(Agent):
 
         return agent
 
-    def create_transport_agent(self, name, password, fleet_type, fleetmanager, position, strategy=None, speed=None,
-                               autonomy=None, current_autonomy=None, delayed=False):
+    def create_transport_agent(
+        self,
+        name,
+        password,
+        fleet_type,
+        fleetmanager,
+        position,
+        strategy=None,
+        speed=None,
+        autonomy=None,
+        current_autonomy=None,
+        delayed=False,
+    ):
         jid = f"{name}@{self.jid.domain}"
         agent = TransportAgent(jid, password)
         logger.debug("Creating Transport {}".format(jid))
@@ -929,7 +1148,16 @@ class SimulatorAgent(Agent):
 
         return agent
 
-    def create_customer_agent(self, name, password, fleet_type, position, strategy=None, target=None, delayed=False):
+    def create_customer_agent(
+        self,
+        name,
+        password,
+        fleet_type,
+        position,
+        strategy=None,
+        target=None,
+        delayed=False,
+    ):
         """
         Create a customer agent.
 
@@ -972,7 +1200,9 @@ class SimulatorAgent(Agent):
 
         return agent
 
-    def create_station_agent(self, name, password, position, power, places, strategy=None):
+    def create_station_agent(
+        self, name, password, position, power, places, strategy=None
+    ):
         """
         Create a customer agent.
 
@@ -1051,8 +1281,14 @@ class SimulatorAgent(Agent):
         with self.simulation_mutex:
             self.get("station_agents")[agent.name] = agent
 
-    def set_default_strategies(self, fleetmanager_strategy, transport_strategy, customer_strategy, directory_strategy,
-                               station_strategy):
+    def set_default_strategies(
+        self,
+        fleetmanager_strategy,
+        transport_strategy,
+        customer_strategy,
+        directory_strategy,
+        station_strategy,
+    ):
         """
         Gets the strategy strings and loads their classes. This strategies are prepared to be injected into any
         new transport or customer agent.
@@ -1069,11 +1305,15 @@ class SimulatorAgent(Agent):
         self.customer_strategy = load_class(customer_strategy)
         self.directory_strategy = load_class(directory_strategy)
         self.station_strategy = load_class(station_strategy)
-        logger.debug("Loaded default strategy classes: {}, {}, {}, {} and {}".format(self.fleetmanager_strategy,
-                                                                                     self.transport_strategy,
-                                                                                     self.customer_strategy,
-                                                                                     self.directory_strategy,
-                                                                                     self.station_strategy))
+        logger.debug(
+            "Loaded default strategy classes: {}, {}, {}, {} and {}".format(
+                self.fleetmanager_strategy,
+                self.transport_strategy,
+                self.customer_strategy,
+                self.directory_strategy,
+                self.station_strategy,
+            )
+        )
 
     def get_simulation_time(self):
         """

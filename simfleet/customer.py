@@ -9,10 +9,25 @@ from spade.message import Message
 from spade.template import Template
 
 from .helpers import random_position
-from .protocol import REQUEST_PROTOCOL, TRAVEL_PROTOCOL, REQUEST_PERFORMATIVE, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, \
-    QUERY_PROTOCOL
-from .utils import CUSTOMER_WAITING, CUSTOMER_IN_DEST, TRANSPORT_MOVING_TO_CUSTOMER, CUSTOMER_IN_TRANSPORT, \
-    TRANSPORT_IN_CUSTOMER_PLACE, CUSTOMER_LOCATION, StrategyBehaviour, request_path, status_to_str
+from .protocol import (
+    REQUEST_PROTOCOL,
+    TRAVEL_PROTOCOL,
+    REQUEST_PERFORMATIVE,
+    ACCEPT_PERFORMATIVE,
+    REFUSE_PERFORMATIVE,
+    QUERY_PROTOCOL,
+)
+from .utils import (
+    CUSTOMER_WAITING,
+    CUSTOMER_IN_DEST,
+    TRANSPORT_MOVING_TO_CUSTOMER,
+    CUSTOMER_IN_TRANSPORT,
+    TRANSPORT_IN_CUSTOMER_PLACE,
+    CUSTOMER_LOCATION,
+    StrategyBehaviour,
+    request_path,
+    status_to_str,
+)
 
 
 class CustomerAgent(Agent):
@@ -48,11 +63,22 @@ class CustomerAgent(Agent):
             travel_behaviour = TravelBehaviour()
             self.add_behaviour(travel_behaviour, template)
             while not self.has_behaviour(travel_behaviour):
-                logger.warning("Customer {} could not create TravelBehaviour. Retrying...".format(self.agent_id))
+                logger.warning(
+                    "Customer {} could not create TravelBehaviour. Retrying...".format(
+                        self.agent_id
+                    )
+                )
                 self.add_behaviour(travel_behaviour, template)
             self.ready = True
         except Exception as e:
-            logger.error("EXCEPTION creating TravelBehaviour in Customer {}: {}".format(self.agent_id, e))
+            logger.error(
+                "EXCEPTION creating TravelBehaviour in Customer {}: {}".format(
+                    self.agent_id, e
+                )
+            )
+
+    def is_ready(self):
+        return not self.is_launched or (self.is_launched and self.ready)
 
     def run_strategy(self):
         """import json
@@ -124,7 +150,9 @@ class CustomerAgent(Agent):
             self.current_pos = coords
         else:
             self.current_pos = random_position()
-        logger.debug("Customer {} position is {}".format(self.agent_id, self.current_pos))
+        logger.debug(
+            "Customer {} position is {}".format(self.agent_id, self.current_pos)
+        )
 
     def get_position(self):
         """
@@ -147,7 +175,9 @@ class CustomerAgent(Agent):
             self.dest = coords
         else:
             self.dest = random_position()
-        logger.debug("Customer {} target position is {}".format(self.agent_id, self.dest))
+        logger.debug(
+            "Customer {} target position is {}".format(self.agent_id, self.dest)
+        )
 
     def is_in_destination(self):
         """
@@ -238,9 +268,11 @@ class CustomerAgent(Agent):
             "position": [float("{0:.6f}".format(coord)) for coord in self.current_pos],
             "dest": [float("{0:.6f}".format(coord)) for coord in self.dest],
             "status": self.status,
-            "transport": self.transport_assigned.split("@")[0] if self.transport_assigned else None,
+            "transport": self.transport_assigned.split("@")[0]
+            if self.transport_assigned
+            else None,
             "waiting": float("{0:.2f}".format(t)) if t else None,
-            "icon": self.icon
+            "icon": self.icon,
         }
 
 
@@ -264,10 +296,15 @@ class TravelBehaviour(CyclicBehaviour):
             if "status" in content:
                 status = content["status"]
                 if status != CUSTOMER_LOCATION:
-                    logger.debug("Customer {} informed of status: {}".format(self.agent.name,
-                                                                             status_to_str(status)))
+                    logger.debug(
+                        "Customer {} informed of status: {}".format(
+                            self.agent.name, status_to_str(status)
+                        )
+                    )
                 if status == TRANSPORT_MOVING_TO_CUSTOMER:
-                    logger.info("Customer {} waiting for transport.".format(self.agent.name))
+                    logger.info(
+                        "Customer {} waiting for transport.".format(self.agent.name)
+                    )
                     self.agent.waiting_for_pickup_time = time.time()
                 elif status == TRANSPORT_IN_CUSTOMER_PLACE:
                     self.agent.status = CUSTOMER_IN_TRANSPORT
@@ -276,15 +313,22 @@ class TravelBehaviour(CyclicBehaviour):
                 elif status == CUSTOMER_IN_DEST:
                     self.agent.status = CUSTOMER_IN_DEST
                     self.agent.end_time = time.time()
-                    logger.info("Customer {} arrived to destination after {} seconds."
-                                .format(self.agent.name, self.agent.total_time()))
+                    logger.info(
+                        "Customer {} arrived to destination after {} seconds.".format(
+                            self.agent.name, self.agent.total_time()
+                        )
+                    )
                 elif status == CUSTOMER_LOCATION:
                     coords = content["location"]
                     self.agent.set_position(coords)
         except CancelledError:
             logger.debug("Cancelling async tasks...")
         except Exception as e:
-            logger.error("EXCEPTION in Travel Behaviour of Customer {}: {}".format(self.agent.name, e))
+            logger.error(
+                "EXCEPTION in Travel Behaviour of Customer {}: {}".format(
+                    self.agent.name, e
+                )
+            )
 
 
 class CustomerStrategyBehaviour(StrategyBehaviour):
@@ -302,7 +346,11 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         """
         Initializes the logger and timers. Call to parent method if overloaded.
         """
-        logger.debug("Strategy {} started in customer {}".format(type(self).__name__, self.agent.name))
+        logger.debug(
+            "Strategy {} started in customer {}".format(
+                type(self).__name__, self.agent.name
+            )
+        )
         self.agent.init_time = time.time()
 
     async def send_get_managers(self, content=None):
@@ -321,9 +369,11 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
         await self.send(msg)
-        logger.info("Customer {} asked for managers to directory {} for type {}.".format(self.agent.name,
-                                                                                         self.agent.directory_id,
-                                                                                         self.agent.type_service))
+        logger.info(
+            "Customer {} asked for managers to directory {} for type {}.".format(
+                self.agent.name, self.agent.directory_id, self.agent.type_service
+            )
+        )
 
     async def send_request(self, content=None):
         """
@@ -341,16 +391,22 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
             content = {
                 "customer_id": str(self.agent.jid),
                 "origin": self.agent.current_pos,
-                "dest": self.agent.dest
+                "dest": self.agent.dest,
             }
-        for fleetmanager in self.agent.fleetmanagers.keys():  # Send a message to all FleetManagers
+        for (
+            fleetmanager
+        ) in self.agent.fleetmanagers.keys():  # Send a message to all FleetManagers
             msg = Message()
             msg.to = str(fleetmanager)
             msg.set_metadata("protocol", REQUEST_PROTOCOL)
             msg.set_metadata("performative", REQUEST_PERFORMATIVE)
             msg.body = json.dumps(content)
             await self.send(msg)
-        logger.info("Customer {} asked for a transport to {}.".format(self.agent.name, self.agent.dest))
+        logger.info(
+            "Customer {} asked for a transport to {}.".format(
+                self.agent.name, self.agent.dest
+            )
+        )
 
     async def accept_transport(self, transport_id):
         """
@@ -367,12 +423,16 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         content = {
             "customer_id": str(self.agent.jid),
             "origin": self.agent.current_pos,
-            "dest": self.agent.dest
+            "dest": self.agent.dest,
         }
         reply.body = json.dumps(content)
         await self.send(reply)
         self.agent.transport_assigned = str(transport_id)
-        logger.info("Customer {} accepted proposal from transport {}".format(self.agent.name, transport_id))
+        logger.info(
+            "Customer {} accepted proposal from transport {}".format(
+                self.agent.name, transport_id
+            )
+        )
 
     async def refuse_transport(self, transport_id):
         """
@@ -389,13 +449,16 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         content = {
             "customer_id": str(self.agent.jid),
             "origin": self.agent.current_pos,
-            "dest": self.agent.dest
+            "dest": self.agent.dest,
         }
         reply.body = json.dumps(content)
 
         await self.send(reply)
-        logger.info("Customer {} refused proposal from transport {}".format(self.agent.name,
-                                                                            transport_id))
+        logger.info(
+            "Customer {} refused proposal from transport {}".format(
+                self.agent.name, transport_id
+            )
+        )
 
     async def run(self):
         raise NotImplementedError

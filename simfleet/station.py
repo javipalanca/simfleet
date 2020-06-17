@@ -9,10 +9,26 @@ from spade.message import Message
 from spade.template import Template
 
 from .helpers import random_position
-from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REFUSE_PERFORMATIVE, \
-    REQUEST_PERFORMATIVE, TRAVEL_PROTOCOL, PROPOSE_PERFORMATIVE, CANCEL_PERFORMATIVE, INFORM_PERFORMATIVE
-from .utils import StrategyBehaviour, CyclicBehaviour, FREE_STATION, BUSY_STATION, TRANSPORT_MOVING_TO_STATION, \
-    TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGED
+from .protocol import (
+    REQUEST_PROTOCOL,
+    REGISTER_PROTOCOL,
+    ACCEPT_PERFORMATIVE,
+    REFUSE_PERFORMATIVE,
+    REQUEST_PERFORMATIVE,
+    TRAVEL_PROTOCOL,
+    PROPOSE_PERFORMATIVE,
+    CANCEL_PERFORMATIVE,
+    INFORM_PERFORMATIVE,
+)
+from .utils import (
+    StrategyBehaviour,
+    CyclicBehaviour,
+    FREE_STATION,
+    BUSY_STATION,
+    TRANSPORT_MOVING_TO_STATION,
+    TRANSPORT_IN_STATION_PLACE,
+    TRANSPORT_CHARGED,
+)
 
 
 class StationAgent(Agent):
@@ -33,6 +49,9 @@ class StationAgent(Agent):
         self.stopped = False
         self.ready = False
 
+    def is_ready(self):
+        return self.ready
+
     async def setup(self):
         logger.info("Station agent running")
         self.set_type("station")
@@ -43,20 +62,36 @@ class StationAgent(Agent):
             register_behaviour = RegistrationBehaviour()
             self.add_behaviour(register_behaviour, template)
             while not self.has_behaviour(register_behaviour):
-                logger.warning("Station {} could not create RegisterBehaviour. Retrying...".format(self.agent_id))
+                logger.warning(
+                    "Station {} could not create RegisterBehaviour. Retrying...".format(
+                        self.agent_id
+                    )
+                )
                 self.add_behaviour(register_behaviour, template)
         except Exception as e:
-            logger.error("EXCEPTION creating RegisterBehaviour in Station {}: {}".format(self.agent_id, e))
+            logger.error(
+                "EXCEPTION creating RegisterBehaviour in Station {}: {}".format(
+                    self.agent_id, e
+                )
+            )
         try:
             template = Template()
             template.set_metadata("protocol", TRAVEL_PROTOCOL)
             travel_behaviour = TravelBehaviour()
             self.add_behaviour(travel_behaviour, template)
             while not self.has_behaviour(travel_behaviour):
-                logger.warning("Customer {} could not create TravelBehaviour. Retrying...".format(self.agent_id))
+                logger.warning(
+                    "Customer {} could not create TravelBehaviour. Retrying...".format(
+                        self.agent_id
+                    )
+                )
                 self.add_behaviour(travel_behaviour, template)
         except Exception as e:
-            logger.error("EXCEPTION creating TravelBehaviour in Station {}: {}".format(self.agent_id, e))
+            logger.error(
+                "EXCEPTION creating TravelBehaviour in Station {}: {}".format(
+                    self.agent_id, e
+                )
+            )
         self.ready = True
 
     def set_id(self, agent_id):
@@ -111,7 +146,9 @@ class StationAgent(Agent):
             self.current_pos = coords
         else:
             self.current_pos = random_position()
-        logger.debug("Customer {} position is {}".format(self.agent_id, self.current_pos))
+        logger.debug(
+            "Customer {} position is {}".format(self.agent_id, self.current_pos)
+        )
 
     def get_position(self):
         """
@@ -165,7 +202,7 @@ class StationAgent(Agent):
             "status": self.status,
             "places": self.available_places,
             "power": self.power,
-            "icon": self.icon
+            "icon": self.icon,
         }
 
     def assigning_place(self):
@@ -177,8 +214,11 @@ class StationAgent(Agent):
         if not p - 1:
             self.set_status(BUSY_STATION)
         self.set_available_places(p - 1)
-        logger.info("Station {} assigned place. Available places are now {}.".format(self.name,
-                                                                                     self.get_available_places()))
+        logger.info(
+            "Station {} assigned place. Available places are now {}.".format(
+                self.name, self.get_available_places()
+            )
+        )
 
     def deassigning_place(self):
         """
@@ -194,7 +234,10 @@ class StationAgent(Agent):
         now = datetime.datetime.now()
         start_at = now + datetime.timedelta(seconds=total_time)
         logger.info(
-            "Station {} started charging at {} for {} seconds, at {}".format(self.name, now, total_time, start_at))
+            "Station {} started charging at {} for {} seconds, at {}".format(
+                self.name, now, total_time, start_at
+            )
+        )
         charge_behaviour = ChargeBehaviour(start_at=start_at, transport_id=transport_id)
         self.add_behaviour(charge_behaviour)
 
@@ -235,13 +278,16 @@ class RegistrationBehaviour(CyclicBehaviour):
         Send a ``spade.message.Message`` with a proposal to directory to register.
         """
         logger.info(
-            "Station {} sent proposal to register to directory {}".format(self.agent.name, self.agent.directory_id))
+            "Station {} sent proposal to register to directory {}".format(
+                self.agent.name, self.agent.directory_id
+            )
+        )
         content = {
             "jid": str(self.agent.jid),
             "type": self.agent.station_type,
             "status": self.agent.status,
             "position": self.agent.get_position(),
-            "charge": self.agent.power
+            "charge": self.agent.power,
         }
         msg = Message()
         msg.to = str(self.agent.directory_id)
@@ -263,7 +309,11 @@ class RegistrationBehaviour(CyclicBehaviour):
         except CancelledError:
             logger.debug("Cancelling async tasks...")
         except Exception as e:
-            logger.error("EXCEPTION in RegisterBehaviour of Station {}: {}".format(self.agent.name, e))
+            logger.error(
+                "EXCEPTION in RegisterBehaviour of Station {}: {}".format(
+                    self.agent.name, e
+                )
+            )
 
 
 class TravelBehaviour(CyclicBehaviour):
@@ -287,14 +337,26 @@ class TravelBehaviour(CyclicBehaviour):
             if "status" in content:
                 status = content["status"]
                 if status == TRANSPORT_MOVING_TO_STATION:
-                    logger.info("Transport {} coming to station {}.".format(transport_id, self.agent.name))
+                    logger.info(
+                        "Transport {} coming to station {}.".format(
+                            transport_id, self.agent.name
+                        )
+                    )
                 elif status == TRANSPORT_IN_STATION_PLACE:
-                    logger.info("Transport {} in station {}.".format(msg.sender.localpart, self.agent.name))
+                    logger.info(
+                        "Transport {} in station {}.".format(
+                            msg.sender.localpart, self.agent.name
+                        )
+                    )
                     await self.agent.charging_transport(content["need"], transport_id)
         except CancelledError:
             logger.debug("Cancelling async tasks...")
         except Exception as e:
-            logger.error("EXCEPTION in Travel Behaviour of Station {}: {}".format(self.agent.name, e))
+            logger.error(
+                "EXCEPTION in Travel Behaviour of Station {}: {}".format(
+                    self.agent.name, e
+                )
+            )
 
 
 class StationStrategyBehaviour(StrategyBehaviour):
@@ -321,13 +383,14 @@ class StationStrategyBehaviour(StrategyBehaviour):
         reply.to = str(transport_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", INFORM_PERFORMATIVE)
-        content = {
-            "station_id": str(self.agent.jid),
-            "dest": self.agent.current_pos
-        }
+        content = {"station_id": str(self.agent.jid), "dest": self.agent.current_pos}
         reply.body = json.dumps(content)
         await self.send(reply)
-        logger.debug("Station {} accepted proposal for charge from transport {}".format(self.agent.name, transport_id))
+        logger.debug(
+            "Station {} accepted proposal for charge from transport {}".format(
+                self.agent.name, transport_id
+            )
+        )
 
     async def refuse_transport(self, transport_id):
         """
@@ -345,7 +408,11 @@ class StationStrategyBehaviour(StrategyBehaviour):
         reply.body = json.dumps(content)
 
         await self.send(reply)
-        logger.debug("Station {} refused proposal for charge from transport {}".format(self.agent.name, transport_id))
+        logger.debug(
+            "Station {} refused proposal for charge from transport {}".format(
+                self.agent.name, transport_id
+            )
+        )
 
     async def run(self):
         msg = await self.receive(timeout=5)
@@ -355,12 +422,20 @@ class StationStrategyBehaviour(StrategyBehaviour):
             transport_id = msg.sender
             if performative == PROPOSE_PERFORMATIVE:
                 if self.agent.get_status() == FREE_STATION:
-                    logger.debug("Station {} received proposal from transport {}".format(self.agent.name, transport_id))
+                    logger.debug(
+                        "Station {} received proposal from transport {}".format(
+                            self.agent.name, transport_id
+                        )
+                    )
                     await self.accept_transport(transport_id)
                 else:  # self.agent.get_status() == BUSY_STATION
                     await self.refuse_transport(transport_id)
             elif performative == CANCEL_PERFORMATIVE:
-                logger.warning("Station {} received a CANCEL from Transport {}.".format(self.agent.name, transport_id))
+                logger.warning(
+                    "Station {} received a CANCEL from Transport {}.".format(
+                        self.agent.name, transport_id
+                    )
+                )
                 self.agent.deassigning_place()
             elif performative == ACCEPT_PERFORMATIVE:
                 self.agent.assigning_place()

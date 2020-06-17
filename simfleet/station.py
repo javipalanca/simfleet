@@ -1,5 +1,6 @@
 import datetime
 import json
+import time
 from asyncio import CancelledError
 
 from loguru import logger
@@ -16,7 +17,6 @@ from .protocol import (
     REFUSE_PERFORMATIVE,
     REQUEST_PERFORMATIVE,
     TRAVEL_PROTOCOL,
-    PROPOSE_PERFORMATIVE,
     CANCEL_PERFORMATIVE,
     INFORM_PERFORMATIVE,
 )
@@ -49,11 +49,24 @@ class StationAgent(Agent):
         self.stopped = False
         self.ready = False
 
+        # waiting waiting_list
+        self.waiting_list = list()
+
+        # statistics
+        self.charged_transports = 0
+        self.queue_length = 0
+        self.max_queue_length = 0
+
+        self.transports_in_queue_time = None
+        self.empty_queue_time = None
+        self.total_busy_time = None  # total time with some transport waiting in queue
+
     def is_ready(self):
         return self.ready
 
     async def setup(self):
-        logger.info("Station agent running")
+        self.total_busy_time = 0.0
+        logger.info("Station agent {} running".format(self.name))
         self.set_type("station")
         self.set_status()
         try:
@@ -93,6 +106,15 @@ class StationAgent(Agent):
                 )
             )
         self.ready = True
+
+    async def send(self, msg):
+        if not msg.sender:
+            msg.sender = str(self.jid)
+            logger.debug(f"Adding agent's jid as sender to message: {msg}")
+        aioxmpp_msg = msg.prepare()
+        await self.client.send(aioxmpp_msg)
+        msg.sent = True
+        self.traces.append(msg, category=str(self))
 
     def set_id(self, agent_id):
         """
@@ -146,8 +168,9 @@ class StationAgent(Agent):
             self.current_pos = coords
         else:
             self.current_pos = random_position()
+
         logger.debug(
-            "Customer {} position is {}".format(self.agent_id, self.current_pos)
+            "Station {} position is {}".format(self.agent_id, self.current_pos)
         )
 
     def get_position(self):
@@ -205,13 +228,13 @@ class StationAgent(Agent):
             "icon": self.icon,
         }
 
-    def assigning_place(self):
+    async def assigning_place(self):
         """
         Set a space in the charging station for the transport that has been accepted, when the available spaces are zero,
         the status will change to BUSY_STATION
         """
         p = self.get_available_places()
-        if not p - 1:
+        if p - 1 <= 0:
             self.set_status(BUSY_STATION)
         self.set_available_places(p - 1)
         logger.info(
@@ -220,24 +243,52 @@ class StationAgent(Agent):
             )
         )
 
-    def deassigning_place(self):
+    async def deassigning_place(self):
         """
         Leave a space of the charging station, when the station has free spaces, the status will change to FREE_STATION
         """
-        p = self.get_available_places()
-        if p + 1:
-            self.set_status(FREE_STATION)
-        self.set_available_places(p + 1)
+        if self.waiting_list:
+            transport_id = self.waiting_list.pop(0)
+            # time statistics update
+            if len(self.waiting_list) == 0:
+                self.empty_queue_time = time.time()
+                self.total_busy_time += (
+                    self.empty_queue_time - self.transports_in_queue_time
+                )
+
+            logger.debug(
+                "Station {} has a place to charge transport {}".format(
+                    self.agent_id, transport_id
+                )
+            )
+            # confirm EXPLICITLY to transport it can start charging
+            reply = Message()
+            reply.to = str(transport_id)
+            reply.set_metadata("protocol", REQUEST_PROTOCOL)
+            reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+            content = {"station_id": self.agent_id}
+            reply.body = json.dumps(content)
+            await self.send(reply)
+            # await send_confirmation_to_transport(transport_id)
+
+        else:
+            p = self.get_available_places()
+            if p + 1:
+                self.set_status(FREE_STATION)
+            self.set_available_places(p + 1)
 
     async def charging_transport(self, need, transport_id):
         total_time = need / self.get_power()
         now = datetime.datetime.now()
         start_at = now + datetime.timedelta(seconds=total_time)
         logger.info(
-            "Station {} started charging at {} for {} seconds, at {}".format(
-                self.name, now, total_time, start_at
+            "Station {} started charging transport {} for {} seconds. From {} to {}.".format(
+                self.name, transport_id, total_time, now, start_at
             )
         )
+        # charged transports update
+        self.charged_transports += 1
+
         charge_behaviour = ChargeBehaviour(start_at=start_at, transport_id=transport_id)
         self.add_behaviour(charge_behaviour)
 
@@ -260,9 +311,9 @@ class ChargeBehaviour(TimeoutBehaviour):
         await self.send(reply)
 
     async def run(self):
-        logger.info("Station {} finished charging.".format(self.agent.name))
+        logger.debug("Station {} finished charging.".format(self.agent.name))
         self.set("current_station", None)
-        self.agent.deassigning_place()
+        await self.agent.deassigning_place()
         await self.charging_complete()
 
 
@@ -282,6 +333,7 @@ class RegistrationBehaviour(CyclicBehaviour):
                 self.agent.name, self.agent.directory_id
             )
         )
+
         content = {
             "jid": str(self.agent.jid),
             "type": self.agent.station_type,
@@ -305,7 +357,7 @@ class RegistrationBehaviour(CyclicBehaviour):
                 performative = msg.get_metadata("performative")
                 if performative == ACCEPT_PERFORMATIVE:
                     self.set_registration(True)
-                    logger.info("Registration in the directory")
+                    logger.debug("Registration in the directory")
         except CancelledError:
             logger.debug("Cancelling async tasks...")
         except Exception as e:
@@ -344,10 +396,11 @@ class TravelBehaviour(CyclicBehaviour):
                     )
                 elif status == TRANSPORT_IN_STATION_PLACE:
                     logger.info(
-                        "Transport {} in station {}.".format(
-                            msg.sender.localpart, self.agent.name
+                        "Station {} is going to start charging transport {}".format(
+                            self.agent.name, transport_id
                         )
                     )
+
                     await self.agent.charging_transport(content["need"], transport_id)
         except CancelledError:
             logger.debug("Cancelling async tasks...")
@@ -420,22 +473,45 @@ class StationStrategyBehaviour(StrategyBehaviour):
         if msg:
             performative = msg.get_metadata("performative")
             transport_id = msg.sender
-            if performative == PROPOSE_PERFORMATIVE:
-                if self.agent.get_status() == FREE_STATION:
-                    logger.debug(
-                        "Station {} received proposal from transport {}".format(
-                            self.agent.name, transport_id
-                        )
-                    )
-                    await self.accept_transport(transport_id)
-                else:  # self.agent.get_status() == BUSY_STATION
-                    await self.refuse_transport(transport_id)
-            elif performative == CANCEL_PERFORMATIVE:
+            if performative == CANCEL_PERFORMATIVE:
                 logger.warning(
                     "Station {} received a CANCEL from Transport {}.".format(
                         self.agent.name, transport_id
                     )
                 )
-                self.agent.deassigning_place()
-            elif performative == ACCEPT_PERFORMATIVE:
-                self.agent.assigning_place()
+                await self.agent.deassigning_place()
+            elif (
+                performative == ACCEPT_PERFORMATIVE
+            ):  # comes from send_confirmation_travel
+                if self.agent.get_status() == FREE_STATION:
+                    logger.info(
+                        "Station {} has a place to charge transport {}".format(
+                            self.agent.name, transport_id
+                        )
+                    )
+                    # confirm EXPLICITLY to transport it can start charging
+                    reply = Message()
+                    reply.to = str(transport_id)
+                    reply.set_metadata("protocol", REQUEST_PROTOCOL)
+                    reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+                    content = {"station_id": self.agent.name}
+                    reply.body = json.dumps(content)
+                    await self.send(reply)
+                    await self.agent.assigning_place()
+                    # self.agent.assigning_place()
+
+                else:  # self.agent.get_status() == BUSY_STATION
+                    # time statistics update
+                    if len(self.agent.waiting_list) == 0:
+                        self.agent.transports_in_queue_time = time.time()
+                    # transport waits in a waiting_list until it is available to charge
+                    self.agent.waiting_list.append(str(transport_id))
+                    # list length statistics update
+                    self.agent.queue_length = len(self.agent.waiting_list)
+                    if self.agent.queue_length > self.agent.max_queue_length:
+                        self.agent.max_queue_length = self.agent.queue_length
+                    logger.info(
+                        "{} is waiting at {}, whose waiting list is {}".format(
+                            transport_id, self.agent.name, self.agent.waiting_list
+                        )
+                    )

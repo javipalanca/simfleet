@@ -7,7 +7,7 @@ include README.rst
 include requirements.txt
 include requirements_dev.txt
 
-recursive-include simfleet/templates/ *.html
+recursive-include simfleet/templates *.html
 recursive-include simfleet/templates/data *
 recursive-include simfleet/templates/assets/js *
 recursive-include simfleet/templates/assets/css *

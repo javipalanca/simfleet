@@ -1,5 +1,5 @@
 Click>=6.0
-Jinja2==2.10.1
+Jinja2==2.11.3
 spade>=3.1.4
 pandas>=0.25.3
 tabulate==0.8.2

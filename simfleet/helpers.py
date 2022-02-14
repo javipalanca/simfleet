@@ -18,7 +18,15 @@ def random_position():
     Returns:
         list: a point (longitude and latitude)
     """
-    path = os.path.dirname(__file__) + os.sep + "templates" + os.sep + "data" + os.sep + "taxi_stations.json"
+    path = (
+        os.path.dirname(__file__)
+        + os.sep
+        + "templates"
+        + os.sep
+        + "data"
+        + os.sep
+        + "taxi_stations.json"
+    )
     with open(path) as f:
         stations = json.load(f)["features"]
         pos = random.choice(stations)
@@ -75,6 +83,7 @@ class PathRequestException(Exception):
     """
     This exception is raised when a path could not be computed.
     """
+
     pass
 
 
@@ -82,4 +91,5 @@ class AlreadyInDestination(Exception):
     """
     This exception is raised when an agent wants to move to a destination where it is already there.
     """
+
     pass

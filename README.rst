@@ -13,10 +13,6 @@ SimFleet
         :target: https://simfleet.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-.. image:: https://pyup.io/repos/github/javipalanca/simfleet/shield.svg
-     :target: https://pyup.io/repos/github/javipalanca/simfleet/
-     :alt: Updates
-
 
 Agent-based fleet simulator to test strategies
 

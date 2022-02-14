@@ -6,8 +6,9 @@ Development Lead
 ----------------
 
 * Javi Palanca <jpalanca@gmail.com>
+* Jaume Jordan
 
 Contributors
 ------------
 
-* Jaume Jordan
+* Pasqual Marti

@@ -10,8 +10,13 @@ from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 from spade.template import Template
 
-from .protocol import REQUEST_PROTOCOL, REGISTER_PROTOCOL, ACCEPT_PERFORMATIVE, REQUEST_PERFORMATIVE, \
-    REFUSE_PERFORMATIVE
+from .protocol import (
+    REQUEST_PROTOCOL,
+    REGISTER_PROTOCOL,
+    ACCEPT_PERFORMATIVE,
+    REQUEST_PERFORMATIVE,
+    REFUSE_PERFORMATIVE,
+)
 from .utils import StrategyBehaviour
 
 faker_factory = faker.Factory.create()
@@ -34,7 +39,12 @@ class FleetManagerAgent(Agent):
         self.directory_id = None
         self.fleet_icon = None
         self.stopped = False
+        self.is_launched = False
+        self.ready = False
         self.clear_agents()
+
+    def is_ready(self):
+        return self.ready
 
     def clear_agents(self):
         """
@@ -43,17 +53,26 @@ class FleetManagerAgent(Agent):
         self.set("transport_agents", {})
 
     async def setup(self):
-        logger.info("FleetManager agent running")
+        logger.info("FleetManager agent {} running".format(self.name))
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)
             register_behaviour = TransportRegistrationForFleetBehaviour()
             self.add_behaviour(register_behaviour, template)
             while not self.has_behaviour(register_behaviour):
-                logger.warning("Manager {} could not create RegisterBehaviour. Retrying...".format(self.agent_id))
+                logger.warning(
+                    "Manager {} could not create RegisterBehaviour. Retrying...".format(
+                        self.agent_id
+                    )
+                )
                 self.add_behaviour(register_behaviour, template)
+            self.ready = True
         except Exception as e:
-            logger.error("EXCEPTION creating RegisterBehaviour in Manager {}: {}".format(self.agent_id, e))
+            logger.error(
+                "EXCEPTION creating RegisterBehaviour in Manager {}: {}".format(
+                    self.agent_id, e
+                )
+            )
 
     def set_id(self, agent_id):
         """
@@ -106,7 +125,6 @@ class FleetManagerAgent(Agent):
 
 
 class TransportRegistrationForFleetBehaviour(CyclicBehaviour):
-
     async def on_start(self):
         logger.debug("Strategy {} started in manager".format(type(self).__name__))
 
@@ -128,7 +146,7 @@ class TransportRegistrationForFleetBehaviour(CyclicBehaviour):
             agent (``TransportAgent``): the instance of the TransportAgent to be erased
         """
         if key in self.get("transport_agents"):
-            del (self.get("transport_agents")[key])
+            del self.get("transport_agents")[key]
             logger.debug("Deregistration of the TransporterAgent {}".format(key))
             self.agent.transports_in_fleet -= 1
         else:
@@ -167,7 +185,9 @@ class TransportRegistrationForFleetBehaviour(CyclicBehaviour):
                     if content["fleet_type"] == self.agent.fleet_type:
                         self.add_transport(content)
                         await self.accept_registration(msg.sender)
-                        logger.debug("Registration in the fleet {}".format(self.agent.name))
+                        logger.debug(
+                            "Registration in the fleet {}".format(self.agent.name)
+                        )
                     else:
                         await self.reject_registration(msg.sender)
 
@@ -177,7 +197,11 @@ class TransportRegistrationForFleetBehaviour(CyclicBehaviour):
         except CancelledError:
             logger.debug("Cancelling async tasks...")
         except Exception as e:
-            logger.error("EXCEPTION in RegisterBehaviour of Manager {}: {}".format(self.agent.name, e))
+            logger.error(
+                "EXCEPTION in RegisterBehaviour of Manager {}: {}".format(
+                    self.agent.name, e
+                )
+            )
 
 
 class FleetManagerStrategyBehaviour(StrategyBehaviour):
@@ -205,12 +229,12 @@ class FleetManagerStrategyBehaviour(StrategyBehaviour):
         """
         Send a ``spade.message.Message`` with a proposal to directory to register.
         """
-        logger.info("Manager {} sent proposal to register to directory {}".format(self.agent.name,
-                                                                                  self.agent.directory_id))
-        content = {
-            "jid": str(self.agent.jid),
-            "type": self.agent.fleet_type
-        }
+        logger.info(
+            "Manager {} sent proposal to register to directory {}".format(
+                self.agent.name, self.agent.directory_id
+            )
+        )
+        content = {"jid": str(self.agent.jid), "type": self.agent.fleet_type}
         msg = Message()
         msg.to = str(self.agent.directory_id)
         msg.set_metadata("protocol", REGISTER_PROTOCOL)

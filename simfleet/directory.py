@@ -6,8 +6,14 @@ from spade.agent import Agent
 from spade.message import Message
 from spade.template import Template
 
-from .protocol import REGISTER_PROTOCOL, INFORM_PERFORMATIVE, ACCEPT_PERFORMATIVE, \
-    CANCEL_PERFORMATIVE, REQUEST_PERFORMATIVE, QUERY_PROTOCOL
+from .protocol import (
+    REGISTER_PROTOCOL,
+    INFORM_PERFORMATIVE,
+    ACCEPT_PERFORMATIVE,
+    CANCEL_PERFORMATIVE,
+    REQUEST_PERFORMATIVE,
+    QUERY_PROTOCOL,
+)
 from .utils import StrategyBehaviour, CyclicBehaviour
 
 
@@ -38,21 +44,28 @@ class DirectoryAgent(Agent):
         self.add_behaviour(self.strategy(), template)
 
     async def setup(self):
-        logger.info("Directory agent running")
+        logger.info("Directory agent {} running".format(self.name))
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)
             register_behaviour = RegistrationBehaviour()
             self.add_behaviour(register_behaviour, template)
             while not self.has_behaviour(register_behaviour):
-                logger.warning("Directory {} could not create RegisterBehaviour. Retrying...".format(self.agent_id))
+                logger.warning(
+                    "Directory {} could not create RegisterBehaviour. Retrying...".format(
+                        self.agent_id
+                    )
+                )
                 self.add_behaviour(register_behaviour, template)
         except Exception as e:
-            logger.error("EXCEPTION creating RegisterBehaviour in Directory {}: {}".format(self.agent_id, e))
+            logger.error(
+                "EXCEPTION creating RegisterBehaviour in Directory {}: {}".format(
+                    self.agent_id, e
+                )
+            )
 
 
 class RegistrationBehaviour(CyclicBehaviour):
-
     async def on_start(self):
         logger.debug("Strategy {} started in directory".format(type(self).__name__))
 
@@ -77,8 +90,12 @@ class RegistrationBehaviour(CyclicBehaviour):
             service_type (str): the service type to be erased
             agent (str): an str with the jid of the agent to be erased
         """
-        del (self.get("service_agents")[service_type][agent])
-        logger.debug("Deregistration of the Manager {} for service {}".format(agent, service_type))
+        del self.get("service_agents")[service_type][agent]
+        logger.debug(
+            "Deregistration of the Manager {} for service {}".format(
+                agent, service_type
+            )
+        )
 
     async def send_confirmation(self, agent_id):
         """
@@ -99,12 +116,18 @@ class RegistrationBehaviour(CyclicBehaviour):
                 if performative == REQUEST_PERFORMATIVE:
                     content = json.loads(msg.body)
                     self.add_service(content)
-                    logger.debug("Registration in the dictionary {}".format(self.agent.name))
+                    logger.debug(
+                        "Registration in the dictionary {}".format(self.agent.name)
+                    )
                     await self.send_confirmation(agent_id)
         except CancelledError:
             logger.debug("Cancelling async tasks...")
         except Exception as e:
-            logger.error("EXCEPTION in DirectoryRegister Behaviour of Directory {}: {}".format(self.agent.name, e))
+            logger.error(
+                "EXCEPTION in DirectoryRegister Behaviour of Directory {}: {}".format(
+                    self.agent.name, e
+                )
+            )
 
 
 class DirectoryStrategyBehaviour(StrategyBehaviour):
@@ -145,13 +168,23 @@ class DirectoryStrategyBehaviour(StrategyBehaviour):
 
     async def run(self):
         msg = await self.receive(timeout=5)
+        logger.debug(
+            "Directory {} has a mailbox size of {}".format(
+                self.agent.name, self.mailbox_size()
+            )
+        )
         if msg:
             performative = msg.get_metadata("performative")
             agent_id = msg.sender
             request = msg.body
             if performative == REQUEST_PERFORMATIVE:
-                logger.info("Directory {} received message from customer/transport {}".format(self.agent.name,
-                                                                                              agent_id))
+
+                logger.info(
+                    "Directory {} received message from customer/transport {}".format(
+                        self.agent.name, agent_id
+                    )
+                )
+
                 if request in self.get("service_agents"):
                     await self.send_services(agent_id, msg.body)
                 else:

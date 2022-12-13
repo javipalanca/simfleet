@@ -40,7 +40,7 @@ import simfleet
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", "sphinx.ext.napoleon"]
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", 'sphinx.ext.autosectionlabel', "sphinx.ext.napoleon"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -56,7 +56,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"SimFleet"
-copyright = u"2017, Javi Palanca"
+copyright = u"2022, Javi Palanca"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -142,7 +142,7 @@ html_theme = "sphinx_rtd_theme"
 # here, relative to this directory. They are copied after the builtin
 # static files, so a file named "default.css" will overwrite the builtin
 # "default.css".
-# html_static_path = ['_static']
+html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page
 # bottom, using the given strftime format.
@@ -270,16 +270,16 @@ texinfo_documents = [
 # texinfo_no_detailmenu = False
 
 
-def run_apidoc(_):
-    from sphinx.apidoc import main
-    import os
-    import sys
+#def run_apidoc(_):
+#    from sphinx.apidoc import main
+#    import os
+#    import sys
 
-    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-    cur_dir = os.path.abspath(os.path.dirname(__file__))
-    module = os.path.join(cur_dir, "..", "simfleet")
-    main(["-e", "-o", cur_dir + "/api", module, "--force"])
+#    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+#    cur_dir = os.path.abspath(os.path.dirname(__file__))
+#    module = os.path.join(cur_dir, "..", "simfleet")
+#    main(["-e", "-o", cur_dir + "/api", module, "--force"])
 
 
-def setup(app):
-    app.connect("builder-inited", run_apidoc)
+#def setup(app):
+#    app.connect("builder-inited", run_apidoc)

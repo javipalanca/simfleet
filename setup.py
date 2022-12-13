@@ -29,7 +29,7 @@ test_requirements = parse_requirements("requirements_dev.txt")
 
 setup(
     name="simfleet",
-    version="1.0.2",
+    version="1.0.3",
     description="Agent-based fleet simulator to test strategies",
     long_description=readme + "\n\n" + history,
     author="Javi Palanca",
@@ -52,7 +52,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.9",
     ],
     test_suite="tests",
     tests_require=test_requirements,

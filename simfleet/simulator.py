@@ -20,7 +20,7 @@ from .directory import DirectoryAgent
 from .fleetmanager import FleetManagerAgent
 from .station import StationAgent
 from .transport import TransportAgent
-from .utils import load_class, status_to_str, avg, request_path as async_request_path
+from simfleet.utils.utils_old import load_class, status_to_str, avg, request_path as async_request_path
 
 from simfleet.config.settings import set_default_strategies
 

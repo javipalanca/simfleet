@@ -1,6 +1,7 @@
 import asyncio
 import io
 import json
+import sys
 import threading
 import time
 from datetime import datetime
@@ -16,11 +17,12 @@ from spade.behaviour import TimeoutBehaviour, OneShotBehaviour
 from tabulate import tabulate
 
 from .customer import CustomerAgent
-from .directory import DirectoryAgent
+from simfleet.common.agents.factory.create import DirectoryFactory
 from .fleetmanager import FleetManagerAgent
 from .station import StationAgent
 from .transport import TransportAgent
-from simfleet.utils.utils_old import load_class, status_to_str, avg, request_path as async_request_path
+from simfleet.utils.utils_old import status_to_str, avg, request_path as async_request_path
+from .utils.reflection import load_class
 
 from simfleet.config.settings import set_default_strategies
 
@@ -84,10 +86,10 @@ class SimulatorAgent(Agent):
         logger.info("Starting SimFleet {}".format(self.pretty_name))
 
         self.default_strategies = set_default_strategies(
+                                                config.directory_strategy,
                                                 config.fleetmanager_strategy,
                                                 config.transport_strategy,
                                                 config.customer_strategy,
-                                                config.directory_strategy,
                                                 config.station_strategy,
                                                 )
 
@@ -1252,16 +1254,13 @@ class SimulatorAgent(Agent):
         await agent.start()
 
     def create_directory_agent(self, name, password):
-        jid = f"{name}@{self.jid.domain}"
-        agent = DirectoryAgent(jid, password)
-        logger.debug("Creating Directory agent {}".format(jid))
-        agent.set_id(name)
-
+        agent = DirectoryFactory.create_agent(domain=self.jid.domain,
+                                              name=name,
+                                              password=password,
+                                              default_strategy=self.default_strategies['directory'],
+                                              )
         self.set_directory(agent)
-
-        agent.strategy = self.directory_strategy
         agent.run_strategy()
-
         agent.start().result()
 
     def create_fleetmanager_agent(

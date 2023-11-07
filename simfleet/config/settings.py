@@ -139,3 +139,42 @@ class SimfleetConfig(object):
     def __str__(self):
         d = hide_passwords(self.__config)
         return json.dumps(d, indent=4)
+
+
+def set_default_strategies(
+        directory_strategy,
+        fleetmanager_strategy,
+        transport_strategy,
+        customer_strategy,
+        station_strategy,
+):
+    """
+    Gets the strategy strings and loads their classes. This strategies are prepared to be injected into any
+    new transport or customer agent.
+    Args:
+        fleetmanager_strategy (str): the path to the fleetmanager strategy
+        transport_strategy (str): the path to the transport strategy
+        customer_strategy (str): the path to the customer strategy
+        directory_strategy (str): the path to the directory strategy
+        station_strategy (str): the path to the station strategy
+    """
+
+    class_dict = {}
+
+    class_dict['directory'] = load_class(directory_strategy)
+    class_dict['fleetmanager'] = load_class(fleetmanager_strategy)
+    class_dict['transport'] = load_class(transport_strategy)
+    class_dict['customer'] = load_class(customer_strategy)
+    class_dict['station'] = load_class(station_strategy)
+
+    logger.debug(
+        "Loaded default strategy classes: {}, {}, {}, {} and {}".format(
+            class_dict['directory'],
+            class_dict['fleetmanager'],
+            class_dict['transport'],
+            class_dict['customer'],
+            class_dict['station'],
+        )
+    )
+
+    return class_dict

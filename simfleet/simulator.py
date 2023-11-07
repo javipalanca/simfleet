@@ -22,6 +22,8 @@ from .station import StationAgent
 from .transport import TransportAgent
 from .utils import load_class, status_to_str, avg, request_path as async_request_path
 
+from simfleet.config.settings import set_default_strategies
+
 faker_factory = faker.Factory.create()
 
 
@@ -69,23 +71,25 @@ class SimulatorAgent(Agent):
         self.kill_simulator.clear()
         self.lock = threading.RLock()
 
-        self.fleetmanager_strategy = None
-        self.transport_strategy = None
-        self.customer_strategy = None
-        self.directory_strategy = None
-        self.station_strategy = None
+        #self.fleetmanager_strategy = None
+        #self.transport_strategy = None
+        #self.customer_strategy = None
+        #self.directory_strategy = None
+        #self.station_strategy = None
+
+        self.default_strategies = {}
 
         self.delayed_launch_agents = {}
 
         logger.info("Starting SimFleet {}".format(self.pretty_name))
 
-        self.set_default_strategies(
-            config.fleetmanager_strategy,
-            config.transport_strategy,
-            config.customer_strategy,
-            config.directory_strategy,
-            config.station_strategy,
-        )
+        self.default_strategies = set_default_strategies(
+                                                config.fleetmanager_strategy,
+                                                config.transport_strategy,
+                                                config.customer_strategy,
+                                                config.directory_strategy,
+                                                config.station_strategy,
+                                                )
 
         self.route_host = config.route_host
 
@@ -1465,39 +1469,6 @@ class SimulatorAgent(Agent):
         with self.simulation_mutex:
             self.get("station_agents")[agent.name] = agent
 
-    def set_default_strategies(
-        self,
-        fleetmanager_strategy,
-        transport_strategy,
-        customer_strategy,
-        directory_strategy,
-        station_strategy,
-    ):
-        """
-        Gets the strategy strings and loads their classes. This strategies are prepared to be injected into any
-        new transport or customer agent.
-
-        Args:
-            fleetmanager_strategy (str): the path to the fleetmanager strategy
-            transport_strategy (str): the path to the transport strategy
-            customer_strategy (str): the path to the customer strategy
-            directory_strategy (str): the path to the directory strategy
-            station_strategy (str): the path to the station strategy
-        """
-        self.fleetmanager_strategy = load_class(fleetmanager_strategy)
-        self.transport_strategy = load_class(transport_strategy)
-        self.customer_strategy = load_class(customer_strategy)
-        self.directory_strategy = load_class(directory_strategy)
-        self.station_strategy = load_class(station_strategy)
-        logger.debug(
-            "Loaded default strategy classes: {}, {}, {}, {} and {}".format(
-                self.fleetmanager_strategy,
-                self.transport_strategy,
-                self.customer_strategy,
-                self.directory_strategy,
-                self.station_strategy,
-            )
-        )
 
     def get_simulation_time(self):
         """

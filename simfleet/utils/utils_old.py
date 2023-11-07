@@ -1,12 +1,9 @@
 import asyncio
 import json
-import os
 import socket
-import sys
 import time
 import uuid
 from abc import ABCMeta
-from importlib import import_module
 
 import aiohttp
 from loguru import logger
@@ -14,7 +11,8 @@ from spade.behaviour import CyclicBehaviour, OneShotBehaviour
 from spade.message import Message
 from spade.template import Template
 
-from .helpers import distance_in_meters, kmh_to_ms
+#CAMBIAR helpers al package utils
+from simfleet.helpers import distance_in_meters, kmh_to_ms
 
 TRANSPORT_WAITING = "TRANSPORT_WAITING"
 TRANSPORT_MOVING_TO_CUSTOMER = "TRANSPORT_MOVING_TO_CUSTOMER"
@@ -231,22 +229,6 @@ def chunk_path(path, speed_in_kmh):
     chunked_lat_lngs.append(path[length - 1])
 
     return chunked_lat_lngs
-
-
-def load_class(class_path):
-    """
-    Tricky method that imports a class form a string.
-
-    Args:
-        class_path (str): the path where the class to be imported is.
-
-    Returns:
-        class: the class imported and ready to be instantiated.
-    """
-    sys.path.append(os.getcwd())
-    module_path, class_name = class_path.rsplit(".", 1)
-    mod = import_module(module_path)
-    return getattr(mod, class_name)
 
 
 def avg(array):

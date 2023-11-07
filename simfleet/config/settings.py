@@ -1,6 +1,7 @@
 import json
 from loguru import logger
 
+from simfleet.utils.reflection import load_class
 
 def hide_passwords(item, key=None):
     if isinstance(item, dict):
@@ -152,10 +153,10 @@ def set_default_strategies(
     Gets the strategy strings and loads their classes. This strategies are prepared to be injected into any
     new transport or customer agent.
     Args:
+        directory_strategy (str): the path to the directory strategy
         fleetmanager_strategy (str): the path to the fleetmanager strategy
         transport_strategy (str): the path to the transport strategy
         customer_strategy (str): the path to the customer strategy
-        directory_strategy (str): the path to the directory strategy
         station_strategy (str): the path to the station strategy
     """
 

@@ -9,7 +9,7 @@ from spade.message import Message
 from spade.template import Template
 
 from .helpers import random_position
-from .protocol import (
+from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     TRAVEL_PROTOCOL,
     REQUEST_PERFORMATIVE,
@@ -17,7 +17,7 @@ from .protocol import (
     REFUSE_PERFORMATIVE,
     QUERY_PROTOCOL,
 )
-from .utils import (
+from simfleet.utils.utils_old import (
     CUSTOMER_WAITING,
     CUSTOMER_IN_DEST,
     TRANSPORT_MOVING_TO_CUSTOMER,

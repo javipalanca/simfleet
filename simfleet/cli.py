@@ -9,8 +9,8 @@ import click
 from loguru import logger
 from spade import quit_spade
 
-from .config import SimfleetConfig
-from .simulator import SimulatorAgent
+from simfleet.config.settings import SimfleetConfig
+from simfleet.simulator import SimulatorAgent
 
 
 @click.command()

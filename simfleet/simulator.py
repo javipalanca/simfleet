@@ -18,7 +18,7 @@ from tabulate import tabulate
 
 from .customer import CustomerAgent
 from simfleet.common.agents.factory.create import DirectoryFactory
-from .fleetmanager import FleetManagerAgent
+from simfleet.common.agents.factory.create import FleetManagerFactory
 from .station import StationAgent
 from .transport import TransportAgent
 from simfleet.utils.utils_old import status_to_str, avg, request_path as async_request_path
@@ -103,9 +103,9 @@ class SimulatorAgent(Agent):
         icons_path = self.base_path / "templates" / "data" / "img_transports.json"
         self.load_icons(icons_path)
 
-        self.create_directory_agent(
-            name=config.directory_name, password=config.directory_password
-        )
+        self.create_directory_agent(name=config.directory_name,
+                                    password=config.directory_password
+                                    )
 
         logger.info(
             "Creating {} managers, {} transports, {} customers and {} stations.".format(
@@ -162,9 +162,11 @@ class SimulatorAgent(Agent):
             fleet_type = manager["fleet_type"]
             strategy = manager.get("strategy")
             icon = manager.get("icon")
-            agent = self.create_fleetmanager_agent(
-                name, password, fleet_type=fleet_type, strategy=strategy
-            )
+            agent = self.create_fleetmanager_agent(name,
+                                                   password,
+                                                   fleet_type=fleet_type,
+                                                   strategy=strategy
+                                                    )
 
             self.set_icon(agent, icon, default=fleet_type)
 
@@ -1266,20 +1268,15 @@ class SimulatorAgent(Agent):
     def create_fleetmanager_agent(
         self, name, password, fleet_type, strategy=None, icon=None
     ):
-        jid = f"{name}@{self.jid.domain}"
-        agent = FleetManagerAgent(jid, password)
-        logger.debug("Creating FleetManager {}".format(jid))
-        agent.set_id(name)
-        agent.set_directory(self.get_directory().jid)
-        logger.debug("Assigning type {} to fleet manager {}".format(fleet_type, name))
-        agent.set_fleet_type(fleet_type)
-
-        if strategy:
-            agent.strategy = load_class(strategy)
-        else:
-            agent.strategy = self.fleetmanager_strategy
-
-        if self.simulation_running:
+        agent = FleetManagerFactory.create_agent(domain=self.jid.domain,
+                                                name=name,
+                                                password=password,
+                                                default_strategy=self.default_strategies['fleetmanager'],
+                                                strategy=strategy,
+                                                jid_directory=self.get_directory().jid,
+                                                fleet_type=fleet_type,
+                                                )
+        if self.simulation_time:
             agent.run_strategy()
 
         self.add_manager(agent)

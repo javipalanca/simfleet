@@ -5,46 +5,50 @@ from asyncio import CancelledError
 
 import faker
 from loguru import logger
-from spade.agent import Agent
+#from spade.agent import Agent  #Not used
 from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 from spade.template import Template
 
-from .protocol import (
+from simfleet.common.simfleetagent import SimfleetAgent
+
+from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     REGISTER_PROTOCOL,
     ACCEPT_PERFORMATIVE,
     REQUEST_PERFORMATIVE,
     REFUSE_PERFORMATIVE,
 )
-from .utils import StrategyBehaviour
+from simfleet.utils.utils_old import StrategyBehaviour
 
 faker_factory = faker.Factory.create()
 
 
-class FleetManagerAgent(Agent):
+class FleetManagerAgent(SimfleetAgent):
     """
     FleetManager agent that manages the requests between transports and customers
     """
 
     def __init__(self, agentjid, password):
 
-        super().__init__(jid=agentjid, password=password)
-        self.strategy = None
-        self.running_strategy = False
+        super().__init__(agentjid, password)
+        #self.strategy = None               #SimfleetAgent
+        #self.running_strategy = False      #SimfleetAgent
+        #self.agent_id = None               #SimfleetAgent
+        #self.fleet_type = None             #SimfleetAgent
+        #self.registration = False          #SimfleetAgent
+        #self.directory_id = None           #SimfleetAgent
+        #self.stopped = False               #SimfleetAgent
+        #self.is_launched = False           #SimfleetAgent
+        #self.ready = False                 #SimfleetAgent
+
         self.transports_in_fleet = 0
-        self.agent_id = None
-        self.fleet_type = None
-        self.registration = False
-        self.directory_id = None
         self.fleet_icon = None
-        self.stopped = False
-        self.is_launched = False
-        self.ready = False
         self.clear_agents()
 
-    def is_ready(self):
-        return self.ready
+    #SimfleetAgent - Its different way - CHECK IT
+    #def is_ready(self):
+    #    return self.ready
 
     def clear_agents(self):
         """
@@ -96,23 +100,24 @@ class FleetManagerAgent(Agent):
             self.add_behaviour(self.strategy(), template)
             self.running_strategy = True
 
-    def set_registration(self, status):
-        """
-        Sets the status of registration
-        Args:
-            status (boolean): True if the transport agent has registered or False if not
+    #SimfleetAgent - Its different way - CHECK IT
+    #def set_registration(self, status):
+    #    """
+    #    Sets the status of registration
+    #    Args:
+    #        status (boolean): True if the transport agent has registered or False if not
+    #
+    #    """
+    #    self.registration = status
 
-        """
-        self.registration = status
-
-    def set_directory(self, directory_id):
-        """
-        Sets the directory JID address
-        Args:
-            directory_id (str): the DirectoryAgent jid
-
-        """
-        self.directory_id = directory_id
+    #SimfleetAgent
+    #def set_directory(self, directory_id):
+    #    """
+    #    Sets the directory JID address
+    #    Args:
+    #        directory_id (str): the DirectoryAgent jid
+    #    """
+    #    self.directory_id = directory_id
 
     def set_fleet_type(self, fleet_type):
         """

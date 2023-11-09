@@ -20,7 +20,7 @@ from .customer import CustomerAgent
 from simfleet.common.agents.factory.create import DirectoryFactory
 from simfleet.common.agents.factory.create import FleetManagerFactory
 from .station import StationAgent
-from .transport import TransportAgent
+from simfleet.common.agents.factory.create import TransportFactory
 from simfleet.utils.utils_old import status_to_str, avg, request_path as async_request_path
 from .utils.reflection import load_class
 
@@ -245,17 +245,17 @@ class SimulatorAgent(Agent):
                 delayed = True
 
             agent = self.create_transport_agent(
-                name,
-                password,
-                position=position,
-                speed=speed,
-                fleet_type=fleet_type,
-                fleetmanager=fleetmanager,
-                strategy=strategy,
-                autonomy=autonomy,
-                current_autonomy=current_autonomy,
-                delayed=delayed,
-            )
+                                                name,
+                                                password,
+                                                position=position,
+                                                speed=speed,
+                                                fleet_type=fleet_type,
+                                                fleetmanager=fleetmanager,
+                                                strategy=strategy,
+                                                autonomy=autonomy,
+                                                current_autonomy=current_autonomy,
+                                                delayed=delayed,
+                                                )
             self.set_icon(agent, icon, default="transport")
 
             if delay is not None:
@@ -1287,41 +1287,33 @@ class SimulatorAgent(Agent):
 
         return agent
 
-    def create_transport_agent(
-        self,
-        name,
-        password,
-        fleet_type,
-        fleetmanager,
-        position,
-        strategy=None,
-        speed=None,
-        autonomy=None,
-        current_autonomy=None,
-        delayed=False,
-    ):
-        jid = f"{name}@{self.jid.domain}"
-        agent = TransportAgent(jid, password)
-        logger.debug("Creating Transport {}".format(jid))
-        agent.set_id(name)
-        agent.set_directory(self.get_directory().jid)
-        logger.debug("Assigning type {} to transport {}".format(fleet_type, name))
-        agent.set_fleet_type(fleet_type)
-        agent.set_fleetmanager(fleetmanager)
-        agent.set_route_host(self.route_host)
-        agent.set_directory(self.get_directory().jid)
-        if autonomy:
-            agent.set_autonomy(autonomy, current_autonomy=current_autonomy)
+    def create_transport_agent(self,
+                                name,
+                                password,
+                                fleet_type,
+                                fleetmanager,
+                                position,
+                                strategy=None,
+                                speed=None,
+                                autonomy=None,
+                                current_autonomy=None,
+                                delayed=False,
+                                ):
 
-        agent.set_initial_position(position)
-
-        if speed:
-            agent.set_speed(speed)
-
-        if strategy:
-            agent.strategy = load_class(strategy)
-        else:
-            agent.strategy = self.transport_strategy
+        agent = TransportFactory.create_agent(domain=self.jid.domain,
+                                              name=name,
+                                              password=password,
+                                              default_strategy=self.default_strategies['transport'],
+                                              strategy=strategy,
+                                              jid_directory=self.get_directory().jid,
+                                              fleetmanager=fleetmanager,
+                                              fleet_type=fleet_type,
+                                              route_host=self.route_host,
+                                              autonomy=autonomy,
+                                              current_autonomy=current_autonomy,
+                                              position=position,
+                                              speed=speed
+                                              )
 
         if self.simulation_running:
             agent.run_strategy()

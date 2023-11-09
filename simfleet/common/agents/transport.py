@@ -10,14 +10,14 @@ from spade.behaviour import PeriodicBehaviour, CyclicBehaviour
 from spade.message import Message
 from spade.template import Template
 
-from .helpers import (
+from simfleet.helpers import (
     random_position,
     distance_in_meters,
     kmh_to_ms,
     PathRequestException,
     AlreadyInDestination,
 )
-from .protocol import (
+from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     TRAVEL_PROTOCOL,
     PROPOSE_PERFORMATIVE,
@@ -29,7 +29,7 @@ from .protocol import (
     REFUSE_PERFORMATIVE,
     QUERY_PROTOCOL,
 )
-from .utils import (
+from simfleet.utils.utils_old import (
     TRANSPORT_WAITING,
     TRANSPORT_MOVING_TO_CUSTOMER,
     TRANSPORT_IN_CUSTOMER_PLACE,
@@ -46,7 +46,7 @@ from .utils import (
 )
 
 MIN_AUTONOMY = 2
-ONESECOND_IN_MS = 1000
+ONESECOND_IN_MS = 1000                                         #movable.py
 
 
 class TransportAgent(Agent):
@@ -54,22 +54,22 @@ class TransportAgent(Agent):
         super().__init__(agentjid, password)
 
         self.fleetmanager_id = None
-        self.route_host = None
+        self.route_host = None                                 #geolocatedagent.py
         self.strategy = None
         self.running_strategy = False
 
         self.__observers = defaultdict(list)
         self.agent_id = None
         self.status = TRANSPORT_WAITING
-        self.icon = None
-        self.set("current_pos", None)
+        self.icon = None                                       #geolocatedagent.py
+        self.set("current_pos", None)                          #geolocatedagent.py
         self.dest = None
-        self.set("path", None)
-        self.chunked_path = None
-        self.set("speed_in_kmh", 3000)
-        self.animation_speed = ONESECOND_IN_MS
-        self.distances = []
-        self.durations = []
+        self.set("path", None)                                 #movable.py
+        self.chunked_path = None                                #movable.py
+        self.set("speed_in_kmh", 3000)                         #movable.py
+        self.animation_speed = ONESECOND_IN_MS                  #movale.py
+        self.distances = []                                    #movable.py
+        self.durations = []                                    #movable.py
         self.port = None
         self.set("current_customer", None)
         self.current_customer_orig = None
@@ -254,6 +254,7 @@ class TransportAgent(Agent):
     def is_free(self):
         return self.get("current_customer") is None
 
+    # MovableMixin - movable.py - ANALIZAR cambiar ubicación
     async def arrived_to_destination(self):
         """
         Informs that the transport has arrived to its destination.

@@ -8,6 +8,7 @@ from simfleet.common.agents.directory import DirectoryAgent
 from simfleet.common.agents.fleetmanager import FleetManagerAgent
 from simfleet.common.agents.transport import TransportAgent
 from simfleet.common.agents.customer import CustomerAgent
+from simfleet.common.agents.station import StationAgent
 
 from simfleet.utils.reflection import load_class
 
@@ -239,5 +240,59 @@ class CustomerFactory(Factory):
         agent.set_route_host(route_host)
         agent.set_position(position)
         agent.set_target_position(target)
+
+        return agent
+
+
+class StationFactory(Factory):
+    @classmethod
+    def create_agent(cls,
+                    domain,
+                    name,
+                    password,
+                    default_strategy,
+                    strategy=None,
+                    jid_directory=None,
+                    fleetmanager=None,
+                    fleet_type=None,
+                    route_host=None,
+                    autonomy=None,
+                    current_autonomy=None,
+                    position=None,
+                    speed=None,
+                    target=None,
+                    power=None,
+                    places=None,
+                    ):
+
+        """
+                Create a station agent.
+
+                Args:
+                    domain (str): name of domain xmpp
+                    name (str): name of the agent
+                    password (str): password of the agent
+                    default_strategy (class): default strategy class of the agent
+                    strategy (class, optional): strategy class of the agent
+                    jid_directory (JID): directory JID address
+                    position (list): initial coordinates of the agent
+                    power (int): power of the station agent in kW
+                    places (int): destination coordinates of the agent
+                """
+
+        jid = f"{name}@{domain}"
+        logger.debug("Creating Station agent: {}".format(jid))
+        agent = StationAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
+        agent.set_id(name)  # Establece el identificador del agente
+        agent.set_directory(jid_directory)
+
+        if type(strategy) is str:   # Añadimos el objeto de la clase cargada a la variable strategy
+            agent.strategy = load_class(strategy)
+        else:
+            agent.strategy = default_strategy
+
+        agent.set_position(position)
+        agent.set_available_places(places)
+        agent.set_power(power)
 
         return agent

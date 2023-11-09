@@ -19,7 +19,7 @@ from tabulate import tabulate
 from simfleet.common.agents.factory.create import CustomerFactory
 from simfleet.common.agents.factory.create import DirectoryFactory
 from simfleet.common.agents.factory.create import FleetManagerFactory
-from .station import StationAgent
+from simfleet.common.agents.factory.create import StationFactory
 from simfleet.common.agents.factory.create import TransportFactory
 from simfleet.utils.utils_old import status_to_str, avg, request_path as async_request_path
 from .utils.reflection import load_class
@@ -320,13 +320,13 @@ class SimulatorAgent(Agent):
             strategy = station.get("strategy")
             icon = station.get("icon")
             agent = self.create_station_agent(
-                station["name"],
-                password,
-                position=station["position"],
-                power=station["power"],
-                places=station["places"],
-                strategy=strategy,
-            )
+                                                name=station["name"],
+                                                password=password,
+                                                position=station["position"],
+                                                power=station["power"],
+                                                places=station["places"],
+                                                strategy=strategy,
+                                            )
             self.set_icon(agent, icon, default="electric_station")
 
             coros.append(agent.start())
@@ -1360,35 +1360,17 @@ class SimulatorAgent(Agent):
     def create_station_agent(
         self, name, password, position, power, places, strategy=None
     ):
-        """
-        Create a customer agent.
 
-        Args:
-            name (str): name of the agent
-            password (str): password of the agent
-            position (list): initial coordinates of the agent
-            power (int): power of the station agent in kW
-            places (int): destination coordinates of the agent
-            strategy (class, optional): strategy class of the agent
-        """
-        jid = f"{name}@{self.jid.domain}"
-        agent = StationAgent(jid, password)
-        logger.debug("Creating station {}".format(jid))
-        agent.set_id(name)
-        agent.set_directory(self.get_directory().jid)
-
-        agent.set_directory(self.get_directory().jid)
-
-        agent.set_position(position)
-
-        agent.set_available_places(places)
-        agent.set_power(power)
-
-        if strategy:
-            agent.strategy = load_class(strategy)
-        else:
-            agent.strategy = self.station_strategy
-
+        agent = StationFactory.create_agent(domain=self.jid.domain,
+                                            name=name,
+                                            password=password,
+                                            default_strategy=self.default_strategies['station'],
+                                            strategy=strategy,
+                                            jid_directory=self.get_directory().jid,
+                                            position=position,
+                                            power=power,
+                                            places=places,
+                                            )
         if self.simulation_running:
             agent.run_strategy()
 

@@ -16,7 +16,7 @@ from spade.agent import Agent
 from spade.behaviour import TimeoutBehaviour, OneShotBehaviour
 from tabulate import tabulate
 
-from .customer import CustomerAgent
+from simfleet.common.agents.factory.create import CustomerFactory
 from simfleet.common.agents.factory.create import DirectoryFactory
 from simfleet.common.agents.factory.create import FleetManagerFactory
 from .station import StationAgent
@@ -289,14 +289,14 @@ class SimulatorAgent(Agent):
                 delayed = True
 
             agent = self.create_customer_agent(
-                name,
-                password,
-                fleet_type,
-                position=position,
-                target=target,
-                strategy=strategy,
-                delayed=delayed,
-            )
+                                                name,
+                                                password,
+                                                fleet_type,
+                                                position=position,
+                                                target=target,
+                                                strategy=strategy,
+                                                delayed=delayed,
+                                                )
 
             self.set_icon(agent, icon, default="customer")
 
@@ -1335,36 +1335,17 @@ class SimulatorAgent(Agent):
         target=None,
         delayed=False,
     ):
-        """
-        Create a customer agent.
-
-        Args:
-            name (str): name of the agent
-            password (str): password of the agent
-            fleet_type (str): type of he fleet to be or demand
-            position (list): initial coordinates of the agent
-            strategy (class, optional): strategy class of the agent
-            target (list, optional): destination coordinates of the agent
-            delayed (bool, optional): launching of the agent delayed or not
-        """
-        jid = f"{name}@{self.jid.domain}"
-        agent = CustomerAgent(jid, password)
-        logger.debug("Creating Customer {}".format(jid))
-        agent.set_id(name)
-        agent.set_directory(self.get_directory().jid)
-        logger.debug("Assigning fleet type {} to customer {}".format(fleet_type, name))
-        agent.set_fleet_type(fleet_type)
-        agent.set_route_host(self.route_host)
-        agent.set_directory(self.get_directory().jid)
-
-        agent.set_position(position)
-
-        agent.set_target_position(target)
-
-        if strategy:
-            agent.strategy = load_class(strategy)
-        else:
-            agent.strategy = self.customer_strategy
+        agent = CustomerFactory.create_agent(domain=self.jid.domain,
+                                            name=name,
+                                            password=password,
+                                            default_strategy=self.default_strategies['customer'],
+                                            strategy=strategy,
+                                            jid_directory=self.get_directory().jid,
+                                            fleet_type=fleet_type,
+                                            route_host=self.route_host,
+                                            position=position,
+                                            target=target,
+                                            )
 
         if self.simulation_running:
             agent.run_strategy()

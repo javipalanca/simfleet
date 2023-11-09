@@ -7,6 +7,7 @@ from loguru import logger
 from simfleet.common.agents.directory import DirectoryAgent
 from simfleet.common.agents.fleetmanager import FleetManagerAgent
 from simfleet.common.agents.transport import TransportAgent
+from simfleet.common.agents.customer import CustomerAgent
 
 from simfleet.utils.reflection import load_class
 
@@ -182,5 +183,61 @@ class TransportFactory(Factory):    #TransportFactory
 
         if speed:
             agent.set_speed(speed)
+
+        return agent
+
+
+class CustomerFactory(Factory):
+    @classmethod
+    def create_agent(cls,
+                    domain,
+                    name,
+                    password,
+                    default_strategy,
+                    strategy=None,
+                    jid_directory=None,
+                    fleetmanager=None,
+                    fleet_type=None,
+                    route_host=None,
+                    autonomy=None,
+                    current_autonomy=None,
+                    position=None,
+                    speed=None,
+                    target=None,
+                    power=None,
+                    places=None,
+                    ):
+        """
+                                Create a customer agent.
+
+                                Args:
+                                    domain (str): name of domain xmpp
+                                    name (str): name of the agent
+                                    password (str): password of the agent
+                                    default_strategy (class): default strategy class of the agent
+                                    strategy (class, optional): strategy class of the agent
+                                    jid_directory (JID): directory JID address
+                                    fleet_type (str): type of he fleet to be or demand
+                                    route_host (str): route host address
+                                    position (list): initial coordinates of the agent
+                                    target (list, optional): destination coordinates of the agent
+                                """
+
+        jid = f"{name}@{domain}"
+        logger.debug("Creating Customer agent: {}".format(jid))
+        agent = CustomerAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
+        agent.set_id(name)  # Establece el identificador del agente
+        agent.set_directory(jid_directory)
+
+        if type(strategy) is str:   # Añadimos el objeto de la clase cargada a la variable strategy
+            agent.strategy = load_class(strategy)
+        else:
+            agent.strategy = default_strategy
+
+        logger.debug("Assigning fleet type {} to customer {}".format(fleet_type, name))
+        agent.set_fleet_type(fleet_type)
+        agent.set_route_host(route_host)
+        agent.set_position(position)
+        agent.set_target_position(target)
 
         return agent

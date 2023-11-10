@@ -18,8 +18,11 @@ def random_position():
     Returns:
         list: a point (longitude and latitude)
     """
+    base_dir_utils = os.path.dirname(__file__)
+    base_dir = os.path.dirname(base_dir_utils)
+
     path = (
-        os.path.dirname(__file__)
+        base_dir
         + os.sep
         + "templates"
         + os.sep

@@ -12,7 +12,7 @@ from spade.message import Message
 from spade.template import Template
 
 #CAMBIAR helpers al package utils
-from simfleet.helpers import distance_in_meters, kmh_to_ms
+from simfleet.utils.helpers import distance_in_meters, kmh_to_ms
 
 TRANSPORT_WAITING = "TRANSPORT_WAITING"
 TRANSPORT_MOVING_TO_CUSTOMER = "TRANSPORT_MOVING_TO_CUSTOMER"

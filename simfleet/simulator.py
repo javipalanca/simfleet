@@ -404,22 +404,22 @@ class SimulatorAgent(Agent):
                         for manager in self.agent.manager_agents.values():
                             manager.run_strategy()
                             logger.debug(
-                                f"Running strategy {self.agent.fleetmanager_strategy} to manager {manager.name}"
+                                f"Running strategy {self.agent.default_strategies['fleetmanager']} to manager {manager.name}"
                             )
                         for transport in self.agent.transport_agents.values():
                             transport.run_strategy()
                             logger.debug(
-                                f"Running strategy {self.agent.transport_strategy} to transport {transport.name}"
+                                f"Running strategy {self.agent.default_strategies['transport']} to transport {transport.name}"
                             )
                         for customer in self.agent.customer_agents.values():
                             customer.run_strategy()
                             logger.debug(
-                                f"Running strategy {self.agent.customer_strategy} to customer {customer.name}"
+                                f"Running strategy {self.agent.default_strategies['customer']} to customer {customer.name}"
                             )
                         for station in self.agent.station_agents.values():
                             station.run_strategy()
                             logger.debug(
-                                f"Running strategy {self.agent.directory_strategy} to station {station.name}"
+                                f"Running strategy {self.agent.default_strategies['station']} to station {station.name}"
                             )
 
                     self.agent.simulation_running = True

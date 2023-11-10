@@ -9,8 +9,8 @@ from spade.behaviour import TimeoutBehaviour
 from spade.message import Message
 from spade.template import Template
 
-from .helpers import random_position
-from .protocol import (
+from simfleet.utils.helpers import random_position
+from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     REGISTER_PROTOCOL,
     ACCEPT_PERFORMATIVE,
@@ -20,7 +20,7 @@ from .protocol import (
     CANCEL_PERFORMATIVE,
     INFORM_PERFORMATIVE,
 )
-from .utils import (
+from simfleet.utils.utils_old import (
     StrategyBehaviour,
     CyclicBehaviour,
     FREE_STATION,

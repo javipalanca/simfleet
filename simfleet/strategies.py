@@ -2,10 +2,10 @@ import json
 
 from loguru import logger
 
-from .customer import CustomerStrategyBehaviour
-from .fleetmanager import FleetManagerStrategyBehaviour
-from .helpers import PathRequestException
-from .protocol import (
+from simfleet.common.agents.customer import CustomerStrategyBehaviour
+from simfleet.common.agents.fleetmanager import FleetManagerStrategyBehaviour
+from simfleet.utils.helpers import PathRequestException
+from simfleet.communications.protocol import (
     REQUEST_PERFORMATIVE,
     ACCEPT_PERFORMATIVE,
     REFUSE_PERFORMATIVE,
@@ -15,8 +15,8 @@ from .protocol import (
     QUERY_PROTOCOL,
     REQUEST_PROTOCOL,
 )
-from .transport import TransportStrategyBehaviour
-from .utils import (
+from simfleet.common.agents.transport import TransportStrategyBehaviour
+from simfleet.utils.utils_old import (
     TRANSPORT_WAITING,
     TRANSPORT_WAITING_FOR_APPROVAL,
     CUSTOMER_WAITING,

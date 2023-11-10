@@ -10,7 +10,7 @@ from spade.behaviour import PeriodicBehaviour, CyclicBehaviour
 from spade.message import Message
 from spade.template import Template
 
-from simfleet.helpers import (
+from simfleet.utils.helpers import (
     random_position,
     distance_in_meters,
     kmh_to_ms,

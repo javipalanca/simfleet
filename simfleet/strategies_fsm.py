@@ -3,10 +3,10 @@ import json
 from loguru import logger
 from spade.behaviour import State, FSMBehaviour
 
-from simfleet.customer import CustomerStrategyBehaviour
-from simfleet.fleetmanager import FleetManagerStrategyBehaviour
-from simfleet.helpers import PathRequestException, distance_in_meters
-from simfleet.protocol import (
+from simfleet.common.agents.customer import CustomerStrategyBehaviour
+from simfleet.common.agents.fleetmanager import FleetManagerStrategyBehaviour
+from simfleet.utils.helpers import PathRequestException, distance_in_meters
+from simfleet.communications.protocol import (
     REQUEST_PERFORMATIVE,
     ACCEPT_PERFORMATIVE,
     REQUEST_PROTOCOL,
@@ -16,8 +16,8 @@ from simfleet.protocol import (
     QUERY_PROTOCOL,
     REFUSE_PERFORMATIVE,
 )
-from simfleet.transport import TransportStrategyBehaviour
-from simfleet.utils import (
+from simfleet.common.agents.transport import TransportStrategyBehaviour
+from simfleet.utils.utils_old import (
     TRANSPORT_WAITING,
     TRANSPORT_WAITING_FOR_APPROVAL,
     TRANSPORT_MOVING_TO_CUSTOMER,

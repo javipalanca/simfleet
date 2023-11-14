@@ -29,13 +29,16 @@ class SimfleetAgent(Agent):
         self.init_time = None
         self.end_time = None
 
+    #Used TransportAgent - CustomerAgent - StationAgent (different) -- ANALIZAR REUNION
     def is_ready(self):
         return not self.is_launched or (self.is_launched and self.ready)
 
+    #Used TransportAgent
     def sleep(self, seconds):
         # await asyncio.sleep(seconds)
         time.sleep(seconds)
 
+    #Used TransportAgent
     def set(self, key, value):
         old = self.get(key)
         super().set(key, value)
@@ -43,6 +46,7 @@ class SimfleetAgent(Agent):
             for callback in self.__observers[key]:
                 callback(old, value)
 
+    #Used TransportAgent - StationAgent (different) - FleetMaganerAgent (different)
     def set_registration(self, status, content=None):
         """
         Sets the status of registration
@@ -55,6 +59,7 @@ class SimfleetAgent(Agent):
             self.fleet_type = content["fleet_type"]
         self.registration = status
 
+    #Used TransportAgent (transport.py)
     def watch_value(self, key, callback):
         """
         Registers an observer callback to be run when a value is changed
@@ -65,6 +70,7 @@ class SimfleetAgent(Agent):
         """
         self.__observers[key].append(callback)
 
+    #Used TransportAgent - CustomerAgent - FleetManagerAgent
     def set_fleet_type(self, fleet_type):
         """
         Sets the type of fleet to be used.
@@ -74,6 +80,7 @@ class SimfleetAgent(Agent):
         """
         self.fleet_type = fleet_type
 
+    #Used TransportAgent - StationAgent
     async def send(self, msg):
         if not msg.sender:
             msg.sender = str(self.jid)
@@ -83,6 +90,7 @@ class SimfleetAgent(Agent):
         msg.sent = True
         self.traces.append(msg, category=str(self))
 
+    #Used TransportAgent - CustomerAgent - StationAgent - FleetManagerAgent
     def set_id(self, agent_id):
         """
         Sets the agent identifier
@@ -91,6 +99,7 @@ class SimfleetAgent(Agent):
         """
         self.agent_id = agent_id
 
+    #Used TransportAgent - CustomerAgent - StationAgent - FleetManagerAgent
     def set_directory(self, directory_id):
         """
         Sets the directory JID address
@@ -100,6 +109,7 @@ class SimfleetAgent(Agent):
         """
         self.directory_id = directory_id
 
+    #Used CustomerAgent
     def total_time(self):
         """
         Returns the time since the customer was activated until it reached its destination.
@@ -112,15 +122,15 @@ class SimfleetAgent(Agent):
         else:
             return None
 
-    def to_json(self):
-        """
-        Returns a JSON with the relevant data of this type of agent
-        """
-        data = {}
-        data.update({
-            "id": self.agent_id,
-            "status": self.status,
-            "init_time": self.init_time,
-            "end_time": self.end_time
-        })
-        return data
+    #def to_json(self):
+    #    """
+    #    Returns a JSON with the relevant data of this type of agent
+    #    """
+    #    data = {}
+    #    data.update({
+    #        "id": self.agent_id,
+    #        "status": self.status,
+    #        "init_time": self.init_time,
+    #        "end_time": self.end_time
+    #    })
+    #    return data

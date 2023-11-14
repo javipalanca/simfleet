@@ -12,7 +12,6 @@ from spade import quit_spade
 from simfleet.config.settings import SimfleetConfig
 from simfleet.simulator import SimulatorAgent
 
-
 @click.command()
 @click.option("-n", "--name", help="Name of the simulation execution.")
 @click.option("-o", "--output", help="Filename to save simulation results.")
@@ -67,7 +66,7 @@ def main(name, output, oformat, max_time, autorun, config, verbose):
     simulator_name = "simulator_{}@{}".format(name, simfleet_config.host)
 
     simulator = SimulatorAgent(config=simfleet_config, agentjid=simulator_name)
-    sys.exit(0)
+    #sys.exit(0)
     simulator.start()
 
     if autorun:

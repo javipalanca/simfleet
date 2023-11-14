@@ -1,5 +1,6 @@
 import asyncio
 import json
+import sys
 import time
 from asyncio import CancelledError
 from collections import defaultdict
@@ -44,45 +45,49 @@ from simfleet.utils.utils_old import (
     StrategyBehaviour,
     TRANSPORT_NEEDS_CHARGING,
 )
+from simfleet.common.vehicle import VehicleAgent
 
 MIN_AUTONOMY = 2
 ONESECOND_IN_MS = 1000                                         #movable.py
 
 
-class TransportAgent(Agent):
+#class TransportAgent(Agent):
+#    def __init__(self, agentjid, password):
+#        super().__init__(agentjid, password)
+
+class TransportAgent(VehicleAgent):
     def __init__(self, agentjid, password):
         super().__init__(agentjid, password)
+        #self.fleetmanager_id = None                             #vehicle.py
+        #self.route_host = None                                 #geolocatedagent.py
+        #self.strategy = None                                    #simfleetagent.py
+        #self.running_strategy = False                           #simfleetagent.py
 
-        self.fleetmanager_id = None
-        self.route_host = None                                 #geolocatedagent.py
-        self.strategy = None
-        self.running_strategy = False
-
-        self.__observers = defaultdict(list)
-        self.agent_id = None
-        self.status = TRANSPORT_WAITING
-        self.icon = None                                       #geolocatedagent.py
-        self.set("current_pos", None)                          #geolocatedagent.py
-        self.dest = None
-        self.set("path", None)                                 #movable.py
-        self.chunked_path = None                                #movable.py
-        self.set("speed_in_kmh", 3000)                         #movable.py
-        self.animation_speed = ONESECOND_IN_MS                  #movale.py
-        self.distances = []                                    #movable.py
-        self.durations = []                                    #movable.py
-        self.port = None
+        #self.__observers = defaultdict(list)                    #simfleetagent.py
+        #self.agent_id = None                                    #simfleetagent.py
+        #self.status = TRANSPORT_WAITING                        #simfleetagent.py
+        #self.icon = None                                       #geolocatedagent.py
+        #self.set("current_pos", None)                          #geolocatedagent.py
+        #self.dest = None                                        #movavle.py
+        #self.set("path", None)                                 #movable.py
+        #self.chunked_path = None                                #movable.py
+        #self.set("speed_in_kmh", 3000)                         #movable.py
+        #self.animation_speed = ONESECOND_IN_MS                  #movale.py
+        #self.distances = []                                    #movable.py
+        #self.durations = []                                    #movable.py
+        #self.port = None                                        #simfleetagent.py
         self.set("current_customer", None)
         self.current_customer_orig = None
         self.current_customer_dest = None
         self.set("customer_in_transport", None)
         self.num_assignments = 0
-        self.stopped = False
-        self.ready = False
-        self.registration = False
-        self.is_launched = False
+        #self.stopped = False                                    #simfleetagent.py
+        #self.ready = False                                      #simfleetagent.py
+        #self.registration = False                               #simfleetagent.py
+        #self.is_launched = False                                #simfleetagent.py
 
-        self.directory_id = None
-        self.fleet_type = None
+        #self.directory_id = None                                #simfleetagent.py
+        #self.fleet_type = None                                  #simfleetagent.py
 
         self.request = "station"
         self.stations = None
@@ -120,8 +125,9 @@ class TransportAgent(Agent):
 
         self.customer_in_transport_callback = customer_in_transport_callback
 
-    def is_ready(self):
-        return not self.is_launched or (self.is_launched and self.ready)
+    #simfleetagent.py
+    #def is_ready(self):
+    #    return not self.is_launched or (self.is_launched and self.ready)
 
     async def setup(self):
         try:
@@ -144,47 +150,51 @@ class TransportAgent(Agent):
                 )
             )
 
-    def set(self, key, value):
-        old = self.get(key)
-        super().set(key, value)
-        if key in self.__observers:
-            for callback in self.__observers[key]:
-                callback(old, value)
+    # simfleetagent.py
+    #def set(self, key, value):
+    #    old = self.get(key)
+    #    super().set(key, value)
+    #    if key in self.__observers:
+    #        for callback in self.__observers[key]:
+    #            callback(old, value)
 
     def sleep(self, seconds):
         # await asyncio.sleep(seconds)
         time.sleep(seconds)
 
-    def set_registration(self, status, content=None):
-        """
-        Sets the status of registration
-        Args:
-            status (boolean): True if the transport agent has registered or False if not
-            content (dict):
-        """
-        if content is not None:
-            self.icon = content["icon"] if self.icon is None else self.icon
-            self.fleet_type = content["fleet_type"]
-        self.registration = status
+    #simfleetagent.py
+    #def set_registration(self, status, content=None):
+    #    """
+    #    Sets the status of registration
+    #    Args:
+    #        status (boolean): True if the transport agent has registered or False if not
+    #        content (dict):
+    #    """
+    #    if content is not None:
+    #        self.icon = content["icon"] if self.icon is None else self.icon
+    #        self.fleet_type = content["fleet_type"]
+    #    self.registration = status
 
-    def set_directory(self, directory_id):
-        """
-        Sets the directory JID address
-        Args:
-            directory_id (str): the DirectoryAgent jid
+    #simfleetagent.py
+    #def set_directory(self, directory_id):
+    #    """
+    #    Sets the directory JID address
+    #    Args:
+    #        directory_id (str): the DirectoryAgent jid
 
-        """
-        self.directory_id = directory_id
+    #    """
+    #    self.directory_id = directory_id
 
-    def watch_value(self, key, callback):
-        """
-        Registers an observer callback to be run when a value is changed
+    #simfleetagent.py
+    #def watch_value(self, key, callback):
+    #    """
+    #    Registers an observer callback to be run when a value is changed
 
-        Args:
-            key (str): the name of the value
-            callback (function): a function to be called when the value changes. It receives two arguments: the old and the new value.
-        """
-        self.__observers[key].append(callback)
+    #    Args:
+    #        key (str): the name of the value
+    #        callback (function): a function to be called when the value changes. It receives two arguments: the old and the new value.
+    #    """
+    #    self.__observers[key].append(callback)
 
     def run_strategy(self):
         """
@@ -201,43 +211,48 @@ class TransportAgent(Agent):
             self.add_behaviour(self.strategy(), template1 | template2)
             self.running_strategy = True
 
-    def set_id(self, agent_id):
-        """
-        Sets the agent identifier
+    # simfleetagent.py
+    #def set_id(self, agent_id):
+    #    """
+    #    Sets the agent identifier
 
-        Args:
-            agent_id (str): The new Agent Id
-        """
-        self.agent_id = agent_id
+    #    Args:
+    #        agent_id (str): The new Agent Id
+    #    """
+    #    self.agent_id = agent_id
 
-    def set_icon(self, icon):
-        self.icon = icon
+    #geolocateagent.py
+    #def set_icon(self, icon):
+    #    self.icon = icon
 
-    def set_fleetmanager(self, fleetmanager_id):
-        """
-        Sets the fleetmanager JID address
-        Args:
-            fleetmanager_id (str): the fleetmanager jid
+    #vehicle.py
+    #def set_fleetmanager(self, fleetmanager_id):
+    #    """
+    #    Sets the fleetmanager JID address
+    #    Args:
+    #        fleetmanager_id (str): the fleetmanager jid
 
-        """
-        logger.info(
-            "Setting fleet {} for agent {}".format(
-                fleetmanager_id.split("@")[0], self.name
-            )
-        )
-        self.fleetmanager_id = fleetmanager_id
+    #    """
+    #    logger.info(
+    #        "Setting fleet {} for agent {}".format(
+    #            fleetmanager_id.split("@")[0], self.name
+    #        )
+    #    )
+    #    self.fleetmanager_id = fleetmanager_id
 
-    def set_fleet_type(self, fleet_type):
-        self.fleet_type = fleet_type
+    #simfleetagent.py
+    #def set_fleet_type(self, fleet_type):
+    #    self.fleet_type = fleet_type
 
-    def set_route_host(self, route_host):
-        """
-        Sets the route host server address
-        Args:
-            route_host (str): route host server address
+    #geolocateagent.py
+    #def set_route_host(self, route_host):
+    #    """
+    #    Sets the route host server address
+    #    Args:
+    #        route_host (str): route host server address
 
-        """
-        self.route_host = route_host
+    #    """
+    #    self.route_host = route_host
 
     async def send(self, msg):
         if not msg.sender:
@@ -395,55 +410,57 @@ class TransportAgent(Agent):
         )
         self.set("current_station", None)
 
-    async def move_to(self, dest):
-        """
-        Moves the transport to a new destination.
+    # Estará en movable.py
+    #async def move_to(self, dest):
+    #    """
+    #    Moves the transport to a new destination.
 
-        Args:
-            dest (list): the coordinates of the new destination (in lon, lat format)
+    #    Args:
+    #        dest (list): the coordinates of the new destination (in lon, lat format)
 
-        Raises:
-             AlreadyInDestination: if the transport is already in the destination coordinates.
-        """
-        if self.get("current_pos") == dest:
-            raise AlreadyInDestination
-        counter = 5
-        path = None
-        distance, duration = 0, 0
-        while counter > 0 and path is None:
-            logger.debug(
-                "Requesting path from {} to {}".format(self.get("current_pos"), dest)
-            )
-            path, distance, duration = await self.request_path(
-                self.get("current_pos"), dest
-            )
-            counter -= 1
-        if path is None:
-            raise PathRequestException("Error requesting route.")
+    #    Raises:
+    #         AlreadyInDestination: if the transport is already in the destination coordinates.
+    #    """
+    #    if self.get("current_pos") == dest:
+    #        raise AlreadyInDestination
+    #    counter = 5
+    #    path = None
+    #    distance, duration = 0, 0
+    #    while counter > 0 and path is None:
+    #        logger.debug(
+    #            "Requesting path from {} to {}".format(self.get("current_pos"), dest)
+    #        )
+    #        path, distance, duration = await self.request_path(
+    #            self.get("current_pos"), dest
+    #        )
+    #        counter -= 1
+    #    if path is None:
+    #        raise PathRequestException("Error requesting route.")
 
-        self.set("path", path)
-        try:
-            self.chunked_path = chunk_path(path, self.get("speed_in_kmh"))
-        except Exception as e:
-            logger.error("Exception chunking path {}: {}".format(path, e))
-            raise PathRequestException
-        self.dest = dest
-        self.distances.append(distance)
-        self.durations.append(duration)
-        behav = self.MovingBehaviour(period=1)
-        self.add_behaviour(behav)
+    #    self.set("path", path)
+    #    try:
+    #        self.chunked_path = chunk_path(path, self.get("speed_in_kmh"))
+    #    except Exception as e:
+    #        logger.error("Exception chunking path {}: {}".format(path, e))
+    #        raise PathRequestException
+    #    self.dest = dest
+    #    self.distances.append(distance)
+    #    self.durations.append(duration)
+    #    behav = self.MovingBehaviour(period=1)
+    #    self.add_behaviour(behav)
 
-    async def step(self):
-        """
-        Advances one step in the simulation
-        """
-        if self.chunked_path:
-            _next = self.chunked_path.pop(0)
-            distance = distance_in_meters(self.get_position(), _next)
-            self.animation_speed = (
-                distance / kmh_to_ms(self.get("speed_in_kmh")) * ONESECOND_IN_MS
-            )
-            await self.set_position(_next)
+    #Estará en movable.py
+    #async def step(self):
+    #    """
+    #    Advances one step in the simulation
+    #    """
+    #    if self.chunked_path:
+    #        _next = self.chunked_path.pop(0)
+    #        distance = distance_in_meters(self.get_position(), _next)
+    #        self.animation_speed = (
+    #            distance / kmh_to_ms(self.get("speed_in_kmh")) * ONESECOND_IN_MS
+    #        )
+    #        await self.set_position(_next)
 
     async def inform_station(self, data=None):
         """
@@ -506,31 +523,33 @@ class TransportAgent(Agent):
         )
         await self.send(reply)
 
-    async def request_path(self, origin, destination):
-        """
-        Requests a path between two points (origin and destination) using the route server.
+    #Estará en movable.py
+    #async def request_path(self, origin, destination):
+    #    """
+    #    Requests a path between two points (origin and destination) using the route server.
 
-        Args:
-            origin (list): the coordinates of the origin of the requested path
-            destination (list): the coordinates of the end of the requested path
+    #    Args:
+    #        origin (list): the coordinates of the origin of the requested path
+    #        destination (list): the coordinates of the end of the requested path
 
-        Returns:
-            list, float, float: A list of points that represent the path from origin to destination, the distance and
-            the estimated duration
+    #    Returns:
+    #        list, float, float: A list of points that represent the path from origin to destination, the distance and
+    #        the estimated duration
 
-        Examples:
-            >>> path, distance, duration = await self.request_path(origin=[0,0], destination=[1,1])
-            >>> print(path)
-            [[0,0], [0,1], [1,1]]
-            >>> print(distance)
-            2.0
-            >>> print(duration)
-            3.24
-        """
-        return await request_path(self, origin, destination, self.route_host)
+    #    Examples:
+    #        >>> path, distance, duration = await self.request_path(origin=[0,0], destination=[1,1])
+    #        >>> print(path)
+    #        [[0,0], [0,1], [1,1]]
+    #        >>> print(distance)
+    #        2.0
+    #        >>> print(duration)
+    #        3.24
+    #    """
+    #    return await request_path(self, origin, destination, self.route_host)
 
-    def set_initial_position(self, coords):
-        self.set("current_pos", coords)
+    #geolocatedagent.py
+    #def set_initial_position(self, coords):
+    #    self.set("current_pos", coords)
 
     async def set_position(self, coords=None):
         """
@@ -562,32 +581,35 @@ class TransportAgent(Agent):
             else:
                 await self.arrived_to_destination()
 
-    def get_position(self):
-        """
-        Returns the current position of the customer.
+    #geolocatedagent.py
+    #def get_position(self):
+    #    """
+    #    Returns the current position of the customer.
 
-        Returns:
-            list: the coordinates of the current position of the customer (lon, lat)
-        """
-        return self.get("current_pos")
+    #    Returns:
+    #        list: the coordinates of the current position of the customer (lon, lat)
+    #    """
+    #    return self.get("current_pos")
 
-    def set_speed(self, speed_in_kmh):
-        """
-        Sets the speed of the transport.
+    # movable.py
+    #def set_speed(self, speed_in_kmh):
+    #    """
+    #    Sets the speed of the transport.
 
-        Args:
-            speed_in_kmh (float): the speed of the transport in km per hour
-        """
-        self.set("speed_in_kmh", speed_in_kmh)
+    #    Args:
+    #        speed_in_kmh (float): the speed of the transport in km per hour
+    #    """
+    #    self.set("speed_in_kmh", speed_in_kmh)
 
-    def is_in_destination(self):
-        """
-        Checks if the transport has arrived to its destination.
+    #movable.py
+    #def is_in_destination(self):
+    #    """
+    #    Checks if the transport has arrived to its destination.
 
-        Returns:
-            bool: whether the transport is at its destination or not
-        """
-        return self.dest == self.get_position()
+    #    Returns:
+    #        bool: whether the transport is at its destination or not
+    #    """
+    #    return self.dest == self.get_position()
 
     def set_km_expense(self, expense=0):
         self.current_autonomy_km -= expense
@@ -657,20 +679,21 @@ class TransportAgent(Agent):
             "icon": self.icon,
         }
 
-    class MovingBehaviour(PeriodicBehaviour):
-        """
-        This is the internal behaviour that manages the movement of the transport.
-        It is triggered when the transport has a new destination and the periodic tick
-        is recomputed at every step to show a fine animation.
-        This moving behaviour includes to update the transport coordinates as it
-        moves along the path at the specified speed.
-        """
+    #movable.py
+    #class MovingBehaviour(PeriodicBehaviour):
+    #    """
+    #    This is the internal behaviour that manages the movement of the transport.
+    #    It is triggered when the transport has a new destination and the periodic tick
+    #    is recomputed at every step to show a fine animation.
+    #    This moving behaviour includes to update the transport coordinates as it
+    #    moves along the path at the specified speed.
+    #    """
 
-        async def run(self):
-            await self.agent.step()
-            self.period = self.agent.animation_speed / ONESECOND_IN_MS
-            if self.agent.is_in_destination():
-                self.agent.remove_behaviour(self)
+    #    async def run(self):
+    #        await self.agent.step()
+    #        self.period = self.agent.animation_speed / ONESECOND_IN_MS
+    #        if self.agent.is_in_destination():
+    #            self.agent.remove_behaviour(self)
 
 
 class RegistrationBehaviour(CyclicBehaviour):

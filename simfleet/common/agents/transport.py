@@ -551,6 +551,7 @@ class TransportAgent(VehicleAgent):
     #def set_initial_position(self, coords):
     #    self.set("current_pos", coords)
 
+    #Se usa el metodo de geolocated, aparte de la funcionalidad de avisar al customer, que es algo solo del transporte
     async def set_position(self, coords=None):
         """
         Sets the position of the transport. If no position is provided it is located in a random position.
@@ -558,14 +559,18 @@ class TransportAgent(VehicleAgent):
         Args:
             coords (list): a list coordinates (longitude and latitude)
         """
-        if coords:
-            self.set("current_pos", coords)
-        else:
-            self.set("current_pos", random_position())
+        #if coords:
+        #    self.set("current_pos", coords)
+        #else:
+        #    self.set("current_pos", random_position())
 
-        logger.debug(
-            "Transport {} position is {}".format(self.agent_id, self.get("current_pos"))
-        )
+        #logger.debug(
+        #    "Transport {} position is {}".format(self.agent_id, self.get("current_pos"))
+        #)
+
+        super().set_position(coords)
+        self.set("current_pos", coords)
+
         if self.status == TRANSPORT_MOVING_TO_DESTINATION:
             await self.inform_customer(
                 CUSTOMER_LOCATION, {"location": self.get("current_pos")}
@@ -576,6 +581,7 @@ class TransportAgent(VehicleAgent):
                     self.agent_id, self.status
                 )
             )
+
             if self.status == TRANSPORT_MOVING_TO_STATION:
                 await self.arrived_to_station()
             else:
@@ -624,7 +630,13 @@ class TransportAgent(VehicleAgent):
         return self.current_autonomy_km
 
     def calculate_km_expense(self, origin, start, dest=None):
+        logger.debug(
+            "1.1) Variable origin: {}, start: {} y dest: {}".format(origin, start, dest)
+        )
         fir_distance = distance_in_meters(origin, start)
+        logger.debug(
+            "1.2) Variable fir_distance {}".format(fir_distance)
+        )
         sec_distance = distance_in_meters(start, dest)
         if dest is None:
             sec_distance = 0
@@ -848,7 +860,13 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         # informs the TravelBehaviour of the station that the transport is coming
 
         self.agent.num_charges += 1
+        logger.debug(
+            "1) Variable current_pos: {} y dest: {}".format(self.get("current_pos"), dest)
+        )
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
+        logger.debug(
+            "2) Variable travel_km: {}".format(travel_km)
+        )
         self.agent.set_km_expense(travel_km)
         try:
             logger.debug("{} move_to station {}".format(self.agent.name, station_id))

@@ -26,7 +26,23 @@ class GeoLocatedAgent(SimfleetAgent):
         """
         self.route_host = route_host
 
+    #Used TransportAgent (hija) - CustomerAgent
+    def set_position(self, coords=None):
+        """
+        Sets the position of the Agent. If no position is provided it is located in a random position.
 
+        Args:
+            coords (list): a list coordinates (longitude and latitude)
+        """
+        #logger.debug("1)Agent {} position is {}".format(self.agent_id, coords))
+
+        if coords:
+            self.current_pos = coords
+        else:
+            self.current_pos = random_position()
+        logger.debug(
+            "Agent {} position is {}".format(self.agent_id, self.current_pos)
+        )
 
     #Used TransportAgent
     def set_initial_position(self, coords):

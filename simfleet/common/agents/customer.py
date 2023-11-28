@@ -3,7 +3,7 @@ import time
 from asyncio import CancelledError
 
 from loguru import logger
-from spade.agent import Agent
+#from spade.agent import Agent      Not used
 from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 from spade.template import Template
@@ -29,31 +29,37 @@ from simfleet.utils.utils_old import (
     status_to_str,
 )
 
+from simfleet.common.geolocatedagent import GeoLocatedAgent
 
-class CustomerAgent(Agent):
+#class CustomerAgent(Agent):
+#    def __init__(self, agentjid, password):
+#        super().__init__(agentjid, password)
+
+class CustomerAgent(GeoLocatedAgent):
     def __init__(self, agentjid, password):
         super().__init__(agentjid, password)
-        self.agent_id = None
-        self.strategy = None
-        self.icon = None
-        self.running_strategy = False
-        self.fleet_type = None
+
+        #self.agent_id = None                    #simfleetagent.py
+        #self.strategy = None                    #simfleetagent.py
+        #self.icon = None                        #geolocatedagent.py
+        #self.running_strategy = False           #simfleetagent.py
+        #self.fleet_type = None                  #simfleetagent.py
         self.fleetmanagers = None
-        self.route_host = None
+        #self.route_host = None                  #geolocatedagent.py
         self.status = CUSTOMER_WAITING
-        self.current_pos = None
+        #self.current_pos = None                 #geolocatedagent.py
         self.dest = None
-        self.port = None
+        #self.port = None                        #simfleetagent.py
         self.transport_assigned = None
-        self.init_time = None
+        #self.init_time = None                   #simfleetagent.py
         self.waiting_for_pickup_time = None
         self.pickup_time = None
-        self.end_time = None
-        self.stopped = False
-        self.ready = False
-        self.is_launched = False
+        #self.end_time = None                    #simfleetagent.py
+        #self.stopped = False                    #simfleetagent.py
+        #self.ready = False                      #simfleetagent.py
+        #self.is_launched = False                #simfleetagent.py
 
-        self.directory_id = None
+        #self.directory_id = None                #simfleetagent.py
         self.type_service = "taxi"
 
     async def setup(self):
@@ -77,8 +83,9 @@ class CustomerAgent(Agent):
                 )
             )
 
-    def is_ready(self):
-        return not self.is_launched or (self.is_launched and self.ready)
+    # simfleetagent.py
+    #def is_ready(self):
+    #    return not self.is_launched or (self.is_launched and self.ready)
 
     def run_strategy(self):
         """import json
@@ -92,25 +99,28 @@ class CustomerAgent(Agent):
             self.add_behaviour(self.strategy(), template1 | template2)
             self.running_strategy = True
 
-    def set_id(self, agent_id):
-        """
-        Sets the agent identifier
-        Args:
-            agent_id (str): The new Agent Id
-        """
-        self.agent_id = agent_id
+    # simfleetagent.py
+    #def set_id(self, agent_id):
+    #    """
+    #    Sets the agent identifier
+    #    Args:
+    #        agent_id (str): The new Agent Id
+    #    """
+    #    self.agent_id = agent_id
 
-    def set_icon(self, icon):
-        self.icon = icon
+    # simfleetagent.py
+    #def set_icon(self, icon):
+    #    self.icon = icon
 
-    def set_fleet_type(self, fleet_type):
-        """
-        Sets the type of fleet to be used.
+    # simfleetagent.py
+    #def set_fleet_type(self, fleet_type):
+    #    """
+    #    Sets the type of fleet to be used.
 
-        Args:
-            fleet_type (str): the type of the fleet to be used
-        """
-        self.fleet_type = fleet_type
+    #    Args:
+    #        fleet_type (str): the type of the fleet to be used
+    #    """
+    #    self.fleet_type = fleet_type
 
     def set_fleetmanager(self, fleetmanagers):
         """
@@ -121,38 +131,41 @@ class CustomerAgent(Agent):
         """
         self.fleetmanagers = fleetmanagers
 
-    def set_route_host(self, route_host):
-        """
-        Sets the route host server address
-        Args:
-            route_host (str): the route host server address
+    # gelocatedagent.py
+    #def set_route_host(self, route_host):
+    #    """
+    #    Sets the route host server address
+    #    Args:
+    #        route_host (str): the route host server address
 
-        """
-        self.route_host = route_host
+    #    """
+    #    self.route_host = route_host
 
-    def set_directory(self, directory_id):
-        """
-        Sets the directory JID address
-        Args:
-            directory_id (str): the DirectoryAgent jid
+    # simfleetagent.py
+    #def set_directory(self, directory_id):
+    #    """
+    #    Sets the directory JID address
+    #    Args:
+    #        directory_id (str): the DirectoryAgent jid
 
-        """
-        self.directory_id = directory_id
+    #    """
+    #    self.directory_id = directory_id
 
-    def set_position(self, coords=None):
-        """
-        Sets the position of the customer. If no position is provided it is located in a random position.
+    # geolocatedagent.py
+    #def set_position(self, coords=None):
+    #    """
+    #    Sets the position of the customer. If no position is provided it is located in a random position.
 
-        Args:
-            coords (list): a list coordinates (longitude and latitude)
-        """
-        if coords:
-            self.current_pos = coords
-        else:
-            self.current_pos = random_position()
-        logger.debug(
-            "Customer {} position is {}".format(self.agent_id, self.current_pos)
-        )
+    #    Args:
+    #        coords (list): a list coordinates (longitude and latitude)
+    #    """
+    #    if coords:
+    #        self.current_pos = coords
+    #    else:
+    #        self.current_pos = random_position()
+    #    logger.debug(
+    #        "Customer {} position is {}".format(self.agent_id, self.current_pos)
+    #    )
 
     def get_position(self):
         """
@@ -211,17 +224,18 @@ class CustomerAgent(Agent):
         """
         return await request_path(self, origin, destination, self.route_host)
 
-    def total_time(self):
-        """
-        Returns the time since the customer was activated until it reached its destination.
+    # simfleetagent.py
+    #def total_time(self):
+    #    """
+    #    Returns the time since the customer was activated until it reached its destination.
 
-        Returns:
-            float: the total time of the customer's simulation.
-        """
-        if self.init_time and self.end_time:
-            return self.end_time - self.init_time
-        else:
-            return None
+    #    Returns:
+    #        float: the total time of the customer's simulation.
+    #    """
+    #    if self.init_time and self.end_time:
+    #        return self.end_time - self.init_time
+    #    else:
+    #        return None
 
     def get_waiting_time(self):
         """

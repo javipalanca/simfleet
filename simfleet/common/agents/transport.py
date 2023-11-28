@@ -3,10 +3,10 @@ import json
 import sys
 import time
 from asyncio import CancelledError
-from collections import defaultdict
+#from collections import defaultdict    #Not used
 
 from loguru import logger
-from spade.agent import Agent
+#from spade.agent import Agent       #Not used
 from spade.behaviour import PeriodicBehaviour, CyclicBehaviour
 from spade.message import Message
 from spade.template import Template
@@ -48,7 +48,7 @@ from simfleet.utils.utils_old import (
 from simfleet.common.vehicle import VehicleAgent
 
 MIN_AUTONOMY = 2
-ONESECOND_IN_MS = 1000                                         #movable.py
+#ONESECOND_IN_MS = 1000                                         #movable.py
 
 
 #class TransportAgent(Agent):
@@ -630,13 +630,7 @@ class TransportAgent(VehicleAgent):
         return self.current_autonomy_km
 
     def calculate_km_expense(self, origin, start, dest=None):
-        logger.debug(
-            "1.1) Variable origin: {}, start: {} y dest: {}".format(origin, start, dest)
-        )
         fir_distance = distance_in_meters(origin, start)
-        logger.debug(
-            "1.2) Variable fir_distance {}".format(fir_distance)
-        )
         sec_distance = distance_in_meters(start, dest)
         if dest is None:
             sec_distance = 0
@@ -860,13 +854,7 @@ class TransportStrategyBehaviour(StrategyBehaviour):
         # informs the TravelBehaviour of the station that the transport is coming
 
         self.agent.num_charges += 1
-        logger.debug(
-            "1) Variable current_pos: {} y dest: {}".format(self.get("current_pos"), dest)
-        )
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
-        logger.debug(
-            "2) Variable travel_km: {}".format(travel_km)
-        )
         self.agent.set_km_expense(travel_km)
         try:
             logger.debug("{} move_to station {}".format(self.agent.name, station_id))

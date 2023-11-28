@@ -18,7 +18,7 @@ class SimfleetAgent(Agent):
         self.strategy = None
         self.running_strategy = False
         self.port = None
-        self.stopped = True
+        self.stopped = False #True
         self.ready = False
         self.is_launched = False
         self.directory_id = None

@@ -191,7 +191,7 @@ class TransportRegistrationForFleetBehaviour(CyclicBehaviour):
                         self.add_transport(content)
                         await self.accept_registration(msg.sender)
                         logger.debug(
-                            "Registration in the fleet {}".format(self.agent.name)
+                            "Registration in the {} fleet to {}".format(self.agent.name,content.get("name"))
                         )
                     else:
                         await self.reject_registration(msg.sender)

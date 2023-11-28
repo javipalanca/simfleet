@@ -119,7 +119,7 @@ class RegistrationBehaviour(CyclicBehaviour):
                     content = json.loads(msg.body)
                     self.add_service(content)
                     logger.debug(
-                        "Registration in the dictionary {}".format(self.agent.name)
+                        "Registration in the dictionary: {}".format(content["jid"])
                     )
                     await self.send_confirmation(agent_id)
         except CancelledError:

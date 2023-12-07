@@ -35,6 +35,7 @@ class SimfleetConfig(object):
         self.__config["transports"] = []
         self.__config["customers"] = []
         self.__config["stations"] = []
+        self.__config["vehicles"] = []  # New vehicle
 
         if filename:
             self.load_config(filename)
@@ -60,6 +61,10 @@ class SimfleetConfig(object):
         )
         self.__config["station_strategy"] = self.__config.get(
             "station_strategy", "simfleet.station.StationStrategyBehaviour"
+        )
+        #New vehicle
+        self.__config["vehicle_strategy"] = self.__config.get(
+            "vehicle_strategy", "simfleet.strategies_fsm.RequestAndTravelBehavior"
         )
 
         self.__config["fleetmanager_name"] = self.__config.get(
@@ -122,6 +127,14 @@ class SimfleetConfig(object):
         except KeyError:
             return 0
 
+    #New vehicle
+    @property
+    def num_vehicles(self):
+        try:
+            return len(self.__config["vehicles"])
+        except KeyError:
+            return 0
+
     def __getitem__(self, item):
         return self.__config[item]
 
@@ -148,6 +161,7 @@ def set_default_strategies(
         transport_strategy,
         customer_strategy,
         station_strategy,
+        vehicle_strategy,   #New vehicle
 ):
     """
     Gets the strategy strings and loads their classes. This strategies are prepared to be injected into any
@@ -167,6 +181,7 @@ def set_default_strategies(
     class_dict['transport'] = load_class(transport_strategy)
     class_dict['customer'] = load_class(customer_strategy)
     class_dict['station'] = load_class(station_strategy)
+    class_dict['vehicle'] = load_class(vehicle_strategy)  #New vehicle
 
     logger.debug(
         "Loaded default strategy classes: {}, {}, {}, {} and {}".format(
@@ -175,6 +190,7 @@ def set_default_strategies(
             class_dict['transport'],
             class_dict['customer'],
             class_dict['station'],
+            class_dict['vehicle'],  #New vehicle
         )
     )
 

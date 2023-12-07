@@ -9,6 +9,7 @@ from simfleet.common.agents.fleetmanager import FleetManagerAgent
 from simfleet.common.agents.transport import TransportAgent
 from simfleet.common.agents.customer import CustomerAgent
 from simfleet.common.agents.station import StationAgent
+from simfleet.common.vehicle import VehicleAgent
 
 from simfleet.utils.reflection import load_class
 
@@ -294,5 +295,71 @@ class StationFactory(Factory):
         agent.set_position(position)
         agent.set_available_places(places)
         agent.set_power(power)
+
+        return agent
+
+#New vehicle
+class VehicleFactory(Factory):    #VehicleFactory
+    @classmethod
+    def create_agent(cls,
+                    domain,
+                    name,
+                    password,
+                    default_strategy,
+                    strategy=None,
+                    jid_directory=None,
+                    fleetmanager=None,
+                    fleet_type=None,
+                    route_host=None,
+                    autonomy=None,
+                    current_autonomy=None,
+                    position=None,
+                    speed=None,
+                    target=None,
+                    power=None,
+                    places=None,
+                    ):
+        """
+                                Create a vehicle agent.
+
+                                Args:
+                                    domain (str): name of domain xmpp
+                                    name (str): name of the agent
+                                    password (str): password of the agent
+                                    default_strategy (class): default strategy class of the agent
+                                    strategy (class, optional): strategy class of the agent
+                                    jid_directory (JID): directory JID address
+                                    fleetmanager (str): fleetmanager JID address
+                                    fleet_type (str): type of fleet to be used
+                                    route_host (str): route host address
+                                    autonomy (str):
+                                    current_autonomy (str):
+                                    position (str):
+                                    speed (str):
+                                """
+        jid = f"{name}@{domain}"
+        logger.debug("Creating Vehicle agent: {}".format(jid))
+        agent = VehicleAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
+        agent.set_id(name)  # Establece el identificador del agente
+        agent.set_directory(jid_directory)
+
+        if type(strategy) is str:   # Añadimos el objeto de la clase cargada a la variable strategy
+            agent.strategy = load_class(strategy)
+        else:
+            agent.strategy = default_strategy
+
+        logger.debug("Assigning type {} to vehicle {}".format(fleet_type, agent.agent_id))
+        agent.set_fleet_type(fleet_type)
+        #agent.set_fleetmanager(fleetmanager)
+        agent.set_route_host(route_host)
+        agent.dest = target
+
+        #if autonomy:
+        #    agent.set_autonomy(autonomy, current_autonomy)
+
+        agent.set_initial_position(position)
+
+        if speed:
+            agent.set_speed(speed)
 
         return agent

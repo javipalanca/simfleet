@@ -118,3 +118,6 @@ class VehicleStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = json.dumps(content)
         await self.send(msg)
+
+    async def run(self):
+        raise NotImplementedError

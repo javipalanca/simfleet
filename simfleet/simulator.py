@@ -21,6 +21,7 @@ from simfleet.common.agents.factory.create import DirectoryFactory
 from simfleet.common.agents.factory.create import FleetManagerFactory
 from simfleet.common.agents.factory.create import StationFactory
 from simfleet.common.agents.factory.create import TransportFactory
+from simfleet.common.agents.factory.create import VehicleFactory
 from simfleet.utils.utils_old import status_to_str, avg, request_path as async_request_path
 from .utils.reflection import load_class
 
@@ -91,6 +92,7 @@ class SimulatorAgent(Agent):
                                                 config.transport_strategy,
                                                 config.customer_strategy,
                                                 config.station_strategy,
+                                                config.vehicle_strategy,  # New vehicle
                                                 )
 
         self.route_host = config.route_host
@@ -108,11 +110,12 @@ class SimulatorAgent(Agent):
                                     )
 
         logger.info(
-            "Creating {} managers, {} transports, {} customers and {} stations.".format(
+            "Creating {} managers, {} transports, {} customers, {} stations and {} vehicles.".format(
                 config.num_managers,
                 config.num_transport,
                 config.num_customers,
                 config.num_stations,
+                config.num_vehicles,  #New vehicle
             )
         )
         self.load_scenario()
@@ -195,6 +198,14 @@ class SimulatorAgent(Agent):
             all_coroutines += future.result()
         except Exception as e:
             logger.exception("EXCEPTION creating Station agents batch {}".format(e))
+        #New vehicle
+        try:
+            future = self.submit(
+                self.async_create_agents_batch_vehicle(self.config["vehicles"])
+            )
+            all_coroutines += future.result()
+        except Exception as e:
+            logger.exception("EXCEPTION creating Vehicles agents batch {}".format(e))
 
         assert all([asyncio.iscoroutine(x) for x in all_coroutines])
         self.submit(self.gather_batch(all_coroutines))
@@ -330,6 +341,57 @@ class SimulatorAgent(Agent):
             self.set_icon(agent, icon, default="electric_station")
 
             coros.append(agent.start())
+        return coros
+
+    #New vehicle
+    async def async_create_agents_batch_vehicle(self, agents: list) -> List:
+        coros = []
+        for transport in agents:
+            name = transport["name"]
+            logger.debug("vehicle creation batch = {}".format(name))
+            password = (
+                transport["password"]
+                if "password" in transport
+                else faker_factory.password()
+            )
+
+            position = transport["position"]
+            # fleetmanager = transport["fleet"]
+            fleet_type = transport["fleet_type"]
+            speed = transport.get("speed")
+            target = transport["destination"]
+            # fuel = transport.get("fuel")
+            # autonomy = transport.get("autonomy")
+            # current_autonomy = transport.get("current_autonomy")
+            strategy = transport.get("strategy")
+            icon = transport.get("icon")
+            delay = transport["delay"] if "delay" in transport else None
+
+            delayed = False
+            if delay is not None:
+                delayed = True
+
+            agent = self.create_vehicle_agent(
+                name,
+                password,
+                position=position,
+                speed=speed,
+                fleet_type=fleet_type,
+                # fleetmanager=fleetmanager,
+                strategy=strategy,
+                # autonomy=autonomy,
+                # current_autonomy=current_autonomy,
+                delayed=delayed,
+                target=target,
+            )
+            self.set_icon(agent, icon, default="transport")
+
+            if delay is not None:
+                if delay not in self.delayed_launch_agents:
+                    self.delayed_launch_agents[delay] = []
+                self.delayed_launch_agents[delay].append(agent)
+            else:
+                coros.append(agent.start())
         return coros
 
     def load_icons(self, filename):
@@ -950,6 +1012,7 @@ class SimulatorAgent(Agent):
         self.set("transport_agents", {})
         self.set("customer_agents", {})
         self.set("station_agents", {})
+        self.set("vehicle_agents", {})  #New vehicle
         self.simulation_time = None
         self.simulation_init_time = None
 
@@ -1380,6 +1443,47 @@ class SimulatorAgent(Agent):
 
         return agent
 
+    #New vehicle
+    def create_vehicle_agent(self,
+                            name,
+                            password,
+                            fleet_type,
+                            # fleetmanager,
+                            position,
+                            strategy=None,
+                            speed=None,
+                            # autonomy=None,
+                            # current_autonomy=None,
+                            delayed=False,
+                            target=None,
+                            ):
+
+        agent = VehicleFactory.create_agent(domain=self.jid.domain,
+                                            name=name,
+                                            password=password,
+                                            default_strategy=self.default_strategies['vehicle'],
+                                            strategy=strategy,
+                                            jid_directory=self.get_directory().jid,
+                                            # fleetmanager=fleetmanager,
+                                            fleet_type=fleet_type,
+                                            route_host=self.route_host,
+                                            # autonomy=autonomy,
+                                            # current_autonomy=current_autonomy,
+                                            position=position,
+                                            speed=speed,
+                                            target=target,
+                                            )
+
+        if self.simulation_running:
+            agent.run_strategy()
+
+        self.add_vehicle(agent)
+
+        if not delayed:
+            agent.is_launched = True
+
+        return agent
+
     def add_manager(self, agent):
         """
         Adds a new ``FleetManagerAgent`` to the store.
@@ -1419,6 +1523,17 @@ class SimulatorAgent(Agent):
         """
         with self.simulation_mutex:
             self.get("station_agents")[agent.name] = agent
+
+    #New vehicle
+    def add_vehicle(self, agent):
+        """
+        Adds a new :class:`VehicleAgent` to the store.
+
+        Args:
+            agent (``VehicleAgent``): the instance of the VehicleAgent to be added
+        """
+        with self.simulation_mutex:
+            self.get("vehicle_agents")[agent.name] = agent
 
 
     def get_simulation_time(self):

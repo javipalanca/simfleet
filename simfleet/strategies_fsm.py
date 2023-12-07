@@ -5,6 +5,7 @@ from spade.behaviour import State, FSMBehaviour
 
 from simfleet.common.agents.customer import CustomerStrategyBehaviour
 from simfleet.common.agents.fleetmanager import FleetManagerStrategyBehaviour
+from simfleet.common.vehicle import VehicleStrategyBehaviour    #New vehicle
 from simfleet.utils.helpers import PathRequestException, distance_in_meters
 from simfleet.communications.protocol import (
     REQUEST_PERFORMATIVE,
@@ -469,3 +470,19 @@ class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
                         )
                     )
                     self.agent.status = CUSTOMER_WAITING
+
+
+################################################################
+#                                                              #
+#                     Vehicle Strategy                         #
+#                                                              #
+################################################################
+class RequestAndTravelBehavior(VehicleStrategyBehaviour):
+    """
+    The default strategy for the Vehicle agent. By default it register and move agent to the destination.
+    """
+
+    async def run(self):
+
+        if not self.agent.registration:
+            await self.send_registration()

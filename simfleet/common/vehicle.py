@@ -175,7 +175,7 @@ class VehicleRegistrationBehaviour(CyclicBehaviour):
                 if performative == ACCEPT_PERFORMATIVE:
                     self.agent.set_registration(True)
                     logger.info("Registration in the dictionary of services")
-                    self.agent.status = VEHICLE_WAITING
+
         except CancelledError:
             logger.debug("Cancelling async tasks...")
         except Exception as e:
@@ -205,7 +205,7 @@ class VehicleStrategyBehaviour(StrategyBehaviour):
                 self.agent.name, self.agent.directory_id
             )
         )
-
+        self.agent.status = VEHICLE_WAITING
         content = {"jid": str(self.agent.jid), "type": self.agent.fleet_type}
         msg = Message()
         msg.to = str(self.agent.directory_id)

@@ -37,11 +37,13 @@ class GeoLocatedAgent(SimfleetAgent):
         #logger.debug("1)Agent {} position is {}".format(self.agent_id, coords))
 
         if coords:
-            self.current_pos = coords
+            #self.current_pos = coords      #Non-parallel variable - Used customer.py
+            self.set("current_pos", coords)
         else:
-            self.current_pos = random_position()
+            #self.current_pos = random_position()       #Non-parallel variable - Used customer.py
+            self.set("current_pos", random_position())
         logger.debug(
-            "Agent {} position is {}".format(self.agent_id, self.current_pos)
+            "Agent {} position is {}".format(self.agent_id, self.get("current_pos"))
         )
 
     #Used TransportAgent

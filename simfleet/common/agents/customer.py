@@ -167,14 +167,15 @@ class CustomerAgent(GeoLocatedAgent):
     #        "Customer {} position is {}".format(self.agent_id, self.current_pos)
     #    )
 
-    def get_position(self):
-        """
-        Returns the current position of the customer.
+    # geolocatedagent.py
+    #def get_position(self):
+    #    """
+    #    Returns the current position of the customer.
 
-        Returns:
-            list: the coordinates of the current position of the customer (lon, lat)
-        """
-        return self.current_pos
+    #    Returns:
+    #        list: the coordinates of the current position of the customer (lon, lat)
+    #    """
+    #    return self.current_pos
 
     def set_target_position(self, coords=None):
         """
@@ -289,7 +290,8 @@ class CustomerAgent(GeoLocatedAgent):
         t = self.get_waiting_time()
         return {
             "id": self.agent_id,
-            "position": [float("{0:.6f}".format(coord)) for coord in self.current_pos],
+            #"position": [float("{0:.6f}".format(coord)) for coord in self.current_pos],     #Non-parallel variable
+            "position": [float("{0:.6f}".format(coord)) for coord in self.get("current_pos")],
             "dest": [float("{0:.6f}".format(coord)) for coord in self.dest],
             "status": self.status,
             "transport": self.transport_assigned.split("@")[0]
@@ -415,7 +417,8 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         if content is None or len(content) == 0:
             content = {
                 "customer_id": str(self.agent.jid),
-                "origin": self.agent.current_pos,
+                #"origin": self.agent.current_pos,       #Non-parallel variable
+                "origin": self.agent.get("current_pos"),
                 "dest": self.agent.dest,
             }
 
@@ -451,7 +454,8 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
         content = {
             "customer_id": str(self.agent.jid),
-            "origin": self.agent.current_pos,
+            #"origin": self.agent.current_pos,               #Non-parallel variable
+            "origin": self.agent.get("current_pos"),
             "dest": self.agent.dest,
         }
         reply.body = json.dumps(content)
@@ -477,7 +481,8 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
         reply.set_metadata("performative", REFUSE_PERFORMATIVE)
         content = {
             "customer_id": str(self.agent.jid),
-            "origin": self.agent.current_pos,
+            #"origin": self.agent.current_pos,              #Non-parallel variable
+            "origin": self.agent.get("current_pos"),
             "dest": self.agent.dest,
         }
         reply.body = json.dumps(content)

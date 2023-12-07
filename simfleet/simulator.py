@@ -23,7 +23,6 @@ from simfleet.common.agents.factory.create import StationFactory
 from simfleet.common.agents.factory.create import TransportFactory
 from simfleet.common.agents.factory.create import VehicleFactory
 from simfleet.utils.utils_old import status_to_str, avg, request_path as async_request_path
-from .utils.reflection import load_class
 
 from simfleet.config.settings import set_default_strategies
 
@@ -432,7 +431,7 @@ class SimulatorAgent(Agent):
         """
         if self.config.max_time is None:
             return False
-        return self.time_is_out() or self.all_customers_in_destination()
+        return self.time_is_out() or self.all_customers_in_destination() and self.all_vehicles_in_destination()  #New vehicle
 
     def time_is_out(self):
         """
@@ -459,6 +458,7 @@ class SimulatorAgent(Agent):
                             + list(self.agent.transport_agents.values())
                             + list(self.agent.customer_agents.values())
                             + list(self.agent.station_agents.values())
+                            + list(self.agent.vehicle_agents.values())  # New vehicle
                         )
                         while not all([agent.is_ready() for agent in all_agents]):
                             logger.debug("Waiting for all agents to be ready")
@@ -482,6 +482,12 @@ class SimulatorAgent(Agent):
                             station.run_strategy()
                             logger.debug(
                                 f"Running strategy {self.agent.default_strategies['station']} to station {station.name}"
+                            )
+                        # New vehicle
+                        for vehicle in self.agent.vehicle_agents.values():
+                            vehicle.run_strategy()
+                            logger.debug(
+                                f"Running strategy {self.agent.default_strategies['vehicle']} to vehicle {vehicle.name}"
                             )
 
                     self.agent.simulation_running = True
@@ -684,6 +690,17 @@ class SimulatorAgent(Agent):
         """
         return self.get("station_agents")
 
+    # New vehicle
+    @property
+    def vehicle_agents(self):
+        """
+        Gets the dict of registered stations
+
+        Returns:
+            dict: a dict of ``StationAgent`` with the name in the key
+        """
+        return self.get("vehicle_agents")
+
     async def index_controller(self, request):
         """
         Web controller that returns the index page of the simulator.
@@ -769,6 +786,10 @@ class SimulatorAgent(Agent):
                 transport.to_json()
                 for transport in self.transport_agents.values()
                 if transport.is_launched
+            ]+[     #New vehicle - partial solution
+                vehicle.to_json()
+                for vehicle in self.vehicle_agents.values()
+                if vehicle.is_launched
             ],
             "customers": [
                 customer.to_json()
@@ -778,6 +799,12 @@ class SimulatorAgent(Agent):
             "tree": self.generate_tree(),
             "stats": self.get_stats(),
             "stations": [station.to_json() for station in self.station_agents.values()],
+            # New vehicle - partial solution
+            "vehicles": [
+                vehicle.to_json()
+                for vehicle in self.vehicle_agents.values()
+                if vehicle.is_launched
+            ],
         }
         return result
 
@@ -813,6 +840,19 @@ class SimulatorAgent(Agent):
                             "icon": "fa-user",
                         }
                         for i in self.customer_agents.values()
+                    ],
+                },
+                # New vehicle
+                {
+                    "name": "Vehicles",
+                    "count": "{}".format(len(self.vehicle_agents)),
+                    "children": [
+                        {
+                            "name": " {}".format(i.name.split("@")[0]),
+                            "status": i.status,
+                            "icon": "fa-taxi",
+                        }
+                        for i in self.vehicle_agents.values()
                     ],
                 },
             ],
@@ -901,6 +941,26 @@ class SimulatorAgent(Agent):
                 [
                     customer.is_in_destination()
                     for customer in self.customer_agents.values()
+                ]
+            )
+        else:
+            return False
+
+    # New vehicle
+    def all_vehicles_in_destination(self):
+        """
+        Checks whether the simulation has finished or not.
+        A simulation is finished if all customers are at their destinations.
+        If there is no customers the simulation is not finished.
+
+        Returns:`
+            bool: whether the simulation has finished or not.
+        """
+        if len(self.vehicle_agents) > 0:
+            return all(
+                [
+                    vehicle.is_in_destination()
+                    for vehicle in self.vehicle_agents.values()
                 ]
             )
         else:
@@ -1074,6 +1134,12 @@ class SimulatorAgent(Agent):
         with self.lock:
             for name, agent in self.station_agents.items():
                 logger.debug("Stopping station {}".format(name))
+                results.append(agent.stop())
+                agent.stopped = True
+        # New vehicle
+        with self.lock:
+            for name, agent in self.vehicle_agents.items():
+                logger.debug("Stopping vehicle {}".format(name))
                 results.append(agent.stop())
                 agent.stopped = True
         return results

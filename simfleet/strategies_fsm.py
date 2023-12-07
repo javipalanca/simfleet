@@ -29,6 +29,9 @@ from simfleet.utils.utils_old import (
     TRANSPORT_CHARGED,
     CUSTOMER_WAITING,
     CUSTOMER_ASSIGNED,
+    VEHICLE_WAITING,
+    VEHICLE_MOVING_TO_DESTINATION,
+    VEHICLE_IN_DEST,
 )
 
 
@@ -486,3 +489,21 @@ class RequestAndTravelBehavior(VehicleStrategyBehaviour):
 
         if not self.agent.registration:
             await self.send_registration()
+
+        if self.agent.status != None and self.agent.status == VEHICLE_WAITING:
+            try:
+                logger.debug(
+                    "Transport {} continue the trip".format(
+                        self.agent.name
+                    )
+                )
+
+                await self.planned_trip()
+                return
+            except PathRequestException:
+                logger.error(
+                    "Transport {} could not get a path to customer. Cancelling...".format(
+                        self.agent.name
+                    )
+                )
+                return

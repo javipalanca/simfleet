@@ -568,7 +568,7 @@ class TransportAgent(VehicleAgent):
         #    "Transport {} position is {}".format(self.agent_id, self.get("current_pos"))
         #)
 
-        super().set_position(coords)
+        await super().set_position(coords)
         self.set("current_pos", coords)
 
         if self.status == TRANSPORT_MOVING_TO_DESTINATION:

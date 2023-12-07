@@ -21,6 +21,14 @@ from simfleet.communications.protocol import (              #New vehicle
     REFUSE_PERFORMATIVE,
 )
 
+from simfleet.utils.utils_old import (                      #New vehicle
+    VEHICLE_WAITING,
+    VEHICLE_MOVING_TO_DESTINATION,
+    VEHICLE_IN_DEST,
+)
+
+from simfleet.utils.helpers import AlreadyInDestination     #New vehicle
+
 class VehicleAgent(MovableMixin, GeoLocatedAgent):
     def __init__(self, agentjid, password):
         GeoLocatedAgent.__init__(self, agentjid, password)
@@ -67,6 +75,93 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
                 )
             )
 
+    #New vehicle
+    def run_strategy(self):
+        """
+        Runs the strategy for the vehicle agent.
+        """
+        if not self.running_strategy:
+            template = Template()
+            template.set_metadata("protocol", REQUEST_PROTOCOL)
+            self.add_behaviour(self.strategy(), template)
+            self.running_strategy = True
+
+    #New vehicle
+    async def set_position(self, coords=None):
+        """
+        Sets the position of the vehicle. If no position is provided it is located in a random position.
+
+        Args:
+            coords (list): a list coordinates (longitude and latitude)
+        """
+        #if coords:
+        #    self.set("current_pos", coords)
+        #else:
+        #    self.set("current_pos", random_position())
+
+        #logger.debug(
+        #    "Transport {} position is {}".format(self.agent_id, self.get("current_pos"))
+        #)
+
+        super().set_position(coords)
+        self.set("current_pos", coords)
+
+        if self.is_in_destination():
+            logger.info(
+                "Vehicle {} has arrived to destination: {}. Position: {}".format(
+                    self.agent_id, self.is_in_destination(), self.get("current_pos")
+                )
+            )
+            if self.status == VEHICLE_MOVING_TO_DESTINATION:
+                self.status = VEHICLE_IN_DEST
+
+    #New vehicle
+    def to_json(self):
+        """
+        Serializes the main information of a transport agent to a JSON format.
+        It includes the id of the agent, its current position, the destination coordinates of the agent,
+        the current status, the speed of the transport (in km/h), the path it is following (if any), the customer that it
+        has assigned (if any), the number of assignments if has done and the distance that the transport has traveled.
+
+        Returns:
+            dict: a JSON doc with the main information of the transport.
+
+            Example::
+
+                {
+                    "id": "cphillips",
+                    "position": [ 39.461327, -0.361839 ],
+                    "dest": [ 39.460599, -0.335041 ],
+                    "status": 24,
+                    "speed": 1000,
+                    "path": [[0,0], [0,1], [1,0], [1,1], ...],
+                    "customer": "ghiggins@127.0.0.1",
+                    "assignments": 2,
+                    "distance": 3481.34
+                }
+        """
+        return {
+            "id": self.agent_id,
+            "position": [
+                float("{0:.6f}".format(coord)) for coord in self.get("current_pos")
+            ],
+            "dest": [float("{0:.6f}".format(coord)) for coord in self.dest]
+            if self.dest
+            else None,
+            "status": self.status,
+            "speed": float("{0:.2f}".format(self.animation_speed))
+            if self.animation_speed
+            else None,
+            "path": self.get("path")
+            if self.get("current_customer")
+            else None,
+            "distance": "{0:.2f}".format(sum(self.distances)),
+            "service": self.fleet_type,
+            "icon": self.icon,
+        }
+
+
+
 #New vehicle
 class VehicleRegistrationBehaviour(CyclicBehaviour):
     async def on_start(self):
@@ -80,7 +175,7 @@ class VehicleRegistrationBehaviour(CyclicBehaviour):
                 if performative == ACCEPT_PERFORMATIVE:
                     self.agent.set_registration(True)
                     logger.info("Registration in the dictionary of services")
-
+                    self.agent.status = VEHICLE_WAITING
         except CancelledError:
             logger.debug("Cancelling async tasks...")
         except Exception as e:
@@ -118,6 +213,30 @@ class VehicleStrategyBehaviour(StrategyBehaviour):
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = json.dumps(content)
         await self.send(msg)
+
+    async def planned_trip(self, dest=None):
+        """
+        It automatically launches the travelling process until the vehicle reaches
+        the destination. This travelling process includes to update the transport coordinates as it
+        moves along the path at the specified speed.
+
+        Args:
+            dest (list): the coordinates of the target destination of the vehicle
+        """
+        logger.info(
+            "Vehicle {} on route to destination {}".format(self.agent.name, self.agent.dest)
+        )
+        self.agent.status = VEHICLE_MOVING_TO_DESTINATION
+        try:
+            logger.debug("{} move_to destination {}".format(self.agent.name, self.agent.dest))
+            await self.agent.move_to(self.agent.dest)
+        except AlreadyInDestination:
+            logger.debug(
+                "{} is already in the destination' {} position. . .".format(
+                    self.agent.name, self.agent.dest
+                )
+            )
+            self.agent.status = VEHICLE_IN_DEST
 
     async def run(self):
         raise NotImplementedError

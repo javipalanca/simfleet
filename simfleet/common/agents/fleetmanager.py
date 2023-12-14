@@ -119,14 +119,15 @@ class FleetManagerAgent(SimfleetAgent):
     #    """
     #    self.directory_id = directory_id
 
-    def set_fleet_type(self, fleet_type):
-        """
-        Sets the type of service to the fleet
-        Args:
-            type_service (str): type of service
+    #SimfleetAgent
+    #def set_fleet_type(self, fleet_type):
+    #    """
+    #    Sets the type of service to the fleet
+    #    Args:
+    #        type_service (str): type of service
 
-        """
-        self.fleet_type = fleet_type
+    #    """
+    #    self.fleet_type = fleet_type
 
 
 class TransportRegistrationForFleetBehaviour(CyclicBehaviour):

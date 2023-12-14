@@ -487,9 +487,6 @@ class RequestAndTravelBehavior(VehicleStrategyBehaviour):
 
     async def run(self):
 
-        if not self.agent.registration:
-            await self.send_registration()
-
         if self.agent.status != None and self.agent.status == VEHICLE_WAITING:
             try:
                 logger.debug(

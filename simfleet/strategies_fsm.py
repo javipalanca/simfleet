@@ -17,7 +17,10 @@ from simfleet.communications.protocol import (
     QUERY_PROTOCOL,
     REFUSE_PERFORMATIVE,
 )
-from simfleet.common.agents.transport import TransportStrategyBehaviour
+#from simfleet.common.agents.transport import TransportStrategyBehaviour        #transport.py
+
+from simfleet.common.transportmodels.taxi import TaxiStrategyBehaviour
+
 from simfleet.utils.utils_old import (
     TRANSPORT_WAITING,
     TRANSPORT_WAITING_FOR_APPROVAL,
@@ -65,7 +68,8 @@ class DelegateRequestBehaviour(FleetManagerStrategyBehaviour):
 #                     Transport Strategy                       #
 #                                                              #
 ################################################################
-class TransportWaitingState(TransportStrategyBehaviour, State):
+#class TransportWaitingState(TransportStrategyBehaviour, State):
+class TaxiWaitingState(TaxiStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING
@@ -93,7 +97,8 @@ class TransportWaitingState(TransportStrategyBehaviour, State):
             return
 
 
-class TransportNeedsChargingState(TransportStrategyBehaviour, State):
+#class TransportNeedsChargingState(TransportStrategyBehaviour, State):
+class TaxiNeedsChargingState(TaxiStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_NEEDS_CHARGING
@@ -182,7 +187,8 @@ class TransportNeedsChargingState(TransportStrategyBehaviour, State):
             return
 
 
-class TransportMovingToStationState(TransportStrategyBehaviour, State):
+#class TransportMovingToStationState(TransportStrategyBehaviour, State):
+class TaxiMovingToStationState(TaxiStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_STATION
@@ -204,7 +210,8 @@ class TransportMovingToStationState(TransportStrategyBehaviour, State):
         return self.set_next_state(TRANSPORT_IN_STATION_PLACE)
 
 
-class TransportInStationState(TransportStrategyBehaviour, State):
+#class TransportInStationState(TransportStrategyBehaviour, State):
+class TaxiInStationState(TaxiStrategyBehaviour, State):
     # car arrives to the station and waits in queue until receiving confirmation
     async def on_start(self):
         await super().on_start()
@@ -235,7 +242,8 @@ class TransportInStationState(TransportStrategyBehaviour, State):
             return
 
 
-class TransportChargingState(TransportStrategyBehaviour, State):
+#class TransportChargingState(TransportStrategyBehaviour, State):
+class TaxiChargingState(TaxiStrategyBehaviour, State):
     # car charges in a station
     async def on_start(self):
         await super().on_start()
@@ -262,7 +270,8 @@ class TransportChargingState(TransportStrategyBehaviour, State):
             return
 
 
-class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
+#class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
+class TaxiWaitingForApprovalState(TaxiStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
@@ -327,7 +336,8 @@ class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
             return
 
 
-class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
+#class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
+class TaxiMovingToCustomerState(TaxiStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
@@ -346,20 +356,28 @@ class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
         return self.set_next_state(TRANSPORT_WAITING)
 
 
-class FSMTransportStrategyBehaviour(FSMBehaviour):
+#class FSMTransportStrategyBehaviour(FSMBehaviour):
+class FSMTaxiStrategyBehaviour(FSMBehaviour):
     def setup(self):
         # Create states
-        self.add_state(TRANSPORT_WAITING, TransportWaitingState(), initial=True)
-        self.add_state(TRANSPORT_NEEDS_CHARGING, TransportNeedsChargingState())
+        #self.add_state(TRANSPORT_WAITING, TransportWaitingState(), initial=True)
+        self.add_state(TRANSPORT_WAITING, TaxiWaitingState(), initial=True)
+        #self.add_state(TRANSPORT_NEEDS_CHARGING, TransportNeedsChargingState())
+        self.add_state(TRANSPORT_NEEDS_CHARGING, TaxiNeedsChargingState())
         self.add_state(
-            TRANSPORT_WAITING_FOR_APPROVAL, TransportWaitingForApprovalState()
+            #TRANSPORT_WAITING_FOR_APPROVAL, TransportWaitingForApprovalState()
+            TRANSPORT_WAITING_FOR_APPROVAL, TaxiWaitingForApprovalState()
         )
 
-        self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, TransportMovingToCustomerState())
+        #self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, TransportMovingToCustomerState())
+        self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, TaxiMovingToCustomerState())
 
-        self.add_state(TRANSPORT_MOVING_TO_STATION, TransportMovingToStationState())
-        self.add_state(TRANSPORT_IN_STATION_PLACE, TransportInStationState())
-        self.add_state(TRANSPORT_CHARGING, TransportChargingState())
+        #self.add_state(TRANSPORT_MOVING_TO_STATION, TransportMovingToStationState())
+        self.add_state(TRANSPORT_MOVING_TO_STATION, TaxiMovingToStationState())
+        #self.add_state(TRANSPORT_IN_STATION_PLACE, TransportInStationState())
+        self.add_state(TRANSPORT_IN_STATION_PLACE, TaxiInStationState())
+        #self.add_state(TRANSPORT_CHARGING, TransportChargingState())
+        self.add_state(TRANSPORT_CHARGING, TaxiChargingState())
 
         # Create transitions
         self.add_transition(

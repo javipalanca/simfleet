@@ -128,14 +128,16 @@ class TransportFactory(Factory):    #TransportFactory
     @classmethod
     def create_agent(cls,
                     domain,
+                    jid_directory,
+                    route_host,
                     name,
                     password,
+                    class_,
+                    fleet_type,
                     default_strategy,
+                    optional=None,
                     strategy=None,
-                    jid_directory=None,
-                    fleetmanager=None,
-                    fleet_type=None,
-                    route_host=None,
+                    #fleetmanager=None,
                     autonomy=None,
                     current_autonomy=None,
                     position=None,
@@ -164,7 +166,17 @@ class TransportFactory(Factory):    #TransportFactory
                                 """
         jid = f"{name}@{domain}"
         logger.debug("Creating Transport agent: {}".format(jid))
-        agent = TransportAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
+        #agent = TransportAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
+
+        if type(class_) is str:   # Añadimos el objeto de la clase cargada a la variable agente_class
+            agent_class = load_class(class_)
+            if optional:
+                agent = agent_class(jid, password, **optional)
+            else:
+                agent = agent_class(jid, password)
+        else:
+            raise Exception ("The agent needs a class in path format.")
+
         agent.set_id(name)  # Establece el identificador del agente
         agent.set_directory(jid_directory)
 
@@ -175,7 +187,7 @@ class TransportFactory(Factory):    #TransportFactory
 
         logger.debug("Assigning type {} to transport {}".format(fleet_type, agent.agent_id))
         agent.set_fleet_type(fleet_type)
-        agent.set_fleetmanager(fleetmanager)
+        #agent.set_fleetmanager(fleetmanager)
         agent.set_route_host(route_host)
 
         if autonomy:

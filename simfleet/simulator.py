@@ -239,14 +239,18 @@ class SimulatorAgent(Agent):
                 else faker_factory.password()
             )
 
-            position = transport["position"]
-            fleetmanager = transport["fleet"]
+            class_ = transport["class"]
             fleet_type = transport["fleet_type"]
-            speed = transport.get("speed")
+            strategy = transport.get("strategy")
+            position = transport["position"]
+
             fuel = transport.get("fuel")
             autonomy = transport.get("autonomy")
             current_autonomy = transport.get("current_autonomy")
-            strategy = transport.get("strategy")
+            speed = transport.get("speed")
+            #fleetmanager = transport["fleet"]
+            optional = transport.get("optional")
+
             icon = transport.get("icon")
             delay = transport["delay"] if "delay" in transport else None
 
@@ -257,13 +261,15 @@ class SimulatorAgent(Agent):
             agent = self.create_transport_agent(
                                                 name,
                                                 password,
-                                                position=position,
-                                                speed=speed,
-                                                fleet_type=fleet_type,
-                                                fleetmanager=fleetmanager,
+                                                class_,
+                                                fleet_type,
                                                 strategy=strategy,
+                                                position=position,
                                                 autonomy=autonomy,
                                                 current_autonomy=current_autonomy,
+                                                speed=speed,
+                                                optional=optional,
+                                                #fleetmanager=fleetmanager,
                                                 delayed=delayed,
                                                 )
             self.set_icon(agent, icon, default="transport")
@@ -1419,29 +1425,33 @@ class SimulatorAgent(Agent):
     def create_transport_agent(self,
                                 name,
                                 password,
+                                class_,
                                 fleet_type,
-                                fleetmanager,
                                 position,
+                                #fleetmanager,
                                 strategy=None,
-                                speed=None,
                                 autonomy=None,
                                 current_autonomy=None,
+                                speed=None,
+                                optional=None,
                                 delayed=False,
                                 ):
 
         agent = TransportFactory.create_agent(domain=self.jid.domain,
+                                              jid_directory=self.get_directory().jid,
+                                              route_host=self.route_host,
                                               name=name,
                                               password=password,
-                                              default_strategy=self.default_strategies['transport'],
-                                              strategy=strategy,
-                                              jid_directory=self.get_directory().jid,
-                                              fleetmanager=fleetmanager,
+                                              class_=class_,
                                               fleet_type=fleet_type,
-                                              route_host=self.route_host,
+                                              strategy=strategy,
+                                              default_strategy=self.default_strategies['transport'],
+                                              position=position,
+                                              #fleetmanager=fleetmanager,
                                               autonomy=autonomy,
                                               current_autonomy=current_autonomy,
-                                              position=position,
-                                              speed=speed
+                                              speed=speed,
+                                              optional=optional
                                               )
 
         if self.simulation_running:

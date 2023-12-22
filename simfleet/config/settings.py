@@ -2,6 +2,7 @@ import json
 from loguru import logger
 
 from simfleet.utils.reflection import load_class
+from simfleet.utils.helpers import get_bbox_from_location
 
 def hide_passwords(item, key=None):
     if isinstance(item, dict):
@@ -44,8 +45,30 @@ class SimfleetConfig(object):
         self.__config["max_time"] = self.__config.get("max_time", max_time)
         self.__config["verbose"] = self.__config.get("verbose", verbose)
 
-        self.__config["coords"] = self.__config.get("coords", [39.47, -0.37])
-        self.__config["zoom"] = self.__config.get("zoom", 12)
+        #New coords
+        if self.__config.get("coords"):
+            if self.__config.get("zoom"):
+                input_location = get_bbox_from_location(self.__config["coords"], self.__config["zoom"])
+                logger.debug(
+                    "BoundingBox for {} is {}".format(self.__config["coords"], input_location[1])
+                )
+                self.__config["coords"] = input_location
+            else:
+                logger.debug("Default value 12 for Zoom variable")
+                input_location = get_bbox_from_location(self.__config["coords"], 12)
+                self.__config["zoom"] = 12
+                self.__config["coords"] = input_location
+        else:
+            #raise Exception("Could not find coordinates for the entered location")
+            logger.debug(
+                "Could not find coordinates for the entered location. Default coordinates: Valencia, ES"
+            )
+            default_location = get_bbox_from_location("Valencia, ES", 11.75)
+            self.__config["zoom"] = self.__config.get("zoom", 11.75)
+            self.__config["coords"] = default_location
+
+        #self.__config["coords"] = self.__config.get("coords", [39.47, -0.37])
+        #self.__config["zoom"] = self.__config.get("zoom", 12)
 
         self.__config["transport_strategy"] = self.__config.get(
             "transport_strategy", "simfleet.strategies.AcceptAlwaysStrategyBehaviour"

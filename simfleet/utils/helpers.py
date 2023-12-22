@@ -9,6 +9,38 @@ import os
 import random
 
 from geopy.distance import vincenty
+from geopy.geocoders import Nominatim
+
+def get_bbox_from_location(location_str, zoom):
+    """
+    Get BoundingBox from str location
+
+    Return:
+        Tupla: (central_point, bbox)
+    """
+    # Obtener las coordenadas de la ubicación (ciudad, calle, avenida, etc.)
+    geolocator = Nominatim(user_agent="zoom_bbox_simfleet")
+    location = geolocator.geocode(location_str, addressdetails=True)
+
+    if location is None:
+        raise Exception ("Could not find coordinates for the entered location")
+        return None
+
+    lat, lon = location.latitude, location.longitude
+
+    # Calcular el Bounding Box en función del zoom
+    bbox_width = 360 / (2 ** zoom)
+    bbox_height = bbox_width / 2  # Proporción arbitraria para ajustar el Bounding Box
+
+    min_lon = lon - bbox_width / 2
+    max_lon = lon + bbox_width / 2
+    min_lat = lat - bbox_height / 2
+    max_lat = lat + bbox_height / 2
+
+    bbox = (min_lat, min_lon, max_lat, max_lon)
+    central_point = [lat, lon]
+
+    return (central_point, bbox)
 
 
 def random_position():
@@ -37,6 +69,8 @@ def random_position():
         lat = float("{0:.6f}".format(coords[0]))
         lng = float("{0:.6f}".format(coords[1]))
         return [lat, lng]
+
+
 
 
 def are_close(coord1, coord2, tolerance=10):
@@ -96,3 +130,4 @@ class AlreadyInDestination(Exception):
     """
 
     pass
+

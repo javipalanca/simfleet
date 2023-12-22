@@ -717,7 +717,7 @@ class SimulatorAgent(Agent):
         return {"port": self.config.http_port, "ip": self.config.http_ip}
 
     async def init_controller(self, request):
-        return {"coords": self.config.coords, "zoom": self.config.zoom}
+        return {"coords": self.config.coords[0], "zoom": self.config.zoom}
 
     async def entities_controller(self, request):
         """

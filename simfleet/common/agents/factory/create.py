@@ -24,6 +24,7 @@ class Factory(ABC):     #Factory
                     default_strategy,
                     strategy,
                     jid_directory,
+                    bbox,
                     fleetmanager,
                     fleet_type,
                     route_host,
@@ -47,6 +48,7 @@ class DirectoryFactory(Factory):    #DirectoryFactory
                     default_strategy,
                     strategy=None,
                     jid_directory=None,
+                    bbox=None,
                     fleetmanager=None,
                     fleet_type=None,
                     route_host=None,
@@ -84,6 +86,7 @@ class FleetManagerFactory(Factory):      #ManagerFactory
                     default_strategy,
                     strategy=None,
                     jid_directory=None,
+                    bbox=None,
                     fleetmanager=None,
                     fleet_type=None,
                     route_host=None,
@@ -129,6 +132,7 @@ class TransportFactory(Factory):    #TransportFactory
     def create_agent(cls,
                     domain,
                     jid_directory,
+                    bbox,
                     route_host,
                     name,
                     password,
@@ -189,6 +193,7 @@ class TransportFactory(Factory):    #TransportFactory
         agent.set_fleet_type(fleet_type)
         #agent.set_fleetmanager(fleetmanager)
         agent.set_route_host(route_host)
+        agent.set_boundingbox(bbox)
 
         if autonomy:
             agent.set_autonomy(autonomy, current_autonomy)
@@ -210,6 +215,7 @@ class CustomerFactory(Factory):
                     default_strategy,
                     strategy=None,
                     jid_directory=None,
+                    bbox=None,
                     fleetmanager=None,
                     fleet_type=None,
                     route_host=None,
@@ -251,6 +257,7 @@ class CustomerFactory(Factory):
         logger.debug("Assigning fleet type {} to customer {}".format(fleet_type, name))
         agent.set_fleet_type(fleet_type)
         agent.set_route_host(route_host)
+        agent.set_boundingbox(bbox)
         agent.set_position(position)
         agent.set_target_position(target)
 
@@ -266,6 +273,7 @@ class StationFactory(Factory):
                     default_strategy,
                     strategy=None,
                     jid_directory=None,
+                    bbox=None,
                     fleetmanager=None,
                     fleet_type=None,
                     route_host=None,
@@ -320,6 +328,7 @@ class VehicleFactory(Factory):    #VehicleFactory
                     default_strategy,
                     strategy=None,
                     jid_directory=None,
+                    bbox=None,
                     fleetmanager=None,
                     fleet_type=None,
                     route_host=None,
@@ -364,6 +373,7 @@ class VehicleFactory(Factory):    #VehicleFactory
         agent.set_fleet_type(fleet_type)
         #agent.set_fleetmanager(fleetmanager)
         agent.set_route_host(route_host)
+        agent.set_boundingbox(bbox)
         agent.dest = target
 
         #if autonomy:

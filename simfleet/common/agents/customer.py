@@ -8,7 +8,7 @@ from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 from spade.template import Template
 
-from simfleet.utils.helpers import random_position
+from simfleet.utils.helpers import new_random_position #, random_position
 from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     TRAVEL_PROTOCOL,
@@ -188,7 +188,8 @@ class CustomerAgent(GeoLocatedAgent):
         if coords:
             self.dest = coords
         else:
-            self.dest = random_position()
+            #self.dest = random_position()
+            self.dest = new_random_position(self.boundingbox, self.route_host)
         logger.debug(
             "Customer {} target position is {}".format(self.agent_id, self.dest)
         )
@@ -413,7 +414,8 @@ class CustomerStrategyBehaviour(StrategyBehaviour):
             content (dict): Optional content dictionary
         """
         if not self.agent.dest:
-            self.agent.dest = random_position()
+            #self.agent.dest = random_position()
+            self.agent.dest = new_random_position(self.boundingbox, self.route_host)
         if content is None or len(content) == 0:
             content = {
                 "customer_id": str(self.agent.jid),

@@ -2,13 +2,14 @@ from loguru import logger
 
 from simfleet.common.simfleetagent import SimfleetAgent
 
-from simfleet.utils.helpers import random_position
+from simfleet.utils.helpers import new_random_position#, random_position
 
 class GeoLocatedAgent(SimfleetAgent):
     def __init__(self, agentjid, password):
         super().__init__(agentjid, password)
         self.route_host = None                                          #transport.py
         self.set("current_pos", None)                        #transport.py
+        self.boundingbox = None                                         #New boundingbox
 
         self.icon = None                                                #transport.py
 
@@ -41,14 +42,21 @@ class GeoLocatedAgent(SimfleetAgent):
             self.set("current_pos", coords)
         else:
             #self.current_pos = random_position()       #Non-parallel variable - Used customer.py
-            self.set("current_pos", random_position())
+            #self.set("current_pos", random_position())
+            self.set("current_pos", new_random_position(self.boundingbox, self.route_host))
         logger.debug(
             "Agent {} position is {}".format(self.agent_id, self.get("current_pos"))
         )
 
     #Used TransportAgent
     def set_initial_position(self, coords):
-        self.set("current_pos", coords)
+        #self.set("current_pos", coords)
+        if coords:
+            #self.current_pos = coords      #Non-parallel variable - Used customer.py
+            self.set("current_pos", coords)
+        else:
+            #self.current_pos = random_position()       #Non-parallel variable - Used customer.py
+            self.set("current_pos", new_random_position(self.boundingbox, self.route_host))
 
     #Used TransportAgent - CustomerAgent - StationAgent
     def get_position(self):
@@ -59,6 +67,10 @@ class GeoLocatedAgent(SimfleetAgent):
             list: the coordinates of the current position of the Agent (lon, lat)
         """
         return self.get("current_pos")
+
+    # New boundingbox
+    def set_boundingbox(self, bbox):
+        self.boundingbox = bbox
 
     #def to_json(self):
     #    """

@@ -6,7 +6,7 @@ from loguru import logger
 from spade.message import Message
 
 from simfleet.utils.helpers import (
-    random_position,
+    #random_position,
     distance_in_meters,
     kmh_to_ms,
     PathRequestException,

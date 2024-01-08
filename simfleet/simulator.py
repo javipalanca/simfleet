@@ -242,7 +242,8 @@ class SimulatorAgent(Agent):
             class_ = transport["class"]
             fleet_type = transport["fleet_type"]
             strategy = transport.get("strategy")
-            position = transport["position"]
+            #position = transport["position"]
+            position = transport.get("position")
 
             fuel = transport.get("fuel")
             autonomy = transport.get("autonomy")
@@ -294,8 +295,10 @@ class SimulatorAgent(Agent):
             )
 
             fleet_type = customer["fleet_type"]
-            position = customer["position"]
-            target = customer["destination"]
+            #position = customer["position"]
+            position = customer.get("position")
+            #target = customer["destination"]
+            target = customer.get("destination")
             strategy = customer.get("strategy")
             icon = customer.get("icon")
             delay = customer["delay"] if "delay" in customer else None
@@ -360,7 +363,8 @@ class SimulatorAgent(Agent):
                 else faker_factory.password()
             )
 
-            position = transport["position"]
+            #position = transport["position"]
+            position = transport.get("position")
             # fleetmanager = transport["fleet"]
             fleet_type = transport["fleet_type"]
             speed = transport.get("speed")
@@ -1440,6 +1444,7 @@ class SimulatorAgent(Agent):
         agent = TransportFactory.create_agent(domain=self.jid.domain,
                                               jid_directory=self.get_directory().jid,
                                               route_host=self.route_host,
+                                              bbox=self.config.coords[1],
                                               name=name,
                                               password=password,
                                               class_=class_,
@@ -1469,7 +1474,7 @@ class SimulatorAgent(Agent):
         name,
         password,
         fleet_type,
-        position,
+        position=None,
         strategy=None,
         target=None,
         delayed=False,
@@ -1482,6 +1487,7 @@ class SimulatorAgent(Agent):
                                             jid_directory=self.get_directory().jid,
                                             fleet_type=fleet_type,
                                             route_host=self.route_host,
+                                            bbox=self.config.coords[1],
                                             position=position,
                                             target=target,
                                             )
@@ -1540,6 +1546,7 @@ class SimulatorAgent(Agent):
                                             default_strategy=self.default_strategies['vehicle'],
                                             strategy=strategy,
                                             jid_directory=self.get_directory().jid,
+                                            bbox=self.config.coords[1],
                                             # fleetmanager=fleetmanager,
                                             fleet_type=fleet_type,
                                             route_host=self.route_host,

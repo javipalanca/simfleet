@@ -7,6 +7,7 @@ These functions are useful for the develop of new strategies.
 import json
 import os
 import random
+import requests
 
 from geopy.distance import vincenty
 from geopy.geocoders import Nominatim
@@ -69,6 +70,42 @@ def random_position():
         lat = float("{0:.6f}".format(coords[0]))
         lng = float("{0:.6f}".format(coords[1]))
         return [lat, lng]
+
+
+def new_random_position(bbox, route_host):
+    """
+        Returns a random position inside the map.
+
+        Returns:
+            list: a point (longitude and latitude)
+    """
+
+    min_lat, min_lon, max_lat, max_lon = bbox
+
+    # Generar ubicación aleatoria dentro del Bounding Box -- Vrs 1
+    #random_lon = random.uniform(min_lon, max_lon)
+    #random_lat = random.uniform(min_lat, max_lat)
+
+    # Generar ubicación aleatoria dentro del Bounding Box -- Vrs 2
+    zoom = random.uniform(1, 3)     # Rango 1 (Sin zoom) - 5 (Zoom en el centro del bbox)
+    zoom_factor = 1 / zoom
+    random_lon = random.uniform(min_lon + (max_lon - min_lon) * (1 - zoom_factor) / 2, max_lon - (max_lon - min_lon) * (1 - zoom_factor) / 2)
+    random_lat = random.uniform(min_lat + (max_lat - min_lat) * (1 - zoom_factor) / 2, max_lat - (max_lat - min_lat) * (1 - zoom_factor) / 2)
+
+    # URL del servicio OSRM
+    osrm_url = f'{route_host}/nearest/v1/driving/{random_lon},{random_lat}'
+
+    # Realizar la solicitud a la API de OSRM
+    response = requests.get(osrm_url)
+
+    # Comprobar si la solicitud fue exitosa
+    if response.status_code == 200:
+        result = response.json()
+        nearest_coordinates = result['waypoints'][0]['location']
+        return [nearest_coordinates[1], nearest_coordinates[0]]
+    else:
+        raise Exception("OSRM request error")
+        return None
 
 
 

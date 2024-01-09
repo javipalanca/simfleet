@@ -1,5 +1,5 @@
 from asyncio.log import logger
-from simfleet.utils.helpers import AlreadyInDestination, PathRequestException, distance_in_meters, kmh_to_ms#, random_position
+from simfleet.utils.helpers import AlreadyInDestination, PathRequestException, distance_in_meters, kmh_to_ms, new_random_position#, random_position
 from spade.behaviour import PeriodicBehaviour
 from simfleet.utils.utils_old import chunk_path, request_path
 
@@ -103,6 +103,24 @@ class MovableMixin:
             bool: whether the transport is at its destination or not
         """
         return self.dest == self.get_position()
+
+    #customer.py
+    def set_target_position(self, coords=None):
+        """
+        Sets the target position of the customer (i.e. its destination).
+        If no position is provided the destination is setted to a random position.
+
+        Args:
+            coords (list): a list coordinates (longitude and latitude)
+        """
+        if coords:
+            self.dest = coords
+        else:
+            #self.dest = random_position()
+            self.dest = new_random_position(self.boundingbox, self.route_host)
+        logger.debug(
+            "Customer {} target position is {}".format(self.agent_id, self.dest)
+        )
 
     #transport.py
     def set_speed(self, speed_in_kmh):

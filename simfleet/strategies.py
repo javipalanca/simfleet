@@ -240,7 +240,7 @@ class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
                 elif performative == CANCEL_PERFORMATIVE:
                     logger.info(
                         "Cancellation of request for {} information".format(
-                            self.agent.type_service
+                            self.agent.fleet_type
                         )
                     )
                     return

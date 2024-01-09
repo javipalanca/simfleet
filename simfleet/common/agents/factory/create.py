@@ -7,7 +7,8 @@ from loguru import logger
 from simfleet.common.agents.directory import DirectoryAgent
 from simfleet.common.agents.fleetmanager import FleetManagerAgent
 from simfleet.common.agents.transport import TransportAgent
-from simfleet.common.agents.customer import CustomerAgent
+#from simfleet.common.agents.customer import CustomerAgent
+from simfleet.common.pedestrian import PedestrianAgent
 from simfleet.common.agents.station import StationAgent
 from simfleet.common.vehicle import VehicleAgent
 
@@ -245,7 +246,8 @@ class CustomerFactory(Factory):
 
         jid = f"{name}@{domain}"
         logger.debug("Creating Customer agent: {}".format(jid))
-        agent = CustomerAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
+        #agent = CustomerAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
+        agent = PedestrianAgent(jid, password)
         agent.set_id(name)  # Establece el identificador del agente
         agent.set_directory(jid_directory)
 
@@ -374,7 +376,7 @@ class VehicleFactory(Factory):    #VehicleFactory
         #agent.set_fleetmanager(fleetmanager)
         agent.set_route_host(route_host)
         agent.set_boundingbox(bbox)
-        agent.dest = target
+        agent.set_target_position(target)
 
         #if autonomy:
         #    agent.set_autonomy(autonomy, current_autonomy)

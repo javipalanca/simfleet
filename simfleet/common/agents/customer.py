@@ -44,11 +44,11 @@ class CustomerAgent(GeoLocatedAgent):
         #self.icon = None                        #geolocatedagent.py
         #self.running_strategy = False           #simfleetagent.py
         #self.fleet_type = None                  #simfleetagent.py
-        self.fleetmanagers = None
+        #self.fleetmanagers = None               #pedestrian.py
         #self.route_host = None                  #geolocatedagent.py
-        self.status = CUSTOMER_WAITING
+        #self.status = CUSTOMER_WAITING          #pedestrian.py
         #self.current_pos = None                 #geolocatedagent.py
-        self.dest = None
+        #self.dest = None                        #movable.py
         #self.port = None                        #simfleetagent.py
         self.transport_assigned = None
         #self.init_time = None                   #simfleetagent.py
@@ -60,7 +60,7 @@ class CustomerAgent(GeoLocatedAgent):
         #self.is_launched = False                #simfleetagent.py
 
         #self.directory_id = None                #simfleetagent.py
-        self.type_service = "taxi"
+        #self.type_service = "taxi"              #Not used
 
     async def setup(self):
         try:
@@ -122,14 +122,15 @@ class CustomerAgent(GeoLocatedAgent):
     #    """
     #    self.fleet_type = fleet_type
 
-    def set_fleetmanager(self, fleetmanagers):
-        """
-        Sets the fleetmanager JID address
-        Args:
-            fleetmanagers (str): the fleetmanager jid
+    # pedestrian.py
+    #def set_fleetmanager(self, fleetmanagers):
+    #    """
+    #    Sets the fleetmanager JID address
+    #    Args:
+    #        fleetmanagers (str): the fleetmanager jid
 
-        """
-        self.fleetmanagers = fleetmanagers
+    #    """
+    #    self.fleetmanagers = fleetmanagers
 
     # gelocatedagent.py
     #def set_route_host(self, route_host):
@@ -177,54 +178,57 @@ class CustomerAgent(GeoLocatedAgent):
     #    """
     #    return self.current_pos
 
-    def set_target_position(self, coords=None):
-        """
-        Sets the target position of the customer (i.e. its destination).
-        If no position is provided the destination is setted to a random position.
+    # movable.py
+    #def set_target_position(self, coords=None):
+    #    """
+    #    Sets the target position of the customer (i.e. its destination).
+    #    If no position is provided the destination is setted to a random position.
 
-        Args:
-            coords (list): a list coordinates (longitude and latitude)
-        """
-        if coords:
-            self.dest = coords
-        else:
+    #    Args:
+    #        coords (list): a list coordinates (longitude and latitude)
+    #    """
+    #    if coords:
+    #        self.dest = coords
+    #    else:
             #self.dest = random_position()
-            self.dest = new_random_position(self.boundingbox, self.route_host)
-        logger.debug(
-            "Customer {} target position is {}".format(self.agent_id, self.dest)
-        )
+    #        self.dest = new_random_position(self.boundingbox, self.route_host)
+    #    logger.debug(
+    #        "Customer {} target position is {}".format(self.agent_id, self.dest)
+    #    )
 
-    def is_in_destination(self):
-        """
-        Checks if the customer has arrived to its destination.
+    # movable.py -- ANALIZAR el STATUS
+    #def is_in_destination(self):
+    #    """
+    #    Checks if the customer has arrived to its destination.
 
-        Returns:
-            bool: whether the customer is at its destination or not
-        """
-        return self.status == CUSTOMER_IN_DEST or self.get_position() == self.dest
+    #    Returns:
+    #        bool: whether the customer is at its destination or not
+    #    """
+    #    return self.status == CUSTOMER_IN_DEST or self.get_position() == self.dest
 
-    async def request_path(self, origin, destination):
-        """
-        Requests a path between two points (origin and destination) using the route server.
+    #movable.py
+    #async def request_path(self, origin, destination):
+    #    """
+    #    Requests a path between two points (origin and destination) using the route server.
 
-        Args:
-            origin (list): the coordinates of the origin of the requested path
-            destination (list): the coordinates of the end of the requested path
+    #    Args:
+    #        origin (list): the coordinates of the origin of the requested path
+    #        destination (list): the coordinates of the end of the requested path
 
-        Returns:
-            list, float, float: A list of points that represent the path from origin to destination, the distance and
-            the estimated duration
+    #    Returns:
+    #        list, float, float: A list of points that represent the path from origin to destination, the distance and
+    #        the estimated duration
 
-        Examples:
-            >>> path, distance, duration = await self.request_path(origin=[0,0], destination=[1,1])
-            >>> print(path)
-            [[0,0], [0,1], [1,1]]
-            >>> print(distance)
-            2.0
-            >>> print(duration)
-            3.24
-        """
-        return await request_path(self, origin, destination, self.route_host)
+    #    Examples:
+    #        >>> path, distance, duration = await self.request_path(origin=[0,0], destination=[1,1])
+    #        >>> print(path)
+    #        [[0,0], [0,1], [1,1]]
+    #        >>> print(distance)
+    #        2.0
+    #        >>> print(duration)
+    #        3.24
+    #    """
+    #    return await request_path(self, origin, destination, self.route_host)
 
     # simfleetagent.py
     #def total_time(self):
@@ -357,144 +361,144 @@ class TravelBehaviour(CyclicBehaviour):
                 )
             )
 
+#pedestrian.py
+#class CustomerStrategyBehaviour(StrategyBehaviour):
+#    """
+#    Class from which to inherit to create a transport strategy.
+#    You must overload the ``run`` coroutine
 
-class CustomerStrategyBehaviour(StrategyBehaviour):
-    """
-    Class from which to inherit to create a transport strategy.
-    You must overload the ``run`` coroutine
+#    Helper functions:
+#        * ``send_request``
+#        * ``accept_transport``
+#        * ``refuse_transport``
+#    """
 
-    Helper functions:
-        * ``send_request``
-        * ``accept_transport``
-        * ``refuse_transport``
-    """
+#    async def on_start(self):
+#        """
+#        Initializes the logger and timers. Call to parent method if overloaded.
+#        """
+#        logger.debug(
+#            "Strategy {} started in customer {}".format(
+#                type(self).__name__, self.agent.name
+#            )
+#        )
+#        self.agent.init_time = time.time()
 
-    async def on_start(self):
-        """
-        Initializes the logger and timers. Call to parent method if overloaded.
-        """
-        logger.debug(
-            "Strategy {} started in customer {}".format(
-                type(self).__name__, self.agent.name
-            )
-        )
-        self.agent.init_time = time.time()
+#    async def send_get_managers(self, content=None):
+#        """
+#        Sends an ``spade.message.Message`` to the DirectoryAgent to request a managers.
+#        It uses the QUERY_PROTOCOL and the REQUEST_PERFORMATIVE.
+#        If no content is set a default content with the type_service that needs
+#        Args:
+#            content (dict): Optional content dictionary
+#        """
+#        if content is None or len(content) == 0:
+#            content = self.agent.fleet_type
+#        msg = Message()
+#        msg.to = str(self.agent.directory_id)
+#        msg.set_metadata("protocol", QUERY_PROTOCOL)
+#        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+#        msg.body = content
+#        await self.send(msg)
 
-    async def send_get_managers(self, content=None):
-        """
-        Sends an ``spade.message.Message`` to the DirectoryAgent to request a managers.
-        It uses the QUERY_PROTOCOL and the REQUEST_PERFORMATIVE.
-        If no content is set a default content with the type_service that needs
-        Args:
-            content (dict): Optional content dictionary
-        """
-        if content is None or len(content) == 0:
-            content = self.agent.fleet_type
-        msg = Message()
-        msg.to = str(self.agent.directory_id)
-        msg.set_metadata("protocol", QUERY_PROTOCOL)
-        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-        msg.body = content
-        await self.send(msg)
+#        logger.info(
+#            "Customer {} asked for managers to directory {} for type {}.".format(
+#                self.agent.name, self.agent.directory_id, self.agent.fleet_type
+#            )
+#        )
 
-        logger.info(
-            "Customer {} asked for managers to directory {} for type {}.".format(
-                self.agent.name, self.agent.directory_id, self.agent.type_service
-            )
-        )
+#    async def send_request(self, content=None):
+#        """
+#        Sends an ``spade.message.Message`` to the fleetmanager to request a transport.
+#        It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
+#        If no content is set a default content with the customer_id,
+#        origin and target coordinates is used.
 
-    async def send_request(self, content=None):
-        """
-        Sends an ``spade.message.Message`` to the fleetmanager to request a transport.
-        It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
-        If no content is set a default content with the customer_id,
-        origin and target coordinates is used.
-
-        Args:
-            content (dict): Optional content dictionary
-        """
-        if not self.agent.dest:
+#        Args:
+#            content (dict): Optional content dictionary
+#        """
+#        if not self.agent.dest:
             #self.agent.dest = random_position()
-            self.agent.dest = new_random_position(self.boundingbox, self.route_host)
-        if content is None or len(content) == 0:
-            content = {
-                "customer_id": str(self.agent.jid),
+#            self.agent.dest = new_random_position(self.boundingbox, self.route_host)
+#        if content is None or len(content) == 0:
+#            content = {
+#                "customer_id": str(self.agent.jid),
                 #"origin": self.agent.current_pos,       #Non-parallel variable
-                "origin": self.agent.get("current_pos"),
-                "dest": self.agent.dest,
-            }
+#                "origin": self.agent.get("current_pos"),
+#                "dest": self.agent.dest,
+#            }
 
-        if self.agent.fleetmanagers is not None:
-            for (
-                fleetmanager
-            ) in self.agent.fleetmanagers.keys():  # Send a message to all FleetManagers
-                msg = Message()
-                msg.to = str(fleetmanager)
-                msg.set_metadata("protocol", REQUEST_PROTOCOL)
-                msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-                msg.body = json.dumps(content)
-                await self.send(msg)
-            logger.info(
-                "Customer {} asked for a transport to {}.".format(
-                    self.agent.name, self.agent.dest
-                )
-            )
-        else:
-            logger.warning("Customer {} has no fleet managers.".format(self.agent.name))
+#        if self.agent.fleetmanagers is not None:
+#            for (
+#                fleetmanager
+#            ) in self.agent.fleetmanagers.keys():  # Send a message to all FleetManagers
+#                msg = Message()
+#                msg.to = str(fleetmanager)
+#                msg.set_metadata("protocol", REQUEST_PROTOCOL)
+#                msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+#                msg.body = json.dumps(content)
+#                await self.send(msg)
+#            logger.info(
+#                "Customer {} asked for a transport to {}.".format(
+#                    self.agent.name, self.agent.dest
+#                )
+#            )
+#        else:
+#            logger.warning("Customer {} has no fleet managers.".format(self.agent.name))
 
-    async def accept_transport(self, transport_id):
-        """
-        Sends a ``spade.message.Message`` to a transport to accept a travel proposal.
-        It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
+#    async def accept_transport(self, transport_id):
+#        """
+#        Sends a ``spade.message.Message`` to a transport to accept a travel proposal.
+#        It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
 
-        Args:
-            transport_id (str): The Agent JID of the transport
-        """
-        reply = Message()
-        reply.to = str(transport_id)
-        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
-        content = {
-            "customer_id": str(self.agent.jid),
-            #"origin": self.agent.current_pos,               #Non-parallel variable
-            "origin": self.agent.get("current_pos"),
-            "dest": self.agent.dest,
-        }
-        reply.body = json.dumps(content)
-        await self.send(reply)
-        self.agent.transport_assigned = str(transport_id)
-        logger.info(
-            "Customer {} accepted proposal from transport {}".format(
-                self.agent.name, transport_id
-            )
-        )
+#        Args:
+#            transport_id (str): The Agent JID of the transport
+#        """
+#        reply = Message()
+#        reply.to = str(transport_id)
+#        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+#        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+#        content = {
+#            "customer_id": str(self.agent.jid),
+#            #"origin": self.agent.current_pos,               #Non-parallel variable
+#            "origin": self.agent.get("current_pos"),
+#            "dest": self.agent.dest,
+#        }
+#        reply.body = json.dumps(content)
+#        await self.send(reply)
+#        self.agent.transport_assigned = str(transport_id)
+#        logger.info(
+#            "Customer {} accepted proposal from transport {}".format(
+#                self.agent.name, transport_id
+#            )
+#        )
 
-    async def refuse_transport(self, transport_id):
-        """
-        Sends an ``spade.message.Message`` to a transport to refuse a travel proposal.
-        It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
+#    async def refuse_transport(self, transport_id):
+#        """
+#        Sends an ``spade.message.Message`` to a transport to refuse a travel proposal.
+#        It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
 
-        Args:
-            transport_id (str): The Agent JID of the transport
-        """
-        reply = Message()
-        reply.to = str(transport_id)
-        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        reply.set_metadata("performative", REFUSE_PERFORMATIVE)
-        content = {
-            "customer_id": str(self.agent.jid),
-            #"origin": self.agent.current_pos,              #Non-parallel variable
-            "origin": self.agent.get("current_pos"),
-            "dest": self.agent.dest,
-        }
-        reply.body = json.dumps(content)
+#        Args:
+#            transport_id (str): The Agent JID of the transport
+#        """
+#        reply = Message()
+#        reply.to = str(transport_id)
+#        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+#        reply.set_metadata("performative", REFUSE_PERFORMATIVE)
+#        content = {
+#            "customer_id": str(self.agent.jid),
+#            #"origin": self.agent.current_pos,              #Non-parallel variable
+#            "origin": self.agent.get("current_pos"),
+#            "dest": self.agent.dest,
+#        }
+#        reply.body = json.dumps(content)
 
-        await self.send(reply)
-        logger.info(
-            "Customer {} refused proposal from transport {}".format(
-                self.agent.name, transport_id
-            )
-        )
+#        await self.send(reply)
+#        logger.info(
+#            "Customer {} refused proposal from transport {}".format(
+#                self.agent.name, transport_id
+#            )
+#        )
 
-    async def run(self):
-        raise NotImplementedError
+#    async def run(self):
+#        raise NotImplementedError

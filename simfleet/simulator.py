@@ -368,7 +368,8 @@ class SimulatorAgent(Agent):
             # fleetmanager = transport["fleet"]
             fleet_type = transport["fleet_type"]
             speed = transport.get("speed")
-            target = transport["destination"]
+            #target = transport["destination"]
+            target = transport.get("destination")
             # fuel = transport.get("fuel")
             # autonomy = transport.get("autonomy")
             # current_autonomy = transport.get("current_autonomy")

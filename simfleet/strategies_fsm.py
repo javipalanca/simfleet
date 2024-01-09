@@ -3,7 +3,8 @@ import json
 from loguru import logger
 from spade.behaviour import State, FSMBehaviour
 
-from simfleet.common.agents.customer import CustomerStrategyBehaviour
+#from simfleet.common.agents.customer import CustomerStrategyBehaviour
+from simfleet.common.pedestrian import PedestrianStrategyBehaviour
 from simfleet.common.agents.fleetmanager import FleetManagerStrategyBehaviour
 from simfleet.common.vehicle import VehicleStrategyBehaviour    #New vehicle
 from simfleet.utils.helpers import PathRequestException, distance_in_meters
@@ -434,7 +435,8 @@ class FSMTaxiStrategyBehaviour(FSMBehaviour):
 #                       Customer Strategy                      #
 #                                                              #
 ################################################################
-class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
+#class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
+class AcceptFirstRequestBehaviour(PedestrianStrategyBehaviour):
     """
     The default strategy for the Customer agent. By default it accepts the first proposal it receives.
     """
@@ -458,7 +460,7 @@ class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
                     elif performative == CANCEL_PERFORMATIVE:
                         logger.info(
                             "{} got cancellation of request for {} information".format(
-                                self.agent.name, self.agent.type_service
+                                self.agent.name, self.agent.fleet_type
                             )
                         )
             return

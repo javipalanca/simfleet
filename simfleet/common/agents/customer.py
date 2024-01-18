@@ -44,9 +44,9 @@ class CustomerAgent(GeoLocatedAgent):
         #self.icon = None                        #geolocatedagent.py
         #self.running_strategy = False           #simfleetagent.py
         #self.fleet_type = None                  #simfleetagent.py
-        #self.fleetmanagers = None               #pedestrian.py
+        #self.fleetmanagers = None               #taxicustomer.py
         #self.route_host = None                  #geolocatedagent.py
-        #self.status = CUSTOMER_WAITING          #pedestrian.py
+        #self.status = CUSTOMER_WAITING          #taxicustomer.py
         #self.current_pos = None                 #geolocatedagent.py
         #self.dest = None                        #movable.py
         #self.port = None                        #simfleetagent.py
@@ -122,7 +122,7 @@ class CustomerAgent(GeoLocatedAgent):
     #    """
     #    self.fleet_type = fleet_type
 
-    # pedestrian.py
+    # taxicustomer.py
     #def set_fleetmanager(self, fleetmanagers):
     #    """
     #    Sets the fleetmanager JID address
@@ -361,7 +361,7 @@ class TravelBehaviour(CyclicBehaviour):
                 )
             )
 
-#pedestrian.py
+#taxicustomer.py
 #class CustomerStrategyBehaviour(StrategyBehaviour):
 #    """
 #    Class from which to inherit to create a transport strategy.

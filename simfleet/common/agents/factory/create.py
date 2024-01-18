@@ -8,7 +8,6 @@ from simfleet.common.agents.directory import DirectoryAgent
 from simfleet.common.agents.fleetmanager import FleetManagerAgent
 from simfleet.common.agents.transport import TransportAgent
 #from simfleet.common.agents.customer import CustomerAgent
-from simfleet.common.pedestrian import PedestrianAgent
 from simfleet.common.agents.station import StationAgent
 from simfleet.common.vehicle import VehicleAgent
 

@@ -29,7 +29,7 @@ from simfleet.communications.protocol import (
 from simfleet.common.agents.customer import CustomerAgent
 from simfleet.common.movable import MovableMixin
 
-class PedestrianAgent(MovableMixin, CustomerAgent):
+class TaxiCustomerAgent(MovableMixin, CustomerAgent):
     def __init__(self, agentjid, password):
         CustomerAgent.__init__(self, agentjid, password)
         MovableMixin.__init__(self)
@@ -50,7 +50,7 @@ class PedestrianAgent(MovableMixin, CustomerAgent):
 
 
 #class CustomerStrategyBehaviour(StrategyBehaviour):
-class PedestrianStrategyBehaviour(StrategyBehaviour):
+class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
     """
     Class from which to inherit to create a transport strategy.
     You must overload the ``run`` coroutine

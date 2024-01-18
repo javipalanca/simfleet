@@ -4,7 +4,7 @@ from loguru import logger
 from spade.behaviour import State, FSMBehaviour
 
 #from simfleet.common.agents.customer import CustomerStrategyBehaviour
-from simfleet.common.pedestrian import PedestrianStrategyBehaviour
+from simfleet.common.customermodels.taxicustomer import TaxiCustomerStrategyBehaviour
 from simfleet.common.agents.fleetmanager import FleetManagerStrategyBehaviour
 from simfleet.common.vehicle import VehicleStrategyBehaviour    #New vehicle
 from simfleet.utils.helpers import PathRequestException, distance_in_meters, AlreadyInDestination
@@ -436,7 +436,7 @@ class FSMTaxiStrategyBehaviour(FSMBehaviour):
 #                                                              #
 ################################################################
 #class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
-class AcceptFirstRequestBehaviour(PedestrianStrategyBehaviour):
+class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
     """
     The default strategy for the Customer agent. By default it accepts the first proposal it receives.
     """

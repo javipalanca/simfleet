@@ -8,7 +8,7 @@ from spade.message import Message
 from spade.template import Template
 from spade.behaviour import CyclicBehaviour
 
-from simfleet.common.movable import MovableMixin, MovingBehaviour
+from simfleet.common.movable import MovableMixin#, MovingBehaviour
 from simfleet.common.geolocatedagent import GeoLocatedAgent
 
 from simfleet.utils.utils_old import StrategyBehaviour      #New vehicle
@@ -110,14 +110,14 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
         super().set_position(coords)
         self.set("current_pos", coords)
 
-        if self.is_in_destination():
-            logger.info(
-                "Vehicle {} has arrived to destination: {}. Position: {}".format(
-                    self.agent_id, self.is_in_destination(), self.get("current_pos")
-                )
-            )
-            if self.status == VEHICLE_MOVING_TO_DESTINATION:
-                self.status = VEHICLE_IN_DEST
+        #if self.is_in_destination():
+        #    logger.info(
+        #        "Vehicle {} has arrived to destination: {}. Position: {}".format(
+        #            self.agent_id, self.is_in_destination(), self.get("current_pos")
+        #        )
+        #    )
+        #    if self.status == VEHICLE_MOVING_TO_DESTINATION:
+        #        self.status = VEHICLE_IN_DEST
 
     #New vehicle
     async def send_registration(self):
@@ -129,7 +129,7 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
                 self.name, self.directory_id
             )
         )
-        self.status = VEHICLE_WAITING
+        #self.status = VEHICLE_WAITING
         content = {"jid": str(self.jid), "type": self.fleet_type}
         msg = Message()
         msg.to = str(self.directory_id)
@@ -231,7 +231,7 @@ class VehicleStrategyBehaviour(StrategyBehaviour):
         logger.info(
             "Vehicle {} on route to destination {}".format(self.agent.name, self.agent.dest)
         )
-        self.agent.status = VEHICLE_MOVING_TO_DESTINATION
+        #self.agent.status = VEHICLE_MOVING_TO_DESTINATION
         try:
             logger.debug("{} move_to destination {}".format(self.agent.name, self.agent.dest))
             await self.agent.move_to(self.agent.dest)
@@ -241,7 +241,7 @@ class VehicleStrategyBehaviour(StrategyBehaviour):
                     self.agent.name, self.agent.dest
                 )
             )
-            self.agent.status = VEHICLE_IN_DEST
+            #self.agent.status = VEHICLE_IN_DEST
 
     async def run(self):
         raise NotImplementedError

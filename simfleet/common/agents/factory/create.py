@@ -213,7 +213,9 @@ class CustomerFactory(Factory):
                     domain,
                     name,
                     password,
+                    class_,
                     default_strategy,
+                    optional=None,
                     strategy=None,
                     jid_directory=None,
                     bbox=None,
@@ -247,7 +249,14 @@ class CustomerFactory(Factory):
         jid = f"{name}@{domain}"
         logger.debug("Creating Customer agent: {}".format(jid))
         #agent = CustomerAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
-        agent = PedestrianAgent(jid, password)
+        #agent = PedestrianAgent(jid, password)
+
+        if type(class_) is str:   # Añadimos el objeto de la clase cargada a la variable agente_class
+            agent_class = load_class(class_)
+            agent = agent_class(jid, password)
+        else:
+            raise Exception ("The agent needs a class in path format.")
+
         agent.set_id(name)  # Establece el identificador del agente
         agent.set_directory(jid_directory)
 

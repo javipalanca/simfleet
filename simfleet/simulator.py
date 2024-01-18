@@ -294,6 +294,7 @@ class SimulatorAgent(Agent):
                 else faker_factory.password()
             )
 
+            class_ = customer["class"]
             fleet_type = customer["fleet_type"]
             #position = customer["position"]
             position = customer.get("position")
@@ -310,6 +311,7 @@ class SimulatorAgent(Agent):
             agent = self.create_customer_agent(
                                                 name,
                                                 password,
+                                                class_,
                                                 fleet_type,
                                                 position=position,
                                                 target=target,
@@ -1474,6 +1476,7 @@ class SimulatorAgent(Agent):
         self,
         name,
         password,
+        class_,
         fleet_type,
         position=None,
         strategy=None,
@@ -1483,6 +1486,7 @@ class SimulatorAgent(Agent):
         agent = CustomerFactory.create_agent(domain=self.jid.domain,
                                             name=name,
                                             password=password,
+                                            class_=class_,
                                             default_strategy=self.default_strategies['customer'],
                                             strategy=strategy,
                                             jid_directory=self.get_directory().jid,

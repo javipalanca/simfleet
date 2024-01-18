@@ -599,7 +599,7 @@ class DumbVehicleInDestState(VehicleStrategyBehaviour, State):
         logger.debug("{} in Vehicle Moving State".format(self.agent.jid))
 
     async def run(self):
-        logger.warning("Vehicle InDest State")
+        logger.info("Vehicle InDest State")
         #self.set_next_state(VEHICLE_IN_DEST)
 
 

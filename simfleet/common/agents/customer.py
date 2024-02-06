@@ -326,30 +326,31 @@ class TravelBehaviour(CyclicBehaviour):
             logger.debug("Customer {} informed of: {}".format(self.agent.name, content))
             if "status" in content:
                 status = content["status"]
-                if status != CUSTOMER_LOCATION:
-                    logger.debug(
-                        "Customer {} informed of status: {}".format(
-                            self.agent.name, status_to_str(status)
-                        )
-                    )
-                if status == TRANSPORT_MOVING_TO_CUSTOMER:
-                    logger.info(
-                        "Customer {} waiting for transport.".format(self.agent.name)
-                    )
-                    self.agent.waiting_for_pickup_time = time.time()
-                elif status == TRANSPORT_IN_CUSTOMER_PLACE:
-                    self.agent.status = CUSTOMER_IN_TRANSPORT
-                    logger.info("Customer {} in transport.".format(self.agent.name))
-                    self.agent.pickup_time = time.time()
-                elif status == CUSTOMER_IN_DEST:
-                    self.agent.status = CUSTOMER_IN_DEST
-                    self.agent.end_time = time.time()
-                    logger.info(
-                        "Customer {} arrived to destination after {} seconds.".format(
-                            self.agent.name, self.agent.total_time()
-                        )
-                    )
-                elif status == CUSTOMER_LOCATION:
+                #if status != CUSTOMER_LOCATION:
+                #    logger.debug(
+                #        "Customer {} informed of status: {}".format(
+                #            self.agent.name, status_to_str(status)
+                #        )
+                #    )
+                #if status == TRANSPORT_MOVING_TO_CUSTOMER:
+                #    logger.info(
+                #        "Customer {} waiting for transport.".format(self.agent.name)
+                #    )
+                #    self.agent.waiting_for_pickup_time = time.time()
+                #elif status == TRANSPORT_IN_CUSTOMER_PLACE:
+                #    self.agent.status = CUSTOMER_IN_TRANSPORT
+                #    logger.info("Customer {} in transport.".format(self.agent.name))
+                #    self.agent.pickup_time = time.time()
+                #elif status == CUSTOMER_IN_DEST:
+                #    self.agent.status = CUSTOMER_IN_DEST
+                #    self.agent.end_time = time.time()
+                #    logger.info(
+                #        "Customer {} arrived to destination after {} seconds.".format(
+                #            self.agent.name, self.agent.total_time()
+                #        )
+                #    )
+                #elif status == CUSTOMER_LOCATION:
+                if status == CUSTOMER_LOCATION:
                     coords = content["location"]
                     self.agent.set_position(coords)
         except CancelledError:

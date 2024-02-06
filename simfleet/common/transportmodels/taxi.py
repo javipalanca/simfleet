@@ -126,7 +126,8 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         reply = Message()
         reply.to = customer_id
         reply.set_metadata("performative", INFORM_PERFORMATIVE)
-        reply.set_metadata("protocol", TRAVEL_PROTOCOL)
+        #reply.set_metadata("protocol", TRAVEL_PROTOCOL)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
         content = {"status": TRANSPORT_MOVING_TO_CUSTOMER}
         reply.body = json.dumps(content)
         self.set("current_customer", customer_id)

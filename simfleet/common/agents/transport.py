@@ -494,6 +494,25 @@ class TransportAgent(VehicleAgent):
             data = {}
         msg = Message()
         msg.to = self.get("current_customer")
+        #msg.set_metadata("protocol", TRAVEL_PROTOCOL)
+        msg.set_metadata("protocol", REQUEST_PROTOCOL)
+        msg.set_metadata("performative", INFORM_PERFORMATIVE)
+        data["status"] = status
+        msg.body = json.dumps(data)
+        await self.send(msg)
+
+    async def inform_customer_moving(self, status, data=None):
+        """
+        Sends a message to the current assigned customer to inform her about a new status.
+
+        Args:
+            status (int): The new status code
+            data (dict, optional): complementary info about the status
+        """
+        if data is None:
+            data = {}
+        msg = Message()
+        msg.to = self.get("current_customer")
         msg.set_metadata("protocol", TRAVEL_PROTOCOL)
         msg.set_metadata("performative", INFORM_PERFORMATIVE)
         data["status"] = status
@@ -575,7 +594,7 @@ class TransportAgent(VehicleAgent):
         self.set("current_pos", coords)
 
         if self.status == TRANSPORT_MOVING_TO_DESTINATION:
-            await self.inform_customer(
+            await self.inform_customer_moving(
                 CUSTOMER_LOCATION, {"location": self.get("current_pos")}
             )
         if self.is_in_destination():

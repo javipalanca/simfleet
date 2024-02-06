@@ -650,6 +650,7 @@ class DumbVehicleMovingState(VehicleStrategyBehaviour, State):
             #await self.vehicle_arrived()
 
             if not self.agent.is_in_destination():
+                await asyncio.sleep(1)
                 self.set_next_state(VEHICLE_MOVING_TO_DESTINATION)
             else:
                 self.set_next_state(VEHICLE_IN_DEST)
@@ -683,7 +684,7 @@ class DumbVehicleInDestState(VehicleStrategyBehaviour, State):
         logger.debug("{} in Vehicle Moving State".format(self.agent.jid))
 
     async def run(self):
-        logger.info("Vehicle InDest State")
+        logger.info("{} arrived at its destination".format(self.agent.jid))
         #self.set_next_state(VEHICLE_IN_DEST)
 
 

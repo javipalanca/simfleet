@@ -537,6 +537,66 @@ class TaxiArrivedAtCustomerState(TaxiStrategyBehaviour, State):
             self.set_next_state(TRANSPORT_ARRIVED_AT_CUSTOMER)
             return
 
+# MOD-STRATEGY-04 - New status
+class TaxiMovingToCustomerDestState(TaxiStrategyBehaviour, State):
+    async def on_start(self):
+        await super().on_start()
+        self.agent.status = TRANSPORT_MOVING_TO_DESTINATION
+        logger.debug("{} in Transport Moving To Customer Dest State".format(self.agent.jid))
+
+    async def run(self):
+
+        customers = self.get("current_customer")
+        customer_id = next(iter(customers.items()))[0]
+
+        try:
+
+            if not self.agent.is_in_destination():
+                #MOD-STRATEGY-04 - Alternativa 1 - Envio msg TRAVELBEHAVIOUR
+                #await self.agent.new_inform_customer_moving(
+                #    customer_id=customer_id, status=CUSTOMER_LOCATION,
+                #    data={"location": self.get("current_pos")}
+                #)
+                #Hasta aquí
+                await asyncio.sleep(1)
+                self.set_next_state(TRANSPORT_MOVING_TO_DESTINATION)
+            else:
+                # MOD-STRATEGY-04 - Alternativa 1 - Envio msg TRAVELBEHAVIOUR
+                #await self.agent.new_inform_customer_moving(
+                #    customer_id=customer_id, status=CUSTOMER_LOCATION,
+                #    data={"location": self.get("current_pos")}
+                #)
+                logger.info(
+                    "Transport {} has arrived to destination. Status: {}".format(
+                        self.agent.agent_id, self.agent.status
+                    )
+                )
+                self.agent.status = TRANSPORT_ARRIVED_AT_DESTINATION
+                self.set_next_state(TRANSPORT_ARRIVED_AT_DESTINATION)
+
+        except PathRequestException:
+            logger.error(
+                "Transport {} could not get a path to customer {}. Cancelling...".format(
+                    self.agent.name, customer_id
+                )
+            )
+            await self.cancel_proposal(customer_id)
+            self.agent.status = TRANSPORT_WAITING
+            self.set_next_state(TRANSPORT_WAITING)
+            return
+        except AlreadyInDestination:
+            self.agent.status = TRANSPORT_ARRIVED_AT_DESTINATION
+            self.set_next_state(TRANSPORT_ARRIVED_AT_DESTINATION)
+            return
+        except Exception as e:
+            logger.error(
+                "Unexpected error in transport {}: {}".format(self.agent.name, e)
+            )
+            await self.cancel_proposal(customer_id)
+            self.agent.status = TRANSPORT_WAITING
+            self.set_next_state(TRANSPORT_WAITING)
+            return
+
 #class FSMTransportStrategyBehaviour(FSMBehaviour):
 class FSMTaxiStrategyBehaviour(FSMBehaviour):
     def setup(self):
@@ -554,6 +614,8 @@ class FSMTaxiStrategyBehaviour(FSMBehaviour):
         self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, TaxiMovingToCustomerState())
 
         self.add_state(TRANSPORT_ARRIVED_AT_CUSTOMER, TaxiArrivedAtCustomerState())
+
+        self.add_state(TRANSPORT_MOVING_TO_DESTINATION, TaxiMovingToCustomerDestState())
 
         #self.add_state(TRANSPORT_MOVING_TO_STATION, TransportMovingToStationState())
         self.add_state(TRANSPORT_MOVING_TO_STATION, TaxiMovingToStationState())
@@ -609,6 +671,18 @@ class FSMTaxiStrategyBehaviour(FSMBehaviour):
 
         self.add_transition(
             TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_ARRIVED_AT_DESTINATION
+        )  # going to pick up customer
+
+        self.add_transition(
+            TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_MOVING_TO_DESTINATION
+        )  # going to pick up customer
+
+        self.add_transition(
+            TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_WAITING
+        )  # going to pick up customer
+
+        self.add_transition(
+            TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_ARRIVED_AT_DESTINATION
         )  # going to pick up customer
 
         self.add_transition(

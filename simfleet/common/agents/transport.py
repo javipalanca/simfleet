@@ -385,19 +385,20 @@ class TransportAgent(VehicleAgent):
         self.current_autonomy_km = self.max_autonomy_km
         self.total_charging_time += time.time() - self.charge_time
 
-    async def drop_customer(self):
-        """
-        Drops the customer that the transport is carring in the current location.
-        """
-        await self.inform_customer(CUSTOMER_IN_DEST)
-        self.status = TRANSPORT_WAITING
-        logger.debug(
-            "Transport {} has dropped the customer {} in destination.".format(
-                self.agent_id, self.get("current_customer")
-            )
-        )
-        self.set("current_customer", None)
-        self.set("customer_in_transport", None)
+    # MOD-STRATEGY-04 - Comments
+    #async def drop_customer(self):
+    #    """
+    #    Drops the customer that the transport is carring in the current location.
+    #    """
+    #    await self.inform_customer(CUSTOMER_IN_DEST)
+    #    self.status = TRANSPORT_WAITING
+    #    logger.debug(
+    #        "Transport {} has dropped the customer {} in destination.".format(
+    #            self.agent_id, self.get("current_customer")
+    #        )
+    #    )
+    #    self.set("current_customer", None)
+    #    self.set("customer_in_transport", None)
 
     async def drop_station(self):
         """
@@ -502,7 +503,7 @@ class TransportAgent(VehicleAgent):
         msg.body = json.dumps(data)
         await self.send(msg)
 
-    async def inform_customer_moving(self, status, data=None):
+    async def inform_customer_moving(self, customer_id, status, data=None):
         """
         Sends a message to the current assigned customer to inform her about a new status.
 
@@ -513,7 +514,8 @@ class TransportAgent(VehicleAgent):
         if data is None:
             data = {}
         msg = Message()
-        msg.to = self.get("current_customer")
+        #msg.to = self.get("current_customer")
+        msg.to = customer_id
         msg.set_metadata("protocol", TRAVEL_PROTOCOL)
         msg.set_metadata("performative", INFORM_PERFORMATIVE)
         data["status"] = status
@@ -606,10 +608,21 @@ class TransportAgent(VehicleAgent):
         await super().set_position(coords)
         self.set("current_pos", coords)
 
-        if self.status == TRANSPORT_MOVING_TO_DESTINATION:
-            await self.inform_customer_moving(
-                CUSTOMER_LOCATION, {"location": self.get("current_pos")}
-            )
+        # MOD-STRATEGY-04 - Comments
+        #if self.status == TRANSPORT_MOVING_TO_DESTINATION:
+        #    await self.inform_customer_moving(
+        #        CUSTOMER_LOCATION, {"location": self.get("current_pos")}
+        #    )
+
+        #MOD-STRATEGY-04 - Alternativa 2 - Envio msg TRAVELBEHAVIOUR
+        if len(self.get("current_customer")) > 0:
+            for key, item in self.get("current_customer").items():
+                if item["in_transport"]:
+                    await self.inform_customer_moving(
+                        customer_id=key, status=CUSTOMER_LOCATION,
+                        data={"location": self.get("current_pos")}
+                    )
+
         if self.is_in_destination():
             logger.info(
                 "Transport {} has arrived to destination. Status: {}".format(
@@ -619,8 +632,9 @@ class TransportAgent(VehicleAgent):
 
             if self.status == TRANSPORT_MOVING_TO_STATION:
                 await self.arrived_to_station()
-            else:
-                await self.arrived_to_destination()
+            # MOD-STRATEGY-04 - Comments
+            #else:
+            #    await self.arrived_to_destination()
 
     #geolocatedagent.py
     #def get_position(self):

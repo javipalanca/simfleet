@@ -482,7 +482,7 @@ class TransportAgent(VehicleAgent):
         msg.body = json.dumps(data)
         await self.send(msg)
 
-    async def inform_customer(self, status, data=None):
+    async def inform_customer(self, customer_id, status, data=None):
         """
         Sends a message to the current assigned customer to inform her about a new status.
 
@@ -493,7 +493,8 @@ class TransportAgent(VehicleAgent):
         if data is None:
             data = {}
         msg = Message()
-        msg.to = self.get("current_customer")
+        msg.to = customer_id
+        #msg.to = self.get("current_customer")      #MOD-STRATEGY-01 - comments
         #msg.set_metadata("protocol", TRAVEL_PROTOCOL)
         msg.set_metadata("protocol", REQUEST_PROTOCOL)
         msg.set_metadata("performative", INFORM_PERFORMATIVE)
@@ -544,6 +545,15 @@ class TransportAgent(VehicleAgent):
             )
         )
         await self.send(reply)
+
+    #MOD-STRATEGY-01 - new function
+    async def add_customer_in_transport(self, customer_id, in_transport, origin=None, dest=None):
+        customers = self.get("current_customer")
+        # customers[customer_id] = {"origin": origin, "destination": dest}
+        customers[customer_id] = {"in_transport": in_transport, "origin": origin, "destination": dest}
+        self.set("current_customer", customers)
+        if in_transport:
+            self.num_assignments += 1
 
     #Estará en movable.py
     #async def request_path(self, origin, destination):

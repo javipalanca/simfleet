@@ -374,6 +374,26 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour, State):
 
 
 #class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
+# MOD-STRATEGY-02 - comments
+#class TaxiMovingToCustomerState(TaxiStrategyBehaviour, State):
+#    async def on_start(self):
+#        await super().on_start()
+#        self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
+#        logger.debug("{} in Transport Moving To Customer State".format(self.agent.jid))
+
+#    async def run(self):
+        # Reset internal flag to False. coroutines calling
+        # wait() will block until set() is called
+#        self.agent.customer_in_transport_event.clear()
+#        # Registers an observer callback to be run when the "customer_in_transport" is changed
+#        self.agent.watch_value(
+#            "customer_in_transport", self.agent.customer_in_transport_callback
+#        )
+        # block behaviour until another coroutine calls set()
+#        await self.agent.customer_in_transport_event.wait()
+#        return self.set_next_state(TRANSPORT_WAITING)
+
+
 class TaxiMovingToCustomerState(TaxiStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
@@ -381,17 +401,71 @@ class TaxiMovingToCustomerState(TaxiStrategyBehaviour, State):
         logger.debug("{} in Transport Moving To Customer State".format(self.agent.jid))
 
     async def run(self):
-        # Reset internal flag to False. coroutines calling
-        # wait() will block until set() is called
-        self.agent.customer_in_transport_event.clear()
-        # Registers an observer callback to be run when the "customer_in_transport" is changed
-        self.agent.watch_value(
-            "customer_in_transport", self.agent.customer_in_transport_callback
-        )
-        # block behaviour until another coroutine calls set()
-        await self.agent.customer_in_transport_event.wait()
-        return self.set_next_state(TRANSPORT_WAITING)
 
+        customers = self.get("current_customer")
+        customer_id = next(iter(customers.items()))[0]
+
+        msg = await self.receive(timeout=2)  # Test 2 seconds
+
+        if msg:
+
+            performative = msg.get_metadata("performative")
+            if performative == REQUEST_PERFORMATIVE:
+                self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
+                return
+            elif performative == REFUSE_PERFORMATIVE:
+                logger.debug(
+                    "Transport {} got refusal from customer/station".format(self.agent.name)
+                )
+                self.agent.status = TRANSPORT_WAITING
+                self.set_next_state(TRANSPORT_WAITING)
+                return
+        else:
+
+            try:
+
+                if not self.agent.is_in_destination():
+                    # await asyncio.sleep(1)
+                    self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
+                else:
+                    logger.info(
+                        "Transport {} has arrived to destination. Status: {}".format(
+                            self.agent.agent_id, self.agent.status
+                        )
+                    )
+                    await self.agent.inform_customer(
+                        customer_id=customer_id, status=TRANSPORT_IN_CUSTOMER_PLACE
+                    )
+                    self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
+                    self.set_next_state(TRANSPORT_ARRIVED_AT_CUSTOMER)
+                    return
+
+            except PathRequestException:
+                logger.error(
+                    "Transport {} could not get a path to customer {}. Cancelling...".format(
+                        self.agent.name, customer_id
+                    )
+                )
+                await self.cancel_proposal(customer_id)
+                self.agent.status = TRANSPORT_WAITING
+                self.set_next_state(TRANSPORT_WAITING)
+                return
+            except AlreadyInDestination:
+
+                await self.agent.inform_customer(
+                    customer_id=customer_id, status=TRANSPORT_IN_CUSTOMER_PLACE
+                )
+                self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
+                self.set_next_state(TRANSPORT_ARRIVED_AT_CUSTOMER)
+                return
+            except Exception as e:
+                logger.error(
+                    "Unexpected error in transport {}: {}".format(self.agent.name, e)
+                )
+                await self.cancel_proposal(customer_id)
+                self.agent.status = TRANSPORT_WAITING
+                self.set_next_state(TRANSPORT_WAITING)
+                return
 
 #class FSMTransportStrategyBehaviour(FSMBehaviour):
 class FSMTaxiStrategyBehaviour(FSMBehaviour):
@@ -436,6 +510,22 @@ class FSMTaxiStrategyBehaviour(FSMBehaviour):
         self.add_transition(
             TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_MOVING_TO_CUSTOMER
         )  # going to pick up customer
+
+        self.add_transition(
+            TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_ARRIVED_AT_CUSTOMER
+        )  # going to pick up customer
+
+        self.add_transition(
+            TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_MOVING_TO_CUSTOMER
+        )  # going to pick up customer
+
+        self.add_transition(
+            TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_WAITING
+        )  # going to pick up customer
+
+        self.add_transition(
+            TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_ARRIVED_AT_CUSTOMER
+        )
 
         self.add_transition(
             TRANSPORT_NEEDS_CHARGING, TRANSPORT_NEEDS_CHARGING

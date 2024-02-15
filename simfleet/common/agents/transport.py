@@ -76,10 +76,11 @@ class TransportAgent(VehicleAgent):
         #self.distances = []                                    #movable.py
         #self.durations = []                                    #movable.py
         #self.port = None                                        #simfleetagent.py
-        self.set("current_customer", None)
+        #self.set("current_customer", None)            # MOD-STRATEGY-02 - modify
+        self.set("current_customer", {})
         #self.current_customer_orig = None                       #taxi.py
-        self.current_customer_dest = None
-        self.set("customer_in_transport", None)
+        #self.current_customer_dest = None               # MOD-STRATEGY-02 - comments
+        #self.set("customer_in_transport", None)         # MOD-STRATEGY-02 - comments
         self.num_assignments = 0
         #self.stopped = False                                    #simfleetagent.py
         #self.ready = False                                      #simfleetagent.py
@@ -264,8 +265,9 @@ class TransportAgent(VehicleAgent):
         msg.sent = True
         self.traces.append(msg, category=str(self))
 
-    def is_customer_in_transport(self):
-        return self.get("customer_in_transport") is not None
+    # MOD-STRATEGY-02 - comments
+    #def is_customer_in_transport(self):
+    #    return self.get("customer_in_transport") is not None
 
     # taxi.py
     #def is_free(self):
@@ -715,6 +717,13 @@ class TransportAgent(VehicleAgent):
                     "distance": 3481.34
                 }
         """
+        # MOD-STRATEGY-02 - modify
+        customers = self.get("current_customer")
+        if len(customers) != 0:
+            customer_id = next(iter(customers.items()))[0]
+        else:
+            customer_id = None
+
         return {
             "id": self.agent_id,
             "position": [
@@ -728,8 +737,10 @@ class TransportAgent(VehicleAgent):
             if self.animation_speed
             else None,
             "path": self.get("path"),
-            "customer": self.get("current_customer").split("@")[0]
-            if self.get("current_customer")
+            #"customer": self.get("current_customer").split("@")[0]         # MOD-STRATEGY-02 - modify
+            #if self.get("current_customer")                                # MOD-STRATEGY-02 - modify
+            "customer": customer_id.split("@")[0]
+            if customer_id
             else None,
             "assignments": self.num_assignments,
             "distance": "{0:.2f}".format(sum(self.distances)),

@@ -147,3 +147,5 @@ class MovingBehaviour(PeriodicBehaviour):
         self.period = self.agent.animation_speed / ONESECOND_IN_MS
         if self.agent.is_in_destination():
             self.agent.remove_behaviour(self)
+            self.set("path", None)
+            self.chunked_path = None

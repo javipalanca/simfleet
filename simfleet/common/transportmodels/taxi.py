@@ -54,37 +54,37 @@ class TaxiAgent(TransportAgent):
 
         self.fleetmanager_id = kwargs.get('fleet', None)        # vehicle.py
 
-
+    # MOD-STRATEGY-04 - Comments
     # MovableMixin - movable.py - ANALIZAR cambiar ubicación
-    async def arrived_to_destination(self):
-        """
-        Informs that the transport has arrived to its destination.
-        It recomputes the new destination and path if picking up a customer
-        or drops it and goes to WAITING status again.
-        """
-        self.set("path", None)
-        self.chunked_path = None
-        if (
-            not self.is_customer_in_transport()
-        ):  # self.status == TRANSPORT_MOVING_TO_CUSTOMER:
-            try:
-                self.set("customer_in_transport", self.get("current_customer"))
-                await self.move_to(self.current_customer_dest)
-            except PathRequestException:
-                await self.cancel_customer()
-                self.status = TRANSPORT_WAITING
-            except AlreadyInDestination:
-                await self.drop_customer()
-            else:
-                await self.inform_customer(TRANSPORT_IN_CUSTOMER_PLACE)
-                self.status = TRANSPORT_MOVING_TO_DESTINATION
-                logger.info(
-                    "Transport {} has picked up the customer {}.".format(
-                        self.agent_id, self.get("current_customer")
-                    )
-                )
-        else:  # elif self.status == TRANSPORT_MOVING_TO_DESTINATION:
-            await self.drop_customer()
+    #async def arrived_to_destination(self):
+    #    """
+    #    Informs that the transport has arrived to its destination.
+    #    It recomputes the new destination and path if picking up a customer
+    #    or drops it and goes to WAITING status again.
+    #    """
+    #    self.set("path", None)
+    #    self.chunked_path = None
+    #    if (
+    #        not self.is_customer_in_transport()
+    #    ):  # self.status == TRANSPORT_MOVING_TO_CUSTOMER:
+    #        try:
+    #            self.set("customer_in_transport", self.get("current_customer"))
+    #            await self.move_to(self.current_customer_dest)
+    #        except PathRequestException:
+    #            await self.cancel_customer()
+    #            self.status = TRANSPORT_WAITING
+    #        except AlreadyInDestination:
+    #            await self.drop_customer()
+    #        else:
+    #            await self.inform_customer(TRANSPORT_IN_CUSTOMER_PLACE)
+    #            self.status = TRANSPORT_MOVING_TO_DESTINATION
+    #            logger.info(
+    #                "Transport {} has picked up the customer {}.".format(
+    #                    self.agent_id, self.get("current_customer")
+    #                )
+    #            )
+    #    else:  # elif self.status == TRANSPORT_MOVING_TO_DESTINATION:
+    #        await self.drop_customer()
 
 
 

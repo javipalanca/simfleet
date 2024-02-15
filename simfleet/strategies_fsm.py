@@ -30,6 +30,8 @@ from simfleet.utils.utils_old import (
     TRANSPORT_WAITING_FOR_APPROVAL,
     TRANSPORT_MOVING_TO_CUSTOMER,
     TRANSPORT_ARRIVED_AT_CUSTOMER,
+    TRANSPORT_MOVING_TO_DESTINATION,
+    TRANSPORT_ARRIVED_AT_DESTINATION,
     TRANSPORT_IN_CUSTOMER_PLACE,
     TRANSPORT_NEEDS_CHARGING,
     TRANSPORT_MOVING_TO_STATION,
@@ -393,7 +395,7 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour, State):
 #        await self.agent.customer_in_transport_event.wait()
 #        return self.set_next_state(TRANSPORT_WAITING)
 
-
+# MOD-STRATEGY-02 - New status
 class TaxiMovingToCustomerState(TaxiStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
@@ -467,6 +469,74 @@ class TaxiMovingToCustomerState(TaxiStrategyBehaviour, State):
                 self.set_next_state(TRANSPORT_WAITING)
                 return
 
+# MOD-STRATEGY-03 - New status
+class TaxiArrivedAtCustomerState(TaxiStrategyBehaviour, State):
+    async def on_start(self):
+        await super().on_start()
+        self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
+        logger.debug("{} in Transport Arrived At Customer State".format(self.agent.jid))
+
+    async def run(self):
+
+        customers = self.get("current_customer")
+        customer_id = next(iter(customers.items()))[0]
+
+        msg = await self.receive(timeout=60)
+
+        if not msg:
+            self.set_next_state(TRANSPORT_ARRIVED_AT_CUSTOMER)
+            return
+        content = json.loads(msg.body)
+        performative = msg.get_metadata("performative")
+
+        if performative == INFORM_PERFORMATIVE:
+            if "status" in content:
+                status = content["status"]
+
+                if status == CUSTOMER_IN_TRANSPORT:
+
+                    try:
+                        logger.debug(
+                            "Customer {} in transport.".format(self.agent.name)
+                        )
+                        dest = next(iter(customers.items()))[1]["destination"]
+
+                        await self.agent.add_customer_in_transport(
+                            customer_id=customer_id, in_transport=True,
+                            dest=dest
+                        )
+
+                        logger.info(
+                            "Transport {} on route to customer destination of {}".format(self.agent.name, customer_id)
+                        )
+
+                        await self.agent.move_to(dest)
+
+                        self.agent.status = TRANSPORT_MOVING_TO_DESTINATION
+                        self.set_next_state(TRANSPORT_MOVING_TO_DESTINATION)
+
+                    except PathRequestException:
+                        # MOD-STRATEGY-03 - Modify function
+                        await self.agent.cancel_customer(customer_id=customer_id)
+                        self.agent.status = TRANSPORT_WAITING
+                        self.set_next_state(TRANSPORT_WAITING)
+                    except AlreadyInDestination:
+                        self.set_next_state(TRANSPORT_ARRIVED_AT_DESTINATION)
+
+                    except Exception as e:
+                        logger.error(
+                            "Unexpected error in transport {}: {}".format(self.agent.name, e)
+                        )
+
+        elif performative == CANCEL_PERFORMATIVE:
+            self.agent.status = TRANSPORT_WAITING
+            self.set_next_state(TRANSPORT_WAITING)
+            return
+        else:
+            self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
+            self.set_next_state(TRANSPORT_ARRIVED_AT_CUSTOMER)
+            return
+
 #class FSMTransportStrategyBehaviour(FSMBehaviour):
 class FSMTaxiStrategyBehaviour(FSMBehaviour):
     def setup(self):
@@ -482,6 +552,8 @@ class FSMTaxiStrategyBehaviour(FSMBehaviour):
 
         #self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, TransportMovingToCustomerState())
         self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, TaxiMovingToCustomerState())
+
+        self.add_state(TRANSPORT_ARRIVED_AT_CUSTOMER, TaxiArrivedAtCustomerState())
 
         #self.add_state(TRANSPORT_MOVING_TO_STATION, TransportMovingToStationState())
         self.add_state(TRANSPORT_MOVING_TO_STATION, TaxiMovingToStationState())
@@ -526,6 +598,22 @@ class FSMTaxiStrategyBehaviour(FSMBehaviour):
         self.add_transition(
             TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_ARRIVED_AT_CUSTOMER
         )
+
+        self.add_transition(
+            TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_ARRIVED_AT_CUSTOMER
+        )  # going to pick up customer
+
+        self.add_transition(
+            TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_MOVING_TO_DESTINATION
+        )  # going to pick up customer
+
+        self.add_transition(
+            TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_ARRIVED_AT_DESTINATION
+        )  # going to pick up customer
+
+        self.add_transition(
+            TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_WAITING
+        )  # going to pick up customer
 
         self.add_transition(
             TRANSPORT_NEEDS_CHARGING, TRANSPORT_NEEDS_CHARGING

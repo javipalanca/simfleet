@@ -520,7 +520,8 @@ class TransportAgent(VehicleAgent):
         msg.body = json.dumps(data)
         await self.send(msg)
 
-    async def cancel_customer(self, data=None):
+    # MOD-STRATEGY-03 - Modify function
+    async def cancel_customer(self, customer_id, data=None):
         """
         Sends a message to the current assigned customer to cancel the assignment.
 
@@ -535,13 +536,15 @@ class TransportAgent(VehicleAgent):
         if data is None:
             data = {}
         reply = Message()
-        reply.to = self.get("current_customer")
+        #reply.to = self.get("current_customer")
+        reply.to = customer_id
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         reply.body = json.dumps(data)
         logger.debug(
             "Transport {} sent cancel proposal to customer {}".format(
-                self.agent_id, self.get("current_customer")
+                #self.agent_id, self.get("current_customer")
+                self.agent_id, customer_id
             )
         )
         await self.send(reply)

@@ -50,7 +50,7 @@ class TaxiAgent(TransportAgent):
     def __init__(self, agentjid, password, **kwargs):
         super().__init__(agentjid, password)
 
-        self.current_customer_orig = None
+        #self.current_customer_orig = None                      # MOD-STRATEGY-02 - comments
 
         self.fleetmanager_id = kwargs.get('fleet', None)        # vehicle.py
 

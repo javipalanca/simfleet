@@ -29,6 +29,7 @@ from simfleet.utils.utils_old import (
     TRANSPORT_WAITING,
     TRANSPORT_WAITING_FOR_APPROVAL,
     TRANSPORT_MOVING_TO_CUSTOMER,
+    TRANSPORT_ARRIVED_AT_CUSTOMER,
     TRANSPORT_IN_CUSTOMER_PLACE,
     TRANSPORT_NEEDS_CHARGING,
     TRANSPORT_MOVING_TO_STATION,
@@ -303,7 +304,7 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour, State):
                     )
                 )
                 # new version
-                self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
+                #self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
                 if not self.check_and_decrease_autonomy(
                     content["origin"], content["dest"]
                 ):
@@ -311,9 +312,26 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour, State):
                     self.set_next_state(TRANSPORT_NEEDS_CHARGING)
                     return
                 else:
-                    await self.pick_up_customer(
-                        content["customer_id"], content["origin"], content["dest"]
+                    # MOD-STRATEGY-01 - comments
+                    #await self.pick_up_customer(
+                    #    content["customer_id"], content["origin"], content["dest"]
+                    #)
+
+                    #1) Send message to customer
+                    await self.agent.inform_customer(
+                        customer_id=content["customer_id"], status=TRANSPORT_MOVING_TO_CUSTOMER
                     )
+                    #2) Save customer assigned data locally
+                    # MOD-STRATEGY-01 - new funtion
+                    await self.agent.add_customer_in_transport(
+                        customer_id=content["customer_id"], in_transport=False,
+                        origin=content["origin"], dest=content["dest"]
+                    )
+
+                    #3) Initiate movement towards the client
+                    await self.agent.move_to(content["origin"])
+
+                    self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
                     self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
                     return
             except PathRequestException:
@@ -324,6 +342,16 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour, State):
                 )
                 await self.cancel_proposal(content["customer_id"])
                 self.set_next_state(TRANSPORT_WAITING)
+                return
+
+            except AlreadyInDestination:
+                # 2) Save customer assigned data locally
+                # MOD-STRATEGY-01 - new funtion
+                await self.agent.inform_customer(
+                    customer_id=content["customer_id"], status=TRANSPORT_IN_CUSTOMER_PLACE
+                )
+                self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
+                self.set_next_state(TRANSPORT_ARRIVED_AT_CUSTOMER)
                 return
             except Exception as e:
                 logger.error(

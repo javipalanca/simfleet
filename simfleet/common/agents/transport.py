@@ -560,6 +560,12 @@ class TransportAgent(VehicleAgent):
         if in_transport:
             self.num_assignments += 1
 
+    #MOD-STRATEGY-05 - new function
+    async def remove_customer_in_transport(self, customer_id):
+        customers = self.get("current_customer")
+        del customers[customer_id]
+        self.set("current_customer", customers)
+
     #Estará en movable.py
     #async def request_path(self, origin, destination):
     #    """

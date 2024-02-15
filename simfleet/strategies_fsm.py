@@ -571,6 +571,9 @@ class TaxiMovingToCustomerDestState(TaxiStrategyBehaviour, State):
                         self.agent.agent_id, self.agent.status
                     )
                 )
+                await self.agent.inform_customer(
+                    customer_id=customer_id, status=CUSTOMER_IN_DEST
+                )
                 self.agent.status = TRANSPORT_ARRIVED_AT_DESTINATION
                 self.set_next_state(TRANSPORT_ARRIVED_AT_DESTINATION)
 
@@ -585,6 +588,9 @@ class TaxiMovingToCustomerDestState(TaxiStrategyBehaviour, State):
             self.set_next_state(TRANSPORT_WAITING)
             return
         except AlreadyInDestination:
+            await self.agent.inform_customer(
+                customer_id=customer_id, status=CUSTOMER_IN_DEST
+            )
             self.agent.status = TRANSPORT_ARRIVED_AT_DESTINATION
             self.set_next_state(TRANSPORT_ARRIVED_AT_DESTINATION)
             return
@@ -596,6 +602,52 @@ class TaxiMovingToCustomerDestState(TaxiStrategyBehaviour, State):
             self.agent.status = TRANSPORT_WAITING
             self.set_next_state(TRANSPORT_WAITING)
             return
+
+# MOD-STRATEGY-05 - New status
+class TaxiArrivedAtCustomerDestState(TaxiStrategyBehaviour, State):
+    async def on_start(self):
+        await super().on_start()
+        self.agent.status = TRANSPORT_ARRIVED_AT_DESTINATION
+        logger.debug("{} in Transport Arrived at Customer Dest State".format(self.agent.jid))
+
+    async def run(self):
+
+        customers = self.get("current_customer")
+        customer_id = next(iter(customers.items()))[0]
+
+        msg = await self.receive(timeout=60)
+
+        if not msg:
+            self.set_next_state(TRANSPORT_ARRIVED_AT_DESTINATION)
+            return
+        else:
+            content = json.loads(msg.body)
+            performative = msg.get_metadata("performative")
+
+            if performative == INFORM_PERFORMATIVE:
+                if "status" in content:
+                    status = content["status"]
+
+                    if status == CUSTOMER_IN_DEST:
+                        # MOD-STRATEGY-05 - new function
+                        await self.agent.remove_customer_in_transport(customer_id)
+                        logger.debug(
+                            "Transport {} has dropped the customer {} in destination.".format(
+                                # self.agent_id, self.get("current_customer")
+                                self.agent.agent_id, customer_id
+                            )
+                        )
+                        self.agent.status = TRANSPORT_WAITING
+                        self.set_next_state(TRANSPORT_WAITING)
+                        return
+
+            elif performative == CANCEL_PERFORMATIVE:
+                self.agent.status = TRANSPORT_WAITING
+                self.set_next_state(TRANSPORT_WAITING)
+                return
+            else:
+                self.set_next_state(TRANSPORT_ARRIVED_AT_DESTINATION)
+                return
 
 #class FSMTransportStrategyBehaviour(FSMBehaviour):
 class FSMTaxiStrategyBehaviour(FSMBehaviour):
@@ -616,6 +668,8 @@ class FSMTaxiStrategyBehaviour(FSMBehaviour):
         self.add_state(TRANSPORT_ARRIVED_AT_CUSTOMER, TaxiArrivedAtCustomerState())
 
         self.add_state(TRANSPORT_MOVING_TO_DESTINATION, TaxiMovingToCustomerDestState())
+
+        self.add_state(TRANSPORT_ARRIVED_AT_DESTINATION, TaxiArrivedAtCustomerDestState())
 
         #self.add_state(TRANSPORT_MOVING_TO_STATION, TransportMovingToStationState())
         self.add_state(TRANSPORT_MOVING_TO_STATION, TaxiMovingToStationState())
@@ -674,6 +728,10 @@ class FSMTaxiStrategyBehaviour(FSMBehaviour):
         )  # going to pick up customer
 
         self.add_transition(
+            TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_WAITING
+        )  # going to pick up customer
+
+        self.add_transition(
             TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_MOVING_TO_DESTINATION
         )  # going to pick up customer
 
@@ -686,7 +744,11 @@ class FSMTaxiStrategyBehaviour(FSMBehaviour):
         )  # going to pick up customer
 
         self.add_transition(
-            TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_WAITING
+            TRANSPORT_ARRIVED_AT_DESTINATION, TRANSPORT_ARRIVED_AT_DESTINATION
+        )  # going to pick up customer
+
+        self.add_transition(
+            TRANSPORT_ARRIVED_AT_DESTINATION, TRANSPORT_WAITING
         )  # going to pick up customer
 
         self.add_transition(

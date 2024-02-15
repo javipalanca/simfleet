@@ -23,6 +23,7 @@ from simfleet.communications.protocol import (
     REQUEST_PERFORMATIVE,
     ACCEPT_PERFORMATIVE,
     REFUSE_PERFORMATIVE,
+    INFORM_PERFORMATIVE,
     QUERY_PROTOCOL,
 )
 
@@ -184,6 +185,30 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
         await self.send(reply)
         logger.info(
             "Customer {} refused proposal from transport {}".format(
+                self.agent.name, transport_id
+            )
+        )
+
+    async def inform_transport(self, transport_id, status, data=None):
+        """
+        Sends a ``spade.message.Message`` to a transport to accept a travel proposal.
+        It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
+
+        Args:
+            transport_id (str): The Agent JID of the transport
+        """
+        if data is None:
+            data = {}
+        reply = Message()
+        reply.to = str(transport_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", INFORM_PERFORMATIVE)
+        data["status"] = status
+        reply.body = json.dumps(data)
+        await self.send(reply)
+        self.agent.transport_assigned = str(transport_id)
+        logger.info(
+            "Customer {} informs the transport {}".format(
                 self.agent.name, transport_id
             )
         )

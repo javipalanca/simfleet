@@ -866,11 +866,11 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                             self.agent.status = CUSTOMER_IN_TRANSPORT
                             logger.info("Customer {} in transport.".format(self.agent.name))
                             self.agent.pickup_time = time.time()
-                            await self.agent.inform_transport(transport_id, CUSTOMER_IN_TRANSPORT)
+                            await self.inform_transport(transport_id, CUSTOMER_IN_TRANSPORT)
                         elif status == CUSTOMER_IN_DEST:
                             self.agent.status = CUSTOMER_IN_DEST
                             self.agent.end_time = time.time()
-                            await self.agent.inform_transport(transport_id, CUSTOMER_IN_DEST)
+                            await self.inform_transport(transport_id, CUSTOMER_IN_DEST)
                             logger.info(
                                 "Customer {} arrived to destination after {} seconds.".format(
                                     self.agent.name, self.agent.total_time()

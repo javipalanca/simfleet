@@ -108,44 +108,45 @@ class TaxiStrategyBehaviour(StrategyBehaviour):
         )
         # self.agent.total_waiting_time = 0.0
 
-    async def pick_up_customer(self, customer_id, origin, dest):
-        """
-        Starts a TRAVEL_PROTOCOL to pick up a customer and get him to his destination.
-        It automatically launches all the travelling process until the customer is
-        delivered. This travelling process includes to update the transport coordinates as it
-        moves along the path at the specified speed.
+    #MOD-STRATEGY-01 - comments
+    #async def pick_up_customer(self, customer_id, origin, dest):
+    #    """
+    #    Starts a TRAVEL_PROTOCOL to pick up a customer and get him to his destination.
+    #    It automatically launches all the travelling process until the customer is
+    #    delivered. This travelling process includes to update the transport coordinates as it
+    #    moves along the path at the specified speed.
 
-        Args:
-            customer_id (str): the id of the customer
-            origin (list): the coordinates of the current location of the customer
-            dest (list): the coordinates of the target destination of the customer
-        """
-        logger.info(
-            "Transport {} on route to customer {}".format(self.agent.name, customer_id)
-        )
-        reply = Message()
-        reply.to = customer_id
-        reply.set_metadata("performative", INFORM_PERFORMATIVE)
+    #    Args:
+    #        customer_id (str): the id of the customer
+    #        origin (list): the coordinates of the current location of the customer
+    #        dest (list): the coordinates of the target destination of the customer
+    #    """
+    #    logger.info(
+    #        "Transport {} on route to customer {}".format(self.agent.name, customer_id)
+    #    )
+    #    reply = Message()
+    #    reply.to = customer_id
+    #    reply.set_metadata("performative", INFORM_PERFORMATIVE)
         #reply.set_metadata("protocol", TRAVEL_PROTOCOL)
-        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        content = {"status": TRANSPORT_MOVING_TO_CUSTOMER}
-        reply.body = json.dumps(content)
-        self.set("current_customer", customer_id)
-        self.agent.current_customer_orig = origin
-        self.agent.current_customer_dest = dest
-        await self.send(reply)
-        self.agent.num_assignments += 1
-        try:
-            await self.agent.move_to(self.agent.current_customer_orig)
-        except AlreadyInDestination:
-            await self.agent.arrived_to_destination()
-        except PathRequestException as e:
-            logger.error(
-                "Raising PathRequestException in pick_up_customer for {}".format(
-                    self.agent.name
-                )
-            )
-            raise e
+    #    reply.set_metadata("protocol", REQUEST_PROTOCOL)
+    #    content = {"status": TRANSPORT_MOVING_TO_CUSTOMER}
+    #    reply.body = json.dumps(content)
+    #    self.set("current_customer", customer_id)
+    #    self.agent.current_customer_orig = origin
+    #    self.agent.current_customer_dest = dest
+    #    await self.send(reply)
+    #    self.agent.num_assignments += 1
+    #    try:
+    #        await self.agent.move_to(self.agent.current_customer_orig)
+    #    except AlreadyInDestination:
+    #        await self.agent.arrived_to_destination()
+    #    except PathRequestException as e:
+    #        logger.error(
+    #            "Raising PathRequestException in pick_up_customer for {}".format(
+    #                self.agent.name
+    #            )
+    #        )
+    #        raise e
 
     async def send_confirmation_travel(self, station_id):
         logger.info(

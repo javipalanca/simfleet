@@ -324,9 +324,9 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour, State):
                         customer_id=content["customer_id"], status=TRANSPORT_MOVING_TO_CUSTOMER
                     )
                     #2) Save customer assigned data locally
-                    # MOD-STRATEGY-01 - new funtion
-                    await self.agent.add_customer_in_transport(
-                        customer_id=content["customer_id"], in_transport=False,
+                    # MOD-STRATEGY-01-A - new funtion
+                    await self.agent.add_assigned_taxicustomer(
+                        customer_id=content["customer_id"],
                         origin=content["origin"], dest=content["dest"]
                     )
 
@@ -404,9 +404,6 @@ class TaxiMovingToCustomerState(TaxiStrategyBehaviour, State):
 
     async def run(self):
 
-        customers = self.get("current_customer")
-        customer_id = next(iter(customers.items()))[0]
-
         msg = await self.receive(timeout=2)  # Test 2 seconds
 
         if msg:
@@ -423,6 +420,9 @@ class TaxiMovingToCustomerState(TaxiStrategyBehaviour, State):
                 self.set_next_state(TRANSPORT_WAITING)
                 return
         else:
+
+            customers = self.get("assigned_customer")
+            customer_id = next(iter(customers.items()))[0]
 
             try:
 
@@ -478,9 +478,6 @@ class TaxiArrivedAtCustomerState(TaxiStrategyBehaviour, State):
 
     async def run(self):
 
-        customers = self.get("current_customer")
-        customer_id = next(iter(customers.items()))[0]
-
         msg = await self.receive(timeout=60)
 
         if not msg:
@@ -495,16 +492,19 @@ class TaxiArrivedAtCustomerState(TaxiStrategyBehaviour, State):
 
                 if status == CUSTOMER_IN_TRANSPORT:
 
+                    customers = self.get("assigned_customer")
+                    customer_id = next(iter(customers.items()))[0]
+                    dest = next(iter(customers.items()))[1]["destination"]
+
                     try:
                         logger.debug(
                             "Customer {} in transport.".format(self.agent.name)
                         )
-                        dest = next(iter(customers.items()))[1]["destination"]
 
                         await self.agent.add_customer_in_transport(
-                            customer_id=customer_id, in_transport=True,
-                            dest=dest
+                            customer_id=customer_id, dest=dest
                         )
+                        await self.agent.remove_assigned_taxicustomer()
 
                         logger.info(
                             "Transport {} on route to customer destination of {}".format(self.agent.name, customer_id)

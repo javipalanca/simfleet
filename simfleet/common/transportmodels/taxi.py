@@ -51,6 +51,7 @@ class TaxiAgent(TransportAgent):
         super().__init__(agentjid, password)
 
         #self.current_customer_orig = None                      # MOD-STRATEGY-02 - comments
+        self.set("assigned_customer", {})            # MOD-STRATEGY-01-A
 
         self.fleetmanager_id = kwargs.get('fleet', None)        # vehicle.py
 
@@ -86,7 +87,13 @@ class TaxiAgent(TransportAgent):
     #    else:  # elif self.status == TRANSPORT_MOVING_TO_DESTINATION:
     #        await self.drop_customer()
 
+    async def add_assigned_taxicustomer(self, customer_id, origin=None, dest=None):
+        customers = self.get("assigned_customer")
+        customers[customer_id] = {"origin": origin, "destination": dest}
+        self.set("assigned_customer", customers)
 
+    async def remove_assigned_taxicustomer(self):
+        self.set("assigned_customer", {})
 
 
 class TaxiStrategyBehaviour(StrategyBehaviour):

@@ -554,13 +554,11 @@ class TransportAgent(VehicleAgent):
         await self.send(reply)
 
     #MOD-STRATEGY-01 - new function
-    async def add_customer_in_transport(self, customer_id, in_transport, origin=None, dest=None):
+    async def add_customer_in_transport(self, customer_id, origin=None, dest=None):
         customers = self.get("current_customer")
-        # customers[customer_id] = {"origin": origin, "destination": dest}
-        customers[customer_id] = {"in_transport": in_transport, "origin": origin, "destination": dest}
+        customers[customer_id] = {"origin": origin, "destination": dest}
         self.set("current_customer", customers)
-        if in_transport:
-            self.num_assignments += 1
+        self.num_assignments += 1
 
     #MOD-STRATEGY-05 - new function
     async def remove_customer_in_transport(self, customer_id):
@@ -625,11 +623,10 @@ class TransportAgent(VehicleAgent):
         #MOD-STRATEGY-04 - Alternativa 2 - Envio msg TRAVELBEHAVIOUR
         if len(self.get("current_customer")) > 0:
             for key, item in self.get("current_customer").items():
-                if item["in_transport"]:
-                    await self.inform_customer_moving(
-                        customer_id=key, status=CUSTOMER_LOCATION,
-                        data={"location": self.get("current_pos")}
-                    )
+                await self.inform_customer_moving(
+                    customer_id=key, status=CUSTOMER_LOCATION,
+                    data={"location": self.get("current_pos")}
+                )
 
         if self.is_in_destination():
             logger.info(

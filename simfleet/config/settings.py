@@ -71,10 +71,10 @@ class SimfleetConfig(object):
         #self.__config["zoom"] = self.__config.get("zoom", 12)
 
         self.__config["transport_strategy"] = self.__config.get(
-            "transport_strategy", "simfleet.strategies.AcceptAlwaysStrategyBehaviour"
+            "transport_strategy", "simfleet.common.transports.strategies.taxi.FSMTaxiStrategyBehaviour"
         )
         self.__config["customer_strategy"] = self.__config.get(
-            "customer_strategy", "simfleet.strategies.AcceptFirstRequestBehaviour"
+            "customer_strategy", "simfleet.common.customers.strategies.taxicustomer.AcceptFirstRequestBehaviour"
         )
         self.__config["fleetmanager_strategy"] = self.__config.get(
             "fleetmanager_strategy", "simfleet.strategies.DelegateRequestBehaviour"

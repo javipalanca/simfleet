@@ -29,6 +29,10 @@ class SimfleetAgent(Agent):
         self.init_time = None
         self.end_time = None
 
+    #New function - Know if the agent is stopped
+    def is_stopped(self):
+        return self.stopped
+
     #Used TransportAgent - CustomerAgent - StationAgent (different) -- ANALIZAR REUNION
     def is_ready(self):
         return not self.is_launched or (self.is_launched and self.ready)

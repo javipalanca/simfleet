@@ -61,6 +61,10 @@ class StationAgent(Agent):
         self.empty_queue_time = None
         self.total_busy_time = None  # total time with some transport waiting in queue
 
+    # New function - Know if the agent is stopped
+    def is_stopped(self):
+        return self.stopped
+
     def is_ready(self):
         return self.ready
 

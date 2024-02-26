@@ -444,7 +444,8 @@ class SimulatorAgent(Agent):
         """
         if self.config.max_time is None:
             return False
-        return self.time_is_out() or self.all_customers_in_destination() and self.all_vehicles_in_destination()  #New vehicle
+        #return self.time_is_out() or self.all_customers_in_destination() and self.all_vehicles_in_destination()  #New vehicle
+        return self.time_is_out() or self.all_agents_stopped()
 
     def time_is_out(self):
         """
@@ -940,44 +941,126 @@ class SimulatorAgent(Agent):
             "is_running": self.simulation_running,
         }
 
-    def all_customers_in_destination(self):
+    #def all_customers_in_destination(self):
+    #    """
+    #    Checks whether the simulation has finished or not.
+    #    A simulation is finished if all customers are at their destinations.
+    #    If there is no customers the simulation is not finished.
+
+    #    Returns:`
+    #        bool: whether the simulation has finished or not.
+    #    """
+    #    if len(self.customer_agents) > 0:
+    #        return all(
+    #            [
+    #                customer.is_in_destination()
+    #                for customer in self.customer_agents.values()
+    #            ]
+    #        )
+    #    else:
+    #        return False
+
+    # New vehicle
+    #def all_vehicles_in_destination(self):
+    #    """
+    #    Checks whether the simulation has finished or not.
+    #    A simulation is finished if all customers are at their destinations.
+    #    If there is no customers the simulation is not finished.
+
+    #    Returns:`
+    #        bool: whether the simulation has finished or not.
+    #    """
+    #    if len(self.vehicle_agents) > 0:
+    #        return all(
+    #            [
+    #                vehicle.is_in_destination()
+    #                for vehicle in self.vehicle_agents.values()
+    #            ]
+    #        )
+    #    else:
+    #        return False
+
+    # New function - comprobar si esta todos los agentes parados
+    def all_agents_stopped(self):
         """
-        Checks whether the simulation has finished or not.
-        A simulation is finished if all customers are at their destinations.
-        If there is no customers the simulation is not finished.
+        Checks whether all agents have finished or not.
 
         Returns:`
-            bool: whether the simulation has finished or not.
+            bool: whether all agents have finished or not.
         """
+        if self.all_vehicles_stopped() and self.all_customers_stopped() and self.all_transports_stopped() and self.all_stations_stopped():
+            return True
+        else:
+            return False
+
+    def all_vehicles_stopped(self):
+        """
+                Checks whether all vehicles have finished or not.
+
+                Returns:`
+                    bool: whether all vehicles have finished or not.
+        """
+        if len(self.vehicle_agents) > 0:
+            return all(
+                [
+                    vehicle.is_stopped()
+                    for vehicle in self.vehicle_agents.values()
+                ]
+            )
+        else:
+            return False
+
+    def all_customers_stopped(self):
+        """
+                Checks whether all customers have finished or not.
+
+                Returns:`
+                    bool: whether all customers have finished or not.
+                """
         if len(self.customer_agents) > 0:
             return all(
                 [
-                    customer.is_in_destination()
+                    customer.is_stopped()
                     for customer in self.customer_agents.values()
                 ]
             )
         else:
             return False
 
-    # New vehicle
-    def all_vehicles_in_destination(self):
+    def all_transports_stopped(self):
         """
-        Checks whether the simulation has finished or not.
-        A simulation is finished if all customers are at their destinations.
-        If there is no customers the simulation is not finished.
+                Checks whether all transports have finished or not.
 
-        Returns:`
-            bool: whether the simulation has finished or not.
-        """
-        if len(self.vehicle_agents) > 0:
+                Returns:`
+                    bool: whether all transports have finished or not.
+                """
+        if len(self.transport_agents) > 0:
             return all(
                 [
-                    vehicle.is_in_destination()
-                    for vehicle in self.vehicle_agents.values()
+                    transport.is_stopped()
+                    for transport in self.transport_agents.values()
                 ]
             )
         else:
             return False
+
+    def all_stations_stopped(self):
+        """
+                Checks whether all stations have finished or not.
+
+                Returns:`
+                    bool: whether all station have finished or not.
+                """
+        if len(self.station_agents) > 0:
+            return all(
+                [
+                    station.is_stopped()
+                    for station in self.station_agents.values()
+                ]
+            )
+        else:
+            return False
+
 
     async def run_controller(self, request):
         """

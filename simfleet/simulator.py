@@ -988,25 +988,8 @@ class SimulatorAgent(Agent):
         Returns:`
             bool: whether all agents have finished or not.
         """
-        if self.all_vehicles_stopped() and self.all_customers_stopped() and self.all_transports_stopped() and self.all_stations_stopped():
+        if self.all_customers_stopped() and self.all_transports_stopped():
             return True
-        else:
-            return False
-
-    def all_vehicles_stopped(self):
-        """
-                Checks whether all vehicles have finished or not.
-
-                Returns:`
-                    bool: whether all vehicles have finished or not.
-        """
-        if len(self.vehicle_agents) > 0:
-            return all(
-                [
-                    vehicle.is_stopped()
-                    for vehicle in self.vehicle_agents.values()
-                ]
-            )
         else:
             return False
 
@@ -1043,24 +1026,6 @@ class SimulatorAgent(Agent):
             )
         else:
             return False
-
-    def all_stations_stopped(self):
-        """
-                Checks whether all stations have finished or not.
-
-                Returns:`
-                    bool: whether all station have finished or not.
-                """
-        if len(self.station_agents) > 0:
-            return all(
-                [
-                    station.is_stopped()
-                    for station in self.station_agents.values()
-                ]
-            )
-        else:
-            return False
-
 
     async def run_controller(self, request):
         """
@@ -1216,28 +1181,28 @@ class SimulatorAgent(Agent):
             for name, agent in self.manager_agents.items():
                 logger.debug("Stopping manager {}".format(name))
                 results.append(agent.stop())
-                agent.stopped = True
+                #agent.stopped = True
         with self.lock:
             for name, agent in self.transport_agents.items():
                 logger.debug("Stopping transport {}".format(name))
                 results.append(agent.stop())
-                agent.stopped = True
+                #agent.stopped = True
         with self.lock:
             for name, agent in self.customer_agents.items():
                 logger.debug("Stopping customer {}".format(name))
                 results.append(agent.stop())
-                agent.stopped = True
+                #agent.stopped = True
         with self.lock:
             for name, agent in self.station_agents.items():
                 logger.debug("Stopping station {}".format(name))
                 results.append(agent.stop())
-                agent.stopped = True
+                #agent.stopped = True
         # New vehicle
         with self.lock:
             for name, agent in self.vehicle_agents.items():
                 logger.debug("Stopping vehicle {}".format(name))
                 results.append(agent.stop())
-                agent.stopped = True
+                #agent.stopped = True
         return results
 
     def get_manager_stats(self):

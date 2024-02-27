@@ -1,8 +1,11 @@
 #import json    #Not used
 import time
+from asyncio import Future
 #import asyncio     #Not used
 #from asyncio import CancelledError     #Not used
 from collections import defaultdict
+from typing import Union, Coroutine
+
 from loguru import logger
 
 from spade.agent import Agent
@@ -28,6 +31,10 @@ class SimfleetAgent(Agent):
 
         self.init_time = None
         self.end_time = None
+
+    async def stop(self):
+        self.stopped = True
+        await super().stop()
 
     #New function - Know if the agent is stopped
     def is_stopped(self):

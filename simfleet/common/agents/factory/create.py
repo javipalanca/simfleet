@@ -9,7 +9,7 @@ from simfleet.common.agents.fleetmanager import FleetManagerAgent
 from simfleet.common.agents.transport import TransportAgent
 #from simfleet.common.agents.customer import CustomerAgent
 from simfleet.common.agents.station import StationAgent
-from simfleet.common.lib.vehicles.models.vehicle import VehicleAgent
+from simfleet.common.extensions.vehicles.models.vehicle import VehicleAgent
 
 from simfleet.utils.reflection import load_class
 

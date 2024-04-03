@@ -45,7 +45,7 @@ from simfleet.utils.utils_old import (
     StrategyBehaviour,
     TRANSPORT_NEEDS_CHARGING,
 )
-from simfleet.common.lib.vehicles.models.vehicle import VehicleAgent
+from simfleet.common.extensions.vehicles.models.vehicle import VehicleAgent
 
 MIN_AUTONOMY = 2
 #ONESECOND_IN_MS = 1000                                         #movable.py

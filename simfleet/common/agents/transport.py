@@ -93,8 +93,8 @@ class TransportAgent(VehicleAgent):
 
         self.request = "station"
         self.stations = None
-        self.current_autonomy_km = 2000
-        self.max_autonomy_km = 2000
+        #self.current_autonomy_km = 2000                         #chargeable.py
+        #self.max_autonomy_km = 2000                             #chargeable.py
         self.num_charges = 0
         self.set("current_station", None)
         self.current_station_dest = None
@@ -383,9 +383,10 @@ class TransportAgent(VehicleAgent):
             self.get_autonomy() <= MIN_AUTONOMY and self.status in [TRANSPORT_WAITING]
         )
 
-    def transport_charged(self):
-        self.current_autonomy_km = self.max_autonomy_km
-        self.total_charging_time += time.time() - self.charge_time
+    # chargeable.py
+    #def transport_charged(self):
+    #    self.current_autonomy_km = self.max_autonomy_km
+    #    self.total_charging_time += time.time() - self.charge_time
 
     # MOD-STRATEGY-04 - Comments
     #async def drop_customer(self):
@@ -671,24 +672,28 @@ class TransportAgent(VehicleAgent):
     #    """
     #    return self.dest == self.get_position()
 
-    def set_km_expense(self, expense=0):
-        self.current_autonomy_km -= expense
+    # chargeable.py
+    #def set_km_expense(self, expense=0):
+    #    self.current_autonomy_km -= expense
 
-    def set_autonomy(self, autonomy, current_autonomy=None):
-        self.max_autonomy_km = autonomy
-        self.current_autonomy_km = (
-            current_autonomy if current_autonomy is not None else autonomy
-        )
+    # chargeable.py
+    #def set_autonomy(self, autonomy, current_autonomy=None):
+    #    self.max_autonomy_km = autonomy
+    #    self.current_autonomy_km = (
+    #        current_autonomy if current_autonomy is not None else autonomy
+    #    )
 
-    def get_autonomy(self):
-        return self.current_autonomy_km
+    # chargeable.py
+    #def get_autonomy(self):
+    #    return self.current_autonomy_km
 
-    def calculate_km_expense(self, origin, start, dest=None):
-        fir_distance = distance_in_meters(origin, start)
-        sec_distance = distance_in_meters(start, dest)
-        if dest is None:
-            sec_distance = 0
-        return (fir_distance + sec_distance) // 1000
+    # chargeable.py
+    #def calculate_km_expense(self, origin, start, dest=None):
+    #    fir_distance = distance_in_meters(origin, start)
+    #    sec_distance = distance_in_meters(start, dest)
+    #    if dest is None:
+    #        sec_distance = 0
+    #    return (fir_distance + sec_distance) // 1000
 
     def to_json(self):
         """

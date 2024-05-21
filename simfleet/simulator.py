@@ -13,7 +13,9 @@ import pandas as pd
 from aiohttp import web as aioweb
 from loguru import logger
 from spade.agent import Agent
-from spade.behaviour import TimeoutBehaviour, OneShotBehaviour
+from spade.message import Message
+from spade.template import Template
+from spade.behaviour import TimeoutBehaviour, OneShotBehaviour, CyclicBehaviour
 from tabulate import tabulate
 
 from simfleet.common.agents.factory.create import CustomerFactory
@@ -25,6 +27,12 @@ from simfleet.common.agents.factory.create import VehicleFactory
 from simfleet.utils.utils_old import status_to_str, avg, request_path as async_request_path
 
 from simfleet.config.settings import set_default_strategies
+
+from simfleet.communications.protocol import (
+    REQUEST_PERFORMATIVE,
+    INFORM_PERFORMATIVE,
+    COORDINATION_PROTOCOL,
+)
 
 faker_factory = faker.Factory.create()
 
@@ -148,6 +156,13 @@ class SimulatorAgent(Agent):
                 self.config.http_ip, self.config.http_port
             )
         )
+
+        # Comunication template
+        template = Template()
+        template.set_metadata("protocol", COORDINATION_PROTOCOL)
+        template.set_metadata("performative", REQUEST_PERFORMATIVE)
+
+        self.add_behaviour(CoordinationBehaviour(), template)
 
     def load_scenario(self):
         """
@@ -1709,3 +1724,51 @@ class DelayedLaunchBehaviour(TimeoutBehaviour):
         for agent in self.agents:
             agent.is_launched = True
             await agent.start()
+
+
+class CoordinationBehaviour(CyclicBehaviour):
+    def __init__(self):
+        super().__init__()
+
+    async def inform_agent_position(self, agent_id, content):
+
+        reply = Message()
+        reply.to = str(agent_id)
+        reply.set_metadata("protocol", COORDINATION_PROTOCOL)
+        reply.set_metadata("performative", INFORM_PERFORMATIVE)
+        reply.body = json.dumps(content)
+        await self.send(reply)
+
+
+    async def run(self):
+
+        msg = await self.receive(timeout=5)
+        logger.debug(
+            "SimulatorAgent {} has a mailbox size of {}".format(
+                self.agent.name, self.mailbox_size()
+            )
+        )
+        if msg:
+            performative = msg.get_metadata("performative")
+            agent_id = msg.sender
+            request = msg.body
+            if performative == REQUEST_PERFORMATIVE:
+
+                logger.info(
+                    "SimulatorAgent {} received message from agent {}".format(
+                        self.agent.name, agent_id
+                    )
+                )
+
+                for transport in self.agent.transport_agents.values():
+                    if transport.get_id() == agent_id:
+                        agent_position = transport.get_position()
+
+                        content = {"agent_position": agent_position}
+                        await self.inform_agent_position(agent_id, content)
+
+                        logger.debug(
+                            f"Running strategy {self.agent.default_strategies['transport']} to transport {transport.name}"
+                        )
+
+                        #Enviar un mensaje a la estacion

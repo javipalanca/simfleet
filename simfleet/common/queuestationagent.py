@@ -31,6 +31,8 @@ class QueueStationAgent(GeoLocatedAgent):
 
         #statics
         self.transports_in_queue_time = None
+        self.empty_queue_time = None
+        self.total_busy_time = None  # total time with some transport waiting in queue
 
     # Service Management
     def add_service(self, service_name, slots, one_shot_behaviour):
@@ -95,8 +97,13 @@ class QueueStationAgent(GeoLocatedAgent):
         def total_queue_size(self, service_name):
             return len(self.waiting_lists[service_name])
 
-        def queue_agent_to_waiting_list(self, service_name, id_agent):
-            self.waiting_lists[service_name].append(id_agent)
+        #Original
+        #def queue_agent_to_waiting_list(self, service_name, id_agent):      # Meter un args dentro de la queue - diccionario ---- APUNTES
+        #    self.waiting_lists[service_name].append(id_agent)
+
+        def queue_agent_to_waiting_list(self, service_name, id_agent, *args):      # Meter un args dentro de la queue - diccionario ---- APUNTES
+
+            self.waiting_lists[service_name].append((id_agent, args))
 
         def dequeue_first_agent_to_waiting_list(self, service_name):  # Desencolar al primer agente
             if len(self.waiting_lists[service_name]) == 0:
@@ -170,7 +177,8 @@ class QueueStationAgent(GeoLocatedAgent):
             if msg:
                 performative = msg.get_metadata("performative")
                 agent_id = msg.sender
-                service_name = json.loads(msg.content)["service_name"]      #chequear
+                service_name = json.loads(msg.body)["service_name"]      #chequear
+                args = json.loads(msg.body)["args"]
                 #agent_position = json.loads(msg.content)["agent_position"]  #Preguntar al SimulatorAGent
 
                 if performative == CANCEL_PERFORMATIVE:
@@ -201,7 +209,7 @@ class QueueStationAgent(GeoLocatedAgent):
                     if msg:
                         performative = msg.get_metadata("performative")
                         agent_id_simulator = msg.sender
-                        agent_position = json.loads(msg.content)["agent_position"]
+                        agent_position = json.loads(msg.body)["agent_position"]
 
                         if service_name not in self.waiting_lists or not self.agent.near_agent(coords_1=self.agent.get_position(), coords_2=agent_position):    #New
                             await self.refuse_request_agent(agent_id)
@@ -217,8 +225,10 @@ class QueueStationAgent(GeoLocatedAgent):
                             if self.total_queue_size(service_name) == 0:
                                 self.agent.transports_in_queue_time = time.time()
 
-                            self.queue_agent_to_waiting_list(service_name, str(agent_id))
-                            await self.accept_request_agent(agent_id)
+                            self.queue_agent_to_waiting_list(service_name, str(agent_id), args)     #Duda ARGS
+
+                            content = {"station_id": str(self.agent.jid)}
+                            await self.accept_request_agent(agent_id, content)
 
                             logger.info(
                                 "Station {} has put {} in the waiting_list".format(
@@ -233,6 +243,15 @@ class QueueStationAgent(GeoLocatedAgent):
                                 agent_id,
                             )
                         )
+
+                # time statistics update
+                if self.total_queue_size(service_name):
+                    self.agent.empty_queue_time = time.time()
+                    self.agent.total_busy_time += (
+                        self.agent.empty_queue_time - self.agent.transports_in_queue_time
+                    )
+
+
 
     async def setup(self):
         logger.info("Queue agent {} running".format(self.name))

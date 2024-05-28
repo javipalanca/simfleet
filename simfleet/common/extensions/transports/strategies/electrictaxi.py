@@ -26,6 +26,7 @@ from simfleet.utils.utils_old import (
     TRANSPORT_WAITING_FOR_APPROVAL,
     TRANSPORT_MOVING_TO_STATION,
     TRANSPORT_IN_STATION_PLACE,
+    TRANSPORT_IN_WAITING_LIST,
     TRANSPORT_CHARGING,
     TRANSPORT_CHARGED,
     TRANSPORT_MOVING_TO_CUSTOMER,
@@ -72,7 +73,6 @@ class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour, State):
             self.set_next_state(TRANSPORT_WAITING)
             return
 
-#class TransportNeedsChargingState(TransportStrategyBehaviour, State):
 class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
@@ -80,8 +80,9 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour, State):
         logger.debug("{} in Transport Needs Charging State".format(self.agent.jid))
 
     async def run(self):
+
         if (
-            self.agent.stations is None             #Lista de estaciones - Tiene TransportAgent
+            self.agent.stations is None
             or len(self.agent.stations) < 1
             and not self.get(name="stations_requested")
         ):
@@ -126,7 +127,7 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour, State):
         station_positions = []
         for key in self.agent.stations.keys():
             dic = self.agent.stations.get(key)
-            station_positions.append((dic["jid"], dic["position"]))
+            station_positions.append((dic["jid"], dic["position"]))         #Realizar comprobación del tipo de servicio? DUDA
         closest_station = min(
             station_positions,
             key=lambda x: distance_in_meters(x[1], self.agent.get_position()),
@@ -140,9 +141,11 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour, State):
         logger.info(
             "Transport {} selected station {}.".format(self.agent.name, station)
         )
+
         try:
             station, position = self.agent.current_station_dest
             await self.go_to_the_station(station, position)
+            self.agent.status = TRANSPORT_MOVING_TO_STATION
             self.set_next_state(TRANSPORT_MOVING_TO_STATION)
             return
         except PathRequestException:
@@ -152,16 +155,18 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour, State):
                 )
             )
             await self.cancel_proposal(station)
+            self.agent.status = TRANSPORT_WAITING
             self.set_next_state(TRANSPORT_WAITING)
             return
         except Exception as e:
             logger.error(
                 "Unexpected error in transport {}: {}".format(self.agent.name, e)
             )
+            self.agent.status = TRANSPORT_WAITING
             self.set_next_state(TRANSPORT_WAITING)
             return
 
-#class TransportMovingToStationState(TransportStrategyBehaviour, State):
+
 class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
@@ -169,22 +174,43 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour, State):
         logger.debug("{} in Transport Moving to Station".format(self.agent.jid))
 
     async def run(self):
-        if self.agent.get("in_station_place"):
+        try:
+
+            if not self.agent.is_in_destination():
+                await asyncio.sleep(1)
+                self.set_next_state(TRANSPORT_MOVING_TO_STATION)
+            else:
+
+                content = {"service_name": self.agent.service_type, "args": self.agent.arguments}             #AÑADIR ARGS - CARGA QUE NECESITA
+                await self.request_access_station(self.agent.get("current_station"), content)
+
+                self.agent.status = TRANSPORT_IN_STATION_PLACE
+                self.set_next_state(TRANSPORT_IN_STATION_PLACE)
+
+        except AlreadyInDestination:
             logger.warning(
-                "Transport {} already in station place".format(self.agent.jid)
+                "Transport {} has arrived to destination: {}.".format(
+                    self.agent.agent_id, self.agent.is_in_destination()
+                )
             )
-            await self.agent.request_access_station()
-            return self.set_next_state(TRANSPORT_IN_STATION_PLACE)
-        self.agent.transport_in_station_place_event.clear()  # new
-        self.agent.watch_value(
-            "in_station_place", self.agent.transport_in_station_place_callback
-        )
-        await self.agent.transport_in_station_place_event.wait()
-        await self.agent.request_access_station()  # new
-        return self.set_next_state(TRANSPORT_IN_STATION_PLACE)
+
+            content = {"service_name": self.agent.service_type, "args": self.agent.arguments}         #Añadir lo que necesita
+            await self.request_access_station(self.agent.get("current_station"), content)
+
+            self.agent.status = TRANSPORT_IN_STATION_PLACE
+            self.set_next_state(TRANSPORT_IN_STATION_PLACE)
+            return
+        except PathRequestException:
+            logger.error(
+                "Transport {} could not get a path to customer. Cancelling...".format(
+                    self.agent.name
+                )
+            )
+            self.agent.status = TRANSPORT_WAITING
+            self.set_next_state(TRANSPORT_WAITING)
+            return
 
 
-#class TransportInStationState(TransportStrategyBehaviour, State):
 class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour, State):
     # car arrives to the station and waits in queue until receiving confirmation
     async def on_start(self):
@@ -193,6 +219,7 @@ class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour, State):
         self.agent.status = TRANSPORT_IN_STATION_PLACE
 
     async def run(self):
+
         msg = await self.receive(timeout=60)
         if not msg:
             self.set_next_state(TRANSPORT_IN_STATION_PLACE)
@@ -206,25 +233,99 @@ class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour, State):
                         self.agent.name, content["station_id"]
                     )
                 )
-                await self.charge_allowed()             #ANALISIS PARA REFACTORIZAR
-                self.set_next_state(TRANSPORT_CHARGING)
+                #await self.charge_allowed()  # Refactory analysis
+
+                self.agent.status = TRANSPORT_IN_WAITING_LIST
+                self.set_next_state(TRANSPORT_IN_WAITING_LIST)
+
+                #ESPERAMOS HASTA SALIR DE LA COLA - ESCUCHAR MENSAJE ----> #DEBATE - INFORMAR AGENTE DE QUE COMIENZA EL SERVICIO - SERVICIO_1a
+
+                #SI SALIMOS DE LA COLA PASAMOS A TRANSPORT_CHARGING
+
+                #QUITAR ESTAS FUNCIONES
+                #await self.comunicate_for_charging()        #Cambiar - ESTO FUERA
+                #await self.begin_charging()                 #Cambiar - QUITAR SI DA PROBLEMAS
+
+                #self.agent.status = TRANSPORT_CHARGING
+                #self.set_next_state(TRANSPORT_CHARGING)
                 return
+
+        elif performative == REFUSE_PERFORMATIVE:
+            self.agent.status = TRANSPORT_NEEDS_CHARGING
+            self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+            return
 
         else:
             # if the message I receive is not an ACCEPT, I keep waiting in the queue
+
+            #content = {"service_name": self.agent.service_type, "args": self.agent.arguments}  # Añadir lo que necesita
+            #await self.request_access_station(self.agent.get("current_station"), content)
+
+
             self.set_next_state(TRANSPORT_IN_STATION_PLACE)
             return
 
-#class TransportChargingState(TransportStrategyBehaviour, State):
+
+class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour, State):
+    # car arrives to the station and waits in queue until receiving confirmation
+    async def on_start(self):
+        await super().on_start()
+        logger.debug("{} in Transport In Station Place State".format(self.agent.jid))
+        self.agent.status = TRANSPORT_IN_WAITING_LIST
+
+    async def run(self):
+
+        msg = await self.receive(timeout=5)
+        if not msg:
+            self.set_next_state(TRANSPORT_IN_WAITING_LIST)
+            return
+        content = json.loads(msg.body)
+        performative = msg.get_metadata("performative")
+
+        if performative == INFORM_PERFORMATIVE:
+            if content.get("station_id") is not None:
+                logger.debug(
+                    "Transport {} received a message with INFORM_PERFORMATIVE from {}".format(
+                        self.agent.name, content["station_id"]
+                    )
+                )
+                if content.get("serving") is not None and content.get("serving"):      #Cambiar por is None ---- is not None
+
+                    await self.begin_charging()  # Cambiar - QUITAR SI DA PROBLEMAS
+                    self.agent.status = TRANSPORT_CHARGING
+                    self.set_next_state(TRANSPORT_CHARGING)
+                    return
+                #else:
+                #    self.agent.status = TRANSPORT_IN_WAITING_LIST
+                #    self.set_next_state(TRANSPORT_IN_WAITING_LIST)
+                #    return
+
+        elif performative == REFUSE_PERFORMATIVE:
+            if content.get("station_id") is not None:
+                logger.debug(
+                    "Transport {} received a message with REFUSE_PERFORMATIVE from {}".format(
+                        self.agent.name, content["station_id"]
+                    )
+                )
+                self.agent.status = TRANSPORT_NEEDS_CHARGING
+                self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+
+        #self.agent.status = TRANSPORT_IN_WAITING_LIST
+        #self.set_next_state(TRANSPORT_IN_WAITING_LIST)
+
+
+
+
 class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour, State):
     # car charges in a station
     async def on_start(self):
         await super().on_start()
+        self.agent.status = TRANSPORT_CHARGING
         logger.debug("{} in Transport Charging State".format(self.agent.jid))
 
     async def run(self):
-        # await "transport_charged" message
-        msg = await self.receive(timeout=60)
+        # ESTA HACIENDO EL one_shot_behaviour (EJECUTAR SERVICIO)
+        msg = await self.receive(timeout=60)        #ESPERAR MENSAJE
         if not msg:
             self.set_next_state(TRANSPORT_CHARGING)
             return
@@ -232,10 +333,11 @@ class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour, State):
         protocol = msg.get_metadata("protocol")
         performative = msg.get_metadata("performative")
         if protocol == REQUEST_PROTOCOL and performative == INFORM_PERFORMATIVE:
-            if content["status"] == TRANSPORT_CHARGED:
+            if content["charged"]:
                 self.agent.transport_charged()
                 await self.agent.drop_station()
                 # canviar per un event?
+                self.agent.status = TRANSPORT_WAITING
                 self.set_next_state(TRANSPORT_WAITING)
                 return
         else:
@@ -243,7 +345,6 @@ class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour, State):
             return
 
 
-#class TransportWaitingForApprovalState(TransportStrategyBehaviour, State):
 class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour, State):
     async def on_start(self):
         await super().on_start()
@@ -636,6 +737,8 @@ class FSMElectricTaxiStrategyBehaviour(FSMBehaviour):
         self.add_state(TRANSPORT_MOVING_TO_STATION, ElectricTaxiMovingToStationState())
         #self.add_state(TRANSPORT_IN_STATION_PLACE, TransportInStationState())
         self.add_state(TRANSPORT_IN_STATION_PLACE, ElectricTaxiInStationState())
+
+        self.add_state(TRANSPORT_IN_WAITING_LIST, ElectricTaxiInWaitingListState())
         #self.add_state(TRANSPORT_CHARGING, TransportChargingState())
         self.add_state(TRANSPORT_CHARGING, ElectricTaxiChargingState())
 
@@ -716,11 +819,14 @@ class FSMElectricTaxiStrategyBehaviour(FSMBehaviour):
             TRANSPORT_NEEDS_CHARGING, TRANSPORT_NEEDS_CHARGING
         )  # waiting for station list
         self.add_transition(
+            TRANSPORT_NEEDS_CHARGING, TRANSPORT_WAITING
+        )  # exception in go_to_the_station(station, position)
+        self.add_transition(
             TRANSPORT_NEEDS_CHARGING, TRANSPORT_MOVING_TO_STATION
         )  # going to station
         self.add_transition(
-            TRANSPORT_NEEDS_CHARGING, TRANSPORT_WAITING
-        )  # exception in go_to_the_station(station, position)
+            TRANSPORT_MOVING_TO_STATION, TRANSPORT_MOVING_TO_STATION
+        )  # arrived to station
         self.add_transition(
             TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE
         )  # arrived to station
@@ -728,8 +834,19 @@ class FSMElectricTaxiStrategyBehaviour(FSMBehaviour):
             TRANSPORT_IN_STATION_PLACE, TRANSPORT_IN_STATION_PLACE
         )  # waiting in station queue
         self.add_transition(
-            TRANSPORT_IN_STATION_PLACE, TRANSPORT_CHARGING
+            TRANSPORT_IN_STATION_PLACE, TRANSPORT_NEEDS_CHARGING
         )  # begin charging
+        self.add_transition(
+            TRANSPORT_IN_STATION_PLACE, TRANSPORT_IN_WAITING_LIST
+        )  # begin charging
+
+        self.add_transition(
+            TRANSPORT_IN_WAITING_LIST, TRANSPORT_IN_WAITING_LIST
+        )  # begin charging
+        self.add_transition(
+            TRANSPORT_IN_WAITING_LIST, TRANSPORT_CHARGING
+        )  # begin charging
+
         self.add_transition(
             TRANSPORT_CHARGING, TRANSPORT_CHARGING
         )  # waiting to finish charging

@@ -28,6 +28,7 @@ class QueueStationAgent(GeoLocatedAgent):
 
 
         self.services_list = {}
+        self.waiting_lists = {}
 
         #statics
         self.transports_in_queue_time = None
@@ -43,7 +44,8 @@ class QueueStationAgent(GeoLocatedAgent):
                 'one_shot_behaviour': one_shot_behaviour
             }
             #New queue- Queue for service
-            self.queuebehaviour.waiting_lists[service_name] = deque()
+            #self.queuebehaviour.waiting_lists[service_name] = deque()
+            self.waiting_lists[service_name] = deque()
 
             logger.debug(
                 "The service {} has been inserted in the agent {}. ".format(
@@ -91,11 +93,11 @@ class QueueStationAgent(GeoLocatedAgent):
     class QueueBehaviour(CyclicBehaviour):
 
         def __init__(self):
-            self.waiting_lists = {}
+            #self.waiting_lists = {}
             super().__init__()
 
         def total_queue_size(self, service_name):
-            return len(self.waiting_lists[service_name])
+            return len(self.agent.waiting_lists[service_name])
 
         #Original
         #def queue_agent_to_waiting_list(self, service_name, id_agent):      # Meter un args dentro de la queue - diccionario ---- APUNTES
@@ -103,19 +105,19 @@ class QueueStationAgent(GeoLocatedAgent):
 
         def queue_agent_to_waiting_list(self, service_name, id_agent, *args):      # Meter un args dentro de la queue - diccionario ---- APUNTES
 
-            self.waiting_lists[service_name].append((id_agent, args))
+            self.agent.waiting_lists[service_name].append((id_agent, args))
 
         def dequeue_first_agent_to_waiting_list(self, service_name):  # Desencolar al primer agente
-            if len(self.waiting_lists[service_name]) == 0:
+            if len(self.agent.waiting_lists[service_name]) == 0:
                 return None
-            return self.waiting_lists[service_name].popleft()
+            return self.agent.waiting_lists[service_name].popleft()
 
         def dequeue_agent_to_waiting_list(self, service_name, id):  # Desencolar un agente de la cola por id - vrs 1
-            self.waiting_lists[service_name].remove(id)
+            self.agent.waiting_lists[service_name].remove(id)
 
         def find_queue_position(self, service_name, agent_id):
             try:
-                position = self.waiting_lists[service_name].index(agent_id)
+                position = self.agent.waiting_lists[service_name].index(agent_id)
                 return position
             except ValueError:
                 return None
@@ -178,7 +180,7 @@ class QueueStationAgent(GeoLocatedAgent):
                 performative = msg.get_metadata("performative")
                 agent_id = msg.sender
                 service_name = json.loads(msg.body)["service_name"]      #chequear
-                args = json.loads(msg.body)["args"]
+                args_ = json.loads(msg.body)["args"]
                 #agent_position = json.loads(msg.content)["agent_position"]  #Preguntar al SimulatorAGent
 
                 if performative == CANCEL_PERFORMATIVE:
@@ -211,7 +213,7 @@ class QueueStationAgent(GeoLocatedAgent):
                         agent_id_simulator = msg.sender
                         agent_position = json.loads(msg.body)["agent_position"]
 
-                        if service_name not in self.waiting_lists or not self.agent.near_agent(coords_1=self.agent.get_position(), coords_2=agent_position):    #New
+                        if service_name not in self.agent.waiting_lists or not self.agent.near_agent(coords_1=self.agent.get_position(), coords_2=agent_position):    #New
                             await self.refuse_request_agent(agent_id)
                             logger.warning(
                                 "Station {} has REFUSED request from agent {} for service {}".format(
@@ -225,7 +227,7 @@ class QueueStationAgent(GeoLocatedAgent):
                             if self.total_queue_size(service_name) == 0:
                                 self.agent.transports_in_queue_time = time.time()
 
-                            self.queue_agent_to_waiting_list(service_name, str(agent_id), args)     #Duda ARGS
+                            self.queue_agent_to_waiting_list(service_name, str(agent_id), *args_)     #Duda ARGS
 
                             content = {"station_id": str(self.agent.jid)}
                             await self.accept_request_agent(agent_id, content)

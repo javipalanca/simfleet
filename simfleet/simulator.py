@@ -13,9 +13,9 @@ import pandas as pd
 from aiohttp import web as aioweb
 from loguru import logger
 from spade.agent import Agent
-from spade.message import Message
-from spade.template import Template
 from spade.behaviour import TimeoutBehaviour, OneShotBehaviour, CyclicBehaviour
+from spade.template import Template
+from spade.message import Message
 from tabulate import tabulate
 
 from simfleet.common.agents.factory.create import CustomerFactory
@@ -30,6 +30,7 @@ from simfleet.config.settings import set_default_strategies
 
 from simfleet.communications.protocol import (
     REQUEST_PERFORMATIVE,
+    CANCEL_PERFORMATIVE,
     INFORM_PERFORMATIVE,
     COORDINATION_PROTOCOL,
 )
@@ -157,12 +158,13 @@ class SimulatorAgent(Agent):
             )
         )
 
-        # Comunication template
+        #Comunication template
         template = Template()
         template.set_metadata("protocol", COORDINATION_PROTOCOL)
         template.set_metadata("performative", REQUEST_PERFORMATIVE)
 
         self.add_behaviour(CoordinationBehaviour(), template)
+
 
     def load_scenario(self):
         """
@@ -256,6 +258,7 @@ class SimulatorAgent(Agent):
 
             class_ = transport["class"]
             fleet_type = transport["fleet_type"]
+            service = transport["service"]
             strategy = transport.get("strategy")
             #position = transport["position"]
             position = transport.get("position")
@@ -281,6 +284,7 @@ class SimulatorAgent(Agent):
                                                 fleet_type,
                                                 strategy=strategy,
                                                 position=position,
+                                                service_name=service,
                                                 autonomy=autonomy,
                                                 current_autonomy=current_autonomy,
                                                 speed=speed,
@@ -353,14 +357,17 @@ class SimulatorAgent(Agent):
                 if "password" in station
                 else faker_factory.password()
             )
+            class_ = station["class"]
             strategy = station.get("strategy")
             icon = station.get("icon")
             agent = self.create_station_agent(
                                                 name=station["name"],
                                                 password=password,
                                                 position=station["position"],
+                                                class_=class_,
                                                 power=station["power"],
-                                                places=station["places"],
+                                                service_name=station["service"],
+                                                slots=station["slots"],
                                                 strategy=strategy,
                                             )
             self.set_icon(agent, icon, default="electric_station")
@@ -1357,7 +1364,8 @@ class SimulatorAgent(Agent):
                     (
                         p.name,
                         p.status,
-                        p.available_places,
+                        #p.available_places,
+                        p.get_slot_number_used(p.get_service_type()),
                         p.power,
                         p.charged_transports,
                         p.max_queue_length,
@@ -1498,6 +1506,7 @@ class SimulatorAgent(Agent):
                                 class_,
                                 fleet_type,
                                 position,
+                                service_name,
                                 #fleetmanager,
                                 strategy=None,
                                 autonomy=None,
@@ -1518,6 +1527,7 @@ class SimulatorAgent(Agent):
                                               strategy=strategy,
                                               default_strategy=self.default_strategies['transport'],
                                               position=position,
+                                              service_name=service_name,
                                               #fleetmanager=fleetmanager,
                                               autonomy=autonomy,
                                               current_autonomy=current_autonomy,
@@ -1571,18 +1581,20 @@ class SimulatorAgent(Agent):
         return agent
 
     def create_station_agent(
-        self, name, password, position, power, places, strategy=None
+        self, name, password, position, class_, service_name, power, slots, strategy=None
     ):
 
         agent = StationFactory.create_agent(domain=self.jid.domain,
                                             name=name,
                                             password=password,
                                             default_strategy=self.default_strategies['station'],
+                                            class_=class_,
                                             strategy=strategy,
                                             jid_directory=self.get_directory().jid,
                                             position=position,
+                                            service_name=service_name,
+                                            slots=slots,
                                             power=power,
-                                            places=places,
                                             )
         if self.simulation_running:
             agent.run_strategy()
@@ -1743,15 +1755,25 @@ class CoordinationBehaviour(CyclicBehaviour):
     async def run(self):
 
         msg = await self.receive(timeout=5)
-        logger.debug(
+        logger.warning(
             "SimulatorAgent {} has a mailbox size of {}".format(
                 self.agent.name, self.mailbox_size()
             )
         )
         if msg:
+            logger.warning(
+                "SimulatorAgent {} message: {}".format(
+                    self.agent.name, msg
+                )
+            )
             performative = msg.get_metadata("performative")
             agent_id = msg.sender
-            request = msg.body
+            user_agent_id = json.loads(msg.body)["user_agent_id"][0]
+            host = json.loads(msg.body)["user_agent_id"][1]
+            #user_agent_id = user_agent_id[0]+"@"+user_agent_id[1]
+
+
+            #request = msg.body
             if performative == REQUEST_PERFORMATIVE:
 
                 logger.info(
@@ -1761,14 +1783,33 @@ class CoordinationBehaviour(CyclicBehaviour):
                 )
 
                 for transport in self.agent.transport_agents.values():
-                    if transport.get_id() == agent_id:
-                        agent_position = transport.get_position()
 
-                        content = {"agent_position": agent_position}
+                    # DEPURACION
+                    logger.warning(
+                        "Modificacion de user_agent_id: {} y transport.get_id(): {}".format(
+                            user_agent_id, transport.get_id()
+                        )
+                    )
+
+                    if transport.get_id() == user_agent_id:
+                        agent_position = transport.get_position()
+                        send_agent_id = user_agent_id + "@" + host
+
+                        #DEPURACION
+                        logger.warning(
+                            "SIMULATOR - Agent: {} send msg to {} of transport_agent: {} - {} with agent_position: {}".format(
+                                self.agent.name, agent_id, send_agent_id, transport.get_id(), agent_position
+                            )
+                        )
+
+                        content = {"agent_position": agent_position, "user_agent_id": send_agent_id}
                         await self.inform_agent_position(agent_id, content)
 
                         logger.debug(
-                            f"Running strategy {self.agent.default_strategies['transport']} to transport {transport.name}"
+                            "SimulatorAgent {} send msg to {}".format(
+                                self.agent.name, agent_id
+                            )
                         )
 
                         #Enviar un mensaje a la estacion
+

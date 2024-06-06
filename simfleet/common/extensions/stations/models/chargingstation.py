@@ -3,22 +3,23 @@ import datetime
 import asyncio
 
 from loguru import logger
-from asyncio import CancelledError
-from spade.behaviour import CyclicBehaviour, OneShotBehaviour
+from spade.behaviour import CyclicBehaviour, OneShotBehaviour, TimeoutBehaviour
 from spade.message import Message
 from spade.template import Template
+from asyncio import CancelledError
 
 from simfleet.common.servicestationagent import ServiceStationAgent
 
 from simfleet.communications.protocol import (
+    REGISTER_PROTOCOL,
     REQUEST_PROTOCOL,
     REQUEST_PERFORMATIVE,
     ACCEPT_PERFORMATIVE,
     CANCEL_PERFORMATIVE,
     INFORM_PERFORMATIVE,
     COORDINATION_PROTOCOL,
-    REGISTER_PROTOCOL,
 )
+
 
 class ChargingStationAgent(ServiceStationAgent):
     def __init__(self, agentjid, password):
@@ -27,6 +28,9 @@ class ChargingStationAgent(ServiceStationAgent):
         self.power = None  # Test charging variable --- Analice     #POSIBLE BORRADO DEL ATRIBUTO
         self.service_type = None
         #self.arguments = kwargs.get('args', None)       #ARRAY
+        self.arguments = []
+
+        self.charged_transports = 0
 
     # New function - Know if the agent is stopped
     def is_stopped(self):
@@ -35,11 +39,53 @@ class ChargingStationAgent(ServiceStationAgent):
     def is_ready(self):
         return self.ready
 
-    def set_type(self, service_type):
+    def set_service_type(self, service_type):
         self.service_type = service_type
+
+    def get_service_type(self):
+        return self.service_type
 
     def set_power(self, power):
         self.power = power
+
+    def run_strategy(self):
+        """
+        Sets the strategy for the transport agent.
+        """
+        if not self.running_strategy:
+            #template = Template()
+            #template.set_metadata("protocol", REQUEST_PROTOCOL)
+            #self.add_behaviour(self.strategy(), template)
+            self.running_strategy = True
+
+    def to_json(self):
+        """
+        Serializes the main information of a station agent to a JSON format.
+        It includes the id of the agent, its current position, the destination coordinates of the agent,
+        the current status, the transport that it has assigned (if any) and its waiting time.
+
+        Returns:
+            dict: a JSON doc with the main information of the station.
+
+            Example::
+
+                {
+                    "id": "cphillips",
+                    "position": [ 39.461327, -0.361839 ],
+                    "status": True,
+                    "places": 10,
+                    "power": 10
+                }
+        """
+        return {
+            "id": self.agent_id,
+            "position": self.get("current_pos"),
+            "status": self.status,
+            "places": self.get_slot_number_used(self.get_service_type()),
+            "power": self.power,
+            "icon": self.icon,
+        }
+
 
     async def setup(self):
         await super().setup()
@@ -73,8 +119,8 @@ class RegistrationBehaviour(CyclicBehaviour):
     async def on_start(self):
         logger.debug("Strategy {} started in directory".format(type(self).__name__))
 
-    def set_registration(self, decision):
-        self.agent.registration = decision
+    #def set_registration(self, decision):
+    #    self.agent.registration = decision
 
     async def send_registration(self):
         """
@@ -108,7 +154,7 @@ class RegistrationBehaviour(CyclicBehaviour):
             if msg:
                 performative = msg.get_metadata("performative")
                 if performative == ACCEPT_PERFORMATIVE:
-                    self.set_registration(True)
+                    self.agent.set_registration(True)
                     logger.debug("Registration in the directory")
         except CancelledError:
             logger.debug("Cancelling async tasks...")
@@ -122,24 +168,41 @@ class RegistrationBehaviour(CyclicBehaviour):
 
 #Strategie? - New ubication -> extension > stations > strategies > chargingstation
 class ChargingService(OneShotBehaviour):
-    def __init__(self, agent_id, *args):        #ADAPTAR PARA QUE RECIBA LOS ARGS -- APUNTES
+    #def __init__(self, agent_id, *args):        #ADAPTAR PARA QUE RECIBA LOS ARGS -- APUNTES
+    def __init__(self, agent_id, **kwargs):
+        super().__init__()
         self.agent_id = agent_id
         #self.power = power
-        self.power = args[0]
-        self.transport_need = args[1]
+        #TEST
+        #self.transport_need = args[0]
+        #self.power = args[1]
+
+        if 'transport_need' in kwargs:
+            self.transport_need = kwargs['transport_need']
+
         #self.additional_args = args
-        super().__init__()
+        #super().__init__()
 
     async def charging_transport(self):
         #total_time = need / self.power
-        total_time = self.transport_need / self.power
-        total_time = round(total_time)
+        #total_time = self.transport_need / self.power
+        total_time = self.transport_need / self.agent.power
+        recarge_time = datetime.timedelta(seconds=total_time)
         logger.info(
             "Station {} started charging transport {} for {} seconds.".format(
-                self.agent.name, self.agent_id, total_time
+                self.agent.name, self.agent_id, recarge_time.total_seconds()
             )
         )
-        await asyncio.sleep(total_time)       #Check seconds - Testing
+
+        self.agent.charged_transports += 1
+
+        logger.info(
+            "DEPURACION CHARGINGSTATION - Station {} started charging transport {} for {} seconds.".format(
+                self.agent.name, self.agent_id, recarge_time.total_seconds()
+            )
+        )
+
+        await asyncio.sleep(recarge_time.total_seconds())       #Check seconds - Testing
 
 
     async def inform_charging_complete(self):
@@ -189,7 +252,10 @@ class ChargingService(OneShotBehaviour):
     #        self.set_available_places(p + 1)
 
     async def run(self):
-        logger.debug("Station {} finished charging.".format(self.agent.name))
+        logger.debug("Station {} start charging.".format(self.agent.name))
+
+        #DEPURACION
+        logger.warning("START CHARGING - Station {} start charging.".format(self.agent.name))
 
         #msg = await self.receive(timeout=60)
         #if not msg:
@@ -210,5 +276,30 @@ class ChargingService(OneShotBehaviour):
         #    await self.inform_charging_complete()
             #await self.deassigning_place()
         await self.charging_transport()
+
+        #service_name = "electricity"
+        logger.info(
+            "Agent {} has finished receiving the service {}".format(
+                self.agent_id,
+                self.agent.service_type
+            )
+        )
+
         await self.inform_charging_complete()
-        return
+
+        logger.info(
+            "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
+                self.agent.name,
+                self.agent.get_slot_number_used(self.agent.service_type)
+            )
+        )
+
+        self.agent.decrease_slots_used(self.agent.service_type)
+        #return
+
+        logger.info(
+            "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
+                self.agent.name,
+                self.agent.get_slot_number_used(self.agent.service_type)
+            )
+        )

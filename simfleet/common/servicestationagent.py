@@ -206,10 +206,6 @@ class ServiceStationAgent(QueueStationAgent):
                                 )
                             )
 
-                            # one_shot_behaviour.set_args(*args)
-
-                            # one_shot_behaviour = one_shot_behaviour.set_args(*args)
-
                             # DEPURACION 8
                             # logger.info(
                             #    "SERVICESTATION 3 - one_shot_behaviour: {}".format(

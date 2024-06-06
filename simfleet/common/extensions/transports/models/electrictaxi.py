@@ -64,7 +64,8 @@ class ElectricTaxiAgent(ChargeableMixin, TaxiAgent):
         self.total_waiting_time = 0.0
         self.total_charging_time = 0.0
 
-        self.arguments = kwargs.get('args', None)       #ARRAY
+        #self.arguments = kwargs.get('args', None)       #ARRAY
+        self.arguments = {}
 
 class ElectricTaxiStrategyBehaviour(StrategyBehaviour):
     """

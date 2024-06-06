@@ -128,6 +128,7 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour, State):
         for key in self.agent.stations.keys():
             dic = self.agent.stations.get(key)
             station_positions.append((dic["jid"], dic["position"]))         #Realizar comprobación del tipo de servicio? DUDA
+
         closest_station = min(
             station_positions,
             key=lambda x: distance_in_meters(x[1], self.agent.get_position()),
@@ -177,9 +178,22 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour, State):
         try:
 
             if not self.agent.is_in_destination():
+
+                #Depuración con warning
+                #logger.warning(
+                #    "Transport {} con destination: {}.".format(
+                #        self.agent.agent_id, self.agent.is_in_destination()
+                #    )
+                #)
+
                 await asyncio.sleep(1)
                 self.set_next_state(TRANSPORT_MOVING_TO_STATION)
             else:
+
+                #self.agent.arguments.append(self.agent.power)
+                #self.agent.arguments.append(self.agent.max_autonomy_km - self.agent.current_autonomy_km)
+                self.agent.arguments["transport_need"] = self.agent.max_autonomy_km - self.agent.current_autonomy_km
+                #self.agent.arguments["power"] = self.agent.current_station_dest[2]
 
                 content = {"service_name": self.agent.service_type, "args": self.agent.arguments}             #AÑADIR ARGS - CARGA QUE NECESITA
                 await self.request_access_station(self.agent.get("current_station"), content)
@@ -194,6 +208,9 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour, State):
                 )
             )
 
+            self.agent.arguments["need"] = self.agent.max_autonomy_km - self.agent.current_autonomy_km
+
+            #self.agent.arguments.append(self.agent.max_autonomy_km - self.agent.current_autonomy_km)
             content = {"service_name": self.agent.service_type, "args": self.agent.arguments}         #Añadir lo que necesita
             await self.request_access_station(self.agent.get("current_station"), content)
 
@@ -312,6 +329,15 @@ class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour, State):
 
         #self.agent.status = TRANSPORT_IN_WAITING_LIST
         #self.set_next_state(TRANSPORT_IN_WAITING_LIST)
+        else:
+            # if the message I receive is not an ACCEPT, I keep waiting in the queue
+
+            #content = {"service_name": self.agent.service_type, "args": self.agent.arguments}  # Añadir lo que necesita
+            #await self.request_access_station(self.agent.get("current_station"), content)
+
+
+            self.set_next_state(TRANSPORT_IN_WAITING_LIST)
+            return
 
 
 
@@ -335,7 +361,7 @@ class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour, State):
         if protocol == REQUEST_PROTOCOL and performative == INFORM_PERFORMATIVE:
             if content["charged"]:
                 self.agent.transport_charged()
-                await self.agent.drop_station()
+                await self.drop_station()
                 # canviar per un event?
                 self.agent.status = TRANSPORT_WAITING
                 self.set_next_state(TRANSPORT_WAITING)

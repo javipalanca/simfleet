@@ -1,3 +1,4 @@
+import geopy.distance
 from loguru import logger
 
 from simfleet.common.simfleetagent import SimfleetAgent
@@ -67,6 +68,11 @@ class GeoLocatedAgent(SimfleetAgent):
             list: the coordinates of the current position of the Agent (lon, lat)
         """
         return self.get("current_pos")
+
+    def near_agent(self, coords_1, coords_2):
+        if geopy.distance.geodesic(coords_1, coords_2).km > 0.1:  #Añadir rango 100 metros min
+            return False
+        return True
 
     # New boundingbox
     def set_boundingbox(self, bbox):

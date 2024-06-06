@@ -178,12 +178,40 @@ class QueueStationAgent(GeoLocatedAgent):
 
             if msg:
                 performative = msg.get_metadata("performative")
+                protocol = msg.get_metadata("protocol")
                 agent_id = msg.sender
-                service_name = json.loads(msg.body)["service_name"]      #chequear
-                args_ = json.loads(msg.body)["args"]
-                #agent_position = json.loads(msg.content)["agent_position"]  #Preguntar al SimulatorAGent
+                content = json.loads(msg.body)
 
-                if performative == CANCEL_PERFORMATIVE:
+                # if content["service_name"]:
+                #    service_name = content["service_name"]
+
+                # if content["args"]:
+                #    arguments = content["args"]
+
+                # DEPURACION 4
+                logger.warning(
+                    "DEPURACION - Station {}, msg: {}".format(
+                        self.agent.name,
+                        msg,
+                    )
+                )
+
+                logger.warning(
+                    "AGENT ID {}.".format(
+                        agent_id
+                    )
+                )
+
+                # if content["agent_position"]:
+                #    agent_position = content["agent_position"]
+
+                # if content["user_agent_id"]:
+                #    user_agent_id = content["user_agent_id"]
+
+                if protocol == REQUEST_PROTOCOL and performative == CANCEL_PERFORMATIVE:
+
+                    if content["service_name"]:
+                        service_name = content["service_name"]
 
                     logger.warning(
                         "Agent {} received a REFUSE from agent {}.".format(
@@ -191,7 +219,7 @@ class QueueStationAgent(GeoLocatedAgent):
                         )
                     )
                     self.dequeue_agent_to_waiting_list(service_name, str(agent_id))
-                    #self.cancel_request_agent(str(agent_id))
+                    # self.cancel_request_agent(str(agent_id))
 
                     logger.debug(
                         "Agent {} has been removed from the waiting_list.".format(
@@ -199,52 +227,91 @@ class QueueStationAgent(GeoLocatedAgent):
                         )
                     )
                 elif (
-                        performative == REQUEST_PERFORMATIVE
+                    protocol == REQUEST_PROTOCOL and performative == REQUEST_PERFORMATIVE
                 ):  # comes from send_confirmation_travel
 
-                    # Send msg to SimulatorAgent for agent_position
-                    self.agent.request_agent_position("simulator@localhost")    #Cambiarlo - JID simulador - DEBATIR
+                    if content["service_name"]:
+                        service_name = content["service_name"]
+
+                    if content["args"]:
+                        arguments = content["args"]
+
+                    # Comprobamos la ubicación
+                    content = {"user_agent_id": agent_id}
+                    await self.agent.request_agent_position("simulator_none@localhost", content)  # Cambiarlo - JID simulador - DEBATIR
 
                     # Request to SimulatorAgent for agent_position
-                    msg = await self.receive(timeout=5)         #Duda PREGUNTAR
+                    # msg = await self.receive(timeout=5)         #Duda PREGUNTAR
 
-                    if msg:
-                        performative = msg.get_metadata("performative")
-                        agent_id_simulator = msg.sender
-                        agent_position = json.loads(msg.body)["agent_position"]
+                elif (
+                    protocol == COORDINATION_PROTOCOL and performative == INFORM_PERFORMATIVE
+                ):  # comes from send_confirmation_travel
 
-                        if service_name not in self.agent.waiting_lists or not self.agent.near_agent(coords_1=self.agent.get_position(), coords_2=agent_position):    #New
-                            await self.refuse_request_agent(agent_id)
-                            logger.warning(
-                                "Station {} has REFUSED request from agent {} for service {}".format(
-                                    self.agent.name,
-                                    agent_id,
-                                    service_name
-                                )
-                            )
-                        else:
+                    if content["service_name"]:
+                        service_name = content["service_name"]
 
-                            if self.total_queue_size(service_name) == 0:
-                                self.agent.transports_in_queue_time = time.time()
+                    if content["agent_position"]:
+                        agent_position = content["agent_position"]
 
-                            self.queue_agent_to_waiting_list(service_name, str(agent_id), *args_)     #Duda ARGS
+                    if content["user_agent_id"]:
+                        user_agent_id = content["user_agent_id"]
 
-                            content = {"station_id": str(self.agent.jid)}
-                            await self.accept_request_agent(agent_id, content)
+                    logger.debug(
+                        "Station {} has received msg from agent {} for near check".format(
+                            self.agent.name,
+                            agent_id
+                        )
+                    )
 
-                            logger.info(
-                                "Station {} has put {} in the waiting_list".format(
-                                    self.agent.name,
-                                    agent_id,
-                                )
-                            )
-                    else:
+                    # if msg:
+                    # CONTINUAR AQUI
+                    # performative = msg.get_metadata("performative")
+                    # agent_id_simulator = msg.sender
+                    # content = json.loads(msg.body)
+                    # agent_position = json.loads(msg.body)["agent_position"]
+
+                    if service_name not in self.agent.waiting_lists or not self.agent.near_agent(
+                        coords_1=self.agent.get_position(), coords_2=agent_position):  # New
+
+                        # Desencolamos
+                        # self.dequeue_agent_to_waiting_list(service_name, str(user_agent_id))
+
+                        await self.refuse_request_agent(user_agent_id)
                         logger.warning(
-                            "Station {} has not received agent position of {} from the Simulator".format(
+                            "Station {} has REFUSED request from agent {} for service {}".format(
                                 self.agent.name,
-                                agent_id,
+                                user_agent_id,
+                                service_name
                             )
                         )
+                    else:
+
+                        if self.total_queue_size(service_name) == 0:
+                            self.agent.transports_in_queue_time = time.time()
+
+                        # Encolamos
+                        self.queue_agent_to_waiting_list(service_name, str(user_agent_id), **arguments)
+                        # self.queue_agent_to_waiting_list(service_name, str(agent_id), *arguments)     #Duda ARGS
+
+                        if self.total_queue_size(service_name) > self.agent.max_queue_length:
+                            self.agent.max_queue_length = self.total_queue_size(service_name)
+
+                        content = {"station_id": str(self.agent.jid)}
+                        await self.accept_request_agent(user_agent_id, content)
+
+                        logger.info(
+                            "Station {} has put {} in the waiting_list".format(
+                                self.agent.name,
+                                user_agent_id,
+                            )
+                        )
+                else:
+                    logger.warning(
+                        "Station {} has not received agent position of {} from the Simulator".format(
+                            self.agent.name,
+                            agent_id,
+                        )
+                    )
 
                 # time statistics update
                 if self.total_queue_size(service_name):
@@ -253,17 +320,114 @@ class QueueStationAgent(GeoLocatedAgent):
                         self.agent.empty_queue_time - self.agent.transports_in_queue_time
                     )
 
+            # COPIA
 
+            # if msg:
+            #     performative = msg.get_metadata("performative")
+            #     agent_id = msg.sender
+            #     service_name = json.loads(msg.body)["service_name"]      #chequear
+            #     arguments = json.loads(msg.body)["args"]
+            #     #agent_position = json.loads(msg.content)["agent_position"]  #Preguntar al SimulatorAGent
+            #
+            #     if performative == CANCEL_PERFORMATIVE:
+            #
+            #         logger.warning(
+            #             "Agent {} received a REFUSE from agent {}.".format(
+            #                 self.agent.name, agent_id
+            #             )
+            #         )
+            #         self.dequeue_agent_to_waiting_list(service_name, str(agent_id))
+            #         #self.cancel_request_agent(str(agent_id))
+            #
+            #         logger.debug(
+            #             "Agent {} has been removed from the waiting_list.".format(
+            #                 self.agent.name, agent_id
+            #             )
+            #         )
+            #     elif (
+            #             performative == REQUEST_PERFORMATIVE
+            #     ):  # comes from send_confirmation_travel
+            #
+            #         content = {"user_agent_id": agent_id}
+            #         # Send msg to SimulatorAgent for agent_position
+            #         await self.agent.request_agent_position("simulator_none@localhost", content)    #Cambiarlo - JID simulador - DEBATIR
+            #
+            #         # Request to SimulatorAgent for agent_position
+            #         msg = await self.receive(timeout=5)         #Duda PREGUNTAR
+            #
+            #         logger.warning(
+            #             "MENSAJE DEL SIMULATOR: {} ".format(
+            #                 msg
+            #             )
+            #         )
+            #
+            #         if msg:
+            #             #CONTINUAR AQUI
+            #             performative = msg.get_metadata("performative")
+            #             agent_id_simulator = msg.sender
+            #             content = json.loads(msg.body)
+            #             agent_position = json.loads(msg.body)["agent_position"]
+            #
+            #             if agent_id_simulator == "simulator_none@localhost":
+            #                 logger.debug(
+            #                     "Transport {} received a message with ACCEPT_PERFORMATIVE from {}".format(
+            #                         self.agent.name, content["station_id"]
+            #                     )
+            #                 )
+            #
+            #             if service_name not in self.agent.waiting_lists or not self.agent.near_agent(coords_1=self.agent.get_position(), coords_2=agent_position):    #New
+            #                 self.refuse_request_agent(agent_id)
+            #                 logger.warning(
+            #                     "Station {} has REFUSED request from agent {} for service {}".format(
+            #                         self.agent.name,
+            #                         agent_id,
+            #                         service_name
+            #                     )
+            #                 )
+            #             else:
+            #
+            #                 if self.total_queue_size(service_name) == 0:
+            #                     self.agent.transports_in_queue_time = time.time()
+            #
+            #                 self.queue_agent_to_waiting_list(service_name, str(agent_id), *arguments)     #Duda ARGS
+            #
+            #                 content = {"station_id": str(self.agent.jid)}
+            #                 self.accept_request_agent(agent_id, content)
+            #
+            #                 logger.info(
+            #                     "Station {} has put {} in the waiting_list".format(
+            #                         self.agent.name,
+            #                         agent_id,
+            #                     )
+            #                 )
+            #         else:
+            #             logger.warning(
+            #                 "Station {} has not received agent position of {} from the Simulator".format(
+            #                     self.agent.name,
+            #                     agent_id,
+            #                 )
+            #             )
+            #
+            #     # time statistics update
+            #     if self.total_queue_size(service_name):
+            #         self.agent.empty_queue_time = time.time()
+            #         self.agent.total_busy_time += (
+            #             self.agent.empty_queue_time - self.agent.transports_in_queue_time
+            #         )
 
-    async def setup(self):
-        logger.info("Queue agent {} running".format(self.name))
+        async def setup(self):
+            logger.info("Queue agent {} running".format(self.agent.name))
 
-        template1 = Template()
-        template1.set_metadata("protocol", REQUEST_PROTOCOL)
-        template1.set_metadata("performative", REQUEST_PERFORMATIVE) #template slo permite una sola performativa y protocolo
+            template1 = Template()
+            template1.set_metadata("protocol", REQUEST_PROTOCOL)
+            template1.set_metadata("performative", REQUEST_PERFORMATIVE)  # template slo permite una sola performativa y protocolo
 
-        template2 = Template()
-        template2.set_metadata("protocol", REQUEST_PROTOCOL)
-        template2.set_metadata("performative", CANCEL_PERFORMATIVE)
+            template2 = Template()
+            template2.set_metadata("protocol", REQUEST_PROTOCOL)
+            template2.set_metadata("performative", CANCEL_PERFORMATIVE)
 
-        self.add_behaviour(self.queuebehaviour, template1 | template2)
+            template3 = Template()
+            template3.set_metadata("protocol", COORDINATION_PROTOCOL)
+            template3.set_metadata("performative", INFORM_PERFORMATIVE)
+
+            self.add_behaviour(self.queuebehaviour, template1 | template2 | template3)

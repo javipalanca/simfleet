@@ -24,6 +24,7 @@ class ServiceStationAgent(QueueStationAgent):
 
 
     async def setup(self):
+        await super().setup()
         logger.info("Service station agent {} running".format(self.name))
 
         #template1 = Template()

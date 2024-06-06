@@ -42,6 +42,7 @@ class ChargingStationAgent(ServiceStationAgent):
         self.power = power
 
     async def setup(self):
+        await super().setup()
         self.total_busy_time = 0.0
         logger.info("Station agent {} running".format(self.name))
         #self.set_type("station")       #AÑADIR A FACTORY

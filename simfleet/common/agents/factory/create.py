@@ -18,23 +18,26 @@ class Factory(ABC):     #Factory
     @classmethod
     @abstractmethod
     def create_agent(cls,
-                    domain,
-                    name,
-                    password,
-                    default_strategy,
-                    strategy,
-                    jid_directory,
-                    bbox,
-                    fleetmanager,
-                    fleet_type,
-                    route_host,
-                    autonomy,
-                    current_autonomy,
-                    position,
-                    speed,
-                    target,
-                    power,
-                    places,
+                     domain,
+                     name,
+                     password,
+                     class_,
+                     default_strategy,
+                     optional,
+                     strategy,
+                     jid_directory,
+                     bbox,
+                     fleetmanager,
+                     fleet_type,
+                     route_host,
+                     autonomy,
+                     current_autonomy,
+                     position,
+                     speed,
+                     target,
+                     service_name,
+                     power,
+                     slots,
                     ):
         raise NotImplementedError
 
@@ -42,23 +45,26 @@ class Factory(ABC):     #Factory
 class DirectoryFactory(Factory):    #DirectoryFactory
     @classmethod
     def create_agent(cls,
-                    domain,
-                    name,
-                    password,
-                    default_strategy,
-                    strategy=None,
-                    jid_directory=None,
-                    bbox=None,
-                    fleetmanager=None,
-                    fleet_type=None,
-                    route_host=None,
-                    autonomy=None,
-                    current_autonomy=None,
-                    position=None,
-                    speed=None,
-                    target=None,
-                    power=None,
-                    places=None,
+                     domain,
+                     name,
+                     password,
+                     default_strategy,
+                     class_=None,
+                     optional=None,
+                     strategy=None,
+                     jid_directory=None,
+                     bbox=None,
+                     fleetmanager=None,
+                     fleet_type=None,
+                     route_host=None,
+                     autonomy=None,
+                     current_autonomy=None,
+                     position=None,
+                     speed=None,
+                     target=None,
+                     service_name=None,
+                     power=None,
+                     slots=None,
                     ):
         """
                         Create a directory agent.
@@ -80,23 +86,26 @@ class DirectoryFactory(Factory):    #DirectoryFactory
 class FleetManagerFactory(Factory):      #ManagerFactory
     @classmethod
     def create_agent(cls,
-                    domain,
-                    name,
-                    password,
-                    default_strategy,
-                    strategy=None,
-                    jid_directory=None,
-                    bbox=None,
-                    fleetmanager=None,
-                    fleet_type=None,
-                    route_host=None,
-                    autonomy=None,
-                    current_autonomy=None,
-                    position=None,
-                    speed=None,
-                    target=None,
-                    power=None,
-                    places=None,
+                     domain,
+                     name,
+                     password,
+                     default_strategy,
+                     class_=None,
+                     optional=None,
+                     strategy=None,
+                     jid_directory=None,
+                     bbox=None,
+                     fleetmanager=None,
+                     fleet_type=None,
+                     route_host=None,
+                     autonomy=None,
+                     current_autonomy=None,
+                     position=None,
+                     speed=None,
+                     target=None,
+                     service_name=None,
+                     power=None,
+                     slots=None,
                     ):
         """
                         Create a fleetmanager agent.
@@ -130,25 +139,26 @@ class FleetManagerFactory(Factory):      #ManagerFactory
 class TransportFactory(Factory):    #TransportFactory
     @classmethod
     def create_agent(cls,
-                    domain,
-                    jid_directory,
-                    bbox,
-                    route_host,
-                    name,
-                    password,
-                    class_,
-                    fleet_type,
-                    default_strategy,
-                    optional=None,
-                    strategy=None,
-                    #fleetmanager=None,
-                    autonomy=None,
-                    current_autonomy=None,
-                    position=None,
-                    speed=None,
-                    target=None,
-                    power=None,
-                    places=None,
+                     domain,
+                     name,
+                     password,
+                     class_,
+                     default_strategy,
+                     optional=None,
+                     strategy=None,
+                     jid_directory=None,
+                     bbox=None,
+                     fleetmanager=None,
+                     fleet_type=None,
+                     route_host=None,
+                     autonomy=None,
+                     current_autonomy=None,
+                     position=None,
+                     speed=None,
+                     target=None,
+                     service_name=None,
+                     power=None,
+                     slots=None,
                     ):
         """
                                 Create a transport agent.
@@ -200,6 +210,7 @@ class TransportFactory(Factory):    #TransportFactory
 
         agent.set_initial_position(position)
 
+        agent.set_service_type(service_name)
         if speed:
             agent.set_speed(speed)
 
@@ -209,25 +220,26 @@ class TransportFactory(Factory):    #TransportFactory
 class CustomerFactory(Factory):
     @classmethod
     def create_agent(cls,
-                    domain,
-                    name,
-                    password,
-                    class_,
-                    default_strategy,
-                    optional=None,
-                    strategy=None,
-                    jid_directory=None,
-                    bbox=None,
-                    fleetmanager=None,
-                    fleet_type=None,
-                    route_host=None,
-                    autonomy=None,
-                    current_autonomy=None,
-                    position=None,
-                    speed=None,
-                    target=None,
-                    power=None,
-                    places=None,
+                     domain,
+                     name,
+                     password,
+                     class_,
+                     default_strategy,
+                     optional=None,
+                     strategy=None,
+                     jid_directory=None,
+                     bbox=None,
+                     fleetmanager=None,
+                     fleet_type=None,
+                     route_host=None,
+                     autonomy=None,
+                     current_autonomy=None,
+                     position=None,
+                     speed=None,
+                     target=None,
+                     service_name=None,
+                     power=None,
+                     slots=None,
                     ):
         """
                                 Create a customer agent.
@@ -281,6 +293,8 @@ class StationFactory(Factory):
                     name,
                     password,
                     default_strategy,
+                    class_=None,
+                    optional=None,
                     strategy=None,
                     jid_directory=None,
                     bbox=None,
@@ -292,8 +306,9 @@ class StationFactory(Factory):
                     position=None,
                     speed=None,
                     target=None,
+                    service_name = None,
                     power=None,
-                    places=None,
+                    slots=None,
                     ):
 
         """
@@ -308,23 +323,35 @@ class StationFactory(Factory):
                     jid_directory (JID): directory JID address
                     position (list): initial coordinates of the agent
                     power (int): power of the station agent in kW
-                    places (int): destination coordinates of the agent
+                    slots (int): destination coordinates of the agent
                 """
 
         jid = f"{name}@{domain}"
         logger.debug("Creating Station agent: {}".format(jid))
-        agent = StationAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
+
+        if type(class_) is str:   # Añadimos el objeto de la clase cargada a la variable agente_class
+            agent_class = load_class(class_)
+            agent = agent_class(jid, password)
+        else:
+            raise Exception ("The agent needs a class in path format.")
+
+        #agent = StationAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
         agent.set_id(name)  # Establece el identificador del agente
         agent.set_directory(jid_directory)
 
+        #TEST 3
         if type(strategy) is str:   # Añadimos el objeto de la clase cargada a la variable strategy
-            agent.strategy = load_class(strategy)
+            one_shot_behaviour = load_class(strategy)
         else:
-            agent.strategy = default_strategy
+            one_shot_behaviour = default_strategy
+
+        #one_shot_behaviour = one_shot_behaviour(None, 0, power)
 
         agent.set_position(position)
-        agent.set_available_places(places)
-        agent.set_power(power)
+        #agent.set_available_places(slots)
+        agent.add_service(service_name, slots, one_shot_behaviour)
+        agent.set_service_type(service_name)        #Testeo
+        agent.set_power(power)                      #Testeo
 
         return agent
 
@@ -336,6 +363,8 @@ class VehicleFactory(Factory):    #VehicleFactory
                     name,
                     password,
                     default_strategy,
+                    class_=None,
+                    optional=None,
                     strategy=None,
                     jid_directory=None,
                     bbox=None,
@@ -347,8 +376,9 @@ class VehicleFactory(Factory):    #VehicleFactory
                     position=None,
                     speed=None,
                     target=None,
+                    service_name = None,
                     power=None,
-                    places=None,
+                    slots=None,
                     ):
         """
                                 Create a vehicle agent.

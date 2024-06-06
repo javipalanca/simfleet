@@ -134,75 +134,174 @@ class ServiceStationAgent(QueueStationAgent):
             template1.set_metadata("protocol", REQUEST_PROTOCOL)
             template1.set_metadata("performative", INFORM_PERFORMATIVE)
 
-            #if self.agent.service_available(self):
+            # DEPURACION 2
+            # logger.warning(
+            #    "Service {} TIENE LA SIGUIENTE waitinglist {}".format(
+            #        self.agent.name,
+            #        self.agent.waiting_lists
+            #    )
+            # )
+
+            # if self.agent.service_available(self):
             #    self.agent.queue_agent_to_waiting_list(service_name, str(agent_id))
             #    self.agent.total_queue_size()
 
             for service_name, queue in self.agent.waiting_lists.items():
 
                 if len(queue) > 0:
-                    if self.agent.service_available(self, service_name):
+
+                    # DEPURACION 6
+                    # logger.info(
+                    #    "SERVICESTATION - service_name {}".format(
+                    #        service_name
+                    #    )
+                    # )
+
+                    if self.agent.service_available(service_name):
                         # dequeue
-                        agent_info = self.agent.dequeue_first_agent_to_waiting_list(service_name)        #Adaptar los ARGS -- APUNTES
+                        # agent_info = self.agent.dequeue_first_agent_to_waiting_list(service_name)        #Adaptar los ARGS -- APUNTES
+                        agent_info = self.agent.queuebehaviour.dequeue_first_agent_to_waiting_list(service_name)
 
                         if agent_info is not None:
-                            agent, args = agent_info
+                            agent, kwargs = agent_info
+
+                            # DEPURACION 8
+                            logger.warning(
+                                "SERVICESTATION - Agent {}, slots usados: {}".format(
+                                    self.agent.name,
+                                    self.agent.get_slot_number_used(service_name)
+                                )
+                            )
 
                             self.agent.increase_slots_used(service_name)
 
+                            content = {"station_id": self.agent.name, "serving": True}
+                            await self.inform_service(str(agent), content)
 
-                            #DEBATE - INFORMAR AGENTE DE QUE COMIENZA EL SERVICIO - SERVICIO_1a
+                            # DEPURACION 7
+                            logger.info(
+                                "SERVICESTATION - agent: {}, args: {}, station slots: {}".format(
+                                    agent,
+                                    kwargs,
+                                    self.agent.get_slot_number_used(service_name)
+                                )
+                            )
 
+                            # Duda
+                            one_shot_behaviour = self.agent.services_list[service_name]["one_shot_behaviour"]
 
+                            # DEPURACION 8
+                            logger.info(
+                                "SERVICESTATION 1 - one_shot_behaviour: {}".format(
+                                    one_shot_behaviour
+                                )
+                            )
 
-                            #Preguntar simulatorAgent para el near -
-                            #await self.inform_agent(str(agent))
+                            one_shot_behaviour = one_shot_behaviour(str(agent), **kwargs)
 
-                            # Send msg to SimulatorAgent for agent_position
-                            self.agent.request_agent_position("simulator@localhost")
+                            # DEPURACION 8
+                            logger.info(
+                                "SERVICESTATION 2 - one_shot_behaviour: {}".format(
+                                    one_shot_behaviour
+                                )
+                            )
 
-                            # Request to SimulatorAgent for agent_position
+                            # one_shot_behaviour.set_args(*args)
 
+                            # one_shot_behaviour = one_shot_behaviour.set_args(*args)
 
-                            msg = await self.receive(timeout=5)
+                            # DEPURACION 8
+                            # logger.info(
+                            #    "SERVICESTATION 3 - one_shot_behaviour: {}".format(
+                            #        one_shot_behaviour
+                            #    )
+                            # )
 
-                            if msg:
-                                performative = msg.get_metadata("performative")
-                                agent_id = msg.sender
-                                agent_position = json.loads(msg.body)["agent_position"]
+                            self.agent.add_behaviour(one_shot_behaviour, template1)  # PASAR ARGS (self.agent.power)
 
-                                if not self.agent.near_agent(coords_1=self.agent.get_position(), coords_2=agent_position):
-                                    logger.warning(
-                                        "Station {} has Cancel request from agent {} for service {}".format(
-                                            self.agent.name,
-                                            agent_id,
-                                            service_name
-                                        )
-                                    )
+                            # TEST - NO FUNCIONA
+                            # logger.info(
+                            #    "Agent {} has finished receiving the service {}".format(
+                            #        self.agent.name,
+                            #        service_name
+                            #    )
+                            # )
 
-                                    # Msg Cancel
-                                    #self.cancel_service(str(agent))        #Original version
+                            # Run service -- Duda
 
-                                    #New version
-                                    content = {"station_id": self.agent.name}
-                                    await self.refuse_service(str(agent), content)
-                                else:
+                            # TEST - NO FUNCIONA
+                            # self.agent.decrease_slots_used(service_name)
 
-                                    content = {"station_id": self.agent.name, "serving": True}
-                                    await self.inform_service(str(agent), content)
-
-                                    # Duda
-                                    one_shot_behaviour = self.agent.waiting_lists[service_name]["one_shot_behaviour"]
-                                    self.agent.add_behaviour(one_shot_behaviour(agent_id=agent_id, args=args), template1)        #PASAR ARGS (self.agent.power)
-
-
-                                    logger.info(
-                                        "Agent {} has finished receiving the service {}".format(
-                                            self.agent.name,
-                                            service_name
-                                        )
-                                    )
-
-                                    # Run service -- Duda
-
-                                    self.agent.decrease_slots_used(service_name)
+            # COPIA ORIGINAL
+            # for service_name, queue in self.agent.waiting_lists.items():
+            #
+            #     if len(queue) > 0:
+            #         if self.agent.service_available(self, service_name):
+            #             # dequeue
+            #             agent_info = self.agent.dequeue_first_agent_to_waiting_list(service_name)        #Adaptar los ARGS -- APUNTES
+            #
+            #             if agent_info is not None:
+            #                 agent, args = agent_info
+            #
+            #                 self.agent.increase_slots_used(service_name)
+            #
+            #
+            #                 #DEBATE - INFORMAR AGENTE DE QUE COMIENZA EL SERVICIO - SERVICIO_1a
+            #
+            #
+            #
+            #                 #Preguntar simulatorAgent para el near -
+            #                 #await self.inform_agent(str(agent))
+            #
+            #                 # Send msg to SimulatorAgent for agent_position
+            #                 self.agent.request_agent_position("simulator_none@localhost")
+            #
+            #                 # Request to SimulatorAgent for agent_position
+            #
+            #
+            #                 msg = await self.receive(timeout=5)
+            #                 content = json.loads(msg.body)
+            #
+            #                 if msg:
+            #                     performative = msg.get_metadata("performative")
+            #                     agent_id = msg.sender
+            #                     #agent_position = json.loads(msg.body)["agent_position"]
+            #                     agent_position = content["agent_position"]
+            #
+            #                     if not self.agent.near_agent(coords_1=self.agent.get_position(), coords_2=agent_position):
+            #                         logger.warning(
+            #                             "Station {} has Cancel request from agent {} for service {}".format(
+            #                                 self.agent.name,
+            #                                 agent_id,
+            #                                 service_name
+            #                             )
+            #                         )
+            #
+            #                         # Msg Cancel
+            #                         #self.cancel_service(str(agent))        #Original version
+            #
+            #                         #New version
+            #                         content = {"station_id": self.agent.name}
+            #                         self.refuse_service(str(agent), content)
+            #                     else:
+            #
+            #                         content = {"station_id": self.agent.name, "serving":True}
+            #                         self.inform_service(str(agent), content)
+            #
+            #                         # Duda
+            #                         one_shot_behaviour = self.agent.waiting_lists[service_name]["one_shot_behaviour"]
+            #                         self.agent.add_behaviour(one_shot_behaviour(agent_id=agent_id, *args), template1)        #PASAR ARGS (self.agent.power)
+            #
+            #
+            #
+            #                         logger.info(
+            #                             "Agent {} has finished receiving the service {}".format(
+            #                                 self.agent.name,
+            #                                 service_name
+            #                             )
+            #                         )
+            #
+            #                         # Run service -- Duda
+            #
+            #                         self.agent.decrease_slots_used(service_name)
+            #

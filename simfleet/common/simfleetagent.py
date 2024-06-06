@@ -110,6 +110,14 @@ class SimfleetAgent(Agent):
         """
         self.agent_id = agent_id
 
+    # Used TransportAgent - CustomerAgent - StationAgent - FleetManagerAgent        #NEW
+    def get_id(self):
+        """
+        Gets the agent identifier
+
+        """
+        return self.agent_id
+
     #Used TransportAgent - CustomerAgent - StationAgent - FleetManagerAgent
     def set_directory(self, directory_id):
         """

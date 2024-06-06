@@ -22,9 +22,13 @@ class ChargeableMixin:
 
         self.current_autonomy_km = 2000         #transport.py
         self.max_autonomy_km = 2000             #transport.py
+        self.service_type = None  # New
 
         #statics
         self.total_charging_time = 0.0
+
+    def set_service_type(self, service_type):
+        self.service_type = service_type
 
     # transport.py
     def set_autonomy(self, autonomy, current_autonomy=None):

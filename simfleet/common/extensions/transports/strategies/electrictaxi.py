@@ -146,9 +146,32 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour, State):
         try:
             station, position = self.agent.current_station_dest
             await self.go_to_the_station(station, position)
-            self.agent.status = TRANSPORT_MOVING_TO_STATION
-            self.set_next_state(TRANSPORT_MOVING_TO_STATION)
+
+            try:
+                logger.debug("{} move_to station {}".format(self.agent.name, station))
+                await self.agent.move_to(position)
+
+                self.agent.status = TRANSPORT_MOVING_TO_STATION
+                self.set_next_state(TRANSPORT_MOVING_TO_STATION)
+
+            except AlreadyInDestination:
+                logger.debug(
+                    "{} is already in the stations' {} position. . .".format(
+                        self.agent.name, station
+                    )
+                )
+
+                self.agent.arguments["transport_need"] = self.agent.max_autonomy_km - self.agent.current_autonomy_km
+
+                content = {"service_name": self.agent.service_type,
+                           "args": self.agent.arguments}  # AÑADIR ARGS - CARGA QUE NECESITA
+                await self.request_access_station(self.agent.get("current_station"), content)
+                self.agent.status = TRANSPORT_IN_STATION_PLACE
+                self.set_next_state(TRANSPORT_IN_STATION_PLACE)
+                return
+
             return
+
         except PathRequestException:
             logger.error(
                 "Transport {} could not get a path to station {}. Cancelling...".format(
@@ -850,6 +873,9 @@ class FSMElectricTaxiStrategyBehaviour(FSMBehaviour):
         self.add_transition(
             TRANSPORT_NEEDS_CHARGING, TRANSPORT_MOVING_TO_STATION
         )  # going to station
+        self.add_transition(
+            TRANSPORT_NEEDS_CHARGING, TRANSPORT_IN_STATION_PLACE
+        )  # waiting for station list
         self.add_transition(
             TRANSPORT_MOVING_TO_STATION, TRANSPORT_MOVING_TO_STATION
         )  # arrived to station

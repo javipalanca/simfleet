@@ -184,18 +184,19 @@ class ElectricTaxiStrategyBehaviour(StrategyBehaviour):
             "Transport {} on route to station {}".format(self.agent.name, station_id)
         )
         self.set("current_station", station_id)
+        self.agent.current_station_dest = dest
         #self.agent.num_charges += 1            #DUDA ATRIBUTO
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
         self.agent.set_km_expense(travel_km)
-        try:
-            logger.debug("{} move_to station {}".format(self.agent.name, station_id))
-            await self.agent.move_to(dest)
-        except AlreadyInDestination:
-            logger.debug(
-                "{} is already in the stations' {} position. . .".format(
-                    self.agent.name, station_id
-                )
-            )
+        #try:
+        #    logger.debug("{} move_to station {}".format(self.agent.name, station_id))
+        #    await self.agent.move_to(dest)
+        #except AlreadyInDestination:
+        #    logger.debug(
+        #        "{} is already in the stations' {} position. . .".format(
+        #            self.agent.name, station_id
+        #        )
+        #    )
             #await self.agent.arrived_to_station()           #Duda Analizar
 
     async def request_access_station(self, station_id, content):

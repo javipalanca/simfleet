@@ -187,6 +187,15 @@ class ServiceStationAgent(QueueStationAgent):
                                 )
                             )
 
+                            arguments_station = self.agent.show_service_arguments(service_name)
+                            arguments_station["service_name"] = service_name
+                            logger.info(
+                                "SERVICESTATION 0.1 - arguments_station: {}".format(
+                                    arguments_station
+                                )
+                            )
+                            kwargs.update(arguments_station)
+
                             # Duda
                             one_shot_behaviour = self.agent.services_list[service_name]["one_shot_behaviour"]
 

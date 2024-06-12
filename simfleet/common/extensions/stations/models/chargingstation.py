@@ -301,7 +301,187 @@ class ChargingService(OneShotBehaviour):
             )
         )
 
-        self.agent.decrease_slots_used(self.agent.service_type)
+        self.agent.decrease_slots_used(self.service_type)
+        #return
+
+        logger.info(
+            "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
+                self.agent.name,
+                self.agent.get_slot_number_used(self.service_type)
+            )
+        )
+
+class GasolineService(OneShotBehaviour):
+    #def __init__(self, agent_id, *args):        #ADAPTAR PARA QUE RECIBA LOS ARGS -- APUNTES
+    def __init__(self, agent_id, **kwargs):
+        super().__init__()
+        self.agent_id = agent_id
+        #self.power = power
+        #TEST
+        #self.transport_need = args[0]
+        #self.power = args[1]
+
+        if 'transport_need' in kwargs:
+            self.transport_need = kwargs['transport_need']
+
+        if 'service_name' in kwargs:
+            self.service_type = kwargs['service_name']
+
+        if 'refueling_rate' in kwargs:
+            self.refueling_rate = kwargs['refueling_rate']
+
+        #self.additional_args = args
+        #super().__init__()
+
+    async def charging_transport(self):
+        #total_time = need / self.power
+        total_time = self.transport_need / self.refueling_rate
+        #total_time = self.transport_need / self.agent.power
+        recarge_time = datetime.timedelta(seconds=total_time)
+        logger.info(
+            "Station {} started charging transport {} for {} seconds.".format(
+                self.agent.name, self.agent_id, recarge_time.total_seconds()
+            )
+        )
+
+        self.agent.charged_transports += 1
+
+        logger.info(
+            "DEPURACION CHARGINGSTATION - Station {} started charging transport {} for {} seconds.".format(
+                self.agent.name, self.agent_id, recarge_time.total_seconds()
+            )
+        )
+
+        await asyncio.sleep(recarge_time.total_seconds())       #Check seconds - Testing
+
+
+    async def inform_charging_complete(self):
+
+        reply = Message()
+        reply.to = str(self.agent_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", INFORM_PERFORMATIVE)
+        content = {"charged": True}
+        reply.body = json.dumps(content)
+        await self.send(reply)
+
+    async def run(self):
+        logger.debug("Station {} start charging.".format(self.agent.name))
+
+        #DEPURACION
+        logger.warning("START CHARGING - Station {} start charging.".format(self.agent.name))
+
+        await self.charging_transport()
+
+        #service_name = "electricity"
+        logger.info(
+            "Agent {} has finished receiving the service {}".format(
+                self.agent_id,
+                self.service_type
+            )
+        )
+
+        await self.inform_charging_complete()
+
+        logger.info(
+            "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
+                self.agent.name,
+                self.agent.get_slot_number_used(self.service_type)
+            )
+        )
+
+        self.agent.decrease_slots_used(self.service_type)
+        #return
+
+        logger.info(
+            "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
+                self.agent.name,
+                self.agent.get_slot_number_used(self.service_type)
+            )
+        )
+
+
+class DieselService(OneShotBehaviour):
+    #def __init__(self, agent_id, *args):        #ADAPTAR PARA QUE RECIBA LOS ARGS -- APUNTES
+    def __init__(self, agent_id, **kwargs):
+        super().__init__()
+        self.agent_id = agent_id
+        #self.power = power
+        #TEST
+        #self.transport_need = args[0]
+        #self.power = args[1]
+
+        if 'transport_need' in kwargs:
+            self.transport_need = kwargs['transport_need']
+
+        if 'service_name' in kwargs:
+            self.service_type = kwargs['service_name']
+
+        if 'refueling_rate' in kwargs:
+            self.refueling_rate = kwargs['refueling_rate']
+
+        #self.additional_args = args
+        #super().__init__()
+
+    async def charging_transport(self):
+        #total_time = need / self.power
+        total_time = self.transport_need / self.refueling_rate
+        #total_time = self.transport_need / self.agent.power
+        recarge_time = datetime.timedelta(seconds=total_time)
+        logger.info(
+            "Station {} started charging transport {} for {} seconds.".format(
+                self.agent.name, self.agent_id, recarge_time.total_seconds()
+            )
+        )
+
+        self.agent.charged_transports += 1
+
+        logger.info(
+            "DEPURACION CHARGINGSTATION - Station {} started charging transport {} for {} seconds.".format(
+                self.agent.name, self.agent_id, recarge_time.total_seconds()
+            )
+        )
+
+        await asyncio.sleep(recarge_time.total_seconds())       #Check seconds - Testing
+
+
+    async def inform_charging_complete(self):
+
+        reply = Message()
+        reply.to = str(self.agent_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", INFORM_PERFORMATIVE)
+        content = {"charged": True}
+        reply.body = json.dumps(content)
+        await self.send(reply)
+
+
+    async def run(self):
+        logger.debug("Station {} start charging.".format(self.agent.name))
+
+        #DEPURACION
+        logger.warning("START CHARGING - Station {} start charging.".format(self.agent.name))
+
+        await self.charging_transport()
+
+        #service_name = "electricity"
+        logger.info(
+            "Agent {} has finished receiving the service {}".format(
+                self.agent_id,
+                self.service_type
+            )
+        )
+
+        await self.inform_charging_complete()
+
+        logger.info(
+            "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
+                self.agent.name,
+                self.agent.get_slot_number_used(self.service_type)
+            )
+        )
+
+        self.agent.decrease_slots_used(self.service_type)
         #return
 
         logger.info(

@@ -117,10 +117,33 @@ class RegistrationBehaviour(CyclicBehaviour):
                 performative = msg.get_metadata("performative")
                 if performative == REQUEST_PERFORMATIVE:
                     content = json.loads(msg.body)
-                    self.add_service(content)
-                    logger.debug(
-                        "Registration in the dictionary: {}".format(content["jid"])
-                    )
+                    services = content["type"]
+                    # logger.warning(
+                    #    "0.1) REGISTRO SERVICIO DIRECTORY: {}".format(services)
+                    # )
+                    # logger.warning(
+                    #    "0.2) REGISTRO SERVICIO DIRECTORY: {}".format(content)
+                    # )
+                    # del content["type"]
+                    if isinstance(services, list):
+                        for service in services:
+                            # content["type"] = service
+                            service_content = content.copy()
+                            del service_content["type"]
+                            service_content["type"] = service
+                            self.add_service(service_content)
+                            logger.debug(
+                                "Registration in the dictionary: {} with service: {}".format(content["jid"], service)
+                            )
+                            # logger.warning(
+                            #    "1) REGISTRO SERVICIO DIRECTORY: {}".format(content)
+                            # )
+                    else:
+                        self.add_service(content)
+                        logger.debug(
+                            "Registration in the dictionary: {}".format(content["jid"])
+                        )
+
                     await self.send_confirmation(agent_id)
         except CancelledError:
             logger.debug("Cancelling async tasks...")

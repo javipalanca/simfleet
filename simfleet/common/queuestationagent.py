@@ -40,12 +40,13 @@ class QueueStationAgent(GeoLocatedAgent):
         self.max_queue_length = 0
 
     # Service Management
-    def add_service(self, service_name, slots, one_shot_behaviour):
+    def add_service(self, service_name, slots, one_shot_behaviour, **arguments):
         if service_name not in self.services_list:
             self.services_list[service_name] = {
                 'slots': slots,
                 'slots_in_use': 0,
-                'one_shot_behaviour': one_shot_behaviour
+                'one_shot_behaviour': one_shot_behaviour,
+                'args': arguments,
             }
             #New queue- Queue for service
             #self.queuebehaviour.waiting_lists[service_name] = deque()
@@ -69,6 +70,9 @@ class QueueStationAgent(GeoLocatedAgent):
 
     def show_services(self):
         return tuple(self.services_list.keys())
+
+    def show_service_arguments(self, service_name):
+        return self.services_list[service_name]["args"]
 
 
     async def send_inform_service(self, agent_id, content):

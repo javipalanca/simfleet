@@ -260,14 +260,14 @@ class SimulatorAgent(Agent):
             fleet_type = transport["fleet_type"]
             service = transport["service"]
             strategy = transport.get("strategy")
-            #position = transport["position"]
+            # position = transport["position"]
             position = transport.get("position")
 
             fuel = transport.get("fuel")
             autonomy = transport.get("autonomy")
             current_autonomy = transport.get("current_autonomy")
             speed = transport.get("speed")
-            #fleetmanager = transport["fleet"]
+            # fleetmanager = transport["fleet"]
             optional = transport.get("optional")
 
             icon = transport.get("icon")
@@ -284,12 +284,12 @@ class SimulatorAgent(Agent):
                                                 fleet_type,
                                                 strategy=strategy,
                                                 position=position,
-                                                service_name=service,
+                                                service=service,
                                                 autonomy=autonomy,
                                                 current_autonomy=current_autonomy,
                                                 speed=speed,
                                                 optional=optional,
-                                                #fleetmanager=fleetmanager,
+                                                # fleetmanager=fleetmanager,
                                                 delayed=delayed,
                                                 )
             self.set_icon(agent, icon, default="transport")
@@ -359,15 +359,17 @@ class SimulatorAgent(Agent):
             )
             class_ = station["class"]
             strategy = station.get("strategy")
+            position = station.get("position")
+            services = station.get("services")
             icon = station.get("icon")
             agent = self.create_station_agent(
                                                 name=station["name"],
                                                 password=password,
-                                                position=station["position"],
+                                                position=position,
                                                 class_=class_,
-                                                power=station["power"],
-                                                service_name=station["service"],
-                                                slots=station["slots"],
+                                                # power=station["power"],
+                                                services=services,
+                                                # slots=station["slots"],
                                                 strategy=strategy,
                                             )
             self.set_icon(agent, icon, default="electric_station")
@@ -1365,7 +1367,7 @@ class SimulatorAgent(Agent):
                         p.name,
                         p.status,
                         #p.available_places,
-                        p.get_slot_number_used(p.get_service_type()),
+                        #p.get_slot_number_used(p.get_service_type()),           #CHECK FRONTED
                         p.power,
                         p.charged_transports,
                         p.max_queue_length,
@@ -1501,20 +1503,20 @@ class SimulatorAgent(Agent):
         return agent
 
     def create_transport_agent(self,
-                                name,
-                                password,
-                                class_,
-                                fleet_type,
-                                position,
-                                service_name,
-                                #fleetmanager,
-                                strategy=None,
-                                autonomy=None,
-                                current_autonomy=None,
-                                speed=None,
-                                optional=None,
-                                delayed=False,
-                                ):
+                               name,
+                               password,
+                               class_,
+                               fleet_type,
+                               position,
+                               service,
+                               # fleetmanager,
+                               strategy=None,
+                               autonomy=None,
+                               current_autonomy=None,
+                               speed=None,
+                               optional=None,
+                               delayed=False,
+                               ):
 
         agent = TransportFactory.create_agent(domain=self.jid.domain,
                                               jid_directory=self.get_directory().jid,
@@ -1527,8 +1529,8 @@ class SimulatorAgent(Agent):
                                               strategy=strategy,
                                               default_strategy=self.default_strategies['transport'],
                                               position=position,
-                                              service_name=service_name,
-                                              #fleetmanager=fleetmanager,
+                                              services=service,
+                                              # fleetmanager=fleetmanager,
                                               autonomy=autonomy,
                                               current_autonomy=current_autonomy,
                                               speed=speed,
@@ -1581,7 +1583,7 @@ class SimulatorAgent(Agent):
         return agent
 
     def create_station_agent(
-        self, name, password, position, class_, service_name, power, slots, strategy=None
+        self, name, password, position, class_, services, strategy=None
     ):
 
         agent = StationFactory.create_agent(domain=self.jid.domain,
@@ -1591,10 +1593,10 @@ class SimulatorAgent(Agent):
                                             class_=class_,
                                             strategy=strategy,
                                             jid_directory=self.get_directory().jid,
+                                            route_host=self.route_host,
+                                            bbox=self.config.coords[1],
                                             position=position,
-                                            service_name=service_name,
-                                            slots=slots,
-                                            power=power,
+                                            services=services,
                                             )
         if self.simulation_running:
             agent.run_strategy()

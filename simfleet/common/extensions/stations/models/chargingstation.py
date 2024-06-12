@@ -81,7 +81,7 @@ class ChargingStationAgent(ServiceStationAgent):
             "id": self.agent_id,
             "position": self.get("current_pos"),
             "status": self.status,
-            "places": self.get_slot_number_used(self.get_service_type()),
+            #"places": self.get_slot_number_used(self.get_service_type()),      #CHECK FRONTEND
             "power": self.power,
             "icon": self.icon,
         }
@@ -134,10 +134,11 @@ class RegistrationBehaviour(CyclicBehaviour):
 
         content = {
             "jid": str(self.agent.jid),
-            "type": self.agent.service_type, #CAMBIARLO POR SERVICE_TYPE
+            #"type": self.agent.service_type, #CAMBIARLO POR SERVICE_TYPE
+            "type": self.agent.show_services(),
             #"status": self.agent.status,
             "position": self.agent.get_position(),
-            "charge": self.agent.power,
+            #"charge": self.agent.power,
         }
         msg = Message()
         msg.to = str(self.agent.directory_id)
@@ -180,13 +181,19 @@ class ChargingService(OneShotBehaviour):
         if 'transport_need' in kwargs:
             self.transport_need = kwargs['transport_need']
 
+        if 'service_name' in kwargs:
+            self.service_type = kwargs['service_name']
+
+        if 'power' in kwargs:
+            self.power = kwargs['power']
+
         #self.additional_args = args
         #super().__init__()
 
     async def charging_transport(self):
         #total_time = need / self.power
-        #total_time = self.transport_need / self.power
-        total_time = self.transport_need / self.agent.power
+        total_time = self.transport_need / self.power
+        #total_time = self.transport_need / self.agent.power
         recarge_time = datetime.timedelta(seconds=total_time)
         logger.info(
             "Station {} started charging transport {} for {} seconds.".format(
@@ -281,7 +288,7 @@ class ChargingService(OneShotBehaviour):
         logger.info(
             "Agent {} has finished receiving the service {}".format(
                 self.agent_id,
-                self.agent.service_type
+                self.service_type
             )
         )
 
@@ -290,7 +297,7 @@ class ChargingService(OneShotBehaviour):
         logger.info(
             "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
                 self.agent.name,
-                self.agent.get_slot_number_used(self.agent.service_type)
+                self.agent.get_slot_number_used(self.service_type)
             )
         )
 
@@ -300,6 +307,6 @@ class ChargingService(OneShotBehaviour):
         logger.info(
             "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
                 self.agent.name,
-                self.agent.get_slot_number_used(self.agent.service_type)
+                self.agent.get_slot_number_used(self.service_type)
             )
         )

@@ -35,10 +35,8 @@ class Factory(ABC):     #Factory
                      position,
                      speed,
                      target,
-                     service_name,
-                     power,
-                     slots,
-                    ):
+                     services,
+                     ):
         raise NotImplementedError
 
 
@@ -62,10 +60,8 @@ class DirectoryFactory(Factory):    #DirectoryFactory
                      position=None,
                      speed=None,
                      target=None,
-                     service_name=None,
-                     power=None,
-                     slots=None,
-                    ):
+                     services=None,
+                     ):
         """
                         Create a directory agent.
 
@@ -103,9 +99,7 @@ class FleetManagerFactory(Factory):      #ManagerFactory
                      position=None,
                      speed=None,
                      target=None,
-                     service_name=None,
-                     power=None,
-                     slots=None,
+                     services=None,
                     ):
         """
                         Create a fleetmanager agent.
@@ -156,9 +150,7 @@ class TransportFactory(Factory):    #TransportFactory
                      position=None,
                      speed=None,
                      target=None,
-                     service_name=None,
-                     power=None,
-                     slots=None,
+                     services=None,
                     ):
         """
                                 Create a transport agent.
@@ -210,7 +202,7 @@ class TransportFactory(Factory):    #TransportFactory
 
         agent.set_initial_position(position)
 
-        agent.set_service_type(service_name)
+        agent.set_service_type(services)
         if speed:
             agent.set_speed(speed)
 
@@ -237,9 +229,7 @@ class CustomerFactory(Factory):
                      position=None,
                      speed=None,
                      target=None,
-                     service_name=None,
-                     power=None,
-                     slots=None,
+                     services=None,
                     ):
         """
                                 Create a customer agent.
@@ -306,9 +296,7 @@ class StationFactory(Factory):
                     position=None,
                     speed=None,
                     target=None,
-                    service_name = None,
-                    power=None,
-                    slots=None,
+                    services=None,
                     ):
 
         """
@@ -340,18 +328,36 @@ class StationFactory(Factory):
         agent.set_directory(jid_directory)
 
         #TEST 3
-        if type(strategy) is str:   # Añadimos el objeto de la clase cargada a la variable strategy
-            one_shot_behaviour = load_class(strategy)
-        else:
-            one_shot_behaviour = default_strategy
+        #if type(strategy) is str:   # Añadimos el objeto de la clase cargada a la variable strategy
+        #    one_shot_behaviour = load_class(strategy)
+        #else:
+        #    one_shot_behaviour = default_strategy
 
+        agent.set_route_host(route_host)
         #one_shot_behaviour = one_shot_behaviour(None, 0, power)
-
+        agent.set_boundingbox(bbox)
         agent.set_position(position)
         #agent.set_available_places(slots)
-        agent.add_service(service_name, slots, one_shot_behaviour)
-        agent.set_service_type(service_name)        #Testeo
-        agent.set_power(power)                      #Testeo
+
+        #for type_, behaviour, slots, args in services:
+        for service in services:
+            type_ = service["type"]
+            behaviour = service["behaviour"]
+            slots = service["slots"]
+            args = service["args"]
+            logger.warning(
+                "CREATE args: {}".format(
+                    args
+                )
+            )
+            if type(behaviour) is str:  # Añadimos el objeto de la clase cargada a la variable strategy
+                one_shot_behaviour = load_class(behaviour)
+            else:
+                one_shot_behaviour = default_strategy
+            agent.add_service(type_, slots, one_shot_behaviour, **args)
+
+        #agent.set_service_type(service_name)        #Testeo             #BORRAR
+        #agent.set_power(power)                      #Testeo             #BORRAR
 
         return agent
 
@@ -376,9 +382,7 @@ class VehicleFactory(Factory):    #VehicleFactory
                     position=None,
                     speed=None,
                     target=None,
-                    service_name = None,
-                    power=None,
-                    slots=None,
+                    services = None,
                     ):
         """
                                 Create a vehicle agent.

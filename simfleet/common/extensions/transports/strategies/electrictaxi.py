@@ -515,70 +515,69 @@ class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour, State):
 
     async def run(self):
 
-        msg = await self.receive(timeout=2)  # Test 2 seconds
+        customers = self.get("assigned_customer")
+        customer_id = next(iter(customers.items()))[0]
 
-        if msg:
+        try:
 
-            performative = msg.get_metadata("performative")
-            if performative == REQUEST_PERFORMATIVE:
-                self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
-                return
-            elif performative == REFUSE_PERFORMATIVE:
-                logger.debug(
-                    "Transport {} got refusal from customer/station".format(self.agent.name)
-                )
-                self.agent.status = TRANSPORT_WAITING
-                self.set_next_state(TRANSPORT_WAITING)
-                return
-        else:
+            if not self.agent.is_in_destination():
 
-            customers = self.get("assigned_customer")
-            customer_id = next(iter(customers.items()))[0]
+                msg = await self.receive(timeout=2)  # Test 2 seconds
 
-            try:
-
-                if not self.agent.is_in_destination():
-                    # await asyncio.sleep(1)
-                    self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
-                else:
-                    logger.info(
-                        "Transport {} has arrived to destination. Status: {}".format(
-                            self.agent.agent_id, self.agent.status
+                if msg:
+                    performative = msg.get_metadata("performative")
+                    if performative == REQUEST_PERFORMATIVE:
+                        self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
+                        return
+                    elif performative == REFUSE_PERFORMATIVE:
+                        logger.debug(
+                            "Transport {} got refusal from customer/station".format(self.agent.name)
                         )
-                    )
-                    await self.agent.inform_customer(
-                        customer_id=customer_id, status=TRANSPORT_IN_CUSTOMER_PLACE
-                    )
-                    self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
-                    self.set_next_state(TRANSPORT_ARRIVED_AT_CUSTOMER)
-                    return
-
-            except PathRequestException:
-                logger.error(
-                    "Transport {} could not get a path to customer {}. Cancelling...".format(
-                        self.agent.name, customer_id
+                        self.agent.status = TRANSPORT_WAITING
+                        self.set_next_state(TRANSPORT_WAITING)
+                        return
+                # await asyncio.sleep(1)
+                else:
+                    self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
+            else:
+                logger.info(
+                    "Transport {} has arrived to destination. Status: {}".format(
+                        self.agent.agent_id, self.agent.status
                     )
                 )
-                await self.cancel_proposal(customer_id)
-                self.agent.status = TRANSPORT_WAITING
-                self.set_next_state(TRANSPORT_WAITING)
-                return
-            except AlreadyInDestination:
-
                 await self.agent.inform_customer(
                     customer_id=customer_id, status=TRANSPORT_IN_CUSTOMER_PLACE
                 )
                 self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
                 self.set_next_state(TRANSPORT_ARRIVED_AT_CUSTOMER)
                 return
-            except Exception as e:
-                logger.error(
-                    "Unexpected error in transport {}: {}".format(self.agent.name, e)
+
+        except PathRequestException:
+            logger.error(
+                "Transport {} could not get a path to customer {}. Cancelling...".format(
+                    self.agent.name, customer_id
                 )
-                await self.cancel_proposal(customer_id)
-                self.agent.status = TRANSPORT_WAITING
-                self.set_next_state(TRANSPORT_WAITING)
-                return
+            )
+            await self.cancel_proposal(customer_id)
+            self.agent.status = TRANSPORT_WAITING
+            self.set_next_state(TRANSPORT_WAITING)
+            return
+        except AlreadyInDestination:
+
+            await self.agent.inform_customer(
+                customer_id=customer_id, status=TRANSPORT_IN_CUSTOMER_PLACE
+            )
+            self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
+            self.set_next_state(TRANSPORT_ARRIVED_AT_CUSTOMER)
+            return
+        except Exception as e:
+            logger.error(
+                "Unexpected error in transport {}: {}".format(self.agent.name, e)
+            )
+            await self.cancel_proposal(customer_id)
+            self.agent.status = TRANSPORT_WAITING
+            self.set_next_state(TRANSPORT_WAITING)
+            return
 
 # MOD-STRATEGY-03 - New status
 class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour, State):

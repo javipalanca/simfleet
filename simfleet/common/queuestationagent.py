@@ -33,9 +33,9 @@ class QueueStationAgent(GeoLocatedAgent):
         self.near_list = {}
 
         #statics
-        self.transports_in_queue_time = None
-        self.empty_queue_time = None
-        self.total_busy_time = None  # total time with some transport waiting in queue
+        self.transports_in_queue_time = 0
+        self.empty_queue_time = 0
+        self.total_busy_time = 0  # total time with some transport waiting in queue
         self.queue_length = 0
         self.max_queue_length = 0
 
@@ -61,6 +61,28 @@ class QueueStationAgent(GeoLocatedAgent):
             logger.warning(
                 "The service {} exists in the agent {}.".format(
                     service_name, self.name
+                )
+            )
+
+    # Bus line
+    def add_queue(self, line, **arguments):      #add_queue - POSIBLE CAMBIO DE NOMBRE
+        if line not in self.services_list:
+            self.services_list[line] = {
+                'args': arguments,
+            }
+            #New queue- Queue for service
+            #self.queuebehaviour.waiting_lists[service_name] = deque()
+            self.waiting_lists[line] = deque()                      #COLA POR LINEA - Adaptar crando una nueva definicion add_queue - line_name, args
+
+            logger.debug(
+                "The line {} has been inserted in the agent {}. ".format(
+                    line, self.name
+                )
+            )
+        else:
+            logger.warning(
+                "The line {} exists in the agent {}.".format(
+                    line, self.name
                 )
             )
 
@@ -121,8 +143,20 @@ class QueueStationAgent(GeoLocatedAgent):
                 return None
             return self.agent.waiting_lists[service_name].popleft()
 
-        def dequeue_agent_to_waiting_list(self, service_name, id):  # Desencolar un agente de la cola por id - vrs 1
-            self.agent.waiting_lists[service_name].remove(id)
+        def dequeue_agent_to_waiting_list(self, service_name, id_agent):  # Desencolar un agente de la cola por id - vrs 1
+            # self.agent.waiting_lists[service_name].remove(id_agent)    #FALLO
+            if service_name in self.agent.waiting_lists:
+                for agent in self.agent.waiting_lists[service_name]:
+                    # DEPURACION
+                    logger.warning(
+                        "DEPURACION QUEUESTATIONAGENT - id_agent in queue: {},  sender: {}".format(
+                            agent[0],
+                            id_agent
+                        )
+                    )
+                    if agent[0] == id_agent:
+                        self.agent.waiting_lists[service_name].remove(agent)
+                        break
 
         def find_queue_position(self, service_name, agent_id):
             try:
@@ -130,6 +164,10 @@ class QueueStationAgent(GeoLocatedAgent):
                 return position
             except ValueError:
                 return None
+
+        def get_queue(self, service_name):
+            if service_name in self.agent.waiting_lists:
+                return self.agent.waiting_lists[service_name]
 
         # MSG
 
@@ -220,7 +258,7 @@ class QueueStationAgent(GeoLocatedAgent):
 
                 if protocol == REQUEST_PROTOCOL and performative == CANCEL_PERFORMATIVE:
 
-                    if content["service_name"]:
+                    if "service_name" in content:
                         service_name = content["service_name"]
 
                     logger.warning(
@@ -240,10 +278,19 @@ class QueueStationAgent(GeoLocatedAgent):
                         protocol == REQUEST_PROTOCOL and performative == REQUEST_PERFORMATIVE
                 ):  # comes from send_confirmation_travel
 
-                    if content["service_name"]:
+                    if "service_name" in content:
                         service_name = content["service_name"]
 
-                    if content["args"]:
+                    # NEW - Change to new name - line and service_name - BUS
+                    # Bus line
+                    if "line" in content:
+                        service_name = content["line"]
+
+                    # NEW
+                    if "object_type" in content:
+                        object_type = content["object_type"]
+
+                    if "args" in content:
                         arguments = content["args"]
 
                     if str(agent_id) not in self.agent.near_list:
@@ -267,7 +314,10 @@ class QueueStationAgent(GeoLocatedAgent):
                         )
 
                     #Comprobamos la ubicación
-                    content = {"user_agent_id": agent_id}
+                    #content = {"user_agent_id": agent_id}
+
+                    #Bus Line
+                    content = {"user_agent_id": agent_id, "object_type": object_type}
                     await self.agent.request_agent_position("simulator_none@localhost", content)    #Cambiarlo - JID simulador - DEBATIR
 
                     # Request to SimulatorAgent for agent_position
@@ -277,10 +327,10 @@ class QueueStationAgent(GeoLocatedAgent):
                         protocol == COORDINATION_PROTOCOL and performative == INFORM_PERFORMATIVE
                 ):  # comes from send_confirmation_travel
 
-                    if content["agent_position"]:
+                    if "agent_position" in content:
                         agent_position = content["agent_position"]
 
-                    if content["user_agent_id"]:
+                    if "user_agent_id" in content:
                         user_agent_id = content["user_agent_id"]
 
                     logger.warning(

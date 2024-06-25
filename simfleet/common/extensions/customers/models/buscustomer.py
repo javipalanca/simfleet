@@ -216,3 +216,222 @@ class BusTravelBehaviour(CyclicBehaviour):
                     self.agent.name, e
                 )
             )
+
+class BusCustomerStrategyBehaviour(StrategyBehaviour):
+    """
+    Class from which to inherit to create a transport strategy.
+    You must overload the ``run`` coroutine
+
+    Helper functions:
+        * ``send_request``
+        * ``accept_transport``
+        * ``refuse_transport``
+    """
+
+    async def on_start(self):
+        """
+        Initializes the logger and timers. Call to parent method if overloaded.
+        """
+        logger.debug(
+            "Strategy {} started in customer {}".format(
+                type(self).__name__, self.agent.name
+            )
+        )
+        # Bus line
+        # self.agent.init_time = time.time()
+
+    async def send_get_managers(self, content=None):
+        """
+        Sends an ``spade.message.Message`` to the DirectoryAgent to request a managers.
+        It uses the QUERY_PROTOCOL and the REQUEST_PERFORMATIVE.
+        If no content is set a default content with the type_service that needs
+        Args:
+            content (dict): Optional content dictionary
+        """
+        if content is None or len(content) == 0:
+            content = self.agent.fleet_type
+        msg = Message()
+        msg.to = str(self.agent.directory_id)
+        msg.set_metadata("protocol", QUERY_PROTOCOL)
+        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+        msg.body = content
+        await self.send(msg)
+
+        logger.info(
+            "Customer {} asked for managers to directory {} for type {}.".format(
+                self.agent.name, self.agent.directory_id, self.agent.type_service
+            )
+        )
+
+    async def send_request(self, content=None):
+        """
+        Sends an ``spade.message.Message`` to the fleetmanager to request a transport.
+        It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
+        If no content is set a default content with the customer_id,
+        origin and target coordinates is used.
+
+        Args:
+            content (dict): Optional content dictionary
+        """
+        if not self.agent.dest:
+            self.agent.dest = new_random_position(self.agent.boundingbox, self.agent.route_host)
+        if content is None or len(content) == 0:
+            content = {
+                "customer_id": str(self.agent.jid),
+                "origin": self.agent.get("current_pos"),
+                "dest": self.agent.dest,
+            }
+
+        if self.agent.fleetmanagers is not None:
+            for (
+                fleetmanager
+            ) in self.agent.fleetmanagers.keys():  # Send a message to all FleetManagers
+                msg = Message()
+                msg.to = str(fleetmanager)
+                msg.set_metadata("protocol", REQUEST_PROTOCOL)
+                msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+                msg.body = json.dumps(content)
+                await self.send(msg)
+            logger.info(
+                "Customer {} asked for a transport to {}.".format(
+                    self.agent.name, self.agent.dest
+                )
+            )
+        else:
+            logger.warning("Customer {} has no fleet managers.".format(self.agent.name))
+
+    async def accept_transport(self, transport_id):
+        """
+        Sends a ``spade.message.Message`` to a transport to accept a travel proposal.
+        It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
+
+        Args:
+            transport_id (str): The Agent JID of the transport
+        """
+        reply = Message()
+        reply.to = str(transport_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+        content = {
+            "customer_id": str(self.agent.jid),
+            "origin": self.agent.get("current_pos"),
+            "dest": self.agent.dest,
+        }
+        reply.body = json.dumps(content)
+        await self.send(reply)
+        self.agent.transport_assigned = str(transport_id)
+        logger.info(
+            "Customer {} accepted proposal from transport {}".format(
+                self.agent.name, transport_id
+            )
+        )
+
+    async def refuse_transport(self, transport_id):
+        """
+        Sends an ``spade.message.Message`` to a transport to refuse a travel proposal.
+        It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
+
+        Args:
+            transport_id (str): The Agent JID of the transport
+        """
+        reply = Message()
+        reply.to = str(transport_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", REFUSE_PERFORMATIVE)
+        content = {
+            "customer_id": str(self.agent.jid),
+            "origin": self.agent.get("current_pos"),
+            "dest": self.agent.dest,
+        }
+        reply.body = json.dumps(content)
+
+        await self.send(reply)
+        logger.info(
+            "Customer {} refused proposal from transport {}".format(
+                self.agent.name, transport_id
+            )
+        )
+
+    # Bus line
+    async def send_get_stops(self, content=None):
+        """
+        Sends an ``spade.message.Message`` to the DirectoryAgent to request the list of stops in the system.
+        It uses the QUERY_PROTOCOL and the REQUEST_PERFORMATIVE.
+        If no content is set a default content with the type_service that needs
+        Args:
+            content (dict): Optional content dictionary
+        """
+        if content is None or len(content) == 0:
+            content = "stops"
+        msg = Message()
+        msg.to = str(self.agent.directory_id)
+        msg.set_metadata("protocol", QUERY_PROTOCOL)
+        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+        msg.body = content
+        await self.send(msg)
+
+        logger.info(
+            "Customer {} asked for stops to directory {} for type {}.".format(
+                self.agent.name, self.agent.directory_id, self.agent.type_service
+            )
+        )
+
+    def setup_stops(self):
+        for jid in self.agent.stop_dic.keys():
+            stop_info = self.agent.stop_dic.get(jid)
+            # Set origin stop
+            if stop_info.get("position") == self.agent.get("current_pos"):
+                self.agent.current_stop = stop_info
+            # Set destination stop
+            if stop_info.get("position") == self.agent.dest:
+                self.agent.destination_stop = stop_info
+        logger.debug("Customer {} set current_stop {} and destination_stop {}".format(self.agent.name,
+                                                                                      self.agent.current_stop.get(
+                                                                                          "jid"),
+                                                                                      self.agent.destination_stop.get(
+                                                                                          "jid")))
+
+    async def register_to_stop(self, content):           #ANALIZAR Y REDISEÑO
+        #content = {"destination": self.agent.destination_stop.get("position")}
+        if content is None:
+            content = {}
+        msg = Message()
+        msg.to = self.agent.current_stop.get("jid")
+        msg.set_metadata("protocol", REQUEST_PROTOCOL)
+        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+        msg.body = json.dumps(content)
+        logger.debug("Customer {} asked to register to stop {} with destination {}".format(self.agent.name,
+                                                                                           self.agent.current_stop.get(
+                                                                                               "jid"),
+                                                                                           self.agent.destination_stop.get(
+                                                                                               "position")))
+        await self.send(msg)
+
+    async def board_transport(self, transport):
+        content = {
+            "customer_id": str(self.agent.jid),
+            "origin": self.agent.get("current_pos"),
+            "dest": self.agent.dest,
+        }
+        msg = Message()
+        msg.body = json.dumps(content)
+        msg.to = str(transport)
+        msg.set_metadata("protocol", REQUEST_PROTOCOL)
+        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+        await self.send(msg)
+
+    async def inform_stop(self, content):
+
+        if content is None:
+            content = {}
+        msg = Message()
+        msg.to = self.agent.current_stop.get("jid")
+        msg.set_metadata("protocol", REQUEST_PROTOCOL)
+        #msg.set_metadata("performative", REQUEST_PERFORMATIVE)     #CHANGE - FOR DEQUEUE IN QUEUESTATIONAGENT
+        msg.set_metadata("performative", INFORM_PERFORMATIVE)
+        #msg.body = None                                            #CHANGE - FOR DEQUEUE IN QUEUESTATIONAGENT
+        msg.body = json.dumps(content)
+        await self.send(msg)
+
+    async def run(self):
+        raise NotImplementedError

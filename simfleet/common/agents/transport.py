@@ -603,25 +603,25 @@ class TransportAgent(VehicleAgent):
         Args:
             coords (list): a list coordinates (longitude and latitude)
         """
-        #if coords:
+        # if coords:
         #    self.set("current_pos", coords)
-        #else:
+        # else:
         #    self.set("current_pos", random_position())
 
-        #logger.debug(
+        # logger.debug(
         #    "Transport {} position is {}".format(self.agent_id, self.get("current_pos"))
-        #)
+        # )
 
         await super().set_position(coords)
         self.set("current_pos", coords)
 
         # MOD-STRATEGY-04 - Comments
-        #if self.status == TRANSPORT_MOVING_TO_DESTINATION:
+        # if self.status == TRANSPORT_MOVING_TO_DESTINATION:
         #    await self.inform_customer_moving(
         #        CUSTOMER_LOCATION, {"location": self.get("current_pos")}
         #    )
 
-        #MOD-STRATEGY-04 - Alternativa 2 - Envio msg TRAVELBEHAVIOUR
+        # MOD-STRATEGY-04 - Alternativa 2 - Envio msg TRAVELBEHAVIOUR
         if len(self.get("current_customer")) > 0:
             for key, item in self.get("current_customer").items():
                 await self.inform_customer_moving(
@@ -629,18 +629,23 @@ class TransportAgent(VehicleAgent):
                     data={"location": self.get("current_pos")}
                 )
 
-        if self.is_in_destination():
-            logger.info(
-                "Transport {} has arrived to destination. Status: {}".format(
-                    self.agent_id, self.status
-                )
-            )
+        # if self.is_in_destination():
+        #     logger.info(
+        #         "Transport {} has arrived to destination. Status: {}".format(
+        #             self.agent_id, self.status
+        #         )
+        #     )
+        #
+        #     if self.status == TRANSPORT_MOVING_TO_STATION:
+        #         await self.arrived_to_station()
+        #     else:
+        #         await self.arrived_to_stop()
 
-            if self.status == TRANSPORT_MOVING_TO_STATION:
-                await self.arrived_to_station()
-            # MOD-STRATEGY-04 - Comments
-            #else:
-            #    await self.arrived_to_destination()
+        # if self.status == TRANSPORT_MOVING_TO_STATION:
+        #    await self.arrived_to_station()
+        # MOD-STRATEGY-04 - Comments
+        # else:
+        #    await self.arrived_to_destination()
 
     #geolocatedagent.py
     #def get_position(self):

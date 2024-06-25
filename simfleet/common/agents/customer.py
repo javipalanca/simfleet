@@ -168,6 +168,26 @@ class CustomerAgent(GeoLocatedAgent):
     #        "Customer {} position is {}".format(self.agent_id, self.current_pos)
     #    )
 
+    #Bus line
+    async def set_position(self, coords=None):
+        """
+        Sets the position of the transport. If no position is provided it is located in a random position.
+
+        Args:
+            coords (list): a list coordinates (longitude and latitude)
+        """
+        #if coords:
+        #    self.set("current_pos", coords)
+        #else:
+        #    self.set("current_pos", random_position())
+
+        #logger.debug(
+        #    "Transport {} position is {}".format(self.agent_id, self.get("current_pos"))
+        #)
+
+        super().set_position(coords)
+        self.set("current_pos", coords)
+
     # geolocatedagent.py
     #def get_position(self):
     #    """
@@ -352,7 +372,7 @@ class TravelBehaviour(CyclicBehaviour):
                 #elif status == CUSTOMER_LOCATION:
                 if status == CUSTOMER_LOCATION:
                     coords = content["location"]
-                    self.agent.set_position(coords)
+                    await self.agent.set_position(coords)       #FIX ERROR POSITION - Ok
         except CancelledError:
             logger.debug("Cancelling async tasks...")
         except Exception as e:

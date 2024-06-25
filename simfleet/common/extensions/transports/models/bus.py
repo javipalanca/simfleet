@@ -1,5 +1,6 @@
 import asyncio
 import json
+import sys
 
 from loguru import logger
 from asyncio import CancelledError
@@ -319,3 +320,173 @@ class RegistrationBehaviour(CyclicBehaviour):
                     self.agent.name, e
                 )
             )
+
+class BusStrategyBehaviour(StrategyBehaviour):
+    """
+    Class from which to inherit to create a transport strategy.
+    You must overload the ```run`` coroutine
+
+    Helper functions:
+        * ``pick_up_customer``
+        * ``send_proposal``
+        * ``cancel_proposal``
+    """
+
+    async def on_start(self):
+        logger.debug(
+            "Strategy {} started in transport {}".format(
+                type(self).__name__, self.agent.name
+            )
+        )
+        # self.agent.total_waiting_time = 0.0
+
+    # Bus line functions
+    async def send_get_stops(self, content=None):
+        """
+        Sends an ``spade.message.Message`` to the DirectoryAgent to request the list of stops in the system.
+        It uses the QUERY_PROTOCOL and the REQUEST_PERFORMATIVE.
+        If no content is set a default content with the type_service that needs
+        Args:
+            content (dict): Optional content dictionary
+        """
+        if content is None or len(content) == 0:
+            content = "stops"
+        msg = Message()
+        msg.to = str(self.agent.directory_id)
+        msg.set_metadata("protocol", QUERY_PROTOCOL)
+        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+        msg.body = content
+        await self.send(msg)
+
+        logger.info(
+            "Transport {} asked for stops to directory {} for type {}.".format(
+                self.agent.name, self.agent.directory_id, self.agent.type_service
+            )
+        )
+
+    def get_subsequent_stop(self):
+        try:
+            index_current = self.agent.stop_list.index(self.agent.get("current_pos"))
+        except ValueError:
+            index_current = None
+        if index_current is None:
+            logger.critical("Transport {} current pos ({}) is not in its stop_list {}".format(self.agent.name,
+                                                                                              self.agent.get(
+                                                                                                  "current_pos"),
+                                                                                              self.agent.stop_list))
+            sys.exit()
+        next_destination = None
+        if index_current + 1 < len(self.agent.stop_list):
+            next_destination = self.agent.stop_list[index_current + 1]
+        return next_destination
+
+    async def move_to_next_stop(self, next_destination):
+        logger.info("Transport {} in route to {}".format(self.agent.name, next_destination))
+        dest = next_destination
+        # set current destination as next destination
+        self.agent.set("next_pos", dest)            #ANALIZAR
+        # Invoke move_to
+        try:
+            await self.agent.move_to(dest)
+        except AlreadyInDestination:
+            self.agent.dest = dest
+            await self.agent.arrived_to_stop()
+        except PathRequestException as e:
+            logger.error(
+                "Raising PathRequestException in pick_up_customer for {}".format(
+                    self.agent.name
+                )
+            )
+            raise e
+
+    async def drop_customers(self):
+        # get current position ( = current destination)
+        current_position = self.agent.get("current_pos")
+        # Inform passengers (tuples with agent name, destination stop)
+        inform_to = self.get_customers_from_stop(current_position)
+        while len(inform_to) > 0:
+            customer = inform_to[0]
+            logger.info("Transport {} informing customer {} their destination stop has been reached".format(
+                self.agent.name, customer))
+            inform_to = inform_to[1:]
+            msg = Message()
+            msg.to = str(customer)
+            msg.set_metadata("protocol", REQUEST_PROTOCOL)
+            msg.set_metadata("performative", INFORM_PERFORMATIVE)
+            msg.status = CUSTOMER_IN_DEST
+            await self.send(msg)
+            # Update capacity
+            self.agent.current_capacity += 1
+            # Delete customer from current customers
+            #del self.agent.current_customers[customer]         #ADAPTAR CURRENT CUSTOMERS
+            del self.agent.get("current_customer")[customer]
+
+    def get_customers_from_stop(self, current_position):
+        customer_list = []
+        #for customer_id in self.agent.current_customers.keys():    #ADAPTAR CURRENT CUSTOMERS
+        for customer_id in self.agent.get("current_customer").keys():
+            #customer_dest = self.agent.current_customers.get(customer_id).get("dest")      #ADAPTAR CURRENT CUSTOMERS
+            customer_dest = self.agent.get("current_customer").get(customer_id).get("dest")
+            if customer_dest == current_position:
+                customer_list.append(customer_id)
+        return customer_list
+
+    async def begin_boarding(self, content):
+        logger.info("Transport {} informing stop {} that boarding may begin".format(self.agent.name,
+                                                                                    self.agent.current_stop.get(
+                                                                                        "jid")))
+        if content is None:
+            content = {}
+        msg = Message()
+        msg.to = str(self.agent.current_stop.get("jid"))
+        msg.set_metadata("protocol", REQUEST_PROTOCOL)
+        msg.set_metadata("performative", INFORM_PERFORMATIVE)
+        msg.body = json.dumps(content)
+        await self.send(msg)
+
+    async def accept_customer(self, customer_id, content):
+        """
+        Send a ``spade.message.Message`` with accepting the boarding of a customer.
+        If the content is empty the proposal is sent without content.
+
+        Args:
+            customer_id (str): the id of the customer
+            content (dict, optional): the optional content of the message
+        """
+        customer_origin = content.get("origin")
+        customer_dest = content.get("dest")
+        logger.info(
+            "Transport {} accepted customer {} with origin {} and dest {}".format(self.agent.name, customer_id,
+                                                                                  customer_origin, customer_dest)
+        )
+        # Add customer to the current customers dict
+        #self.agent.current_customers[str(customer_id)] = {"origin": customer_origin, "dest": customer_dest}
+        self.agent.get("current_customer")[str(customer_id)] = {"origin": customer_origin, "dest": customer_dest}
+        self.agent.num_assignments += 1
+
+        # Send message accepting the boarding
+        reply = Message()
+        reply.to = str(customer_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
+        reply.body = json.dumps(content)
+        await self.send(reply)
+
+    async def reject_customer(self, customer_id, content):
+        """
+        Send a ``spade.message.Message`` with accepting the boarding of a customer.
+        If the content is empty the proposal is sent without content.
+
+        Args:
+            customer_id (str): the id of the customer
+            content (dict, optional): the optional content of the message
+        """
+        logger.info("Transport {} rejected customer {}".format(self.agent.name, customer_id))
+
+        # Send message rejecting the boarding
+        reply = Message()
+        reply.to = str(customer_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", REFUSE_PERFORMATIVE)
+        reply.body = json.dumps(content)
+        await self.send(reply)

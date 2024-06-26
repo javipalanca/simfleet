@@ -2006,6 +2006,7 @@ class CoordinationBehaviour(CyclicBehaviour):
             agent_id = msg.sender
             user_agent_id = json.loads(msg.body)["user_agent_id"][0]
             host = json.loads(msg.body)["user_agent_id"][1]
+            object_type = json.loads(msg.body)["object_type"]
             #user_agent_id = user_agent_id[0]+"@"+user_agent_id[1]
 
 
@@ -2018,34 +2019,67 @@ class CoordinationBehaviour(CyclicBehaviour):
                     )
                 )
 
-                for transport in self.agent.transport_agents.values():
+                if object_type == "transport":
 
-                    # DEPURACION
-                    logger.warning(
-                        "Modificacion de user_agent_id: {} y transport.get_id(): {}".format(
-                            user_agent_id, transport.get_id()
-                        )
-                    )
+                    for transport in self.agent.transport_agents.values():
 
-                    if transport.get_id() == user_agent_id:
-                        agent_position = transport.get_position()
-                        send_agent_id = user_agent_id + "@" + host
-
-                        #DEPURACION
+                        # DEPURACION
                         logger.warning(
-                            "SIMULATOR - Agent: {} send msg to {} of transport_agent: {} - {} with agent_position: {}".format(
-                                self.agent.name, agent_id, send_agent_id, transport.get_id(), agent_position
+                            "Modificacion de user_agent_id: {} y transport.get_id(): {}".format(
+                                user_agent_id, transport.get_id()
                             )
                         )
 
-                        content = {"agent_position": agent_position, "user_agent_id": send_agent_id}
-                        await self.inform_agent_position(agent_id, content)
+                        if transport.get_id() == user_agent_id:
+                            agent_position = transport.get_position()
+                            send_agent_id = user_agent_id + "@" + host
 
-                        logger.debug(
-                            "SimulatorAgent {} send msg to {}".format(
-                                self.agent.name, agent_id
+                            # DEPURACION
+                            logger.warning(
+                                "SIMULATOR - Agent: {} send msg to {} of transport_agent: {} - {} with agent_position: {}".format(
+                                    self.agent.name, agent_id, send_agent_id, transport.get_id(), agent_position
+                                )
+                            )
+
+                            content = {"agent_position": agent_position, "user_agent_id": send_agent_id}
+                            await self.inform_agent_position(agent_id, content)
+
+                            logger.debug(
+                                "SimulatorAgent {} send msg to {}".format(
+                                    self.agent.name, agent_id
+                                )
+                            )
+
+                if object_type == "customer":
+
+                    for customer in self.agent.customer_agents.values():
+
+                        # DEPURACION
+                        logger.warning(
+                            "Modificacion de user_agent_id: {} y transport.get_id(): {}".format(
+                                user_agent_id, customer.get_id()
                             )
                         )
+
+                        if customer.get_id() == user_agent_id:
+                            agent_position = customer.get_position()
+                            send_agent_id = user_agent_id + "@" + host
+
+                            # DEPURACION
+                            logger.warning(
+                                "SIMULATOR - Agent: {} send msg to {} of transport_agent: {} - {} with agent_position: {}".format(
+                                    self.agent.name, agent_id, send_agent_id, customer.get_id(), agent_position
+                                )
+                            )
+
+                            content = {"agent_position": agent_position, "user_agent_id": send_agent_id}
+                            await self.inform_agent_position(agent_id, content)
+
+                            logger.debug(
+                                "SimulatorAgent {} send msg to {}".format(
+                                    self.agent.name, agent_id
+                                )
+                            )
 
                         #Enviar un mensaje a la estacion
 

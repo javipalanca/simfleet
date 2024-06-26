@@ -36,6 +36,9 @@ class Factory(ABC):     #Factory
                      speed,
                      target,
                      services,
+                     capacity,
+                     line,
+                     lines
                      ):
         raise NotImplementedError
 
@@ -61,6 +64,9 @@ class DirectoryFactory(Factory):    #DirectoryFactory
                      speed=None,
                      target=None,
                      services=None,
+                     capacity=None,
+                     line=None,
+                     lines=None
                      ):
         """
                         Create a directory agent.
@@ -100,6 +106,9 @@ class FleetManagerFactory(Factory):      #ManagerFactory
                      speed=None,
                      target=None,
                      services=None,
+                     capacity=None,
+                     line=None,
+                     lines=None
                     ):
         """
                         Create a fleetmanager agent.
@@ -151,6 +160,9 @@ class TransportFactory(Factory):    #TransportFactory
                      speed=None,
                      target=None,
                      services=None,
+                     capacity=None,
+                     line=None,
+                     lines=None
                     ):
         """
                                 Create a transport agent.
@@ -200,9 +212,24 @@ class TransportFactory(Factory):    #TransportFactory
         if autonomy:
             agent.set_autonomy(autonomy, current_autonomy)
 
-        agent.set_initial_position(position)
+        if services:
+            agent.set_service_type(services)
 
-        agent.set_service_type(services)
+        # Bus line
+        if line:
+            agent.set_line(line)
+            stop_list = lines.get(line).get("stop_list")
+            line_type = lines.get(line).get("line_type")
+            agent.set_stop_list(stop_list)
+            agent.set_line_type(line_type)
+            agent.set_initial_position(stop_list[0])
+
+        if position:
+            agent.set_initial_position(position)
+
+        if capacity:
+            agent.set_capacity(capacity)
+
         if speed:
             agent.set_speed(speed)
 
@@ -230,6 +257,9 @@ class CustomerFactory(Factory):
                      speed=None,
                      target=None,
                      services=None,
+                     capacity=None,
+                     line=None,
+                     lines=None
                     ):
         """
                                 Create a customer agent.
@@ -266,11 +296,18 @@ class CustomerFactory(Factory):
         else:
             agent.strategy = default_strategy
 
+        if line:
+            agent.set_line(line)
+
         logger.debug("Assigning fleet type {} to customer {}".format(fleet_type, name))
         agent.set_fleet_type(fleet_type)
         agent.set_route_host(route_host)
         agent.set_boundingbox(bbox)
-        agent.set_position(position)
+
+        if position:
+            agent.set_initial_position(position)
+
+        #agent.set_position(position)
         agent.set_target_position(target)
 
         return agent
@@ -297,6 +334,9 @@ class StationFactory(Factory):
                     speed=None,
                     target=None,
                     services=None,
+                    capacity=None,
+                    line=None,
+                    lines=None
                     ):
 
         """
@@ -361,6 +401,83 @@ class StationFactory(Factory):
 
         return agent
 
+class TransportStopFactory(Factory):
+    @classmethod
+    def create_agent(cls,
+                    domain,
+                    name,
+                    password,
+                    default_strategy,
+                    class_=None,
+                    optional=None,
+                    strategy=None,
+                    jid_directory=None,
+                    bbox=None,
+                    fleetmanager=None,
+                    fleet_type=None,
+                    route_host=None,
+                    autonomy=None,
+                    current_autonomy=None,
+                    position=None,
+                    speed=None,
+                    target=None,
+                    services=None,
+                    capacity=None,
+                    line=None,
+                    lines=None
+                    ):
+
+        """
+                Create a station agent.
+
+                Args:
+                    domain (str): name of domain xmpp
+                    name (str): name of the agent
+                    password (str): password of the agent
+                    default_strategy (class): default strategy class of the agent
+                    strategy (class, optional): strategy class of the agent
+                    jid_directory (JID): directory JID address
+                    position (list): initial coordinates of the agent
+                    power (int): power of the station agent in kW
+                    slots (int): destination coordinates of the agent
+                """
+
+        jid = f"{name[0]}@{domain}"
+        logger.debug("Creating Station agent: {}".format(jid))
+
+        if type(class_) is str:   # Añadimos el objeto de la clase cargada a la variable agente_class
+            agent_class = load_class(class_)
+            agent = agent_class(jid, password)
+        else:
+            raise Exception ("The agent needs a class in path format.")
+
+        #agent = StationAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
+        agent.set_id(name[0])  # Establece el identificador del agente
+        agent.set_name(name[1])
+        agent.set_directory(jid_directory)
+
+        agent.set_route_host(route_host)
+        #one_shot_behaviour = one_shot_behaviour(None, 0, power)
+        agent.set_boundingbox(bbox)
+        agent.set_position(position)
+        #agent.set_available_places(slots)
+
+        for line in lines:
+            agent.add_queue(line)
+
+        #agent.set_lines(lines)
+
+        if type(strategy) is str:   # Añadimos el objeto de la clase cargada a la variable strategy
+            agent.strategy = load_class(strategy)
+        else:
+            agent.strategy = default_strategy
+
+
+        #agent.set_service_type(service_name)        #Testeo             #BORRAR
+        #agent.set_power(power)                      #Testeo             #BORRAR
+
+        return agent
+
 #New vehicle
 class VehicleFactory(Factory):    #VehicleFactory
     @classmethod
@@ -383,6 +500,9 @@ class VehicleFactory(Factory):    #VehicleFactory
                     speed=None,
                     target=None,
                     services = None,
+                    capacity=None,
+                    line=None,
+                    lines=None
                     ):
         """
                                 Create a vehicle agent.

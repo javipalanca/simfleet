@@ -24,6 +24,7 @@ from simfleet.common.agents.factory.create import FleetManagerFactory
 from simfleet.common.agents.factory.create import StationFactory
 from simfleet.common.agents.factory.create import TransportFactory
 from simfleet.common.agents.factory.create import VehicleFactory
+from simfleet.common.agents.factory.create import TransportStopFactory
 from simfleet.utils.utils_old import status_to_str, avg, request_path as async_request_path
 
 from simfleet.config.settings import set_default_strategies
@@ -63,6 +64,7 @@ class SimulatorAgent(Agent):
             else ""
         )
         self.verbose = self.config.verbose
+        self.simulatorjid = agentjid    #JID for QueueStationAgent - Near
 
         self.host = config.host
 
@@ -101,6 +103,7 @@ class SimulatorAgent(Agent):
                                                 config.customer_strategy,
                                                 config.station_strategy,
                                                 config.vehicle_strategy,  # New vehicle
+                                                config.bus_stop_strategy  # Bus line
                                                 )
 
         self.route_host = config.route_host
@@ -192,6 +195,15 @@ class SimulatorAgent(Agent):
         while len(self.manager_agents) < self.config.num_managers:
             time.sleep(0.1)
 
+        # Bus line
+        # Add lines to the self.bus_lines dictionary
+        logger.info("Loading lines...")
+        for line in self.config["lines"]:
+            line_id = line["id"]
+            stop_list = line["stops"]
+            line_type = line["line_type"]
+            self.add_line(line_id, stop_list, line_type)
+
         all_coroutines = []
         try:
             future = self.submit(
@@ -222,6 +234,14 @@ class SimulatorAgent(Agent):
             all_coroutines += future.result()
         except Exception as e:
             logger.exception("EXCEPTION creating Vehicles agents batch {}".format(e))
+        # Bus line
+        try:
+            future = self.submit(
+                self.async_create_agents_batch_stop(self.config["stops"])
+            )
+            all_coroutines += future.result()
+        except Exception as e:
+            logger.exception("EXCEPTION creating Stop agents batch {}".format(e))
 
         assert all([asyncio.iscoroutine(x) for x in all_coroutines])
         self.submit(self.gather_batch(all_coroutines))
@@ -270,6 +290,10 @@ class SimulatorAgent(Agent):
             # fleetmanager = transport["fleet"]
             optional = transport.get("optional")
 
+            # Bus line
+            line = transport.get("line")
+            capacity = transport.get("capacity")
+
             icon = transport.get("icon")
             delay = transport["delay"] if "delay" in transport else None
 
@@ -291,6 +315,8 @@ class SimulatorAgent(Agent):
                                                 optional=optional,
                                                 # fleetmanager=fleetmanager,
                                                 delayed=delayed,
+                                                capacity=capacity,
+                                                line=line
                                                 )
             self.set_icon(agent, icon, default="transport")
 
@@ -320,6 +346,7 @@ class SimulatorAgent(Agent):
             #target = customer["destination"]
             target = customer.get("destination")
             strategy = customer.get("strategy")
+            line = customer.get("line")
             icon = customer.get("icon")
             delay = customer["delay"] if "delay" in customer else None
 
@@ -336,6 +363,7 @@ class SimulatorAgent(Agent):
                                                 target=target,
                                                 strategy=strategy,
                                                 delayed=delayed,
+                                                line=line
                                                 )
 
             self.set_icon(agent, icon, default="customer")
@@ -373,6 +401,46 @@ class SimulatorAgent(Agent):
                                                 strategy=strategy,
                                             )
             self.set_icon(agent, icon, default="electric_station")
+
+            coros.append(agent.start())
+        return coros
+
+    # Bus line
+    async def async_create_agents_batch_stop(self, agents: list) -> List:
+        coros = []
+        for stop in agents:
+            logger.debug("stop creation batch = {}".format(stop["name"]))
+            password = (
+                stop["password"]
+                if "password" in stop
+                else faker_factory.password()
+            )
+            strategy = stop.get("strategy")
+            icon = stop.get("icon")
+            # agent = self.create_bus_stop_agent(
+            #    stop["id"],
+            #    stop["name"],
+            #    password,
+            #    position=stop["position"],
+            #    lines=stop["lines"],
+            #    strategy=strategy,
+            # )
+            position = stop.get("position")
+            class_ = stop["class"]
+            lines = stop["lines"]
+
+            agent = self.create_bus_stop_agent(
+                                                id=stop["id"],
+                                                name=stop["name"],
+                                                password=password,
+                                                position=position,
+                                                class_=class_,
+                                                # services=services,
+                                                lines=lines,
+                                                strategy=strategy,
+                                            )
+
+            self.set_icon(agent, icon, default="solar_station")
 
             coros.append(agent.start())
         return coros
@@ -497,6 +565,8 @@ class SimulatorAgent(Agent):
                             + list(self.agent.customer_agents.values())
                             + list(self.agent.station_agents.values())
                             + list(self.agent.vehicle_agents.values())  # New vehicle
+                            # Bus line
+                            + list(self.agent.bus_stop_agents.values())
                         )
                         while not all([agent.is_ready() for agent in all_agents]):
                             logger.debug("Waiting for all agents to be ready")
@@ -526,6 +596,12 @@ class SimulatorAgent(Agent):
                             vehicle.run_strategy()
                             logger.debug(
                                 f"Running strategy {self.agent.default_strategies['vehicle']} to vehicle {vehicle.name}"
+                            )
+                        # Bus line
+                        for stop in self.agent.bus_stop_agents.values():
+                            stop.run_strategy()
+                            logger.debug(
+                                f"Running strategy {self.agent.default_strategies['stop']} to stop {stop.name}"
                             )
 
                     self.agent.simulation_running = True
@@ -577,6 +653,7 @@ class SimulatorAgent(Agent):
             self.customer_df,
             self.manager_df,
             self.station_df,
+            # self.bus_stop_df
         ) = self.get_stats_dataframes()
 
         columns = []
@@ -637,6 +714,13 @@ class SimulatorAgent(Agent):
                 self.station_df, headers="keys", showindex=False, tablefmt="fancy_grid"
             )
         )
+        # Bus line
+        print("Bus stop stats")
+        print(
+            tabulate(
+                self.bus_stop_df, headers="keys", showindex=False, tablefmt="fancy_grid"
+            )
+        )
 
     def write_file(self, filename, fileformat="json"):
         """
@@ -666,6 +750,8 @@ class SimulatorAgent(Agent):
             "transports": json.loads(self.transport_df.to_json(orient="index")),
             "managers": json.loads(self.manager_df.to_json(orient="index")),
             "stations": json.loads(self.station_df.to_json(orient="index")),
+            # Bus line
+            "stops": json.loads(self.bus_stop_df.to_json(orient="index"))
         }
 
         with open(filename, "w") as f:
@@ -684,6 +770,8 @@ class SimulatorAgent(Agent):
         self.manager_df.to_excel(writer, "FleetManagers")
         self.customer_df.to_excel(writer, "Customers")
         self.transport_df.to_excel(writer, "Transports")
+        # Bus line
+        self.bus_stop_df.to_excel(writer, "Stops")
         writer.save()
 
     # ////////////////////////////////////////////////////////////
@@ -738,6 +826,15 @@ class SimulatorAgent(Agent):
             dict: a dict of ``StationAgent`` with the name in the key
         """
         return self.get("vehicle_agents")
+
+    # Bus line
+    @property
+    def bus_stop_agents(self):
+        return self.get("bus_stop_agents")
+
+    @property
+    def bus_lines(self):
+        return self.get("bus_lines")
 
     async def index_controller(self, request):
         """
@@ -843,6 +940,8 @@ class SimulatorAgent(Agent):
                 for vehicle in self.vehicle_agents.values()
                 if vehicle.is_launched
             ],
+            # Bus line
+            "stops": [stop.to_json() for stop in self.bus_stop_agents.values()],
         }
         return result
 
@@ -1106,12 +1205,16 @@ class SimulatorAgent(Agent):
             customer_df,
             manager_df,
             stations_df,
+            # Bus line
+            stops_df
         ) = self.get_stats_dataframes()
         df_avg.to_excel(writer, sheet_name="Simulation")
         customer_df.to_excel(writer, sheet_name="Customers")
         transport_df.to_excel(writer, sheet_name="Transports")
         manager_df.to_excel(writer, sheet_name="FleetManagers")
         stations_df.to_excel(writer, sheet_name="Stations")
+        # Bus line
+        stops_df.to_excel(writer, sheet_name="Stops")
         writer.save()
         xlsx_data = output.getvalue()
 
@@ -1135,6 +1238,8 @@ class SimulatorAgent(Agent):
             customer_df,
             manager_df,
             stations_df,
+            # Bus line
+            stops_df
         ) = self.get_stats_dataframes()
 
         data = {
@@ -1143,6 +1248,8 @@ class SimulatorAgent(Agent):
             "transports": json.loads(transport_df.to_json(orient="index")),
             "fleetmanagers": json.loads(manager_df.to_json(orient="index")),
             "stations": json.loads(stations_df.to_json(orient="index")),
+            # Bus line
+            "stops": json.loads(stops_df.to_json(orient="index")),
         }
 
         json.dump(data, output, indent=4)
@@ -1158,6 +1265,9 @@ class SimulatorAgent(Agent):
         self.set("customer_agents", {})
         self.set("station_agents", {})
         self.set("vehicle_agents", {})  #New vehicle
+        # Bus line
+        self.set("bus_stop_agents", {})
+        self.set("bus_lines", {})
         self.simulation_time = None
         self.simulation_init_time = None
 
@@ -1183,6 +1293,12 @@ class SimulatorAgent(Agent):
         agents = self.get("station_agents")
         self.set(
             "station_agents",
+            {jid: agent for jid, agent in agents.items() if not agent.stopped},
+        )
+        # Bus line
+        agents = self.get("bus_stop_agents")
+        self.set(
+            "bus_stop_agents",
             {jid: agent for jid, agent in agents.items() if not agent.stopped},
         )
         self.simulation_time = None
@@ -1227,6 +1343,12 @@ class SimulatorAgent(Agent):
                 logger.debug("Stopping vehicle {}".format(name))
                 results.append(agent.stop())
                 #agent.stopped = True
+        # Bus line
+        with self.lock:
+            for name, agent in self.bus_stop_agents.items():
+                logger.debug("Stopping stop {}".format(name))
+                results.append(agent.stop())
+                agent.stopped = True
         return results
 
     def get_manager_stats(self):
@@ -1265,6 +1387,9 @@ class SimulatorAgent(Agent):
                 *[
                     (
                         p.name,
+                        # Bus line
+                        p.get_waiting_time_bus(),
+                        p.in_transport_time_bus(),
                         p.get_waiting_time(),
                         p.total_time(),
                         status_to_str(p.status),
@@ -1403,6 +1528,55 @@ class SimulatorAgent(Agent):
         )
         return df
 
+    # Bus line
+    def get_bus_stop_stats(self):
+        """
+        Creates a dataframe with the simulation stats of the bus stops
+        The dataframe includes for each stop its id, name, , total time and status.
+
+        Returns:
+            ``pandas.DataFrame``: the dataframe with the customers stats.
+        """
+        try:
+            (
+                agent_id,
+                names,
+                lines,
+                max_customers,
+                total_customers
+            ) = zip(
+                *[
+                    (
+                        bs.agent_id,
+                        bs.stop_name,
+                        bs.lines,
+                        "{:2d}".format(max(bs.num_customers)),
+                        "{:2d}".format(bs.total_customers)
+                    )
+                    for bs in self.bus_stop_agents.values()
+                ]
+            )
+
+        except ValueError:
+            (
+                agent_id,
+                names,
+                lines,
+                max_customers,
+                total_customers
+            ) = ([], [], [], [], [])
+
+        df = pd.DataFrame.from_dict(
+            {
+                "id": agent_id,
+                "name": names,
+                "lines": lines,
+                "max_customers": max_customers,
+                "total_customers": total_customers
+            }
+        )
+        return df
+
     def get_stats_dataframes(self):
         """
         Collects simulation stats and returns 3 dataframes with the information:
@@ -1516,6 +1690,8 @@ class SimulatorAgent(Agent):
                                speed=None,
                                optional=None,
                                delayed=False,
+                               capacity=None,
+                               line=None
                                ):
 
         agent = TransportFactory.create_agent(domain=self.jid.domain,
@@ -1534,7 +1710,10 @@ class SimulatorAgent(Agent):
                                               autonomy=autonomy,
                                               current_autonomy=current_autonomy,
                                               speed=speed,
-                                              optional=optional
+                                              optional=optional,
+                                              capacity=capacity,
+                                              line=line,
+                                              lines=self.bus_lines
                                               )
 
         if self.simulation_running:
@@ -1557,6 +1736,7 @@ class SimulatorAgent(Agent):
         strategy=None,
         target=None,
         delayed=False,
+        line=None
     ):
         agent = CustomerFactory.create_agent(domain=self.jid.domain,
                                             name=name,
@@ -1570,6 +1750,7 @@ class SimulatorAgent(Agent):
                                             bbox=self.config.coords[1],
                                             position=position,
                                             target=target,
+                                            line=line,
                                             )
 
         if self.simulation_running:
@@ -1649,6 +1830,45 @@ class SimulatorAgent(Agent):
 
         return agent
 
+    # bus line
+    def create_bus_stop_agent(
+        self, id, name, password, class_, position, lines, strategy=None, services=None,
+    ):
+        """
+        Create a customer agent.
+
+        Args:
+            name (str): name of the agent
+            password (str): password of the agent
+            position (list): initial coordinates of the agent
+            power (int): power of the station agent in kW
+            places (int): destination coordinates of the agent
+            strategy (class, optional): strategy class of the agent
+        """
+        name = (id, name)
+        agent = TransportStopFactory.create_agent(domain=self.jid.domain,
+                                                name=name,
+                                                password=password,
+                                                default_strategy=self.default_strategies['stop'],
+                                                class_=class_,
+                                                strategy=strategy,
+                                                jid_directory=self.get_directory().jid,
+                                                route_host=self.route_host,
+                                                bbox=self.config.coords[1],
+                                                position=position,
+                                                services=services,
+                                                lines=lines,
+                                                )
+
+        if self.simulation_running:
+            agent.run_strategy()
+
+        self.add_bus_stop(agent)
+
+        agent.is_launched = True
+
+        return agent
+
     def add_manager(self, agent):
         """
         Adds a new ``FleetManagerAgent`` to the store.
@@ -1700,6 +1920,20 @@ class SimulatorAgent(Agent):
         with self.simulation_mutex:
             self.get("vehicle_agents")[agent.name] = agent
 
+    # Bus line
+    def add_bus_stop(self, agent):
+        """
+        Adds a new :class:`BusStopAgent` to the store.
+
+        Args:
+            agent (``BusStopAgent``): the instance of the BusStopAgent to be added
+        """
+        with self.simulation_mutex:
+            self.get("bus_stop_agents")[agent.name] = agent
+
+    def add_line(self, line_id, stop_list, line_type):
+        with self.simulation_mutex:
+            self.get("bus_lines")[line_id] = {"stop_list": stop_list, "line_type": line_type}
 
     def get_simulation_time(self):
         """

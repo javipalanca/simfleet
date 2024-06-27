@@ -278,7 +278,7 @@ class SimulatorAgent(Agent):
 
             class_ = transport["class"]
             fleet_type = transport["fleet_type"]
-            service = transport["service"]
+            service = transport.get("service")
             strategy = transport.get("strategy")
             # position = transport["position"]
             position = transport.get("position")

@@ -37,6 +37,9 @@ class SimfleetConfig(object):
         self.__config["customers"] = []
         self.__config["stations"] = []
         self.__config["vehicles"] = []  # New vehicle
+        # Bus line
+        self.__config["stops"] = []
+        self.__config["lines"] = []
 
         if filename:
             self.load_config(filename)
@@ -158,6 +161,21 @@ class SimfleetConfig(object):
         except KeyError:
             return 0
 
+    # Bus line
+    @property
+    def num_stops(self):
+        try:
+            return len(self.__config["stops"])
+        except KeyError:
+            return 0
+
+    @property
+    def num_lines(self):
+        try:
+            return len(self.__config["lines"])
+        except KeyError:
+            return 0
+
     def __getitem__(self, item):
         return self.__config[item]
 
@@ -185,6 +203,7 @@ def set_default_strategies(
         customer_strategy,
         station_strategy,
         vehicle_strategy,   #New vehicle
+        bus_stop_strategy,  #Bus line
 ):
     """
     Gets the strategy strings and loads their classes. This strategies are prepared to be injected into any
@@ -205,6 +224,7 @@ def set_default_strategies(
     class_dict['customer'] = load_class(customer_strategy)
     class_dict['station'] = load_class(station_strategy)
     class_dict['vehicle'] = load_class(vehicle_strategy)  #New vehicle
+    class_dict['stop'] = load_class(bus_stop_strategy)  # Bus line
 
     logger.debug(
         "Loaded default strategy classes: {}, {}, {}, {} and {}".format(
@@ -214,6 +234,7 @@ def set_default_strategies(
             class_dict['customer'],
             class_dict['station'],
             class_dict['vehicle'],  #New vehicle
+            class_dict['stop'],  # Bus line
         )
     )
 

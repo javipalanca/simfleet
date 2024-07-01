@@ -63,7 +63,7 @@ def main(name, output, oformat, max_time, autorun, config, verbose):
 
     simfleet_config = SimfleetConfig(config, name, max_time, verbose)
 
-    simulator_name = "simulator_{}@{}".format(name, simfleet_config.host)
+    simulator_name = "simulator_{}@{}".format(simfleet_config.simulation_name, simfleet_config.host)
 
     simulator = SimulatorAgent(config=simfleet_config, agentjid=simulator_name)
     #sys.exit(0)

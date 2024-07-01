@@ -32,6 +32,7 @@ class QueueStationAgent(GeoLocatedAgent):
 
         # ORIGINAL NEAR
         #self.near_list = {}
+        self.simulatorjid = None
 
         #statics
         self.transports_in_queue_time = 0
@@ -40,6 +41,11 @@ class QueueStationAgent(GeoLocatedAgent):
         self.queue_length = 0
         self.max_queue_length = 0
 
+    def set_simulatorjid(self, jid):
+        self.simulatorjid = jid
+
+    def get_simulatorjid(self):
+        return self.simulatorjid
 
     async def setup(self):
         logger.info("Queue agent {} running".format(self.name))
@@ -349,7 +355,7 @@ class QueueStationAgent(GeoLocatedAgent):
                     template3.set_metadata("protocol", COORDINATION_PROTOCOL)
                     template3.set_metadata("performative", INFORM_PERFORMATIVE)
 
-                    instance = CheckNearBehaviour(agent_id, service_name, object_type, arguments)
+                    instance = CheckNearBehaviour(self.agent.get_simulatorjid(), agent_id, service_name, object_type, arguments)
                     self.agent.add_behaviour(instance, template3)
 
                     await instance.join()       # Wait for the behaviour to complete
@@ -538,10 +544,10 @@ class QueueStationAgent(GeoLocatedAgent):
             #         )
 
 class CheckNearBehaviour(OneShotBehaviour):
-    def __init__(self, user_agent_id, service_name, object_type, arguments):
+    def __init__(self, simulatorjid, user_agent_id, service_name, object_type, arguments):
         super().__init__()
 
-        self.agent_simulator_id = "simulator_none@localhost"
+        self.agent_simulator_id = simulatorjid
         self.user_agent_id = user_agent_id
         self.service_name = service_name
         self.object_type = object_type

@@ -93,6 +93,10 @@ class SimfleetConfig(object):
             "vehicle_strategy", "simfleet.strategies_fsm.RequestAndTravelBehavior"
         )
 
+        # Bus line
+        self.__config["bus_stop_strategy"] = self.__config.get(
+            "bus_stop_strategy", "simfleet.common.extensions.stations.models.busstop.BusStopStrategyBehaviour")
+
         self.__config["fleetmanager_name"] = self.__config.get(
             "fleetmanager_name", "fleetmanager"
         )

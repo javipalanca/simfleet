@@ -23,6 +23,7 @@ class Factory(ABC):     #Factory
                      password,
                      class_,
                      default_strategy,
+                     simulatorjid,
                      optional,
                      strategy,
                      jid_directory,
@@ -50,6 +51,7 @@ class DirectoryFactory(Factory):    #DirectoryFactory
                      name,
                      password,
                      default_strategy,
+                     simulatorjid=None,
                      class_=None,
                      optional=None,
                      strategy=None,
@@ -92,6 +94,7 @@ class FleetManagerFactory(Factory):      #ManagerFactory
                      name,
                      password,
                      default_strategy,
+                     simulatorjid=None,
                      class_=None,
                      optional=None,
                      strategy=None,
@@ -147,6 +150,7 @@ class TransportFactory(Factory):    #TransportFactory
                      password,
                      class_,
                      default_strategy,
+                     simulatorjid=None,
                      optional=None,
                      strategy=None,
                      jid_directory=None,
@@ -244,6 +248,7 @@ class CustomerFactory(Factory):
                      password,
                      class_,
                      default_strategy,
+                     simulatorjid=None,
                      optional=None,
                      strategy=None,
                      jid_directory=None,
@@ -320,6 +325,7 @@ class StationFactory(Factory):
                     name,
                     password,
                     default_strategy,
+                    simulatorjid=None,
                     class_=None,
                     optional=None,
                     strategy=None,
@@ -379,6 +385,9 @@ class StationFactory(Factory):
         agent.set_position(position)
         #agent.set_available_places(slots)
 
+        if simulatorjid:
+            agent.set_simulatorjid(simulatorjid)
+
         #for type_, behaviour, slots, args in services:
         for service in services:
             type_ = service["type"]
@@ -408,6 +417,7 @@ class TransportStopFactory(Factory):
                     name,
                     password,
                     default_strategy,
+                    simulatorjid=None,
                     class_=None,
                     optional=None,
                     strategy=None,
@@ -462,6 +472,9 @@ class TransportStopFactory(Factory):
         agent.set_position(position)
         #agent.set_available_places(slots)
 
+        if simulatorjid:
+            agent.set_simulatorjid(simulatorjid)
+
         for line in lines:
             agent.add_queue(line)
 
@@ -486,6 +499,7 @@ class VehicleFactory(Factory):    #VehicleFactory
                     name,
                     password,
                     default_strategy,
+                    simulatorjid=None,
                     class_=None,
                     optional=None,
                     strategy=None,

@@ -218,7 +218,7 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour, State):
                 self.agent.arguments["transport_need"] = self.agent.max_autonomy_km - self.agent.current_autonomy_km
                 #self.agent.arguments["power"] = self.agent.current_station_dest[2]
 
-                content = {"service_name": self.agent.service_type, "args": self.agent.arguments}             #AÑADIR ARGS - CARGA QUE NECESITA
+                content = {"service_name": self.agent.service_type, "object_type": "transport", "args": self.agent.arguments}             #AÑADIR ARGS - CARGA QUE NECESITA
                 await self.request_access_station(self.agent.get("current_station"), content)
 
                 self.agent.status = TRANSPORT_IN_STATION_PLACE

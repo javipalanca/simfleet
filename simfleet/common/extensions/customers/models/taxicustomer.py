@@ -30,10 +30,11 @@ from simfleet.communications.protocol import (
 from simfleet.common.agents.customer import CustomerAgent
 from simfleet.common.movable import MovableMixin
 
-class TaxiCustomerAgent(MovableMixin, CustomerAgent):
+#class TaxiCustomerAgent(MovableMixin, CustomerAgent):
+class TaxiCustomerAgent(CustomerAgent):
     def __init__(self, agentjid, password):
         CustomerAgent.__init__(self, agentjid, password)
-        MovableMixin.__init__(self)
+        #MovableMixin.__init__(self)
 
         #self.agent_id = None                    #simfleetagent.py
         self.status = CUSTOMER_WAITING           #customer.py
@@ -106,15 +107,15 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
         Args:
             content (dict): Optional content dictionary
         """
-        if not self.agent.dest:
+        if not self.agent.customer_dest:
             #self.agent.dest = random_position()
-            self.agent.dest = new_random_position(self.agent.boundingbox, self.agent.route_host)
+            self.agent.customer_dest = new_random_position(self.agent.boundingbox, self.agent.route_host)
         if content is None or len(content) == 0:
             content = {
                 "customer_id": str(self.agent.jid),
                 #"origin": self.agent.current_pos,       #Non-parallel variable
                 "origin": self.agent.get("current_pos"),
-                "dest": self.agent.dest,
+                "dest": self.agent.customer_dest,
             }
 
         if self.agent.fleetmanagers is not None:
@@ -129,7 +130,7 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
                 await self.send(msg)
             logger.info(
                 "Customer {} asked for a transport to {}.".format(
-                    self.agent.name, self.agent.dest
+                    self.agent.name, self.agent.customer_dest
                 )
             )
         else:
@@ -151,7 +152,7 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
             "customer_id": str(self.agent.jid),
             #"origin": self.agent.current_pos,               #Non-parallel variable
             "origin": self.agent.get("current_pos"),
-            "dest": self.agent.dest,
+            "dest": self.agent.customer_dest,
         }
         reply.body = json.dumps(content)
         await self.send(reply)
@@ -178,7 +179,7 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
             "customer_id": str(self.agent.jid),
             #"origin": self.agent.current_pos,              #Non-parallel variable
             "origin": self.agent.get("current_pos"),
-            "dest": self.agent.dest,
+            "dest": self.agent.customer_dest,
         }
         reply.body = json.dumps(content)
 

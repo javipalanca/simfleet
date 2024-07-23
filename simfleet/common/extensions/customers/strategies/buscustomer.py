@@ -12,6 +12,8 @@ from simfleet.common.extensions.customers.models.buscustomer import BusCustomerS
 from simfleet.utils.utils_old import (
     CUSTOMER_IN_STOP,
     CUSTOMER_WAITING,
+    CUSTOMER_WAITING_TO_MOVE,
+    CUSTOMER_MOVING_TO_DEST,
     CUSTOMER_IN_DEST,
     CUSTOMER_WAITING_FOR_APPROVAL,
     TRANSPORT_MOVING_TO_CUSTOMER,
@@ -31,11 +33,69 @@ from simfleet.communications.protocol import (
     QUERY_PROTOCOL
 )
 
+from simfleet.utils.helpers import (
+    distance_in_meters,
+    PathRequestException,
+    AlreadyInDestination
+)
+
 ################################################################
 #                                                              #
 #                      Customer Strategy                       #
 #                                                              #
 ################################################################
+
+class BusCustomerWaitingToMoveState(BusCustomerStrategyBehaviour, State):
+
+    async def on_start(self):
+        await super().on_start()
+        self.agent.status = CUSTOMER_WAITING_TO_MOVE
+        logger.debug("Customer {} in BusCustomerWaitingToMoveState".format(self.agent.name))
+
+    async def run(self):
+
+        if self.agent.stop_dic is None:
+
+            # New
+            self.agent.stop_dic = await self.agent.get_list_agent_position(self.agent.type_service, self.agent.stop_dic)
+
+            self.set_next_state(CUSTOMER_WAITING_TO_MOVE)
+            return
+        else:
+
+            self.setup_stops()
+
+            if self.agent.current_stop[1] != self.agent.get("current_pos"):
+
+                self.agent.pedestrian_dest = self.agent.current_stop[1]
+
+                logger.info(
+                    "Agent {} on route to destination {}".format(self.agent.name, self.agent.current_stop[1])
+                )
+
+                try:
+                    logger.debug("{} move_to destination {}".format(self.agent.name, self.agent.current_stop[1]))
+
+                    #Hardcore SPEED - CHANGE
+                    self.agent.set_speed(80)
+
+                    await self.agent.move_to(self.agent.current_stop[1])
+                    self.set_next_state(CUSTOMER_MOVING_TO_DEST)
+                except AlreadyInDestination:
+                    logger.debug(
+                        "{} is already in the destination' {} position. . .".format(
+                            self.agent.name, self.agent.current_stop[1]
+                        )
+                    )
+                    self.set_next_state(CUSTOMER_WAITING_TO_MOVE)
+
+            else:
+                self.set_next_state(CUSTOMER_IN_STOP)
+
+
+
+
+
 
 class BusCustomerRegisterToStopState(BusCustomerStrategyBehaviour, State):
 
@@ -48,40 +108,48 @@ class BusCustomerRegisterToStopState(BusCustomerStrategyBehaviour, State):
         logger.debug("Customer {} in CustomerRegisterToStopState".format(self.agent.name))
 
     async def run(self):
-        if self.agent.stop_dic is None:
-            await self.send_get_stops()
 
-            msg = await self.receive(timeout=300)           #Mensaje del director con las paradas
-            if msg:
-                protocol = msg.get_metadata("protocol")
-                if protocol == QUERY_PROTOCOL:
-                    performative = msg.get_metadata("performative")
-                    if performative == INFORM_PERFORMATIVE:
-                        self.agent.stop_dic = json.loads(msg.body)
-                        logger.debug(
-                            "Customer {} got stops from directory: {}".format(
-                                self.agent.name, self.agent.stop_dic
-                            )
-                        )
-                        self.setup_stops()
-                    elif performative == CANCEL_PERFORMATIVE:
-                        logger.warning(
-                            "{} got cancellation of request for {} information".format(
-                                self.agent.name, self.agent.type_service
-                            )
-                        )
-            self.set_next_state(CUSTOMER_IN_STOP)
-            return
+
+
+        #Original
+        # if self.agent.stop_dic is None:
+        #     await self.send_get_stops()
+        #
+        #     msg = await self.receive(timeout=300)           #Mensaje del director con las paradas
+        #     if msg:
+        #         protocol = msg.get_metadata("protocol")
+        #         if protocol == QUERY_PROTOCOL:
+        #             performative = msg.get_metadata("performative")
+        #             if performative == INFORM_PERFORMATIVE:
+        #                 self.agent.stop_dic = json.loads(msg.body)
+        #                 logger.debug(
+        #                     "Customer {} got stops from directory: {}".format(
+        #                         self.agent.name, self.agent.stop_dic
+        #                     )
+        #                 )
+        #
+        #                 self.setup_stops()
+        #             elif performative == CANCEL_PERFORMATIVE:
+        #                 logger.warning(
+        #                     "{} got cancellation of request for {} information".format(
+        #                         self.agent.name, self.agent.type_service
+        #                     )
+        #                 )
+        #     self.set_next_state(CUSTOMER_IN_STOP)
+        #     return
 
         # Send registration petition to the bus stop
         self.agent.arguments["jid"] = str(self.agent.jid)
-        self.agent.arguments["destination_stop"] = self.agent.destination_stop.get("position")
+        self.agent.arguments["destination_stop"] = self.agent.destination_stop[1]
 
         # self.agent.arguments.append(self.agent.max_autonomy_km - self.agent.current_autonomy_km)
         content = {"line": self.agent.line, "object_type": "customer", "args": self.agent.arguments}  # Añadir lo que necesita
         await self.register_to_stop(content)
         # Wait for registration acceptance
         msg = await self.receive(timeout=30)
+
+        logger.info("DEPURACION Register: {}".format(msg))
+
         if msg:
             sender = str(msg.sender)
             performative = msg.get_metadata("performative")
@@ -94,6 +162,49 @@ class BusCustomerRegisterToStopState(BusCustomerStrategyBehaviour, State):
             self.set_next_state(CUSTOMER_IN_STOP)
             return
 
+class BusCustomerMovingToDestState(BusCustomerStrategyBehaviour, State):
+
+    async def on_start(self):
+        await super().on_start()
+        self.agent.status = CUSTOMER_MOVING_TO_DEST
+        logger.debug("Customer {} in BusCustomerMovingToDestState".format(self.agent.name))
+
+    async def run(self):
+
+        try:
+            # await self.vehicle_arrived()
+
+            #if not self.agent.is_in_destination():
+            if not self.agent.get_position() == self.agent.pedestrian_dest:
+                await asyncio.sleep(1)
+                self.set_next_state(CUSTOMER_MOVING_TO_DEST)
+            else:
+
+                if not self.agent.get_position() == self.agent.customer_dest:
+                    self.set_next_state(CUSTOMER_IN_STOP)
+                else:
+                    self.set_next_state(CUSTOMER_IN_DEST)
+            # return
+        # except PathRequestException:
+        except AlreadyInDestination:
+            logger.warning(
+                "Vehicle {} has arrived to destination: {}.".format(
+                    self.agent.agent_id, self.agent.is_in_destination()
+                )
+            )
+            if not self.agent.get_position() == self.agent.customer_dest:
+                self.set_next_state(CUSTOMER_IN_STOP)
+            else:
+                self.set_next_state(CUSTOMER_IN_DEST)
+            return
+        except PathRequestException:
+            logger.error(
+                "Transport {} could not get a path to customer. Cancelling...".format(
+                    self.agent.name
+                )
+            )
+            self.set_next_state(CUSTOMER_WAITING_TO_MOVE)
+            return
 
 class BusCustomerWaitingState(BusCustomerStrategyBehaviour, State):
 
@@ -104,7 +215,7 @@ class BusCustomerWaitingState(BusCustomerStrategyBehaviour, State):
 
     async def run(self):
         try:
-            logger.info("Customer {} waiting for a transport to {}".format(self.agent.name, self.agent.dest))
+            logger.info("Customer {} waiting for a transport to {}".format(self.agent.name, self.agent.destination_stop[1]))
             self.agent.alternative_transports = []
             msg = await self.receive(timeout=60)
             if msg:
@@ -240,6 +351,32 @@ class BusCustomerInDestState(BusCustomerStrategyBehaviour, State):
                     "Customer {} received message {} from transport {}".format(self.agent.name, contents, sender))
                 if performative == INFORM_PERFORMATIVE:
                     logger.info("Customer {} has reached their destination".format(self.agent.name))
+
+                    #New Pedestrian
+                    if self.agent.destination_stop[1] != self.agent.customer_dest:
+
+                        self.agent.pedestrian_dest = self.agent.customer_dest
+
+                        logger.info(
+                            "Agent {} on route to destination {}".format(self.agent.name, self.agent.customer_dest)
+                        )
+
+                        try:
+                            logger.debug("{} move_to destination {}".format(self.agent.name, self.agent.customer_dest))
+
+                            # Hardcore SPEED - CHANGE
+                            self.agent.set_speed(80)
+
+                            await self.agent.move_to(self.agent.customer_dest)
+                            self.set_next_state(CUSTOMER_MOVING_TO_DEST)
+                        except AlreadyInDestination:
+                            logger.debug(
+                                "{} is already in the destination' {} position. . .".format(
+                                    self.agent.name, self.agent.customer_dest
+                                )
+                            )
+                            self.set_next_state(CUSTOMER_IN_DEST)
+
             return
         except Exception as e:
             logger.critical("Agent {}, Exception {} in CustomerInDestState".format(self.agent.name, e))
@@ -248,12 +385,21 @@ class BusCustomerInDestState(BusCustomerStrategyBehaviour, State):
 class FSMBusCustomerStrategyBehaviour(FSMBehaviour):
     def setup(self):
         # Create states
-        self.add_state(CUSTOMER_IN_STOP, BusCustomerRegisterToStopState(), initial=True)
+        self.add_state(CUSTOMER_WAITING_TO_MOVE, BusCustomerWaitingToMoveState(), initial=True)
+        self.add_state(CUSTOMER_MOVING_TO_DEST, BusCustomerMovingToDestState())                 #New
+        self.add_state(CUSTOMER_IN_STOP, BusCustomerRegisterToStopState())
         self.add_state(CUSTOMER_WAITING, BusCustomerWaitingState())
         self.add_state(CUSTOMER_WAITING_FOR_APPROVAL, BusCustomerWaitingForApprovalState())
         self.add_state(CUSTOMER_IN_TRANSPORT, BusCustomerInTransportState())
         self.add_state(CUSTOMER_IN_DEST, BusCustomerInDestState())
         # Create transitions
+        self.add_transition(CUSTOMER_WAITING_TO_MOVE, CUSTOMER_WAITING_TO_MOVE)
+        self.add_transition(CUSTOMER_WAITING_TO_MOVE, CUSTOMER_IN_STOP)
+        self.add_transition(CUSTOMER_WAITING_TO_MOVE, CUSTOMER_MOVING_TO_DEST)
+        self.add_transition(CUSTOMER_MOVING_TO_DEST, CUSTOMER_MOVING_TO_DEST)
+        self.add_transition(CUSTOMER_MOVING_TO_DEST, CUSTOMER_WAITING_TO_MOVE)
+        self.add_transition(CUSTOMER_MOVING_TO_DEST, CUSTOMER_IN_DEST)
+        self.add_transition(CUSTOMER_MOVING_TO_DEST, CUSTOMER_IN_STOP)
         self.add_transition(CUSTOMER_IN_STOP, CUSTOMER_IN_STOP)
         self.add_transition(CUSTOMER_IN_STOP, CUSTOMER_WAITING)
         self.add_transition(CUSTOMER_WAITING, CUSTOMER_WAITING)
@@ -262,3 +408,5 @@ class FSMBusCustomerStrategyBehaviour(FSMBehaviour):
         self.add_transition(CUSTOMER_WAITING_FOR_APPROVAL, CUSTOMER_WAITING_FOR_APPROVAL)
         self.add_transition(CUSTOMER_WAITING_FOR_APPROVAL, CUSTOMER_IN_TRANSPORT)
         self.add_transition(CUSTOMER_IN_TRANSPORT, CUSTOMER_IN_DEST)
+        self.add_transition(CUSTOMER_IN_DEST, CUSTOMER_IN_DEST)
+        self.add_transition(CUSTOMER_IN_DEST, CUSTOMER_MOVING_TO_DEST)

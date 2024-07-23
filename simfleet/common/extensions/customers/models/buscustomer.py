@@ -81,9 +81,10 @@ class BusCustomerAgent(PedestrianAgent):
         if not self.running_strategy:
             template1 = Template()
             template1.set_metadata("protocol", REQUEST_PROTOCOL)
-            template2 = Template()
-            template2.set_metadata("protocol", QUERY_PROTOCOL)
-            self.add_behaviour(self.strategy(), template1 | template2)
+            # template2 = Template()
+            # template2.set_metadata("protocol", QUERY_PROTOCOL)
+            # self.add_behaviour(self.strategy(), template1 | template2)
+            self.add_behaviour(self.strategy(), template1)
             self.running_strategy = True
 
     # Bus line
@@ -152,9 +153,9 @@ class BusCustomerAgent(PedestrianAgent):
         #if coords == self.dest:
 
         #if self.is_in_destination():
-        if self.destination_stop.get("position") == self.get_position():
+        if self.destination_stop[1] == self.get_position():
 
-            logger.success("Customer {} arrived to its destination {}".format(self.name, self.destination_stop))
+            logger.success("Customer {} arrived to its destination {}".format(self.name, self.destination_stop[1]))
             self.status = CUSTOMER_IN_DEST
             self.set("arrived_to_destination", True)  # launch callback, awake FSMStrategyBehaviour
             self.end_time = time.time()
@@ -280,13 +281,13 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
         Args:
             content (dict): Optional content dictionary
         """
-        if not self.agent.dest:
-            self.agent.dest = new_random_position(self.agent.boundingbox, self.agent.route_host)
+        if not self.agent.customer_dest:
+            self.agent.customer_dest = new_random_position(self.agent.boundingbox, self.agent.route_host)
         if content is None or len(content) == 0:
             content = {
                 "customer_id": str(self.agent.jid),
                 "origin": self.agent.get("current_pos"),
-                "dest": self.agent.dest,
+                "dest": self.agent.customer_dest,
             }
 
         if self.agent.fleetmanagers is not None:
@@ -301,7 +302,7 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
                 await self.send(msg)
             logger.info(
                 "Customer {} asked for a transport to {}.".format(
-                    self.agent.name, self.agent.dest
+                    self.agent.name, self.agent.customer_dest
                 )
             )
         else:
@@ -383,35 +384,47 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
             )
         )
 
-    def setup_stops(self):
-        for jid in self.agent.stop_dic.keys():
-            stop_info = self.agent.stop_dic.get(jid)
-            # Set origin stop
-            if stop_info.get("position") == self.agent.get("current_pos"):
-                self.agent.current_stop = stop_info
-            # Set destination stop
-            if stop_info.get("position") == self.agent.dest:
-                self.agent.destination_stop = stop_info
-        logger.debug("Customer {} set current_stop {} and destination_stop {}".format(self.agent.name,
-                                                                                      self.agent.current_stop.get(
-                                                                                          "jid"),
-                                                                                      self.agent.destination_stop.get(
-                                                                                          "jid")))
+    # def setup_stops_original(self):
+    #     for jid in self.agent.stop_dic.keys():
+    #         stop_info = self.agent.stop_dic.get(jid)
+    #         # Set origin stop
+    #         if stop_info.get("position") == self.agent.get("current_pos"):
+    #             self.agent.current_stop = stop_info
+    #         # Set destination stop
+    #         if stop_info.get("position") == self.agent.dest:
+    #             self.agent.destination_stop = stop_info
+    #     logger.debug("Customer {} set current_stop {} and destination_stop {}".format(self.agent.name,
+    #                                                                                   self.agent.current_stop.get(
+    #                                                                                       "jid"),
+    #                                                                                   self.agent.destination_stop.get(
+    #                                                                                       "jid")))
 
-    async def register_to_stop(self, content):           #ANALIZAR Y REDISEÑO
-        #content = {"destination": self.agent.destination_stop.get("position")}
+    def setup_stops(self):
+        if self.agent.current_stop is None and self.agent.destination_stop is None:
+            # current_bus_stop, current_position = self.agent.nearst_agent(self.agent.stop_dic, self.agent.get_position())
+            self.agent.current_stop = self.agent.nearst_agent(self.agent.stop_dic, self.agent.get_position())
+
+            # destination_bus_stop, destination_position = self.agent.nearst_agent(self.agent.stop_dic, self.agent.dest)
+            self.agent.destination_stop = self.agent.nearst_agent(self.agent.stop_dic, self.agent.dest)
+
+            logger.debug("Customer {} set current_stop {} and destination_stop {}".format(self.agent.name,
+                                                                                      self.agent.current_stop[0],
+                                                                                      self.agent.destination_stop[0]))
+
+    async def register_to_stop(self, content):  # ANALIZAR Y REDISEÑO
+        # content = {"destination": self.agent.destination_stop.get("position")}
         if content is None:
             content = {}
         msg = Message()
-        msg.to = self.agent.current_stop.get("jid")
+        # msg.to = self.agent.current_stop.get("jid")
+        msg.to = self.agent.current_stop[0]
         msg.set_metadata("protocol", REQUEST_PROTOCOL)
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = json.dumps(content)
         logger.debug("Customer {} asked to register to stop {} with destination {}".format(self.agent.name,
-                                                                                           self.agent.current_stop.get(
-                                                                                               "jid"),
-                                                                                           self.agent.destination_stop.get(
-                                                                                               "position")))
+                                                                                           self.agent.current_stop[0],
+                                                                                           self.agent.destination_stop[
+                                                                                               1]))
         await self.send(msg)
 
     async def board_transport(self, transport):
@@ -419,7 +432,7 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
             "customer_id": str(self.agent.jid),
             "origin": self.agent.get("current_pos"),
             #"dest": self.agent.dest,
-            "dest": self.agent.destination_stop.get("position"),
+            "dest": self.agent.destination_stop[1],
         }
         msg = Message()
         msg.body = json.dumps(content)

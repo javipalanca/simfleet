@@ -33,14 +33,18 @@ from simfleet.communications.protocol import (
     QUERY_PROTOCOL,
 )
 
-from simfleet.common.agents.customer import CustomerAgent
-from simfleet.common.movable import MovableMixin
+#from simfleet.common.agents.customer import CustomerAgent
+#from simfleet.common.movable import MovableMixin
 
-class BusCustomerAgent(MovableMixin, CustomerAgent):
+from simfleet.common.extensions.customers.models.pedestrian import PedestrianAgent
+
+#class BusCustomerAgent(MovableMixin, CustomerAgent):
 #class BusCustomerAgent(CustomerAgent):
+class BusCustomerAgent(PedestrianAgent):
     def __init__(self, agentjid, password):
-        CustomerAgent.__init__(self, agentjid, password)
-        MovableMixin.__init__(self)
+        #CustomerAgent.__init__(self, agentjid, password)
+        #MovableMixin.__init__(self)
+        super().__init__(agentjid, password)
 
         # Bus line attributes
         self.__observers = defaultdict(list)
@@ -146,8 +150,11 @@ class BusCustomerAgent(MovableMixin, CustomerAgent):
         self.set("current_pos", coords)
 
         #if coords == self.dest:
-        if self.is_in_destination():
-            logger.success("Customer {} arrived to its destination {}".format(self.name, self.dest))
+
+        #if self.is_in_destination():
+        if self.destination_stop.get("position") == self.get_position():
+
+            logger.success("Customer {} arrived to its destination {}".format(self.name, self.destination_stop))
             self.status = CUSTOMER_IN_DEST
             self.set("arrived_to_destination", True)  # launch callback, awake FSMStrategyBehaviour
             self.end_time = time.time()
@@ -411,7 +418,8 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
         content = {
             "customer_id": str(self.agent.jid),
             "origin": self.agent.get("current_pos"),
-            "dest": self.agent.dest,
+            #"dest": self.agent.dest,
+            "dest": self.agent.destination_stop.get("position"),
         }
         msg = Message()
         msg.body = json.dumps(content)

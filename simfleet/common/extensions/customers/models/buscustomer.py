@@ -446,7 +446,8 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
         if content is None:
             content = {}
         msg = Message()
-        msg.to = self.agent.current_stop.get("jid")
+        #msg.to = self.agent.current_stop.get("jid")
+        msg.to = self.agent.current_stop[0]
         msg.set_metadata("protocol", REQUEST_PROTOCOL)
         #msg.set_metadata("performative", REQUEST_PERFORMATIVE)     #CHANGE - FOR DEQUEUE IN QUEUESTATIONAGENT
         msg.set_metadata("performative", INFORM_PERFORMATIVE)

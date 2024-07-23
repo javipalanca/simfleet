@@ -62,6 +62,8 @@ class CustomerAgent(GeoLocatedAgent):
         #self.directory_id = None                #simfleetagent.py
         #self.type_service = "taxi"              #Not used
 
+        self.customer_dest = None
+
     async def setup(self):
         try:
             template = Template()
@@ -98,6 +100,23 @@ class CustomerAgent(GeoLocatedAgent):
             template2.set_metadata("protocol", QUERY_PROTOCOL)
             self.add_behaviour(self.strategy(), template1 | template2)
             self.running_strategy = True
+
+    def set_target_position(self, coords=None):
+        """
+        Sets the target position of the customer (i.e. its destination).
+        If no position is provided the destination is setted to a random position.
+
+        Args:
+            coords (list): a list coordinates (longitude and latitude)
+        """
+        if coords:
+            self.customer_dest = coords
+        else:
+            #self.dest = random_position()
+            self.customer_dest = new_random_position(self.boundingbox, self.route_host)
+        logger.debug(
+            "Customer {} target position is {}".format(self.agent_id, self.customer_dest)
+        )
 
     # simfleetagent.py
     #def set_id(self, agent_id):

@@ -59,3 +59,13 @@ class PedestrianAgent(MovableMixin, CustomerAgent):
             template2.set_metadata("protocol", QUERY_PROTOCOL)
             self.add_behaviour(self.strategy(), template1 | template2)
             self.running_strategy = True
+
+    async def set_position(self, coords=None):      #ANALIZAR CAMBIO - NOTAS
+        """
+        Sets the position of the customer. If no position is provided it is located in a random position.
+
+        Args:
+            coords (list): a list coordinates (longitude and latitude)
+        """
+        await super().set_position(coords)
+        self.set("current_pos", coords)

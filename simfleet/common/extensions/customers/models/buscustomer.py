@@ -129,15 +129,15 @@ class BusCustomerAgent(PedestrianAgent):
         return None
 
 
-    def watch_value(self, key, callback):
-        """
-        Registers an observer callback to be run when a value is changed
-
-        Args:
-            key (str): the name of the value
-            callback (function): a function to be called when the value changes. It receives two arguments: the old and the new value.
-        """
-        self.__observers[key].append(callback)
+    # def watch_value(self, key, callback):
+    #     """
+    #     Registers an observer callback to be run when a value is changed
+    #
+    #     Args:
+    #         key (str): the name of the value
+    #         callback (function): a function to be called when the value changes. It receives two arguments: the old and the new value.
+    #     """
+    #     self.__observers[key].append(callback)
 
 
     async def set_position(self, coords=None):      #ANALIZAR CAMBIO - NOTAS
@@ -156,7 +156,7 @@ class BusCustomerAgent(PedestrianAgent):
         if self.destination_stop[1] == self.get_position():
 
             logger.success("Customer {} arrived to its destination {}".format(self.name, self.destination_stop[1]))
-            self.status = CUSTOMER_IN_DEST
+            #self.status = CUSTOMER_IN_DEST
             self.set("arrived_to_destination", True)  # launch callback, awake FSMStrategyBehaviour
             self.end_time = time.time()
 
@@ -405,7 +405,7 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
             self.agent.current_stop = self.agent.nearst_agent(self.agent.stop_dic, self.agent.get_position())
 
             # destination_bus_stop, destination_position = self.agent.nearst_agent(self.agent.stop_dic, self.agent.dest)
-            self.agent.destination_stop = self.agent.nearst_agent(self.agent.stop_dic, self.agent.dest)
+            self.agent.destination_stop = self.agent.nearst_agent(self.agent.stop_dic, self.agent.customer_dest)
 
             logger.debug("Customer {} set current_stop {} and destination_stop {}".format(self.agent.name,
                                                                                       self.agent.current_stop[0],

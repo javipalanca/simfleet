@@ -277,8 +277,7 @@ class BusCustomerWaitingForApprovalState(BusCustomerStrategyBehaviour, State):
                     return
                 elif performative == INFORM_PERFORMATIVE:  # the stop is telling me there is another bus
                     logger.info("Customer {} informed of alternative transport {} by stop {}".format(self.agent.name,
-                                                                                                     contents.get(
-                                                                                                         "transport"),
+                                                                                                     contents["transport"],
                                                                                                      sender))
                     self.agent.alternative_transports.append(contents["transport"])
                     logger.debug("Customer's {} alternative transports: {}".format(
@@ -342,13 +341,13 @@ class BusCustomerInDestState(BusCustomerStrategyBehaviour, State):
     async def run(self):
         try:
             # wait for the transport to inform the customer that the destination stop has been reached
-            msg = await self.receive(timeout=5)
+            msg = await self.receive(timeout=10)
             if msg:
                 sender = msg.sender
                 performative = msg.get_metadata("performative")
-                contents = json.loads(msg.body)
-                logger.debug(
-                    "Customer {} received message {} from transport {}".format(self.agent.name, contents, sender))
+                #contents = json.loads(msg.body)
+                #logger.debug(
+                #    "Customer {} received message {} from transport {}".format(self.agent.name, contents, sender))
                 if performative == INFORM_PERFORMATIVE:
                     logger.info("Customer {} has reached their destination".format(self.agent.name))
 
@@ -369,6 +368,7 @@ class BusCustomerInDestState(BusCustomerStrategyBehaviour, State):
 
                             await self.agent.move_to(self.agent.customer_dest)
                             self.set_next_state(CUSTOMER_MOVING_TO_DEST)
+                            return
                         except AlreadyInDestination:
                             logger.debug(
                                 "{} is already in the destination' {} position. . .".format(
@@ -376,7 +376,8 @@ class BusCustomerInDestState(BusCustomerStrategyBehaviour, State):
                                 )
                             )
                             self.set_next_state(CUSTOMER_IN_DEST)
-
+                            return
+            self.set_next_state(CUSTOMER_IN_DEST)
             return
         except Exception as e:
             logger.critical("Agent {}, Exception {} in CustomerInDestState".format(self.agent.name, e))

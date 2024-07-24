@@ -105,22 +105,22 @@ class MovableMixin:
         return self.dest == self.get_position()
 
     #customer.py
-    def set_target_position(self, coords=None):
-        """
-        Sets the target position of the customer (i.e. its destination).
-        If no position is provided the destination is setted to a random position.
-
-        Args:
-            coords (list): a list coordinates (longitude and latitude)
-        """
-        if coords:
-            self.dest = coords
-        else:
-            #self.dest = random_position()
-            self.dest = new_random_position(self.boundingbox, self.route_host)
-        logger.debug(
-            "Customer {} target position is {}".format(self.agent_id, self.dest)
-        )
+    # def set_target_position(self, coords=None):
+    #     """
+    #     Sets the target position of the customer (i.e. its destination).
+    #     If no position is provided the destination is setted to a random position.
+    #
+    #     Args:
+    #         coords (list): a list coordinates (longitude and latitude)
+    #     """
+    #     if coords:
+    #         self.dest = coords
+    #     else:
+    #         #self.dest = random_position()
+    #         self.dest = new_random_position(self.boundingbox, self.route_host)
+    #     logger.debug(
+    #         "Customer {} target position is {}".format(self.agent_id, self.dest)
+    #     )
 
     #transport.py
     def set_speed(self, speed_in_kmh):

@@ -336,7 +336,7 @@ class CustomerAgent(GeoLocatedAgent):
             "id": self.agent_id,
             #"position": [float("{0:.6f}".format(coord)) for coord in self.current_pos],     #Non-parallel variable
             "position": [float("{0:.6f}".format(coord)) for coord in self.get("current_pos")],
-            "dest": [float("{0:.6f}".format(coord)) for coord in self.dest],
+            "dest": [float("{0:.6f}".format(coord)) for coord in self.customer_dest],
             "status": self.status,
             "transport": self.transport_assigned.split("@")[0]
             if self.transport_assigned

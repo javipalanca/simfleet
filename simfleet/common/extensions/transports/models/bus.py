@@ -169,9 +169,10 @@ class BusAgent(TransportAgent):
         if not self.running_strategy:
             template1 = Template()
             template1.set_metadata("protocol", REQUEST_PROTOCOL)
-            template2 = Template()
-            template2.set_metadata("protocol", QUERY_PROTOCOL)
-            self.add_behaviour(self.strategy(), template1 | template2)
+            # template2 = Template()
+            # template2.set_metadata("protocol", QUERY_PROTOCOL)
+            # self.add_behaviour(self.strategy(), template1 | template2)
+            self.add_behaviour(self.strategy(), template1)
             self.running_strategy = True
 
 

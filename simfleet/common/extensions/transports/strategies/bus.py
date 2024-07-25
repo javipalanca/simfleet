@@ -48,29 +48,35 @@ class BusSelectDestState(BusStrategyBehaviour, State):
 
     async def run(self):
         if self.agent.stop_dic is None:
-            await self.send_get_stops()
+            # New
+            self.agent.stop_dic = await self.agent.get_list_agent_position(self.agent.type_service, self.agent.stop_dic)
 
-            msg = await self.receive(timeout=300)       #Director envia informacion de las paradas
-            if msg:
-                protocol = msg.get_metadata("protocol")
-                if protocol == QUERY_PROTOCOL:
-                    performative = msg.get_metadata("performative")
-                    if performative == INFORM_PERFORMATIVE:
-                        self.agent.stop_dic = json.loads(msg.body)
-                        logger.debug(
-                            "{} got stops {}".format(
-                                self.agent.name, self.agent.stop_dic
-                            )
-                        )
-                        self.agent.setup_current_stop()
-                    elif performative == CANCEL_PERFORMATIVE:
-                        logger.warning(
-                            "{} got cancellation of request for {} information".format(
-                                self.agent.name, self.agent.type_service
-                            )
-                        )
             self.set_next_state(TRANSPORT_WAITING)
             return
+
+            #await self.send_get_stops()
+
+            # msg = await self.receive(timeout=300)       #Director envia informacion de las paradas
+            # if msg:
+            #     protocol = msg.get_metadata("protocol")
+            #     if protocol == QUERY_PROTOCOL:
+            #         performative = msg.get_metadata("performative")
+            #         if performative == INFORM_PERFORMATIVE:
+            #             self.agent.stop_dic = json.loads(msg.body)
+            #             logger.debug(
+            #                 "{} got stops {}".format(
+            #                     self.agent.name, self.agent.stop_dic
+            #                 )
+            #             )
+            #             self.agent.setup_current_stop()
+            #         elif performative == CANCEL_PERFORMATIVE:
+            #             logger.warning(
+            #                 "{} got cancellation of request for {} information".format(
+            #                     self.agent.name, self.agent.type_service
+            #                 )
+            #             )
+            # self.set_next_state(TRANSPORT_WAITING)
+            # return
 
         logger.debug("Transport {} in position {} within its stop_list ({})".format(self.agent.jid,
                                                                                     self.agent.get("current_pos"),

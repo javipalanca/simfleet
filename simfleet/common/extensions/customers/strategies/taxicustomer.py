@@ -34,28 +34,35 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
     """
 
     async def run(self):
-        if self.agent.fleetmanagers is None:
-            await self.send_get_managers(self.agent.fleet_type)
 
-            msg = await self.receive(timeout=300)
-            if msg:
-                protocol = msg.get_metadata("protocol")
-                if protocol == QUERY_PROTOCOL:
-                    performative = msg.get_metadata("performative")
-                    if performative == INFORM_PERFORMATIVE:
-                        self.agent.fleetmanagers = json.loads(msg.body)
-                        logger.info(
-                            "{} got fleet managers {}".format(
-                                self.agent.name, self.agent.fleetmanagers
-                            )
-                        )
-                    elif performative == CANCEL_PERFORMATIVE:
-                        logger.info(
-                            "{} got cancellation of request for {} information".format(
-                                self.agent.name, self.agent.fleet_type
-                            )
-                        )
+        if self.agent.fleetmanagers is None:
+
+            self.agent.fleetmanagers = await self.agent.get_list_agent_position(self.agent.fleet_type, self.agent.fleetmanagers)
+
             return
+
+            #await self.send_get_managers(self.agent.fleet_type)
+
+            # msg = await self.receive(timeout=300)
+            # if msg:
+            #     protocol = msg.get_metadata("protocol")
+            #     if protocol == QUERY_PROTOCOL:
+            #         performative = msg.get_metadata("performative")
+            #         if performative == INFORM_PERFORMATIVE:
+            #             self.agent.fleetmanagers = json.loads(msg.body)
+            #             logger.info(
+            #                 "{} got fleet managers {}".format(
+            #                     self.agent.name, self.agent.fleetmanagers
+            #                 )
+            #             )
+            #         elif performative == CANCEL_PERFORMATIVE:
+            #             logger.info(
+            #                 "{} got cancellation of request for {} information".format(
+            #                     self.agent.name, self.agent.fleet_type
+            #                 )
+            #             )
+            # return
+
 
         if self.agent.status == CUSTOMER_WAITING:
             await self.send_request(content={})

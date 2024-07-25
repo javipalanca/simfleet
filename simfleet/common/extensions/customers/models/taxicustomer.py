@@ -3,6 +3,7 @@ import time
 
 from loguru import logger
 from spade.message import Message
+from spade.template import Template
 
 from simfleet.utils.helpers import new_random_position
 from simfleet.utils.utils_old import (
@@ -49,6 +50,19 @@ class TaxiCustomerAgent(CustomerAgent):
 
         """
         self.fleetmanagers = fleetmanagers
+
+    def run_strategy(self):
+        """import json
+        Runs the strategy for the customer agent.
+        """
+        if not self.running_strategy:
+            template1 = Template()
+            template1.set_metadata("protocol", REQUEST_PROTOCOL)
+            # template2 = Template()
+            # template2.set_metadata("protocol", QUERY_PROTOCOL)
+            # self.add_behaviour(self.strategy(), template1 | template2)
+            self.add_behaviour(self.strategy(), template1)
+            self.running_strategy = True
 
 
 #class CustomerStrategyBehaviour(StrategyBehaviour):

@@ -84,111 +84,124 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour, State):
         if (
             self.agent.stations is None
             or len(self.agent.stations) < 1
-            and not self.get(name="stations_requested")
+            #and not self.get(name="stations_requested")
         ):
             logger.info("Transport {} looking for a station.".format(self.agent.name))
-            self.set(name="stations_requested", value=True)
-            await self.send_get_stations()
 
-            msg = await self.receive(timeout=600)
-            if not msg:
-                self.set_next_state(TRANSPORT_NEEDS_CHARGING)
-                return
-            logger.debug("Transport received message: {}".format(msg))
+            # New
+            self.agent.stations = await self.agent.get_list_agent_position(self.agent.service_type, self.agent.stations)
+
+            self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+            return
+
+            #self.set(name="stations_requested", value=True)
+            #await self.send_get_stations()
+
+            #msg = await self.receive(timeout=600)
+            #if not msg:
+            #    self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+            #    return
+            #logger.debug("Transport received message: {}".format(msg))
+            #try:
+            #    content = json.loads(msg.body)
+            #except TypeError:
+            #    content = {}
+
+            #performative = msg.get_metadata("performative")
+            #protocol = msg.get_metadata("protocol")
+
+            #if protocol == QUERY_PROTOCOL:
+            #    if performative == INFORM_PERFORMATIVE:
+            #        self.agent.stations = content
+            #        logger.info(
+            #            "Transport {} got list of current stations: {}".format(
+            #                self.agent.name, len(list(self.agent.stations.keys()))
+            #            )
+            #        )
+            #    elif performative == CANCEL_PERFORMATIVE:
+            #        logger.info(
+            #            "Transport {} got a cancellation of request for stations information.".format(
+            #                self.agent.name
+            #            )
+            #        )
+            #        self.set(name="stations_requested", value=False)
+            #        self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+            #        return
+            #else:
+            #    self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+            #    return
+
+        else:
+
+            self.agent.current_station_dest = self.agent.nearst_agent(self.agent.stations, self.agent.get_position())
+            logger.info(
+                 "Transport {} selected station {}.".format(self.agent.name, self.agent.current_station_dest[0])
+             )
+        # station_positions = []
+        # for key in self.agent.stations.keys():
+        #     dic = self.agent.stations.get(key)
+        #     station_positions.append((dic["jid"], dic["position"]))         #Realizar comprobación del tipo de servicio? DUDA
+        #
+        # closest_station = min(
+        #     station_positions,
+        #     key=lambda x: distance_in_meters(x[1], self.agent.get_position()),
+        # )
+        # logger.debug("Closest station {}".format(closest_station))
+        # station = closest_station[0]
+        # self.agent.current_station_dest = (
+        #     station,
+        #     self.agent.stations[station]["position"],
+        # )
+        # logger.info(
+        #     "Transport {} selected station {}.".format(self.agent.name, station)
+        # )
+
             try:
-                content = json.loads(msg.body)
-            except TypeError:
-                content = {}
+                station, position = self.agent.current_station_dest
+                await self.go_to_the_station(station, position)
 
-            performative = msg.get_metadata("performative")
-            protocol = msg.get_metadata("protocol")
+                try:
+                    logger.debug("{} move_to station {}".format(self.agent.name, station))
+                    await self.agent.move_to(position)
 
-            if protocol == QUERY_PROTOCOL:
-                if performative == INFORM_PERFORMATIVE:
-                    self.agent.stations = content
-                    logger.info(
-                        "Transport {} got list of current stations: {}".format(
-                            self.agent.name, len(list(self.agent.stations.keys()))
+                    self.agent.status = TRANSPORT_MOVING_TO_STATION
+                    self.set_next_state(TRANSPORT_MOVING_TO_STATION)
+
+                except AlreadyInDestination:
+                    logger.debug(
+                        "{} is already in the stations' {} position. . .".format(
+                            self.agent.name, station
                         )
                     )
-                elif performative == CANCEL_PERFORMATIVE:
-                    logger.info(
-                        "Transport {} got a cancellation of request for stations information.".format(
-                            self.agent.name
-                        )
-                    )
-                    self.set(name="stations_requested", value=False)
-                    self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+
+                    self.agent.arguments["transport_need"] = self.agent.max_autonomy_km - self.agent.current_autonomy_km
+
+                    content = {"service_name": self.agent.service_type,
+                            "args": self.agent.arguments}  # AÑADIR ARGS - CARGA QUE NECESITA
+                    await self.request_access_station(self.agent.get("current_station"), content)
+                    self.agent.status = TRANSPORT_IN_STATION_PLACE
+                    self.set_next_state(TRANSPORT_IN_STATION_PLACE)
                     return
-            else:
-                self.set_next_state(TRANSPORT_NEEDS_CHARGING)
+
                 return
 
-        station_positions = []
-        for key in self.agent.stations.keys():
-            dic = self.agent.stations.get(key)
-            station_positions.append((dic["jid"], dic["position"]))         #Realizar comprobación del tipo de servicio? DUDA
-
-        closest_station = min(
-            station_positions,
-            key=lambda x: distance_in_meters(x[1], self.agent.get_position()),
-        )
-        logger.debug("Closest station {}".format(closest_station))
-        station = closest_station[0]
-        self.agent.current_station_dest = (
-            station,
-            self.agent.stations[station]["position"],
-        )
-        logger.info(
-            "Transport {} selected station {}.".format(self.agent.name, station)
-        )
-
-        try:
-            station, position = self.agent.current_station_dest
-            await self.go_to_the_station(station, position)
-
-            try:
-                logger.debug("{} move_to station {}".format(self.agent.name, station))
-                await self.agent.move_to(position)
-
-                self.agent.status = TRANSPORT_MOVING_TO_STATION
-                self.set_next_state(TRANSPORT_MOVING_TO_STATION)
-
-            except AlreadyInDestination:
-                logger.debug(
-                    "{} is already in the stations' {} position. . .".format(
+            except PathRequestException:
+                logger.error(
+                    "Transport {} could not get a path to station {}. Cancelling...".format(
                         self.agent.name, station
                     )
                 )
-
-                self.agent.arguments["transport_need"] = self.agent.max_autonomy_km - self.agent.current_autonomy_km
-
-                content = {"service_name": self.agent.service_type,
-                           "args": self.agent.arguments}  # AÑADIR ARGS - CARGA QUE NECESITA
-                await self.request_access_station(self.agent.get("current_station"), content)
-                self.agent.status = TRANSPORT_IN_STATION_PLACE
-                self.set_next_state(TRANSPORT_IN_STATION_PLACE)
+                await self.cancel_proposal(station)
+                self.agent.status = TRANSPORT_WAITING
+                self.set_next_state(TRANSPORT_WAITING)
                 return
-
-            return
-
-        except PathRequestException:
-            logger.error(
-                "Transport {} could not get a path to station {}. Cancelling...".format(
-                    self.agent.name, station
+            except Exception as e:
+                logger.error(
+                    "Unexpected error in transport {}: {}".format(self.agent.name, e)
                 )
-            )
-            await self.cancel_proposal(station)
-            self.agent.status = TRANSPORT_WAITING
-            self.set_next_state(TRANSPORT_WAITING)
-            return
-        except Exception as e:
-            logger.error(
-                "Unexpected error in transport {}: {}".format(self.agent.name, e)
-            )
-            self.agent.status = TRANSPORT_WAITING
-            self.set_next_state(TRANSPORT_WAITING)
-            return
+                self.agent.status = TRANSPORT_WAITING
+                self.set_next_state(TRANSPORT_WAITING)
+                return
 
 
 class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour, State):

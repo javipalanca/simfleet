@@ -61,11 +61,31 @@ class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour, State):
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
         if performative == REQUEST_PERFORMATIVE:
+
+            logger.warning("DEPURACION strategy: {}: {}".format(self.agent.events_store.get_agent_name(), self.agent.events_store))
+
+            #events_store = self.agent.get_events_store()
+
+            # New statistics
+            # Event 1: Customer Request Reception
+            self.agent.events_store.emit(
+                event_type="customer_request_reception",
+                data={}
+            )
+
             if not self.agent.has_enough_autonomy(content["origin"], content["dest"]):
                 await self.cancel_proposal(content["customer_id"])
                 self.set_next_state(TRANSPORT_NEEDS_CHARGING)
                 return
             else:
+
+                # New statistics
+                # Event 2: Transport Offer
+                self.agent.events_store.emit(
+                    event_type="transport_offer",
+                    data={}
+                )
+
                 await self.send_proposal(content["customer_id"], {})
                 self.set_next_state(TRANSPORT_WAITING_FOR_APPROVAL)
                 return
@@ -443,6 +463,15 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour, State):
                     #    content["customer_id"], content["origin"], content["dest"]
                     #)
 
+                    #events_store = self.agent.get_events_store()
+
+                    # New statistics
+                    # Event 3: Transport Offer Acceptance
+                    self.agent.events_store.emit(
+                        event_type="transport_offer_acceptance",
+                        data={}
+                    )
+
                     #1) Send message to customer
                     await self.agent.inform_customer(
                         customer_id=content["customer_id"], status=TRANSPORT_MOVING_TO_CUSTOMER
@@ -454,7 +483,19 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour, State):
                         origin=content["origin"], dest=content["dest"]
                     )
 
-                    #3) Initiate movement towards the client
+                    #New statistics - TESTING
+                    path, distance, duration = await self.agent.request_path(
+                        self.agent.get("current_pos"), content["origin"]
+                    )
+
+                    # New statistics
+                    # Event 4: Travel to Pickup
+                    self.agent.events_store.emit(
+                        event_type="travel_to_pickup",
+                        data={"distance": distance, "duration": duration}
+                    )
+
+                    # 3) Initiate movement towards the client
                     await self.agent.move_to(content["origin"])
 
                     self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
@@ -633,7 +674,28 @@ class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour, State):
                             "Transport {} on route to customer destination of {}".format(self.agent.name, customer_id)
                         )
 
+                        #events_store = self.agent.get_events_store()
+
+                        # New statistics
+                        # Event 5: Customer Pickup
+                        self.agent.events_store.emit(
+                            event_type="customer_pickup",
+                            data={},
+                        )
+
+                        # New statistics - TESTING
+                        path, distance, duration = await self.agent.request_path(
+                            self.agent.get("current_pos"), dest
+                        )
+
                         await self.agent.move_to(dest)
+
+                        # New statistics
+                        # Event 6: Travel to destination
+                        self.agent.events_store.emit(
+                            event_type="travel_to_destination",
+                            data={"distance": distance, "orig_position":self.agent.get("current_pos"), "dest_position":dest},   #Origen y destino
+                        )
 
                         self.agent.status = TRANSPORT_MOVING_TO_DESTINATION
                         self.set_next_state(TRANSPORT_MOVING_TO_DESTINATION)
@@ -694,6 +756,16 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour, State
                         self.agent.agent_id, self.agent.status
                     )
                 )
+
+                #events_store = self.agent.get_events_store()
+
+                # New statistics
+                # Event 6: Trip completion
+                self.agent.events_store.emit(
+                    event_type="trip_completion",
+                    data={},
+                )
+
                 await self.agent.inform_customer(
                     customer_id=customer_id, status=CUSTOMER_IN_DEST
                 )
@@ -711,6 +783,14 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour, State
             self.set_next_state(TRANSPORT_WAITING)
             return
         except AlreadyInDestination:
+
+            # New statistics
+            # Event 6: Trip completion
+            self.agent.events_store.emit(
+                event_type="trip_completion",
+                data={},
+            )
+
             await self.agent.inform_customer(
                 customer_id=customer_id, status=CUSTOMER_IN_DEST
             )

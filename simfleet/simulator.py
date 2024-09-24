@@ -84,6 +84,11 @@ class SimulatorAgent(Agent):
         self.kill_simulator.clear()
         self.lock = threading.RLock()
 
+        # New statistcs
+        #self.events_store = None
+        # self.events_log = None
+        self.events_log = {"Customer": [], "Transport": []}     # Testing
+
         #self.fleetmanager_strategy = None
         #self.transport_strategy = None
         #self.customer_strategy = None
@@ -638,9 +643,66 @@ class SimulatorAgent(Agent):
 
         self.stop_agents()
 
+        self.generate_events()
+
         self.print_stats()
 
         return super().stop()
+
+    # New statistics
+    # Alternative - Erase
+    def generate_events(self):
+
+        if len(self.customer_agents) > 0:
+
+            if "Customer" not in self.events_log:
+                self.events_log["Customer"] = []
+
+            for customer in self.customer_agents.values():
+                # agent_name = customer.get_id()
+                # if agent_name not in self.events_log:
+                #    self.events_log[agent_name] = []
+
+                logger.warning(
+                    "DEPURACION 4a customertaxi: {}: {}".format(customer.name, customer.events_store))
+
+                logger.warning(
+                    "DEPURACION 4b customertaxi: {}: {}".format(customer.name, customer.events_store.get_agent_name()))
+
+                event_storen = customer.events_store
+                self.events_log["Customer"].extend(event_storen.all_events())
+
+                # event_storen = customer.get_events_store()
+
+                # self.events_log = self.build_log([event_storen])
+
+                # event_storen.all_events()
+
+        if len(self.transport_agents) > 0:
+
+            if "Transport" not in self.events_log:
+                self.events_log["Transport"] = []
+
+            for transport in self.transport_agents.values():
+                event_storen = transport.events_store
+                self.events_log["Transport"].extend(event_storen.all_events())
+
+        # Save the log
+
+        self.save_log_to_file(self.events_log, "simfleet_log.json")
+
+    # New statistics
+    # Alternative - Erase
+    def save_log_to_file(self, log: dict, file_path: str) -> None:
+        """
+        Save the log to a JSON file.
+
+        Args:
+            log (dict): The log dictionary to save
+            file_path (str): The file path where the log will be saved
+        """
+        with open(file_path, 'w') as f:
+            json.dump(log, f, indent=4)
 
     def collect_stats(self):
         """

@@ -12,6 +12,7 @@ from spade.agent import Agent
 
 #from simfleet.utils.helpers import random_position     #Not used
 
+from simfleet.utils.statistics import StatisticsStore
 
 class SimfleetAgent(Agent):
     def __init__(self, agentjid, password):
@@ -31,6 +32,9 @@ class SimfleetAgent(Agent):
 
         self.init_time = None
         self.end_time = None
+
+        # New statistics
+        self.events_store = StatisticsStore(agent_name=str(agentjid))
 
     async def stop(self):
         self.stopped = True

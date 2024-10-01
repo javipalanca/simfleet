@@ -70,7 +70,7 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
             # Event 1: Customer Request
             self.agent.events_store.emit(
                 event_type="customer_request",
-                data={}
+                details={}
             )
 
             await self.send_request(content={})
@@ -96,7 +96,7 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                         # Event 3: Transport Offer Acceptance
                         self.agent.events_store.emit(
                             event_type="transport_offer_acceptance",
-                            data={}
+                            details={}
                         )
 
                         await self.accept_transport(transport_id)
@@ -131,7 +131,7 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                             # Event 4: Travel for Pickup
                             self.agent.events_store.emit(
                                 event_type="wait_for_pickup",
-                                data={"waiting_pickup_time": time.time()}
+                                details={"waiting_pickup_time": time.time()}
                             )
                             #self.agent.waiting_for_pickup_time = time.time()
 
@@ -144,7 +144,7 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                             # Event 5: Customer Pickup
                             self.agent.events_store.emit(
                                 event_type="customer_pickup",
-                                data={"pickup_time": time.time()}
+                                details={"pickup_time": time.time()}
                             )
                             #self.agent.pickup_time = time.time()
 
@@ -152,7 +152,7 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                             # Event 6: Travel to destination
                             self.agent.events_store.emit(
                                 event_type="travel_to_destination",
-                                data={}
+                                details={}
                             )
 
                             await self.inform_transport(transport_id, CUSTOMER_IN_TRANSPORT)
@@ -163,14 +163,14 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                             # Event 7: Travel to destination
                             self.agent.events_store.emit(
                                 event_type="trip_completion",
-                                data={}
+                                details={}
                             )
 
                             # New statistics
                             # End time event - end_time
                             self.agent.events_store.emit(
                                 event_type="end_time_event",
-                                data={"end_time": time.time()}
+                                details={"end_time": time.time()}
                             )
 
                             #self.agent.end_time = time.time()
@@ -180,6 +180,8 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                                     self.agent.name, self.agent.total_time()
                                 )
                             )
+
+
         #TravelBehaviour - customer.py
         # try:
             # msg = await self.receive(timeout=5)

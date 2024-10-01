@@ -29,6 +29,8 @@ from simfleet.utils.utils_old import status_to_str, avg, request_path as async_r
 
 from simfleet.config.settings import set_default_strategies
 
+from simfleet.utils.statistics import Log
+
 from simfleet.communications.protocol import (
     REQUEST_PERFORMATIVE,
     CANCEL_PERFORMATIVE,
@@ -87,7 +89,8 @@ class SimulatorAgent(Agent):
         # New statistcs
         #self.events_store = None
         # self.events_log = None
-        self.events_log = {"Customer": [], "Transport": []}     # Testing
+        #self.events_log = {"Customer": [], "Transport": []}     # Testing
+        self.events_log = None  # Testing
 
         #self.fleetmanager_strategy = None
         #self.transport_strategy = None
@@ -655,8 +658,11 @@ class SimulatorAgent(Agent):
 
         if len(self.customer_agents) > 0:
 
-            if "Customer" not in self.events_log:
-                self.events_log["Customer"] = []
+            #if "Customer" not in self.events_log:
+            #    self.events_log["Customer"] = []
+
+            if not hasattr(self, 'events_log') or self.events_log is None:
+                self.events_log = Log()
 
             for customer in self.customer_agents.values():
                 # agent_name = customer.get_id()
@@ -670,7 +676,17 @@ class SimulatorAgent(Agent):
                     "DEPURACION 4b customertaxi: {}: {}".format(customer.name, customer.events_store.get_agent_name()))
 
                 event_storen = customer.events_store
-                self.events_log["Customer"].extend(event_storen.all_events())
+                #self.events_log["Customer"].extend(event_storen.all_events())
+
+                partial_log = event_storen.generate_partial_log()
+
+                self.events_log.add_events(partial_log)
+
+                #Error - Testing this solution
+                #if self.events_log:
+                #    self.events_log = self.events_log + partial_log
+                #else:
+                #    self.events_log = partial_log
 
                 # event_storen = customer.get_events_store()
 
@@ -680,16 +696,47 @@ class SimulatorAgent(Agent):
 
         if len(self.transport_agents) > 0:
 
-            if "Transport" not in self.events_log:
-                self.events_log["Transport"] = []
+            #if "Transport" not in self.events_log:
+            #    self.events_log["Transport"] = []
+
+            if not hasattr(self, 'events_log') or self.events_log is None:
+                self.events_log = Log()
 
             for transport in self.transport_agents.values():
                 event_storen = transport.events_store
-                self.events_log["Transport"].extend(event_storen.all_events())
+                #self.events_log["Transport"].extend(event_storen.all_events())
+
+                partial_log = event_storen.generate_partial_log()
+
+                self.events_log.add_events(partial_log)
+
+                # Error - Testing this solution
+                #if self.events_log:
+                #    self.events_log = self.events_log + partial_log
+                #else:
+                #    self.events_log = partial_log
+
+        #Ordenar por timestamp - Dentro de propio Log
+        # Añadir unos cuantos filtros
+        # Filtrar por clase
 
         # Save the log
+        self.events_log.sort_by_timestamp(reverse=True)
+        my_log_1 = self.events_log.all_events()
+        self.save_log_to_file(my_log_1, "simfleet_log_all.json")
 
-        self.save_log_to_file(self.events_log, "simfleet_log.json")
+        filtered_log_electrictaxi = (
+            self.events_log
+            .filter(lambda event: event.class_type in ["ElectricTaxiAgent"])
+            .filter(lambda event: event.event_type in ["travel_to_destination", "trip_completion"])
+            .filter(lambda event: event.details.get("distance", 0) > 2000)
+        )
+        my_log_2 = filtered_log_electrictaxi.all_events()
+        #filtered_log_electrictaxi.sort_by_timestamp(reverse=True)
+        self.save_log_to_file(my_log_2, "simfleet_log_electrictaxi.json")
+
+
+
 
     # New statistics
     # Alternative - Erase
@@ -703,6 +750,7 @@ class SimulatorAgent(Agent):
         """
         with open(file_path, 'w') as f:
             json.dump(log, f, indent=4)
+
 
     def collect_stats(self):
         """

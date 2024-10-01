@@ -34,7 +34,13 @@ class SimfleetAgent(Agent):
         self.end_time = None
 
         # New statistics
-        self.events_store = StatisticsStore(agent_name=str(agentjid))
+
+        self.events_store = StatisticsStore(agent_name=str(agentjid), class_type=type(self))
+        #self.events_log = None
+
+    # New testing idea
+    #def create_log(self):
+    #    self.events_log = self.events_store.generate_partial_log()
 
     async def stop(self):
         self.stopped = True

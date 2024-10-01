@@ -70,7 +70,7 @@ class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour, State):
             # Event 1: Customer Request Reception
             self.agent.events_store.emit(
                 event_type="customer_request_reception",
-                data={}
+                details={}
             )
 
             if not self.agent.has_enough_autonomy(content["origin"], content["dest"]):
@@ -83,7 +83,7 @@ class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour, State):
                 # Event 2: Transport Offer
                 self.agent.events_store.emit(
                     event_type="transport_offer",
-                    data={}
+                    details={}
                 )
 
                 await self.send_proposal(content["customer_id"], {})
@@ -469,7 +469,7 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour, State):
                     # Event 3: Transport Offer Acceptance
                     self.agent.events_store.emit(
                         event_type="transport_offer_acceptance",
-                        data={}
+                        details={}
                     )
 
                     #1) Send message to customer
@@ -492,7 +492,7 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour, State):
                     # Event 4: Travel to Pickup
                     self.agent.events_store.emit(
                         event_type="travel_to_pickup",
-                        data={"distance": distance, "duration": duration}
+                        details={"distance": distance, "duration": duration}
                     )
 
                     # 3) Initiate movement towards the client
@@ -680,7 +680,7 @@ class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour, State):
                         # Event 5: Customer Pickup
                         self.agent.events_store.emit(
                             event_type="customer_pickup",
-                            data={},
+                            details={},
                         )
 
                         # New statistics - TESTING
@@ -694,7 +694,7 @@ class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour, State):
                         # Event 6: Travel to destination
                         self.agent.events_store.emit(
                             event_type="travel_to_destination",
-                            data={"distance": distance, "orig_position":self.agent.get("current_pos"), "dest_position":dest},   #Origen y destino
+                            details={"distance": distance, "orig_position":self.agent.get("current_pos"), "dest_position":dest},   #Origen y destino
                         )
 
                         self.agent.status = TRANSPORT_MOVING_TO_DESTINATION
@@ -763,7 +763,7 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour, State
                 # Event 6: Trip completion
                 self.agent.events_store.emit(
                     event_type="trip_completion",
-                    data={},
+                    details={},
                 )
 
                 await self.agent.inform_customer(
@@ -788,7 +788,7 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour, State
             # Event 6: Trip completion
             self.agent.events_store.emit(
                 event_type="trip_completion",
-                data={},
+                details={},
             )
 
             await self.agent.inform_customer(

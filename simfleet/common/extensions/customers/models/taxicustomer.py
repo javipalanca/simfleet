@@ -13,7 +13,7 @@ from simfleet.utils.utils_old import (
     CUSTOMER_IN_TRANSPORT,
     TRANSPORT_IN_CUSTOMER_PLACE,
     CUSTOMER_LOCATION,
-    StrategyBehaviour,
+    #StrategyBehaviour,
     request_path,
     status_to_str,
 )
@@ -30,6 +30,7 @@ from simfleet.communications.protocol import (
 
 from simfleet.common.agents.customer import CustomerAgent
 from simfleet.common.movable import MovableMixin
+from simfleet.utils.abstractstrategies import StrategyBehaviour
 
 #class TaxiCustomerAgent(MovableMixin, CustomerAgent):
 class TaxiCustomerAgent(CustomerAgent):
@@ -77,16 +78,24 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
         * ``refuse_transport``
     """
 
+    # async def on_start(self):
+    #    """
+    #    Initializes the logger and timers. Call to parent method if overloaded.
+    #    """
+    #    logger.debug(
+    #        "Strategy {} started in customer {}".format(
+    #            type(self).__name__, self.agent.name
+    #        )
+    #    )
+    #    self.agent.init_time = time.time()
+
     async def on_start(self):
-        """
-        Initializes the logger and timers. Call to parent method if overloaded.
-        """
+        await super().on_start()
         logger.debug(
-            "Strategy {} started in customer {}".format(
+            "Strategy {} started in agent {}".format(
                 type(self).__name__, self.agent.name
             )
         )
-        self.agent.init_time = time.time()
 
     async def send_get_managers(self, content=None):
         """

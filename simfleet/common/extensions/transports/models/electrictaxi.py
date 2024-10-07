@@ -5,6 +5,7 @@ import time
 from loguru import logger
 
 from spade.message import Message
+from spade.behaviour import State
 
 from simfleet.utils.helpers import (
     #random_position,
@@ -26,7 +27,7 @@ from simfleet.utils.utils_old import (
     TRANSPORT_MOVING_TO_STATION,
     chunk_path,
     request_path,
-    StrategyBehaviour,
+    #StrategyBehaviour,
     TRANSPORT_NEEDS_CHARGING,
 )
 
@@ -45,7 +46,7 @@ from simfleet.communications.protocol import (
 
 from simfleet.common.extensions.transports.models.taxi import TaxiAgent
 from simfleet.common.chargeable import ChargeableMixin
-
+from simfleet.utils.abstractstrategies import StrategyBehaviour, FSMStrategyBehaviour
 
 class ElectricTaxiAgent(ChargeableMixin, TaxiAgent):
     def __init__(self, agentjid, password, **kwargs):
@@ -67,7 +68,8 @@ class ElectricTaxiAgent(ChargeableMixin, TaxiAgent):
         #self.arguments = kwargs.get('args', None)       #ARRAY
         self.arguments = {}
 
-class ElectricTaxiStrategyBehaviour(StrategyBehaviour):
+#class ElectricTaxiStrategyBehaviour(StrategyBehaviour):
+class ElectricTaxiStrategyBehaviour(State):
     """
     Class from which to inherit to create a transport strategy.
     You must overload the ```run`` coroutine
@@ -79,8 +81,17 @@ class ElectricTaxiStrategyBehaviour(StrategyBehaviour):
     """
 
     async def on_start(self):
+        # await super().on_start()
         logger.debug(
             "Strategy {} started in transport {}".format(
+                type(self).__name__, self.agent.name
+            )
+        )
+
+    async def on_end(self):
+        # await super().on_start()
+        logger.debug(
+            "Strategy {} finished in transport {}".format(
                 type(self).__name__, self.agent.name
             )
         )

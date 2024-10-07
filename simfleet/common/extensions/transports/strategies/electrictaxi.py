@@ -3,6 +3,7 @@ import json
 
 from loguru import logger
 from spade.behaviour import State, FSMBehaviour
+from simfleet.utils.abstractstrategies import FSMStrategyBehaviour
 
 from simfleet.common.extensions.transports.models.electrictaxi import ElectricTaxiStrategyBehaviour
 from simfleet.communications.protocol import (
@@ -46,7 +47,7 @@ from simfleet.utils.utils_old import (
 ################################################################
 
 #class TransportWaitingState(TransportStrategyBehaviour, State):
-class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour, State):
+class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING
@@ -93,7 +94,7 @@ class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour, State):
             self.set_next_state(TRANSPORT_WAITING)
             return
 
-class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour, State):
+class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_NEEDS_CHARGING
@@ -224,7 +225,7 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour, State):
                 return
 
 
-class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour, State):
+class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_STATION
@@ -284,7 +285,7 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour, State):
             return
 
 
-class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour, State):
+class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour):
     # car arrives to the station and waits in queue until receiving confirmation
     async def on_start(self):
         await super().on_start()
@@ -339,7 +340,7 @@ class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour, State):
             return
 
 
-class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour, State):
+class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour):
     # car arrives to the station and waits in queue until receiving confirmation
     async def on_start(self):
         await super().on_start()
@@ -398,7 +399,7 @@ class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour, State):
 
 
 
-class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour, State):
+class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour):
     # car charges in a station
     async def on_start(self):
         await super().on_start()
@@ -427,7 +428,7 @@ class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour, State):
             return
 
 
-class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour, State):
+class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
@@ -561,7 +562,7 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour, State):
 
 
 # MOD-STRATEGY-02 - New status
-class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour, State):
+class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
@@ -634,7 +635,7 @@ class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour, State):
             return
 
 # MOD-STRATEGY-03 - New status
-class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour, State):
+class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
@@ -723,7 +724,7 @@ class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour, State):
             return
 
 # MOD-STRATEGY-04 - New status
-class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour, State):
+class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_DESTINATION
@@ -807,7 +808,7 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour, State
             return
 
 # MOD-STRATEGY-05 - New status
-class ElectricTaxiArrivedAtCustomerDestState(ElectricTaxiStrategyBehaviour, State):
+class ElectricTaxiArrivedAtCustomerDestState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_ARRIVED_AT_DESTINATION
@@ -853,7 +854,7 @@ class ElectricTaxiArrivedAtCustomerDestState(ElectricTaxiStrategyBehaviour, Stat
                 return
 
 #class FSMTransportStrategyBehaviour(FSMBehaviour):
-class FSMElectricTaxiStrategyBehaviour(FSMBehaviour):
+class FSMElectricTaxiStrategyBehaviour(FSMStrategyBehaviour):
     def setup(self):
         # Create states
         #self.add_state(TRANSPORT_WAITING, TransportWaitingState(), initial=True)

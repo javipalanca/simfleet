@@ -49,7 +49,7 @@ from simfleet.utils.utils_old import (
 #class TransportWaitingState(TransportStrategyBehaviour, State):
 class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
-        await super().on_start()
+        await super().on_start()   #On_start -> State y no la StrategyBehaviour
         self.agent.status = TRANSPORT_WAITING
         logger.debug("{} in Transport Waiting State".format(self.agent.jid))
 
@@ -75,6 +75,14 @@ class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour):
             )
 
             if not self.agent.has_enough_autonomy(content["origin"], content["dest"]):
+
+                # New statistics
+                # Event 1e: Need for Service
+                self.agent.events_store.emit(
+                    event_type="transport_need_for_service",
+                    details={}
+                )
+
                 await self.cancel_proposal(content["customer_id"])
                 self.set_next_state(TRANSPORT_NEEDS_CHARGING)
                 return
@@ -178,8 +186,21 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
         # )
 
             try:
+
                 station, position = self.agent.current_station_dest
                 await self.go_to_the_station(station, position)
+
+                # New statistics - TESTING
+                path, distance, duration = await self.agent.request_path(
+                    self.agent.get("current_pos"), position
+                )
+
+                # New statistics
+                # Event 2e: Travel to Station
+                self.agent.events_store.emit(
+                    event_type="travel_to_station",
+                    details={"distance": distance}
+                )
 
                 try:
                     logger.debug("{} move_to station {}".format(self.agent.name, station))
@@ -252,6 +273,13 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
                 self.agent.arguments["transport_need"] = self.agent.max_autonomy_km - self.agent.current_autonomy_km
                 #self.agent.arguments["power"] = self.agent.current_station_dest[2]
 
+                # New statistics
+                # Event 3e: Arrival at Station
+                self.agent.events_store.emit(
+                    event_type="arrival_at_station",
+                    details={}
+                )
+
                 content = {"service_name": self.agent.service_type, "object_type": "transport", "args": self.agent.arguments}             #AÑADIR ARGS - CARGA QUE NECESITA
                 await self.request_access_station(self.agent.get("current_station"), content)
 
@@ -270,6 +298,13 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
             #self.agent.arguments.append(self.agent.max_autonomy_km - self.agent.current_autonomy_km)
             content = {"service_name": self.agent.service_type, "args": self.agent.arguments}         #Añadir lo que necesita
             await self.request_access_station(self.agent.get("current_station"), content)
+
+            # New statistics
+            # Event 3e: Arrival at Station
+            self.agent.events_store.emit(
+                event_type="arrival_at_station",
+                details={}
+            )
 
             self.agent.status = TRANSPORT_IN_STATION_PLACE
             self.set_next_state(TRANSPORT_IN_STATION_PLACE)
@@ -308,6 +343,13 @@ class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour):
                     )
                 )
                 #await self.charge_allowed()  # Refactory analysis
+
+                # New statistics
+                # Event 4e: Wait for Service
+                self.agent.events_store.emit(
+                    event_type="wait_for_service",
+                    details={}
+                )
 
                 self.agent.status = TRANSPORT_IN_WAITING_LIST
                 self.set_next_state(TRANSPORT_IN_WAITING_LIST)
@@ -365,6 +407,13 @@ class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour):
                 )
                 if content.get("serving") is not None and content.get("serving"):      #Cambiar por is None ---- is not None
 
+                    # New statistics
+                    # Event 5e: Service Start
+                    self.agent.events_store.emit(
+                        event_type="service_start",
+                        details={}
+                    )
+
                     await self.begin_charging()  # Cambiar - QUITAR SI DA PROBLEMAS
                     self.agent.status = TRANSPORT_CHARGING
                     self.set_next_state(TRANSPORT_CHARGING)
@@ -420,6 +469,14 @@ class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour):
                 self.agent.transport_charged()
                 await self.drop_station()
                 # canviar per un event?
+
+                # New statistics
+                # Event 6e: Service Completion
+                self.agent.events_store.emit(
+                    event_type="service_completion",
+                    details={}
+                )
+
                 self.agent.status = TRANSPORT_WAITING
                 self.set_next_state(TRANSPORT_WAITING)
                 return

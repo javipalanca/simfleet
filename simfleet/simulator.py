@@ -27,7 +27,7 @@ from simfleet.common.agents.factory.create import VehicleFactory
 from simfleet.common.agents.factory.create import TransportStopFactory
 from simfleet.utils.utils_old import status_to_str, avg, request_path as async_request_path
 
-from simfleet.config.settings import set_default_strategies
+from simfleet.config.settings import set_default_strategies, set_default_metrics
 
 from simfleet.utils.statistics import Log
 
@@ -91,6 +91,7 @@ class SimulatorAgent(Agent):
         # self.events_log = None
         #self.events_log = {"Customer": [], "Transport": []}     # Testing
         self.events_log = None  # Testing
+        self.simulatortimestamp = None
 
         #self.fleetmanager_strategy = None
         #self.transport_strategy = None
@@ -113,6 +114,11 @@ class SimulatorAgent(Agent):
                                                 config.vehicle_strategy,  # New vehicle
                                                 config.bus_stop_strategy  # Bus line
                                                 )
+
+        #New statistics
+        self.metrics_class = {}
+
+        self.metrics_class = set_default_metrics(config.mobility_metrics)
 
         self.route_host = config.route_host
 
@@ -561,6 +567,10 @@ class SimulatorAgent(Agent):
         Starts the simulation
         """
 
+        #Guardar el TimeStamp del simulador
+        self.simulatortimestamp = str(datetime.now())
+
+
         class RunBehaviour(OneShotBehaviour):
             async def run(self):
                 #  self.clear_stopped_agents()
@@ -646,11 +656,107 @@ class SimulatorAgent(Agent):
 
         self.stop_agents()
 
-        self.generate_events()
+        #self.generate_events()
+
+        #Añadir la funcion de las metricas de la clase cargada
+
+        self.generate_all_events()
+
+        self.generate_metrics()
 
         self.print_stats()
 
         return super().stop()
+
+    def generate_metrics(self):
+
+        statistics = self.metrics_class['mobility_metrics']
+
+        #Create a instance
+        statistics = statistics()
+
+        logger.debug("DEBUGED SimulatorAgent: {} - {}".format(statistics, type(statistics)))
+
+        the_log = self.events_log
+
+        logger.debug("DEBUGED SimulatorAgent: {} - {}".format(the_log, type(the_log)))
+
+        statistics.run(events_log=the_log)
+
+    # New statistics
+    def generate_all_events(self):
+
+        if len(self.customer_agents) > 0:
+
+            if not hasattr(self, 'events_log') or self.events_log is None:
+                self.events_log = Log()
+
+            for customer in self.customer_agents.values():
+
+                event_storen = customer.events_store
+
+                partial_log = event_storen.generate_partial_log()
+
+                self.events_log.add_events(partial_log)
+
+        if len(self.transport_agents) > 0:
+
+            if not hasattr(self, 'events_log') or self.events_log is None:
+                self.events_log = Log()
+
+            for transport in self.transport_agents.values():
+
+                event_storen = transport.events_store
+
+                partial_log = event_storen.generate_partial_log()
+
+                self.events_log.add_events(partial_log)
+
+        if len(self.station_agents) > 0:
+
+            if not hasattr(self, 'events_log') or self.events_log is None:
+                self.events_log = Log()
+
+            for station in self.station_agents.values():
+
+                event_storen = station.events_store
+
+                partial_log = event_storen.generate_partial_log()
+
+                self.events_log.add_events(partial_log)
+
+        #if len(self.bus_stop_agents) > 0:
+
+        #    if not hasattr(self, 'events_log') or self.events_log is None:
+        #        self.events_log = Log()
+
+        #    for bus_stop in self.bus_stop_agents.values():
+
+        #        event_storen = bus_stop.events_store
+
+        #        partial_log = event_storen.generate_partial_log()
+
+        #        self.events_log.add_events(partial_log)
+
+        if len(self.manager_agents) > 0:
+
+            if not hasattr(self, 'events_log') or self.events_log is None:
+                self.events_log = Log()
+
+            for manager in self.manager_agents.values():
+
+                event_storen = manager.events_store
+
+                partial_log = event_storen.generate_partial_log()
+
+                self.events_log.add_events(partial_log)
+
+        self.events_log.sort_by_timestamp(reverse=False)
+
+        self.events_log.adjust_timestamps(simulator_timestamp=self.simulatortimestamp)
+
+        my_log_1 = self.events_log.all_events()
+        self.save_log_to_file(my_log_1, "simfleet_log_all.json")
 
     # New statistics
     # Alternative - Erase
@@ -1009,7 +1115,7 @@ class SimulatorAgent(Agent):
                         {
                             "count": "1",
                             "name": "Customers",
-                            "children": [ { "status": 24, "name": " michaelstewart", "icon": "fa-user" } ]
+                            "children": [ { "status": 24, "name": " michaelstewart", "icon": "fa-lib" } ]
                         }
                     ]
                 },
@@ -1084,7 +1190,7 @@ class SimulatorAgent(Agent):
                         {
                             "name": " {}".format(i.name.split("@")[0]),
                             "status": i.status,
-                            "icon": "fa-user",
+                            "icon": "fa-lib",
                         }
                         for i in self.customer_agents.values()
                     ],

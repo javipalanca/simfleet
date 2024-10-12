@@ -92,6 +92,10 @@ class SimfleetConfig(object):
         self.__config["vehicle_strategy"] = self.__config.get(
             "vehicle_strategy", "simfleet.strategies_fsm.RequestAndTravelBehavior"
         )
+        # New statistics
+        self.__config["mobility_metrics"] = self.__config.get(          #Metric - Renombrar
+            "mobility_metrics", "simfleet.metrics.extensions.mobilitystatistics.MobilityStatistics"      #Metric - Renombrar
+        )
 
         # Bus line
         self.__config["bus_stop_strategy"] = self.__config.get(
@@ -104,7 +108,8 @@ class SimfleetConfig(object):
             "fleetmanager_passwd", "fleetmanager_passwd"
         )
         self.__config["route_host"] = self.__config.get(
-            "route_host", "http://router.project-osrm.org/"
+            #"route_host", "http://router.project-osrm.org/"
+            "route_host", "http://osrm.gti-ia.upv.es/"
         )
         self.__config["route_name"] = self.__config.get("route_name", "route")
         self.__config["route_password"] = self.__config.get(
@@ -199,6 +204,13 @@ class SimfleetConfig(object):
         d = hide_passwords(self.__config)
         return json.dumps(d, indent=4)
 
+
+def set_default_metrics(mobility_metrics):      #Renombrar
+    class_dict = {}
+
+    class_dict['mobility_metrics'] = load_class(mobility_metrics)     #Crear lista de metricas
+
+    return class_dict
 
 def set_default_strategies(
         directory_strategy,

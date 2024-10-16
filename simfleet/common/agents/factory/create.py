@@ -1,20 +1,19 @@
-import abc
-import sys
-from abc import ABC, abstractmethod
-
 from loguru import logger
+from abc import ABC, abstractmethod
 
 from simfleet.common.agents.directory import DirectoryAgent
 from simfleet.common.agents.fleetmanager import FleetManagerAgent
-from simfleet.common.agents.transport import TransportAgent
-#from simfleet.common.agents.customer import CustomerAgent
-from simfleet.common.agents.station import StationAgent
 from simfleet.common.extensions.vehicles.models.vehicle import VehicleAgent
 
 from simfleet.utils.reflection import load_class
 
 
-class Factory(ABC):     #Factory
+class Factory(ABC):
+    """
+        Abstract factory class for creating agents. All agent factories must inherit from this class
+        and implement the create_agent method.
+
+    """
     @classmethod
     @abstractmethod
     def create_agent(cls,
@@ -41,10 +40,18 @@ class Factory(ABC):     #Factory
                      line,
                      lines
                      ):
+        """
+                Abstract method that must be implemented by all subclasses to create a specific agent.
+        """
+
         raise NotImplementedError
 
 
-class DirectoryFactory(Factory):    #DirectoryFactory
+class DirectoryFactory(Factory):
+    """
+        Factory class for creating DirectoryAgent instances.
+
+    """
     @classmethod
     def create_agent(cls,
                      domain,
@@ -78,16 +85,23 @@ class DirectoryFactory(Factory):    #DirectoryFactory
                             name (str): name of the agent
                             password (str): password of the agent
                             default_strategy (class, optional): strategy class of the agent
+
+                        Returns:
+                        DirectoryAgent: An instance of DirectoryAgent
                         """
         jid = f"{name}@{domain}"
         logger.debug("Creating Directory agent: {}".format(jid))
-        agent = DirectoryAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
-        agent.set_id(name)  #Establece el identificador del agente
-        agent.strategy = default_strategy   #Añadimos el objeto de la clase cargada a la variable strategy
+        agent = DirectoryAgent(jid, password)
+        agent.set_id(name)
+        agent.strategy = default_strategy
         return agent
 
 
-class FleetManagerFactory(Factory):      #ManagerFactory
+class FleetManagerFactory(Factory):
+    """
+        Factory class for creating FleetManagerAgent instances.
+
+        """
     @classmethod
     def create_agent(cls,
                      domain,
@@ -125,13 +139,16 @@ class FleetManagerFactory(Factory):      #ManagerFactory
                             jid_directory (JID): directory JID address
                             fleet_type (str): type of fleet to be used
 
+                        Returns:
+                        FleetManagerAgent: An instance of FleetManagerAgent.
                         """
         jid = f"{name}@{domain}"
         logger.debug("Creating FleetManager agent: {}".format(jid))
-        agent = FleetManagerAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
-        agent.set_id(name)  # Establece el identificador del agente
+        agent = FleetManagerAgent(jid, password)
+        agent.set_id(name)
         agent.set_directory(jid_directory)
 
+        # Load strategy if provided
         if type(strategy) is str:
             agent.strategy = load_class(strategy)
         else:
@@ -142,7 +159,11 @@ class FleetManagerFactory(Factory):      #ManagerFactory
         return agent
 
 
-class TransportFactory(Factory):    #TransportFactory
+class TransportFactory(Factory):
+    """
+        Factory class for creating transport-related agent instances.
+
+        """
     @classmethod
     def create_agent(cls,
                      domain,
@@ -169,28 +190,37 @@ class TransportFactory(Factory):    #TransportFactory
                      lines=None
                     ):
         """
-                                Create a transport agent.
+        Create a Transport agent.
 
-                                Args:
-                                    domain (str): name of domain xmpp
-                                    name (str): name of the agent
-                                    password (str): password of the agent
-                                    default_strategy (class): default strategy class of the agent
-                                    strategy (class, optional): strategy class of the agent
-                                    jid_directory (JID): directory JID address
-                                    fleetmanager (str): fleetmanager JID address
-                                    fleet_type (str): type of fleet to be used
-                                    route_host (str): route host address
-                                    autonomy (str):
-                                    current_autonomy (str):
-                                    position (str):
-                                    speed (str):
+        Args:
+            domain (str): XMPP domain name.
+            name (str): Agent name.
+            password (str): Password for the agent.
+            class_ (str): Class name for the agent in path format.
+            default_strategy (class): Default strategy class for the agent.
+            strategy (class, optional): Optional specific strategy class.
+            jid_directory (JID): Directory JID address.
+            fleetmanager (str): Fleet manager JID address.
+            fleet_type (str): Type of fleet used by the agent.
+            route_host (str): Route host address.
+            autonomy (str): Autonomy level of the agent.
+            current_autonomy (str): Current autonomy level.
+            position (list): Initial coordinates of the agent.
+            speed (str): Speed of the agent.
+            services (list): List of services the agent provides.
+            capacity (int): Capacity of the agent.
+            line (str, optional): Bus line assigned to the agent.
+            lines (dict, optional): Dictionary containing line details.
+
+        Returns:
+            TransportAgent: An instance of the specified transport agent class.
                                 """
+
         jid = f"{name}@{domain}"
         logger.debug("Creating Transport agent: {}".format(jid))
-        #agent = TransportAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
 
-        if type(class_) is str:   # Añadimos el objeto de la clase cargada a la variable agente_class
+        # Load and instantiate agent class
+        if type(class_) is str:
             agent_class = load_class(class_)
             if optional:
                 agent = agent_class(jid, password, **optional)
@@ -199,17 +229,17 @@ class TransportFactory(Factory):    #TransportFactory
         else:
             raise Exception ("The agent needs a class in path format.")
 
-        agent.set_id(name)  # Establece el identificador del agente
+        agent.set_id(name)
         agent.set_directory(jid_directory)
 
-        if type(strategy) is str:   # Añadimos el objeto de la clase cargada a la variable strategy
+        # Load strategy if provided
+        if type(strategy) is str:
             agent.strategy = load_class(strategy)
         else:
             agent.strategy = default_strategy
 
-        logger.debug("Assigning type {} to transport {}".format(fleet_type, agent.agent_id))
+        # Set fleet type, route host, and additional attributes
         agent.set_fleet_type(fleet_type)
-        #agent.set_fleetmanager(fleetmanager)
         agent.set_route_host(route_host)
         agent.set_boundingbox(bbox)
 
@@ -219,7 +249,7 @@ class TransportFactory(Factory):    #TransportFactory
         if services:
             agent.set_service_type(services)
 
-        # Bus line
+        # Bus line management
         if line:
             agent.set_line(line)
             stop_list = lines.get(line).get("stop_list")
@@ -228,6 +258,7 @@ class TransportFactory(Factory):    #TransportFactory
             agent.set_line_type(line_type)
             agent.set_initial_position(stop_list[0])
 
+        # Additional attributes
         if position:
             agent.set_initial_position(position)
 
@@ -241,6 +272,10 @@ class TransportFactory(Factory):    #TransportFactory
 
 
 class CustomerFactory(Factory):
+    """
+        Factory class for creating CustomerAgent instances.
+
+        """
     @classmethod
     def create_agent(cls,
                      domain,
@@ -267,36 +302,40 @@ class CustomerFactory(Factory):
                      lines=None
                     ):
         """
-                                Create a customer agent.
+        Create a Customer agent.
 
-                                Args:
-                                    domain (str): name of domain xmpp
-                                    name (str): name of the agent
-                                    password (str): password of the agent
-                                    default_strategy (class): default strategy class of the agent
-                                    strategy (class, optional): strategy class of the agent
-                                    jid_directory (JID): directory JID address
-                                    fleet_type (str): type of he fleet to be or demand
-                                    route_host (str): route host address
-                                    position (list): initial coordinates of the agent
-                                    target (list, optional): destination coordinates of the agent
-                                """
+        Args:
+            domain (str): XMPP domain name.
+            name (str): Agent name.
+            password (str): Password for the agent.
+            class_ (str): Class name for the agent in path format.
+            default_strategy (class): Default strategy class for the agent.
+            strategy (class, optional): Optional specific strategy class.
+            jid_directory (JID): Directory JID address.
+            fleet_type (str): Type of fleet used by the agent.
+            route_host (str): Route host address.
+            position (list): Initial coordinates of the agent.
+            target (list, optional): Destination coordinates of the agent.
+
+        Returns:
+            CustomerAgent: An instance of the specified customer agent class.
+        """
 
         jid = f"{name}@{domain}"
         logger.debug("Creating Customer agent: {}".format(jid))
-        #agent = CustomerAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
-        #agent = PedestrianAgent(jid, password)
 
-        if type(class_) is str:   # Añadimos el objeto de la clase cargada a la variable agente_class
+        # Load and instantiate agent class
+        if type(class_) is str:
             agent_class = load_class(class_)
             agent = agent_class(jid, password)
         else:
             raise Exception ("The agent needs a class in path format.")
 
-        agent.set_id(name)  # Establece el identificador del agente
+        agent.set_id(name)
         agent.set_directory(jid_directory)
 
-        if type(strategy) is str:   # Añadimos el objeto de la clase cargada a la variable strategy
+        # Load strategy if provided
+        if type(strategy) is str:
             agent.strategy = load_class(strategy)
         else:
             agent.strategy = default_strategy
@@ -304,7 +343,7 @@ class CustomerFactory(Factory):
         if line:
             agent.set_line(line)
 
-        logger.debug("Assigning fleet type {} to customer {}".format(fleet_type, name))
+        # Set fleet type, route host, and additional attributes
         agent.set_fleet_type(fleet_type)
         agent.set_route_host(route_host)
         agent.set_boundingbox(bbox)
@@ -312,13 +351,16 @@ class CustomerFactory(Factory):
         if position:
             agent.set_initial_position(position)
 
-        #agent.set_position(position)
         agent.set_target_position(target)
 
         return agent
 
 
 class StationFactory(Factory):
+    """
+        Factory class for creating StationAgent instances.
+
+        """
     @classmethod
     def create_agent(cls,
                     domain,
@@ -346,71 +388,65 @@ class StationFactory(Factory):
                     ):
 
         """
-                Create a station agent.
+        Create a Station agent.
 
-                Args:
-                    domain (str): name of domain xmpp
-                    name (str): name of the agent
-                    password (str): password of the agent
-                    default_strategy (class): default strategy class of the agent
-                    strategy (class, optional): strategy class of the agent
-                    jid_directory (JID): directory JID address
-                    position (list): initial coordinates of the agent
-                    power (int): power of the station agent in kW
-                    slots (int): destination coordinates of the agent
-                """
+        Args:
+            domain (str): XMPP domain name.
+            name (str): Agent name.
+            password (str): Password for the agent.
+            class_ (str): Class name for the agent in path format.
+            default_strategy (class): Default strategy class for the agent.
+            strategy (class, optional): Optional specific strategy class.
+            jid_directory (JID): Directory JID address.
+            position (list): Initial coordinates of the agent.
+            services (list): List of services provided by the station.
+            capacity (int): Capacity of the station (e.g., slots available for vehicles).
+
+        Returns:
+            StationAgent: An instance of StationAgent.
+        """
 
         jid = f"{name}@{domain}"
         logger.debug("Creating Station agent: {}".format(jid))
 
-        if type(class_) is str:   # Añadimos el objeto de la clase cargada a la variable agente_class
+        # Load and instantiate agent class
+        if type(class_) is str:
             agent_class = load_class(class_)
             agent = agent_class(jid, password)
         else:
             raise Exception ("The agent needs a class in path format.")
 
-        #agent = StationAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
-        agent.set_id(name)  # Establece el identificador del agente
+        agent.set_id(name)
         agent.set_directory(jid_directory)
 
-        #TEST 3
-        #if type(strategy) is str:   # Añadimos el objeto de la clase cargada a la variable strategy
-        #    one_shot_behaviour = load_class(strategy)
-        #else:
-        #    one_shot_behaviour = default_strategy
-
+        # Set route host, and additional attributes
         agent.set_route_host(route_host)
-        #one_shot_behaviour = one_shot_behaviour(None, 0, power)
         agent.set_boundingbox(bbox)
         agent.set_position(position)
-        #agent.set_available_places(slots)
 
         if simulatorjid:
             agent.set_simulatorjid(simulatorjid)
 
-        #for type_, behaviour, slots, args in services:
+        # Station service management
         for service in services:
             type_ = service["type"]
             behaviour = service["behaviour"]
             slots = service["slots"]
             args = service["args"]
-            logger.warning(
-                "CREATE args: {}".format(
-                    args
-                )
-            )
-            if type(behaviour) is str:  # Añadimos el objeto de la clase cargada a la variable strategy
+
+            if type(behaviour) is str:
                 one_shot_behaviour = load_class(behaviour)
             else:
                 one_shot_behaviour = default_strategy
             agent.add_service(type_, slots, one_shot_behaviour, **args)
 
-        #agent.set_service_type(service_name)        #Testeo             #BORRAR
-        #agent.set_power(power)                      #Testeo             #BORRAR
-
         return agent
 
 class TransportStopFactory(Factory):
+    """
+        Factory class for creating TransportStopAgent instances.
+
+        """
     @classmethod
     def create_agent(cls,
                     domain,
@@ -438,39 +474,46 @@ class TransportStopFactory(Factory):
                     ):
 
         """
-                Create a station agent.
+        Create a Transport Stop agent.
 
-                Args:
-                    domain (str): name of domain xmpp
-                    name (str): name of the agent
-                    password (str): password of the agent
-                    default_strategy (class): default strategy class of the agent
-                    strategy (class, optional): strategy class of the agent
-                    jid_directory (JID): directory JID address
-                    position (list): initial coordinates of the agent
-                    power (int): power of the station agent in kW
-                    slots (int): destination coordinates of the agent
-                """
+        Args:
+            domain (str): XMPP domain name.
+            name (str): List containing agent ID and stop name.
+            password (str): Password for the agent.
+            default_strategy (class): Default strategy class for the agent.
+            strategy (class, optional): Optional specific strategy class.
+            jid_directory (JID): Directory JID address.
+            position (list): Initial coordinates of the transport stop.
+            lines (list): List of lines served by the transport stop.
+
+        Returns:
+            TransportStopAgent: An instance of TransportStopAgent.
+        """
 
         jid = f"{name[0]}@{domain}"
         logger.debug("Creating Station agent: {}".format(jid))
 
-        if type(class_) is str:   # Añadimos el objeto de la clase cargada a la variable agente_class
+        # Load and instantiate agent class
+        if type(class_) is str:
             agent_class = load_class(class_)
             agent = agent_class(jid, password)
         else:
             raise Exception ("The agent needs a class in path format.")
 
-        #agent = StationAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
-        agent.set_id(name[0])  # Establece el identificador del agente
+        agent.set_id(name[0])
         agent.set_name(name[1])
         agent.set_directory(jid_directory)
 
+        # Load strategy if provided
+        if type(strategy) is str:
+            agent.strategy = load_class(strategy)
+        else:
+            agent.strategy = default_strategy
+
+        # Set route host, and additional attributes
         agent.set_route_host(route_host)
-        #one_shot_behaviour = one_shot_behaviour(None, 0, power)
         agent.set_boundingbox(bbox)
         agent.set_position(position)
-        #agent.set_available_places(slots)
 
         if simulatorjid:
             agent.set_simulatorjid(simulatorjid)
@@ -478,21 +521,13 @@ class TransportStopFactory(Factory):
         for line in lines:
             agent.add_queue(line)
 
-        #agent.set_lines(lines)
-
-        if type(strategy) is str:   # Añadimos el objeto de la clase cargada a la variable strategy
-            agent.strategy = load_class(strategy)
-        else:
-            agent.strategy = default_strategy
-
-
-        #agent.set_service_type(service_name)        #Testeo             #BORRAR
-        #agent.set_power(power)                      #Testeo             #BORRAR
-
         return agent
 
-#New vehicle
-class VehicleFactory(Factory):    #VehicleFactory
+class VehicleFactory(Factory):
+    """
+        Factory class for creating VehicleAgent instances.
+
+        """
     @classmethod
     def create_agent(cls,
                     domain,
@@ -519,43 +554,41 @@ class VehicleFactory(Factory):    #VehicleFactory
                     lines=None
                     ):
         """
-                                Create a vehicle agent.
+        Create a Vehicle agent.
 
-                                Args:
-                                    domain (str): name of domain xmpp
-                                    name (str): name of the agent
-                                    password (str): password of the agent
-                                    default_strategy (class): default strategy class of the agent
-                                    strategy (class, optional): strategy class of the agent
-                                    jid_directory (JID): directory JID address
-                                    fleetmanager (str): fleetmanager JID address
-                                    fleet_type (str): type of fleet to be used
-                                    route_host (str): route host address
-                                    autonomy (str):
-                                    current_autonomy (str):
-                                    position (str):
-                                    speed (str):
-                                """
+        Args:
+            domain (str): XMPP domain name.
+            name (str): Agent name.
+            password (str): Password for the agent.
+            default_strategy (class): Default strategy class for the agent.
+            strategy (class, optional): Optional specific strategy class.
+            jid_directory (JID): Directory JID address.
+            fleet_type (str): Type of fleet used by the vehicle.
+            route_host (str): Route host address.
+            position (list): Initial coordinates of the vehicle.
+            speed (str): Speed of the vehicle.
+            target (list, optional): Target coordinates for the vehicle.
+
+        Returns:
+            VehicleAgent: An instance of VehicleAgent.
+        """
         jid = f"{name}@{domain}"
         logger.debug("Creating Vehicle agent: {}".format(jid))
-        agent = VehicleAgent(jid, password)  # Crea el usuario y la conexión con el XMPP
-        agent.set_id(name)  # Establece el identificador del agente
+        agent = VehicleAgent(jid, password)
+        agent.set_id(name)
         agent.set_directory(jid_directory)
 
-        if type(strategy) is str:   # Añadimos el objeto de la clase cargada a la variable strategy
+        # Load strategy if provided
+        if type(strategy) is str:
             agent.strategy = load_class(strategy)
         else:
             agent.strategy = default_strategy
 
-        logger.debug("Assigning type {} to vehicle {}".format(fleet_type, agent.agent_id))
+        # Set route host, and additional attributes
         agent.set_fleet_type(fleet_type)
-        #agent.set_fleetmanager(fleetmanager)
         agent.set_route_host(route_host)
         agent.set_boundingbox(bbox)
         agent.set_target_position(target)
-
-        #if autonomy:
-        #    agent.set_autonomy(autonomy, current_autonomy)
 
         agent.set_initial_position(position)
 

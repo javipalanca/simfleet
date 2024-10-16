@@ -1,8 +1,7 @@
 import json
 import time
-from asyncio import CancelledError
-
 from loguru import logger
+from asyncio import CancelledError
 
 from simfleet.common.extensions.customers.models.taxicustomer import TaxiCustomerStrategyBehaviour
 from simfleet.communications.protocol import (
@@ -27,42 +26,35 @@ from simfleet.utils.utils_old import (
 #                                                              #
 ################################################################
 
-#class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
 class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
     """
-    The default strategy for the Customer agent. By default it accepts the first proposal it receives.
+    A customer strategy behavior that accepts the first proposal it receives from a transport agent.
+    It defines how the customer agent interacts with transport agents and handles different communication protocols.
+
+    Inherits from:
+        TaxiCustomerStrategyBehaviour: A base class for customer behaviors in the electric taxi fleet system.
+
+    Methods:
+        run(): The main coroutine responsible for the strategy's execution. It listens for messages
+               and reacts based on the agent's current status and the message's performative.
     """
 
     async def run(self):
+        """
+                The core coroutine that implements the customer strategy.
+                It handles message receiving, proposal acceptance, refusal, and status updates.
+                The customer will accept the first valid transport proposal and update its status
+                based on the incoming messages from transport agents.
+        """
 
+        # If the customer does not have a fleet manager assigned, get the list of fleet managers.
         if self.agent.fleetmanagers is None:
 
-            self.agent.fleetmanagers = await self.agent.get_list_agent_position(self.agent.fleet_type, self.agent.fleetmanagers)
+            fleetmanager_list = await self.agent.get_list_agent_position(self.agent.fleet_type, self.agent.fleetmanagers)
+
+            self.agent.set_fleetmanager(fleetmanager_list)
 
             return
-
-            #await self.send_get_managers(self.agent.fleet_type)
-
-            # msg = await self.receive(timeout=300)
-            # if msg:
-            #     protocol = msg.get_metadata("protocol")
-            #     if protocol == QUERY_PROTOCOL:
-            #         performative = msg.get_metadata("performative")
-            #         if performative == INFORM_PERFORMATIVE:
-            #             self.agent.fleetmanagers = json.loads(msg.body)
-            #             logger.info(
-            #                 "{} got fleet managers {}".format(
-            #                     self.agent.name, self.agent.fleetmanagers
-            #                 )
-            #             )
-            #         elif performative == CANCEL_PERFORMATIVE:
-            #             logger.info(
-            #                 "{} got cancellation of request for {} information".format(
-            #                     self.agent.name, self.agent.fleet_type
-            #                 )
-            #             )
-            # return
-
 
         if self.agent.status == CUSTOMER_WAITING:
 
@@ -84,6 +76,7 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                 content = json.loads(msg.body)
                 logger.debug("Customer {} informed of: {}".format(self.agent.name, content))
 
+                # Handle transport proposals.
                 if performative == PROPOSE_PERFORMATIVE:
                     if self.agent.status == CUSTOMER_WAITING:
                         logger.debug(
@@ -104,6 +97,7 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                     else:
                         await self.refuse_transport(transport_id)
 
+                # Handle transport cancellation.
                 elif performative == CANCEL_PERFORMATIVE:
                     if self.agent.transport_assigned == str(transport_id):
                         logger.warning(
@@ -113,15 +107,11 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                         )
                         self.agent.status = CUSTOMER_WAITING
 
+                # Handle status updates from the transport.
                 elif performative == INFORM_PERFORMATIVE:
                     if "status" in content:
                         status = content["status"]
-                        # if status != CUSTOMER_LOCATION:
-                        #    logger.debug(
-                        #        "Customer {} informed of status: {}".format(
-                        #            self.agent.name, status_to_str(status)
-                        #        )
-                        #    )
+
                         if status == TRANSPORT_MOVING_TO_CUSTOMER:
                             logger.info(
                                 "Customer {} waiting for transport.".format(self.agent.name)
@@ -131,10 +121,8 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                             # Event 4: Travel for Pickup
                             self.agent.events_store.emit(
                                 event_type="wait_for_pickup",
-                                details={"waiting_pickup_time": time.time()}
+                                details={}
                             )
-                            #self.agent.waiting_for_pickup_time = time.time()
-
 
                         elif status == TRANSPORT_IN_CUSTOMER_PLACE:
                             self.agent.status = CUSTOMER_IN_TRANSPORT
@@ -144,9 +132,8 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                             # Event 5: Customer Pickup
                             self.agent.events_store.emit(
                                 event_type="customer_pickup",
-                                details={"pickup_time": time.time()}
+                                details={}
                             )
-                            #self.agent.pickup_time = time.time()
 
                             # New statistics
                             # Event 6: Travel to destination
@@ -170,10 +157,9 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                             # End time event - end_time
                             self.agent.events_store.emit(
                                 event_type="end_time_event",
-                                details={"end_time": time.time()}
+                                details={}
                             )
 
-                            #self.agent.end_time = time.time()
                             await self.inform_transport(transport_id, CUSTOMER_IN_DEST)
                             logger.info(
                                 "Customer {} arrived to destination after {} seconds.".format(
@@ -181,42 +167,6 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                                 )
                             )
 
-
-        #TravelBehaviour - customer.py
-        # try:
-            # msg = await self.receive(timeout=5)
-            # if not msg:
-            #    return
-            # content = json.loads(msg.body)
-            # logger.debug("Customer {} informed of: {}".format(self.agent.name, content))
-            # if "status" in content:
-            #    status = content["status"]
-            #    if status != CUSTOMER_LOCATION:
-            #        logger.debug(
-            #            "Customer {} informed of status: {}".format(
-            #                self.agent.name, status_to_str(status)
-            #            )
-            #        )
-            #    if status == TRANSPORT_MOVING_TO_CUSTOMER:
-            #        logger.info(
-            #            "Customer {} waiting for transport.".format(self.agent.name)
-            #        )
-            #        self.agent.waiting_for_pickup_time = time.time()
-            #    elif status == TRANSPORT_IN_CUSTOMER_PLACE:
-            #        self.agent.status = CUSTOMER_IN_TRANSPORT
-            #        logger.info("Customer {} in transport.".format(self.agent.name))
-            #        self.agent.pickup_time = time.time()
-            #    elif status == CUSTOMER_IN_DEST:
-            #        self.agent.status = CUSTOMER_IN_DEST
-            #        self.agent.end_time = time.time()
-            #        logger.info(
-            #            "Customer {} arrived to destination after {} seconds.".format(
-            #                self.agent.name, self.agent.total_time()
-            #            )
-            #        )
-            # elif status == CUSTOMER_LOCATION:
-            #    coords = content["location"]
-            #    self.agent.set_position(coords)
         except CancelledError:
             logger.debug("Cancelling async tasks...")
 

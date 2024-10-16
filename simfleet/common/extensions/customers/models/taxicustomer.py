@@ -1,5 +1,4 @@
 import json
-import time
 
 from loguru import logger
 from spade.message import Message
@@ -8,14 +7,6 @@ from spade.template import Template
 from simfleet.utils.helpers import new_random_position
 from simfleet.utils.utils_old import (
     CUSTOMER_WAITING,
-    CUSTOMER_IN_DEST,
-    TRANSPORT_MOVING_TO_CUSTOMER,
-    CUSTOMER_IN_TRANSPORT,
-    TRANSPORT_IN_CUSTOMER_PLACE,
-    CUSTOMER_LOCATION,
-    #StrategyBehaviour,
-    request_path,
-    status_to_str,
 )
 
 from simfleet.communications.protocol import (
@@ -29,65 +20,60 @@ from simfleet.communications.protocol import (
 )
 
 from simfleet.common.agents.customer import CustomerAgent
-from simfleet.common.movable import MovableMixin
 from simfleet.utils.abstractstrategies import StrategyBehaviour
 
-#class TaxiCustomerAgent(MovableMixin, CustomerAgent):
 class TaxiCustomerAgent(CustomerAgent):
+
+    """
+        Represents a customer agent in the taxi fleet system.
+        Inherits from the `CustomerAgent` class and implements
+        customer-specific behaviors and interactions with the fleet manager.
+
+        Attributes:
+            status (str): The current status of the customer (e.g., waiting).
+            fleetmanagers (str): The fleet manager's JID.
+        """
     def __init__(self, agentjid, password):
         CustomerAgent.__init__(self, agentjid, password)
-        #MovableMixin.__init__(self)
 
-        #self.agent_id = None                    #simfleetagent.py
-        self.status = CUSTOMER_WAITING           #customer.py
+        self.status = CUSTOMER_WAITING           #customer.py       #Check for frontend
         self.fleetmanagers = None                #customer.py
 
-    #CustomerAgent
+
     def set_fleetmanager(self, fleetmanagers):
         """
-        Sets the fleetmanager JID address
-        Args:
-            fleetmanagers (str): the fleetmanager jid
+        Sets the fleet manager's JID list for the customer agent.
 
+        Args:
+            fleetmanagers (dict): The JID list of the fleet manager(s).
         """
         self.fleetmanagers = fleetmanagers
 
     def run_strategy(self):
-        """import json
-        Runs the strategy for the customer agent.
+        """
+        Runs the strategy associated with the customer agent.
+        Adds the behavior responsible for handling requests to the agent.
         """
         if not self.running_strategy:
             template1 = Template()
             template1.set_metadata("protocol", REQUEST_PROTOCOL)
-            # template2 = Template()
-            # template2.set_metadata("protocol", QUERY_PROTOCOL)
-            # self.add_behaviour(self.strategy(), template1 | template2)
             self.add_behaviour(self.strategy(), template1)
             self.running_strategy = True
 
 
-#class CustomerStrategyBehaviour(StrategyBehaviour):
 class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
     """
-    Class from which to inherit to create a transport strategy.
-    You must overload the ``run`` coroutine
+    Represents the strategy behavior for the TaxiCustomerAgent.
+    It defines the communication protocol and decision-making for requesting and accepting transports.
 
-    Helper functions:
-        * ``send_request``
-        * ``accept_transport``
-        * ``refuse_transport``
+    This class should be inherited and the `run` coroutine must be implemented by the user.
+
+    Helper Methods:
+        - `send_request`: Sends a request for transport.
+        - `accept_transport`: Accepts a transport proposal.
+        - `refuse_transport`: Refuses a transport proposal.
+        - `inform_transport`: Inform a transport proposal.
     """
-
-    # async def on_start(self):
-    #    """
-    #    Initializes the logger and timers. Call to parent method if overloaded.
-    #    """
-    #    logger.debug(
-    #        "Strategy {} started in customer {}".format(
-    #            type(self).__name__, self.agent.name
-    #        )
-    #    )
-    #    self.agent.init_time = time.time()
 
     async def on_start(self):
         await super().on_start()
@@ -97,46 +83,22 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
             )
         )
 
-    async def send_get_managers(self, content=None):
-        """
-        Sends an ``spade.message.Message`` to the DirectoryAgent to request a managers.
-        It uses the QUERY_PROTOCOL and the REQUEST_PERFORMATIVE.
-        If no content is set a default content with the type_service that needs
-        Args:
-            content (dict): Optional content dictionary
-        """
-        if content is None or len(content) == 0:
-            content = self.agent.fleet_type
-        msg = Message()
-        msg.to = str(self.agent.directory_id)
-        msg.set_metadata("protocol", QUERY_PROTOCOL)
-        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-        msg.body = content
-        await self.send(msg)
-
-        logger.info(
-            "Customer {} asked for managers to directory {} for type {}.".format(
-                self.agent.name, self.agent.directory_id, self.agent.fleet_type
-            )
-        )
-
     async def send_request(self, content=None):
         """
-        Sends an ``spade.message.Message`` to the fleetmanager to request a transport.
-        It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
-        If no content is set a default content with the customer_id,
-        origin and target coordinates is used.
+        Sends a transport request to the fleet manager(s).
+        Uses the REQUEST_PROTOCOL and REQUEST_PERFORMATIVE.
 
         Args:
-            content (dict): Optional content dictionary
+            content (dict): Optional dictionary containing request details.
+                            If not provided, a default content with customer ID,
+                            origin, and destination will be used.
         """
         if not self.agent.customer_dest:
-            #self.agent.dest = random_position()
             self.agent.customer_dest = new_random_position(self.agent.boundingbox, self.agent.route_host)
+
         if content is None or len(content) == 0:
             content = {
                 "customer_id": str(self.agent.jid),
-                #"origin": self.agent.current_pos,       #Non-parallel variable
                 "origin": self.agent.get("current_pos"),
                 "dest": self.agent.customer_dest,
             }
@@ -144,7 +106,7 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
         if self.agent.fleetmanagers is not None:
             for (
                 fleetmanager
-            ) in self.agent.fleetmanagers.keys():  # Send a message to all FleetManagers
+            ) in self.agent.fleetmanagers.keys():
                 msg = Message()
                 msg.to = str(fleetmanager)
                 msg.set_metadata("protocol", REQUEST_PROTOCOL)
@@ -161,11 +123,11 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
 
     async def accept_transport(self, transport_id):
         """
-        Sends a ``spade.message.Message`` to a transport to accept a travel proposal.
-        It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
+        Sends a message to a transport agent to accept a travel proposal.
+        Uses the REQUEST_PROTOCOL and ACCEPT_PERFORMATIVE.
 
         Args:
-            transport_id (str): The Agent JID of the transport
+            transport_id (str): The JID of the transport agent to accept.
         """
         reply = Message()
         reply.to = str(transport_id)
@@ -173,7 +135,6 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
         reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
         content = {
             "customer_id": str(self.agent.jid),
-            #"origin": self.agent.current_pos,               #Non-parallel variable
             "origin": self.agent.get("current_pos"),
             "dest": self.agent.customer_dest,
         }
@@ -188,11 +149,11 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
 
     async def refuse_transport(self, transport_id):
         """
-        Sends an ``spade.message.Message`` to a transport to refuse a travel proposal.
-        It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
+        Sends a message to a transport agent to refuse a travel proposal.
+        Uses the REQUEST_PROTOCOL and REFUSE_PERFORMATIVE.
 
         Args:
-            transport_id (str): The Agent JID of the transport
+            transport_id (str): The JID of the transport agent to refuse.
         """
         reply = Message()
         reply.to = str(transport_id)
@@ -200,7 +161,6 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
         reply.set_metadata("performative", REFUSE_PERFORMATIVE)
         content = {
             "customer_id": str(self.agent.jid),
-            #"origin": self.agent.current_pos,              #Non-parallel variable
             "origin": self.agent.get("current_pos"),
             "dest": self.agent.customer_dest,
         }
@@ -215,11 +175,13 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
 
     async def inform_transport(self, transport_id, status, data=None):
         """
-        Sends a ``spade.message.Message`` to a transport to accept a travel proposal.
-        It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
+        Sends a message to a transport agent to inform it of a status update.
+        Uses the REQUEST_PROTOCOL and INFORM_PERFORMATIVE.
 
         Args:
-            transport_id (str): The Agent JID of the transport
+            transport_id (str): The JID of the transport agent.
+            status (str): The status to be informed.
+            data (dict): Optional additional data to be included in the message.
         """
         if data is None:
             data = {}
@@ -238,4 +200,8 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
         )
 
     async def run(self):
+        """
+                Abstract method to define the strategy's behavior.
+                This method must be implemented in the child class.
+        """
         raise NotImplementedError

@@ -1,13 +1,11 @@
-import asyncio
 import json
+import asyncio
 
 from loguru import logger
-from spade.behaviour import State, FSMBehaviour
 from simfleet.utils.abstractstrategies import FSMStrategyBehaviour
 
 from simfleet.common.extensions.transports.models.electrictaxi import ElectricTaxiStrategyBehaviour
 from simfleet.communications.protocol import (
-    QUERY_PROTOCOL,
     REQUEST_PROTOCOL,
     REQUEST_PERFORMATIVE,
     INFORM_PERFORMATIVE,
@@ -17,7 +15,6 @@ from simfleet.communications.protocol import (
 )
 
 from simfleet.utils.helpers import (
-    distance_in_meters,
     PathRequestException,
     AlreadyInDestination
 )
@@ -29,7 +26,6 @@ from simfleet.utils.utils_old import (
     TRANSPORT_IN_STATION_PLACE,
     TRANSPORT_IN_WAITING_LIST,
     TRANSPORT_CHARGING,
-    TRANSPORT_CHARGED,
     TRANSPORT_MOVING_TO_CUSTOMER,
     TRANSPORT_IN_CUSTOMER_PLACE,
     TRANSPORT_ARRIVED_AT_CUSTOMER,
@@ -39,17 +35,22 @@ from simfleet.utils.utils_old import (
     CUSTOMER_IN_DEST
 )
 
-
 ################################################################
 #                                                              #
 #                    Electric Taxi Strategy                    #
 #                                                              #
 ################################################################
 
-#class TransportWaitingState(TransportStrategyBehaviour, State):
 class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour):
+    """
+        Represents the 'Waiting' state for the electric taxi. The taxi is waiting to receive a transport request.
+
+        Methods:
+            on_start(): Sets the initial state to 'TRANSPORT_WAITING' and logs the state.
+            run(): Handles incoming messages, processes transport requests, and transitions to the next state.
+        """
     async def on_start(self):
-        await super().on_start()   #On_start -> State y no la StrategyBehaviour
+        await super().on_start()
         self.agent.status = TRANSPORT_WAITING
         logger.debug("{} in Transport Waiting State".format(self.agent.jid))
 
@@ -62,10 +63,6 @@ class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour):
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
         if performative == REQUEST_PERFORMATIVE:
-
-            logger.warning("DEPURACION strategy: {}: {}".format(self.agent.events_store.get_agent_name(), self.agent.events_store))
-
-            #events_store = self.agent.get_events_store()
 
             # New statistics
             # Event 1: Customer Request Reception
@@ -103,6 +100,13 @@ class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour):
             return
 
 class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
+    """
+        Represents the 'Needs Charging' state. The taxi is searching for or moving to a charging station.
+
+        Methods:
+            on_start(): Logs the transition to the 'Needs Charging' state.
+            run(): Manages the behavior of the taxi while it finds a charging station and handles exceptions.
+        """
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_NEEDS_CHARGING
@@ -113,7 +117,6 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
         if (
             self.agent.stations is None
             or len(self.agent.stations) < 1
-            #and not self.get(name="stations_requested")
         ):
             logger.info("Transport {} looking for a station.".format(self.agent.name))
 
@@ -123,67 +126,12 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
             self.set_next_state(TRANSPORT_NEEDS_CHARGING)
             return
 
-            #self.set(name="stations_requested", value=True)
-            #await self.send_get_stations()
-
-            #msg = await self.receive(timeout=600)
-            #if not msg:
-            #    self.set_next_state(TRANSPORT_NEEDS_CHARGING)
-            #    return
-            #logger.debug("Transport received message: {}".format(msg))
-            #try:
-            #    content = json.loads(msg.body)
-            #except TypeError:
-            #    content = {}
-
-            #performative = msg.get_metadata("performative")
-            #protocol = msg.get_metadata("protocol")
-
-            #if protocol == QUERY_PROTOCOL:
-            #    if performative == INFORM_PERFORMATIVE:
-            #        self.agent.stations = content
-            #        logger.info(
-            #            "Transport {} got list of current stations: {}".format(
-            #                self.agent.name, len(list(self.agent.stations.keys()))
-            #            )
-            #        )
-            #    elif performative == CANCEL_PERFORMATIVE:
-            #        logger.info(
-            #            "Transport {} got a cancellation of request for stations information.".format(
-            #                self.agent.name
-            #            )
-            #        )
-            #        self.set(name="stations_requested", value=False)
-            #        self.set_next_state(TRANSPORT_NEEDS_CHARGING)
-            #        return
-            #else:
-            #    self.set_next_state(TRANSPORT_NEEDS_CHARGING)
-            #    return
-
         else:
 
             self.agent.current_station_dest = self.agent.nearst_agent(self.agent.stations, self.agent.get_position())
             logger.info(
                  "Transport {} selected station {}.".format(self.agent.name, self.agent.current_station_dest[0])
              )
-        # station_positions = []
-        # for key in self.agent.stations.keys():
-        #     dic = self.agent.stations.get(key)
-        #     station_positions.append((dic["jid"], dic["position"]))         #Realizar comprobación del tipo de servicio? DUDA
-        #
-        # closest_station = min(
-        #     station_positions,
-        #     key=lambda x: distance_in_meters(x[1], self.agent.get_position()),
-        # )
-        # logger.debug("Closest station {}".format(closest_station))
-        # station = closest_station[0]
-        # self.agent.current_station_dest = (
-        #     station,
-        #     self.agent.stations[station]["position"],
-        # )
-        # logger.info(
-        #     "Transport {} selected station {}.".format(self.agent.name, station)
-        # )
 
             try:
 
@@ -219,8 +167,9 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
                     self.agent.arguments["transport_need"] = self.agent.max_autonomy_km - self.agent.current_autonomy_km
 
                     content = {"service_name": self.agent.service_type,
-                            "args": self.agent.arguments}  # AÑADIR ARGS - CARGA QUE NECESITA
+                            "args": self.agent.arguments}
                     await self.request_access_station(self.agent.get("current_station"), content)
+
                     self.agent.status = TRANSPORT_IN_STATION_PLACE
                     self.set_next_state(TRANSPORT_IN_STATION_PLACE)
                     return
@@ -247,6 +196,13 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
 
 
 class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
+    """
+        Represents the state where the taxi is moving towards the charging station.
+
+        Methods:
+            on_start(): Logs the transition to 'Moving to Station'.
+            run(): Handles movement towards the charging station and transitions accordingly.
+        """
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_STATION
@@ -257,21 +213,11 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
 
             if not self.agent.is_in_destination():
 
-                #Depuración con warning
-                #logger.warning(
-                #    "Transport {} con destination: {}.".format(
-                #        self.agent.agent_id, self.agent.is_in_destination()
-                #    )
-                #)
-
                 await asyncio.sleep(1)
                 self.set_next_state(TRANSPORT_MOVING_TO_STATION)
             else:
 
-                #self.agent.arguments.append(self.agent.power)
-                #self.agent.arguments.append(self.agent.max_autonomy_km - self.agent.current_autonomy_km)
                 self.agent.arguments["transport_need"] = self.agent.max_autonomy_km - self.agent.current_autonomy_km
-                #self.agent.arguments["power"] = self.agent.current_station_dest[2]
 
                 # New statistics
                 # Event 3e: Arrival at Station
@@ -280,7 +226,7 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
                     details={}
                 )
 
-                content = {"service_name": self.agent.service_type, "object_type": "transport", "args": self.agent.arguments}             #AÑADIR ARGS - CARGA QUE NECESITA
+                content = {"service_name": self.agent.service_type, "object_type": "transport", "args": self.agent.arguments}
                 await self.request_access_station(self.agent.get("current_station"), content)
 
                 self.agent.status = TRANSPORT_IN_STATION_PLACE
@@ -295,8 +241,7 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
 
             self.agent.arguments["need"] = self.agent.max_autonomy_km - self.agent.current_autonomy_km
 
-            #self.agent.arguments.append(self.agent.max_autonomy_km - self.agent.current_autonomy_km)
-            content = {"service_name": self.agent.service_type, "args": self.agent.arguments}         #Añadir lo que necesita
+            content = {"service_name": self.agent.service_type, "args": self.agent.arguments}
             await self.request_access_station(self.agent.get("current_station"), content)
 
             # New statistics
@@ -321,7 +266,13 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
 
 
 class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour):
-    # car arrives to the station and waits in queue until receiving confirmation
+    """
+        Represents the state where the taxi is at the charging station, waiting for confirmation to begin charging.
+
+        Methods:
+            on_start(): Logs the transition to 'In Station Place'.
+            run(): Handles the taxi's behavior while waiting in the station queue.
+        """
     async def on_start(self):
         await super().on_start()
         logger.debug("{} in Transport In Station Place State".format(self.agent.jid))
@@ -342,7 +293,6 @@ class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour):
                         self.agent.name, content["station_id"]
                     )
                 )
-                #await self.charge_allowed()  # Refactory analysis
 
                 # New statistics
                 # Event 4e: Wait for Service
@@ -354,16 +304,6 @@ class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour):
                 self.agent.status = TRANSPORT_IN_WAITING_LIST
                 self.set_next_state(TRANSPORT_IN_WAITING_LIST)
 
-                #ESPERAMOS HASTA SALIR DE LA COLA - ESCUCHAR MENSAJE ----> #DEBATE - INFORMAR AGENTE DE QUE COMIENZA EL SERVICIO - SERVICIO_1a
-
-                #SI SALIMOS DE LA COLA PASAMOS A TRANSPORT_CHARGING
-
-                #QUITAR ESTAS FUNCIONES
-                #await self.comunicate_for_charging()        #Cambiar - ESTO FUERA
-                #await self.begin_charging()                 #Cambiar - QUITAR SI DA PROBLEMAS
-
-                #self.agent.status = TRANSPORT_CHARGING
-                #self.set_next_state(TRANSPORT_CHARGING)
                 return
 
         elif performative == REFUSE_PERFORMATIVE:
@@ -372,18 +312,19 @@ class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour):
             return
 
         else:
-            # if the message I receive is not an ACCEPT, I keep waiting in the queue
-
-            #content = {"service_name": self.agent.service_type, "args": self.agent.arguments}  # Añadir lo que necesita
-            #await self.request_access_station(self.agent.get("current_station"), content)
-
 
             self.set_next_state(TRANSPORT_IN_STATION_PLACE)
             return
 
 
 class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour):
-    # car arrives to the station and waits in queue until receiving confirmation
+    """
+        Represents the state where the taxi is in the waiting list at the charging station.
+
+        Methods:
+            on_start(): Logs the transition to 'In Waiting List'.
+            run(): Handles waiting for confirmation to start charging.
+        """
     async def on_start(self):
         await super().on_start()
         logger.debug("{} in Transport In Station Place State".format(self.agent.jid))
@@ -405,7 +346,7 @@ class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour):
                         self.agent.name, content["station_id"]
                     )
                 )
-                if content.get("serving") is not None and content.get("serving"):      #Cambiar por is None ---- is not None
+                if content.get("serving") is not None and content.get("serving"):
 
                     # New statistics
                     # Event 5e: Service Start
@@ -418,10 +359,6 @@ class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour):
                     self.agent.status = TRANSPORT_CHARGING
                     self.set_next_state(TRANSPORT_CHARGING)
                     return
-                #else:
-                #    self.agent.status = TRANSPORT_IN_WAITING_LIST
-                #    self.set_next_state(TRANSPORT_IN_WAITING_LIST)
-                #    return
 
         elif performative == REFUSE_PERFORMATIVE:
             if content.get("station_id") is not None:
@@ -433,31 +370,27 @@ class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour):
                 self.agent.status = TRANSPORT_NEEDS_CHARGING
                 self.set_next_state(TRANSPORT_NEEDS_CHARGING)
 
-        #self.agent.status = TRANSPORT_IN_WAITING_LIST
-        #self.set_next_state(TRANSPORT_IN_WAITING_LIST)
         else:
-            # if the message I receive is not an ACCEPT, I keep waiting in the queue
-
-            #content = {"service_name": self.agent.service_type, "args": self.agent.arguments}  # Añadir lo que necesita
-            #await self.request_access_station(self.agent.get("current_station"), content)
-
-
             self.set_next_state(TRANSPORT_IN_WAITING_LIST)
             return
 
 
-
-
 class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour):
-    # car charges in a station
+    """
+        Represents the 'Charging' state. The taxi is currently charging in the station.
+
+        Methods:
+            on_start(): Logs the transition to 'Charging'.
+            run(): Monitors the charging process and transitions back to 'Waiting' when charging completes.
+        """
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_CHARGING
         logger.debug("{} in Transport Charging State".format(self.agent.jid))
 
     async def run(self):
-        # ESTA HACIENDO EL one_shot_behaviour (EJECUTAR SERVICIO)
-        msg = await self.receive(timeout=60)        #ESPERAR MENSAJE
+
+        msg = await self.receive(timeout=60)
         if not msg:
             self.set_next_state(TRANSPORT_CHARGING)
             return
@@ -468,7 +401,6 @@ class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour):
             if content["charged"]:
                 self.agent.transport_charged()
                 await self.drop_station()
-                # canviar per un event?
 
                 # New statistics
                 # Event 6e: Service Completion
@@ -486,6 +418,14 @@ class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour):
 
 
 class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
+    """
+        Represents the state where the taxi is waiting for approval from a customer or station.
+        After making a transport offer, the taxi waits for a response (approval or refusal).
+
+        Methods:
+            on_start(): Logs the transition to 'Waiting For Approval'.
+            run(): Handles incoming approval or refusal messages and transitions accordingly.
+        """
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
@@ -501,14 +441,13 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
         if performative == ACCEPT_PERFORMATIVE:
+            # Handle acceptance by the customer or station
             try:
                 logger.debug(
                     "Transport {} got accept from {}".format(
                         self.agent.name, content["customer_id"]
                     )
                 )
-                # new version
-                #self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
                 if not self.agent.check_and_decrease_autonomy(
                     content["origin"], content["dest"]
                 ):
@@ -516,12 +455,6 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
                     self.set_next_state(TRANSPORT_NEEDS_CHARGING)
                     return
                 else:
-                    # MOD-STRATEGY-01 - comments
-                    #await self.pick_up_customer(
-                    #    content["customer_id"], content["origin"], content["dest"]
-                    #)
-
-                    #events_store = self.agent.get_events_store()
 
                     # New statistics
                     # Event 3: Transport Offer Acceptance
@@ -530,12 +463,10 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
                         details={}
                     )
 
-                    #1) Send message to customer
                     await self.agent.inform_customer(
                         customer_id=content["customer_id"], status=TRANSPORT_MOVING_TO_CUSTOMER
                     )
-                    #2) Save customer assigned data locally
-                    # MOD-STRATEGY-01-A - new funtion
+
                     await self.agent.add_assigned_taxicustomer(
                         customer_id=content["customer_id"],
                         origin=content["origin"], dest=content["dest"]
@@ -553,7 +484,6 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
                         details={"distance": distance, "duration": duration}
                     )
 
-                    # 3) Initiate movement towards the client
                     await self.agent.move_to(content["origin"])
 
                     self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
@@ -570,8 +500,7 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
                 return
 
             except AlreadyInDestination:
-                # 2) Save customer assigned data locally
-                # MOD-STRATEGY-01 - new funtion
+
                 await self.agent.inform_customer(
                     customer_id=content["customer_id"], status=TRANSPORT_IN_CUSTOMER_PLACE
                 )
@@ -597,29 +526,14 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
             self.set_next_state(TRANSPORT_WAITING_FOR_APPROVAL)
             return
 
-#class TransportMovingToCustomerState(TransportStrategyBehaviour, State):
-# MOD-STRATEGY-02 - comments
-#class TaxiMovingToCustomerState(TaxiStrategyBehaviour, State):
-#    async def on_start(self):
-#        await super().on_start()
-#        self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
-#        logger.debug("{} in Transport Moving To Customer State".format(self.agent.jid))
-
-#    async def run(self):
-        # Reset internal flag to False. coroutines calling
-        # wait() will block until set() is called
-#        self.agent.customer_in_transport_event.clear()
-#        # Registers an observer callback to be run when the "customer_in_transport" is changed
-#        self.agent.watch_value(
-#            "customer_in_transport", self.agent.customer_in_transport_callback
-#        )
-        # block behaviour until another coroutine calls set()
-#        await self.agent.customer_in_transport_event.wait()
-#        return self.set_next_state(TRANSPORT_WAITING)
-
-
-# MOD-STRATEGY-02 - New status
 class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour):
+    """
+        Represents the state where the taxi is moving towards the customer to pick them up.
+
+        Methods:
+            on_start(): Logs the transition to 'Moving To Customer'.
+            run(): Handles the movement to the customer and manages unexpected issues during the trip.
+        """
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
@@ -634,9 +548,10 @@ class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour):
 
             if not self.agent.is_in_destination():
 
-                msg = await self.receive(timeout=2)  # Test 2 seconds
+                msg = await self.receive(timeout=2)
 
                 if msg:
+
                     performative = msg.get_metadata("performative")
                     if performative == REQUEST_PERFORMATIVE:
                         self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
@@ -648,7 +563,7 @@ class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour):
                         self.agent.status = TRANSPORT_WAITING
                         self.set_next_state(TRANSPORT_WAITING)
                         return
-                # await asyncio.sleep(1)
+
                 else:
                     self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
             else:
@@ -691,8 +606,16 @@ class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour):
             self.set_next_state(TRANSPORT_WAITING)
             return
 
-# MOD-STRATEGY-03 - New status
+
 class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour):
+    """
+        Represents the state where the taxi has arrived at the customer's location.
+
+        Methods:
+            on_start(): Logs the transition to 'Arrived At Customer'.
+            run(): Handles the pickup of the customer and begins the journey to their destination.
+        """
+
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
@@ -732,8 +655,6 @@ class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour):
                             "Transport {} on route to customer destination of {}".format(self.agent.name, customer_id)
                         )
 
-                        #events_store = self.agent.get_events_store()
-
                         # New statistics
                         # Event 5: Customer Pickup
                         self.agent.events_store.emit(
@@ -752,14 +673,13 @@ class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour):
                         # Event 6: Travel to destination
                         self.agent.events_store.emit(
                             event_type="travel_to_destination",
-                            details={"distance": distance, "orig_position":self.agent.get("current_pos"), "dest_position":dest},   #Origen y destino
+                            details={"distance": distance},
                         )
 
                         self.agent.status = TRANSPORT_MOVING_TO_DESTINATION
                         self.set_next_state(TRANSPORT_MOVING_TO_DESTINATION)
 
                     except PathRequestException:
-                        # MOD-STRATEGY-03 - Modify function
                         await self.agent.cancel_customer(customer_id=customer_id)
                         self.agent.status = TRANSPORT_WAITING
                         self.set_next_state(TRANSPORT_WAITING)
@@ -782,6 +702,13 @@ class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour):
 
 # MOD-STRATEGY-04 - New status
 class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour):
+    """
+        Represents the state where the taxi is transporting the customer to their destination.
+
+        Methods:
+            on_start(): Logs the transition to 'Moving To Destination'.
+            run(): Manages the trip to the customer's destination.
+        """
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_DESTINATION
@@ -795,27 +722,14 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour):
         try:
 
             if not self.agent.is_in_destination():
-                #MOD-STRATEGY-04 - Alternativa 1 - Envio msg TRAVELBEHAVIOUR
-                #await self.agent.new_inform_customer_moving(
-                #    customer_id=customer_id, status=CUSTOMER_LOCATION,
-                #    data={"location": self.get("current_pos")}
-                #)
-                #Hasta aquí
                 await asyncio.sleep(1)
                 self.set_next_state(TRANSPORT_MOVING_TO_DESTINATION)
             else:
-                # MOD-STRATEGY-04 - Alternativa 1 - Envio msg TRAVELBEHAVIOUR
-                #await self.agent.new_inform_customer_moving(
-                #    customer_id=customer_id, status=CUSTOMER_LOCATION,
-                #    data={"location": self.get("current_pos")}
-                #)
                 logger.info(
                     "Transport {} has arrived to destination. Status: {}".format(
                         self.agent.agent_id, self.agent.status
                     )
                 )
-
-                #events_store = self.agent.get_events_store()
 
                 # New statistics
                 # Event 6: Trip completion
@@ -864,8 +778,14 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour):
             self.set_next_state(TRANSPORT_WAITING)
             return
 
-# MOD-STRATEGY-05 - New status
 class ElectricTaxiArrivedAtCustomerDestState(ElectricTaxiStrategyBehaviour):
+    """
+        Represents the state where the taxi has arrived at the customer's destination.
+
+        Methods:
+            on_start(): Logs the transition to 'Arrived At Destination'.
+            run(): Handles the process of dropping the customer off and resets the taxi to 'Waiting' state.
+        """
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_ARRIVED_AT_DESTINATION
@@ -890,11 +810,10 @@ class ElectricTaxiArrivedAtCustomerDestState(ElectricTaxiStrategyBehaviour):
                     status = content["status"]
 
                     if status == CUSTOMER_IN_DEST:
-                        # MOD-STRATEGY-05 - new function
+
                         await self.agent.remove_customer_in_transport(customer_id)
                         logger.debug(
                             "Transport {} has dropped the customer {} in destination.".format(
-                                # self.agent_id, self.get("current_customer")
                                 self.agent.agent_id, customer_id
                             )
                         )
@@ -910,151 +829,93 @@ class ElectricTaxiArrivedAtCustomerDestState(ElectricTaxiStrategyBehaviour):
                 self.set_next_state(TRANSPORT_ARRIVED_AT_DESTINATION)
                 return
 
-#class FSMTransportStrategyBehaviour(FSMBehaviour):
+
 class FSMElectricTaxiStrategyBehaviour(FSMStrategyBehaviour):
+    """
+    Represents the Finite State Machine (FSM) strategy for the electric taxi agent.
+    This class manages the different states and transitions for the taxi based on its behavior,
+    including waiting for customers, moving to charging stations, and traveling to destinations.
+
+    Methods:
+        setup(): Initializes all states and defines transitions between them.
+    """
+
     def setup(self):
-        # Create states
-        #self.add_state(TRANSPORT_WAITING, TransportWaitingState(), initial=True)
+        """
+        Sets up the FSM by adding states and defining transitions.
+        This method creates the states the electric taxi can be in and
+        specifies the valid transitions between these states.
+        """
+
+        # Add states to the FSM
         self.add_state(TRANSPORT_WAITING, ElectricTaxiWaitingState(), initial=True)
-        #self.add_state(TRANSPORT_NEEDS_CHARGING, TransportNeedsChargingState())
         self.add_state(TRANSPORT_NEEDS_CHARGING, ElectricTaxiNeedsChargingState())
-        self.add_state(
-            #TRANSPORT_WAITING_FOR_APPROVAL, TransportWaitingForApprovalState()
-            TRANSPORT_WAITING_FOR_APPROVAL, ElectricTaxiWaitingForApprovalState()
-        )
-
-        #self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, TransportMovingToCustomerState())
+        self.add_state(TRANSPORT_WAITING_FOR_APPROVAL, ElectricTaxiWaitingForApprovalState())
         self.add_state(TRANSPORT_MOVING_TO_CUSTOMER, ElectricTaxiMovingToCustomerState())
-
         self.add_state(TRANSPORT_ARRIVED_AT_CUSTOMER, ElectricTaxiArrivedAtCustomerState())
-
         self.add_state(TRANSPORT_MOVING_TO_DESTINATION, ElectricTaxiMovingToCustomerDestState())
-
         self.add_state(TRANSPORT_ARRIVED_AT_DESTINATION, ElectricTaxiArrivedAtCustomerDestState())
-
-        #self.add_state(TRANSPORT_MOVING_TO_STATION, TransportMovingToStationState())
         self.add_state(TRANSPORT_MOVING_TO_STATION, ElectricTaxiMovingToStationState())
-        #self.add_state(TRANSPORT_IN_STATION_PLACE, TransportInStationState())
         self.add_state(TRANSPORT_IN_STATION_PLACE, ElectricTaxiInStationState())
-
         self.add_state(TRANSPORT_IN_WAITING_LIST, ElectricTaxiInWaitingListState())
-        #self.add_state(TRANSPORT_CHARGING, TransportChargingState())
         self.add_state(TRANSPORT_CHARGING, ElectricTaxiChargingState())
 
-        # Create transitions
-        self.add_transition(
-            TRANSPORT_WAITING, TRANSPORT_WAITING
-        )  # waiting for messages
-        self.add_transition(
-            TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL
-        )  # accepted by customer
-        self.add_transition(
-            TRANSPORT_WAITING, TRANSPORT_NEEDS_CHARGING
-        )  # not enough charge
+        # Define transitions between states
 
-        self.add_transition(
-            TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_WAITING_FOR_APPROVAL
-        )  # waiting for approval message
-        self.add_transition(
-            TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_WAITING
-        )  # transport refused
-        self.add_transition(
-            TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_MOVING_TO_CUSTOMER
-        )  # going to pick up customer
+        # Transitions related to the 'Waiting' state
+        self.add_transition(TRANSPORT_WAITING, TRANSPORT_WAITING)  # Remains in waiting if no new action
+        self.add_transition(TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL)  # When a customer accepts a proposal
+        self.add_transition(TRANSPORT_WAITING, TRANSPORT_NEEDS_CHARGING)  # If the taxi needs charging
 
-        self.add_transition(
-            TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_ARRIVED_AT_CUSTOMER
-        )  # going to pick up customer
+        # Transitions from 'Waiting For Approval' state
+        self.add_transition(TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_WAITING_FOR_APPROVAL)  # Keep waiting for approval
+        self.add_transition(TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_WAITING)  # If the proposal is refused
+        self.add_transition(TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_MOVING_TO_CUSTOMER)  # If the customer accepts
+        self.add_transition(TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_ARRIVED_AT_CUSTOMER)  # Direct arrival scenario
 
-        self.add_transition(
-            TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_MOVING_TO_CUSTOMER
-        )  # going to pick up customer
+        # Transitions from 'Moving To Customer' state
+        self.add_transition(TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_MOVING_TO_CUSTOMER)  # Still moving
+        self.add_transition(TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_WAITING)  # Encounter an issue, go back to waiting
+        self.add_transition(TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_ARRIVED_AT_CUSTOMER)  # Successfully arrive
 
-        self.add_transition(
-            TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_WAITING
-        )  # going to pick up customer
+        # Transitions from 'Arrived At Customer' state
+        self.add_transition(TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_ARRIVED_AT_CUSTOMER)  # Waiting at customer's location
+        self.add_transition(TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_MOVING_TO_DESTINATION)  # Begin journey to destination
+        self.add_transition(TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_ARRIVED_AT_DESTINATION)  # Direct destination arrival
+        self.add_transition(TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_WAITING)  # Cancel and return to waiting
 
-        self.add_transition(
-            TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_ARRIVED_AT_CUSTOMER
-        )
+        # Transitions from 'Moving To Destination' state
+        self.add_transition(TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_MOVING_TO_DESTINATION)  # Still moving to destination
+        self.add_transition(TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_WAITING)  # An issue encountered, return to waiting
+        self.add_transition(TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_ARRIVED_AT_DESTINATION)  # Arrival at destination
 
-        self.add_transition(
-            TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_ARRIVED_AT_CUSTOMER
-        )  # going to pick up customer
+        # Transitions from 'Arrived At Destination' state
+        self.add_transition(TRANSPORT_ARRIVED_AT_DESTINATION, TRANSPORT_ARRIVED_AT_DESTINATION)  # Stay at destination
+        self.add_transition(TRANSPORT_ARRIVED_AT_DESTINATION, TRANSPORT_WAITING)  # Drop customer and return to waiting
 
-        self.add_transition(
-            TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_MOVING_TO_DESTINATION
-        )  # going to pick up customer
+        # Transitions related to the 'Needs Charging' state
+        self.add_transition(TRANSPORT_NEEDS_CHARGING, TRANSPORT_NEEDS_CHARGING)  # Continue searching for a station
+        self.add_transition(TRANSPORT_NEEDS_CHARGING, TRANSPORT_WAITING)  # Issue finding station, return to waiting
+        self.add_transition(TRANSPORT_NEEDS_CHARGING, TRANSPORT_MOVING_TO_STATION)  # Successfully heading to station
+        self.add_transition(TRANSPORT_NEEDS_CHARGING, TRANSPORT_IN_STATION_PLACE)  # Arrives at the station
 
-        self.add_transition(
-            TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_ARRIVED_AT_DESTINATION
-        )  # going to pick up customer
+        # Transitions from 'Moving To Station' state
+        self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_MOVING_TO_STATION)  # Still heading to the station
+        self.add_transition(TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE)  # Arrives at station
 
-        self.add_transition(
-            TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_WAITING
-        )  # going to pick up customer
+        # Transitions from 'In Station Place' state
+        self.add_transition(TRANSPORT_IN_STATION_PLACE, TRANSPORT_IN_STATION_PLACE)  # Waiting in station queue
+        self.add_transition(TRANSPORT_IN_STATION_PLACE, TRANSPORT_NEEDS_CHARGING)  # Transition if refused service
+        self.add_transition(TRANSPORT_IN_STATION_PLACE, TRANSPORT_IN_WAITING_LIST)  # Moved to waiting list for service
 
-        self.add_transition(
-            TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_MOVING_TO_DESTINATION
-        )  # going to pick up customer
+        # Transitions from 'In Waiting List' state
+        self.add_transition(TRANSPORT_IN_WAITING_LIST, TRANSPORT_IN_WAITING_LIST)  # Remain in queue
+        self.add_transition(TRANSPORT_IN_WAITING_LIST, TRANSPORT_CHARGING)  # Begin charging process
 
-        self.add_transition(
-            TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_WAITING
-        )  # going to pick up customer
+        # Transitions from 'Charging' state
+        self.add_transition(TRANSPORT_CHARGING, TRANSPORT_CHARGING)  # Continue charging
+        self.add_transition(TRANSPORT_CHARGING, TRANSPORT_WAITING)  # Finish charging and return to waiting
 
-        self.add_transition(
-            TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_ARRIVED_AT_DESTINATION
-        )  # going to pick up customer
-
-        self.add_transition(
-            TRANSPORT_ARRIVED_AT_DESTINATION, TRANSPORT_ARRIVED_AT_DESTINATION
-        )  # going to pick up customer
-
-        self.add_transition(
-            TRANSPORT_ARRIVED_AT_DESTINATION, TRANSPORT_WAITING
-        )  # going to pick up customer
-
-        self.add_transition(
-            TRANSPORT_NEEDS_CHARGING, TRANSPORT_NEEDS_CHARGING
-        )  # waiting for station list
-        self.add_transition(
-            TRANSPORT_NEEDS_CHARGING, TRANSPORT_WAITING
-        )  # exception in go_to_the_station(station, position)
-        self.add_transition(
-            TRANSPORT_NEEDS_CHARGING, TRANSPORT_MOVING_TO_STATION
-        )  # going to station
-        self.add_transition(
-            TRANSPORT_NEEDS_CHARGING, TRANSPORT_IN_STATION_PLACE
-        )  # waiting for station list
-        self.add_transition(
-            TRANSPORT_MOVING_TO_STATION, TRANSPORT_MOVING_TO_STATION
-        )  # arrived to station
-        self.add_transition(
-            TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE
-        )  # arrived to station
-        self.add_transition(
-            TRANSPORT_IN_STATION_PLACE, TRANSPORT_IN_STATION_PLACE
-        )  # waiting in station queue
-        self.add_transition(
-            TRANSPORT_IN_STATION_PLACE, TRANSPORT_NEEDS_CHARGING
-        )  # begin charging
-        self.add_transition(
-            TRANSPORT_IN_STATION_PLACE, TRANSPORT_IN_WAITING_LIST
-        )  # begin charging
-
-        self.add_transition(
-            TRANSPORT_IN_WAITING_LIST, TRANSPORT_IN_WAITING_LIST
-        )  # begin charging
-        self.add_transition(
-            TRANSPORT_IN_WAITING_LIST, TRANSPORT_CHARGING
-        )  # begin charging
-
-        self.add_transition(
-            TRANSPORT_CHARGING, TRANSPORT_CHARGING
-        )  # waiting to finish charging
-        self.add_transition(TRANSPORT_CHARGING, TRANSPORT_WAITING)  # restart strategy
-
-        self.add_transition(TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_MOVING_TO_CUSTOMER)
-        self.add_transition(
-            TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_WAITING
-        )  # picked up customer or arrived to destination ??
+        # Additional transitions for customer movement and destination states
+        self.add_transition(TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_MOVING_TO_CUSTOMER)  # Still en route to customer
+        self.add_transition(TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_WAITING)  # Return to waiting if issue arises

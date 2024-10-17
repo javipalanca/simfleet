@@ -13,9 +13,74 @@ class MobilityStatistics(AgentStatsBase):
             events_log (Log): A log containing all events from the simulation.
         """
 
+        self.taxi_metrics(events_log, "simfleet_metrics_taxi.json")
+
         self.electric_taxi_metrics(events_log, "simfleet_metrics_electrictaxi.json")
 
         self.customer_taxi_metrics(events_log, "simfleet_metrics_taxicustomer.json")
+
+
+    def taxi_metrics(self, events_log: Log, file_path: str) -> None:
+        """
+        Combines the calculation, JSON generation, and export process for ElectricTaxiAgent.
+
+        Args:
+            events_log (Log): A log containing all events from the simulation.
+            file_path (str): The path where the final JSON file will be exported.
+        """
+        # Filtering relevant events for TaxiAgent
+        filtered_events = events_log.filter(lambda event: event.class_type == "TaxiAgent" and
+                                                          event.event_type in {
+                                                              'transport_offer_acceptance',
+                                                              'travel_to_pickup',
+                                                              'travel_to_destination'
+                                                          })
+
+        # Transform events into a DataFrame
+        event_fields = ["name", "timestamp", "event_type", "class_type"]
+        details_fields = ["distance"]
+        dataframe = filtered_events.to_dataframe(event_fields=event_fields, details_fields=details_fields)
+
+        # Calculating KPIs (assignments, total distances, waiting and charging times)
+        assignments = dataframe[dataframe["event_type"] == "transport_offer_acceptance"].groupby("name").size()
+        total_distance = \
+        dataframe[dataframe["event_type"].isin(["travel_to_pickup", "travel_to_destination"])] \
+            .groupby("name")["distance"].sum()
+        customer_total_distance = dataframe[dataframe["event_type"] == "travel_to_destination"] \
+            .groupby("name")["distance"].sum()
+
+        # Combining all metrics into a final DataFrame
+        result_df = pd.DataFrame({
+            "name": dataframe.groupby("name")["name"].first(),
+            "class_type": dataframe.groupby("name")["class_type"].first(),
+            "assignments": assignments,
+            "total_distance": total_distance,
+            "customer_total_distance": customer_total_distance
+        }).fillna(0)
+
+        # Calculating general averages for the "GeneralMetrics" section
+        avg_total_distance = result_df["total_distance"].mean()
+
+        # Convert the DataFrame into a dictionary structure indexed by an agent number
+        agent_metrics = result_df.to_dict(orient="records")
+
+        # Convert the agent metrics into a dictionary with numeric keys (0, 1, 2, ...)
+        numbered_agents = {str(i): agent_metrics[i] for i in range(len(agent_metrics))}
+
+        # Converting the result DataFrame into a JSON-like structure
+        #agent_metrics = result_df.to_dict(orient="index")
+        json_structure = {
+            "GeneralMetrics": {
+                "Class type": "ElectricTaxiAgent",
+                "Avg Total Distance": f"{avg_total_distance:.2f}"
+            },
+            "ElectricTaxiAgent": numbered_agents#{
+                #str(i): agent_metrics[i] for i in agent_metrics
+            #}
+        }
+
+        # Exporting the result to a JSON file
+        self.export_to_json(json_structure, file_path)
 
     def electric_taxi_metrics(self, events_log: Log, file_path: str) -> None:
         """

@@ -3,7 +3,7 @@ import datetime
 import asyncio
 
 from loguru import logger
-from spade.behaviour import CyclicBehaviour, OneShotBehaviour, TimeoutBehaviour
+from spade.behaviour import CyclicBehaviour, OneShotBehaviour
 from spade.message import Message
 from spade.template import Template
 from asyncio import CancelledError
@@ -15,47 +15,68 @@ from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     REQUEST_PERFORMATIVE,
     ACCEPT_PERFORMATIVE,
-    CANCEL_PERFORMATIVE,
     INFORM_PERFORMATIVE,
-    COORDINATION_PROTOCOL,
 )
 
 
 class ChargingStationAgent(ServiceStationAgent):
+    """
+        Represents a charging station agent that provides services such as electric charging,
+        gasoline refueling, or diesel refueling.
+
+        Methods:
+            setup(): Initializes the charging station and its behaviors.
+            set_service_type(service_type): Sets the type of service the station offers.
+            get_service_type(): Returns the service type of the station.
+            set_power(power): Sets the power capacity of the station.
+            run_strategy(): Configures the behavior strategy for the station.
+            to_json(): Serializes the station's main information to JSON format.
+    """
+
     def __init__(self, agentjid, password):
         ServiceStationAgent.__init__(self, agentjid, password)
 
         self.power = None  # Test charging variable --- Analice     #POSIBLE BORRADO DEL ATRIBUTO
         self.service_type = None
-        #self.arguments = kwargs.get('args', None)       #ARRAY
         self.arguments = []
 
         self.charged_transports = 0
 
-    # New function - Know if the agent is stopped
     def is_stopped(self):
+        """
+            Checks if the station is stopped.
+        """
         return self.stopped
 
     def is_ready(self):
+        """
+            Checks if the station is ready.
+        """
         return self.ready
 
     def set_service_type(self, service_type):
+        """
+            Sets the type of service the station provides (e.g., electricity, gasoline, diesel).
+        """
         self.service_type = service_type
 
     def get_service_type(self):
+        """
+            Gets the current service type of the station.
+        """
         return self.service_type
 
     def set_power(self, power):
+        """
+            Sets the power level of the charging station.
+        """
         self.power = power
 
     def run_strategy(self):
         """
-        Sets the strategy for the transport agent.
+        Placeholder for setting the strategy behavior for the station.
         """
         if not self.running_strategy:
-            #template = Template()
-            #template.set_metadata("protocol", REQUEST_PROTOCOL)
-            #self.add_behaviour(self.strategy(), template)
             self.running_strategy = True
 
     def to_json(self):
@@ -88,11 +109,12 @@ class ChargingStationAgent(ServiceStationAgent):
 
 
     async def setup(self):
+        """
+            Sets up the agent with its behavior templates for registration.
+        """
         await super().setup()
         self.total_busy_time = 0.0
         logger.info("Station agent {} running".format(self.name))
-        #self.set_type("station")       #AÑADIR A FACTORY
-        #self.set_status()
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)
@@ -116,15 +138,21 @@ class ChargingStationAgent(ServiceStationAgent):
 
 
 class RegistrationBehaviour(CyclicBehaviour):
+    """
+        Manages the registration behavior of the charging station, allowing it to register
+        with the directory agent.
+
+        Methods:
+            on_start(): Initializes the behavior and sets up the logger.
+            send_registration(): Sends a registration message to the directory.
+            run(): Manages the registration logic and response handling.
+    """
     async def on_start(self):
         logger.debug("Strategy {} started in directory".format(type(self).__name__))
 
-    #def set_registration(self, decision):
-    #    self.agent.registration = decision
-
     async def send_registration(self):
         """
-        Send a ``spade.message.Message`` with a proposal to directory to register.
+        Sends a registration message to the directory agent with the station's information.
         """
         logger.info(
             "Station {} sent proposal to register to directory {}".format(
@@ -134,11 +162,8 @@ class RegistrationBehaviour(CyclicBehaviour):
 
         content = {
             "jid": str(self.agent.jid),
-            #"type": self.agent.service_type, #CAMBIARLO POR SERVICE_TYPE
             "type": self.agent.show_services(),
-            #"status": self.agent.status,
             "position": self.agent.get_position(),
-            #"charge": self.agent.power,
         }
         msg = Message()
         msg.to = str(self.agent.directory_id)
@@ -167,16 +192,19 @@ class RegistrationBehaviour(CyclicBehaviour):
             )
 
 
-#Strategie? - New ubication -> extension > stations > strategies > chargingstation
 class ChargingService(OneShotBehaviour):
-    #def __init__(self, agent_id, *args):        #ADAPTAR PARA QUE RECIBA LOS ARGS -- APUNTES
+    """
+        Represents a behavior for charging electric vehicles in the station.
+        It manages the charging process and notifies the vehicle when charging is complete.
+
+        Methods:
+            charging_transport(): Performs the charging operation and logs the duration.
+            inform_charging_complete(): Notifies the vehicle when charging is complete.
+            run(): Executes the charging sequence.
+        """
     def __init__(self, agent_id, **kwargs):
         super().__init__()
         self.agent_id = agent_id
-        #self.power = power
-        #TEST
-        #self.transport_need = args[0]
-        #self.power = args[1]
 
         if 'transport_need' in kwargs:
             self.transport_need = kwargs['transport_need']
@@ -187,13 +215,11 @@ class ChargingService(OneShotBehaviour):
         if 'power' in kwargs:
             self.power = kwargs['power']
 
-        #self.additional_args = args
-        #super().__init__()
-
     async def charging_transport(self):
-        #total_time = need / self.power
+        """
+            Simulates the charging process based on the power and transport need, and logs the operation.
+        """
         total_time = self.transport_need / self.power
-        #total_time = self.transport_need / self.agent.power
         recarge_time = datetime.timedelta(seconds=total_time)
         logger.info(
             "Station {} started charging transport {} for {} seconds.".format(
@@ -203,16 +229,13 @@ class ChargingService(OneShotBehaviour):
 
         self.agent.charged_transports += 1
 
-        logger.info(
-            "DEPURACION CHARGINGSTATION - Station {} started charging transport {} for {} seconds.".format(
-                self.agent.name, self.agent_id, recarge_time.total_seconds()
-            )
-        )
-
-        await asyncio.sleep(recarge_time.total_seconds())       #Check seconds - Testing
+        await asyncio.sleep(recarge_time.total_seconds())
 
 
     async def inform_charging_complete(self):
+        """
+            Sends a message to the transport indicating that the charging is complete.
+        """
 
         reply = Message()
         reply.to = str(self.agent_id)
@@ -222,69 +245,14 @@ class ChargingService(OneShotBehaviour):
         reply.body = json.dumps(content)
         await self.send(reply)
 
-    # Codigo para testear - deassigning_place
-    # CODIGO PARA TESTEAR
-    #async def deassigning_place(self):
-    #    """
-    #    Leave a space of the charging station, when the station has free spaces, the status will change to FREE_STATION
-    #    """
-    #    if self.waiting_list:
-    #        transport_id = self.waiting_list.pop(0)
-            # time statistics update
-    #        if len(self.waiting_list) == 0:
-    #            self.empty_queue_time = time.time()
-    #            self.total_busy_time += (
-    #                self.empty_queue_time - self.transports_in_queue_time
-    #            )
-
-    #        logger.debug(
-    #            "Station {} has a place to charge transport {}".format(
-    #                self.agent_id, transport_id
-    #            )
-    #        )
-            # confirm EXPLICITLY to transport it can start charging
-    #        reply = Message()
-    #        reply.to = str(transport_id)
-    #        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-    #        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
-    #        content = {"station_id": self.agent_id}
-    #        reply.body = json.dumps(content)
-    #        await self.send(reply)
-            # await send_confirmation_to_transport(transport_id)
-
-    #    else:
-    #        p = self.get_available_places()
-    #        if p + 1:
-    #            self.set_status(FREE_STATION)
-    #        self.set_available_places(p + 1)
-
     async def run(self):
+        """
+            Main execution of the charging behavior, performing the charging operation and notifying the transport.
+        """
         logger.debug("Station {} start charging.".format(self.agent.name))
 
-        #DEPURACION
-        logger.warning("START CHARGING - Station {} start charging.".format(self.agent.name))
-
-        #msg = await self.receive(timeout=60)
-        #if not msg:
-        #    logger.warning(
-        #        "Station {} did not receive a message".format(
-        #            self.agent.name
-        #        )
-        #    )
-        #    return
-
-        #content = json.loads(msg.body)
-        #transport_id = msg.sender
-        #performative = msg.get_metadata("performative")
-
-        #if performative == INFORM_PERFORMATIVE:
-            #await asyncio.sleep(1)     #Testing
-        #    await self.charging_transport(content["need"], transport_id)
-        #    await self.inform_charging_complete()
-            #await self.deassigning_place()
         await self.charging_transport()
 
-        #service_name = "electricity"
         logger.info(
             "Agent {} has finished receiving the service {}".format(
                 self.agent_id,
@@ -294,32 +262,16 @@ class ChargingService(OneShotBehaviour):
 
         await self.inform_charging_complete()
 
-        logger.info(
-            "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
-                self.agent.name,
-                self.agent.get_slot_number_used(self.service_type)
-            )
-        )
-
         self.agent.decrease_slots_used(self.service_type)
-        #return
-
-        logger.info(
-            "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
-                self.agent.name,
-                self.agent.get_slot_number_used(self.service_type)
-            )
-        )
 
 class GasolineService(OneShotBehaviour):
-    #def __init__(self, agent_id, *args):        #ADAPTAR PARA QUE RECIBA LOS ARGS -- APUNTES
+    """
+        Represents a behavior for refueling gasoline vehicles at the station.
+        Follows a similar structure to the ChargingService class.
+    """
     def __init__(self, agent_id, **kwargs):
         super().__init__()
         self.agent_id = agent_id
-        #self.power = power
-        #TEST
-        #self.transport_need = args[0]
-        #self.power = args[1]
 
         if 'transport_need' in kwargs:
             self.transport_need = kwargs['transport_need']
@@ -330,13 +282,12 @@ class GasolineService(OneShotBehaviour):
         if 'refueling_rate' in kwargs:
             self.refueling_rate = kwargs['refueling_rate']
 
-        #self.additional_args = args
-        #super().__init__()
 
     async def charging_transport(self):
-        #total_time = need / self.power
+        """
+            Simulates the refueling process based on the refueling rate and logs the operation.
+        """
         total_time = self.transport_need / self.refueling_rate
-        #total_time = self.transport_need / self.agent.power
         recarge_time = datetime.timedelta(seconds=total_time)
         logger.info(
             "Station {} started charging transport {} for {} seconds.".format(
@@ -346,16 +297,13 @@ class GasolineService(OneShotBehaviour):
 
         self.agent.charged_transports += 1
 
-        logger.info(
-            "DEPURACION CHARGINGSTATION - Station {} started charging transport {} for {} seconds.".format(
-                self.agent.name, self.agent_id, recarge_time.total_seconds()
-            )
-        )
-
-        await asyncio.sleep(recarge_time.total_seconds())       #Check seconds - Testing
+        await asyncio.sleep(recarge_time.total_seconds())
 
 
     async def inform_charging_complete(self):
+        """
+            Sends a message to the transport indicating that the refueling is complete.
+        """
 
         reply = Message()
         reply.to = str(self.agent_id)
@@ -368,12 +316,8 @@ class GasolineService(OneShotBehaviour):
     async def run(self):
         logger.debug("Station {} start charging.".format(self.agent.name))
 
-        #DEPURACION
-        logger.warning("START CHARGING - Station {} start charging.".format(self.agent.name))
-
         await self.charging_transport()
 
-        #service_name = "electricity"
         logger.info(
             "Agent {} has finished receiving the service {}".format(
                 self.agent_id,
@@ -383,33 +327,17 @@ class GasolineService(OneShotBehaviour):
 
         await self.inform_charging_complete()
 
-        logger.info(
-            "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
-                self.agent.name,
-                self.agent.get_slot_number_used(self.service_type)
-            )
-        )
-
         self.agent.decrease_slots_used(self.service_type)
-        #return
-
-        logger.info(
-            "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
-                self.agent.name,
-                self.agent.get_slot_number_used(self.service_type)
-            )
-        )
 
 
 class DieselService(OneShotBehaviour):
-    #def __init__(self, agent_id, *args):        #ADAPTAR PARA QUE RECIBA LOS ARGS -- APUNTES
+    """
+        Represents a behavior for refueling diesel vehicles at the station.
+        Follows a similar structure to the GasolineService class.
+        """
     def __init__(self, agent_id, **kwargs):
         super().__init__()
         self.agent_id = agent_id
-        #self.power = power
-        #TEST
-        #self.transport_need = args[0]
-        #self.power = args[1]
 
         if 'transport_need' in kwargs:
             self.transport_need = kwargs['transport_need']
@@ -420,13 +348,11 @@ class DieselService(OneShotBehaviour):
         if 'refueling_rate' in kwargs:
             self.refueling_rate = kwargs['refueling_rate']
 
-        #self.additional_args = args
-        #super().__init__()
-
     async def charging_transport(self):
-        #total_time = need / self.power
+        """
+            Simulates the refueling process for diesel based on the refueling rate and logs the operation.
+        """
         total_time = self.transport_need / self.refueling_rate
-        #total_time = self.transport_need / self.agent.power
         recarge_time = datetime.timedelta(seconds=total_time)
         logger.info(
             "Station {} started charging transport {} for {} seconds.".format(
@@ -436,17 +362,13 @@ class DieselService(OneShotBehaviour):
 
         self.agent.charged_transports += 1
 
-        logger.info(
-            "DEPURACION CHARGINGSTATION - Station {} started charging transport {} for {} seconds.".format(
-                self.agent.name, self.agent_id, recarge_time.total_seconds()
-            )
-        )
-
-        await asyncio.sleep(recarge_time.total_seconds())       #Check seconds - Testing
+        await asyncio.sleep(recarge_time.total_seconds())
 
 
     async def inform_charging_complete(self):
-
+        """
+            Sends a message to the transport indicating that the refueling is complete.
+        """
         reply = Message()
         reply.to = str(self.agent_id)
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
@@ -457,14 +379,13 @@ class DieselService(OneShotBehaviour):
 
 
     async def run(self):
+        """
+            Main execution of the diesel refueling behavior.
+        """
         logger.debug("Station {} start charging.".format(self.agent.name))
-
-        #DEPURACION
-        logger.warning("START CHARGING - Station {} start charging.".format(self.agent.name))
 
         await self.charging_transport()
 
-        #service_name = "electricity"
         logger.info(
             "Agent {} has finished receiving the service {}".format(
                 self.agent_id,
@@ -474,19 +395,5 @@ class DieselService(OneShotBehaviour):
 
         await self.inform_charging_complete()
 
-        logger.info(
-            "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
-                self.agent.name,
-                self.agent.get_slot_number_used(self.service_type)
-            )
-        )
-
         self.agent.decrease_slots_used(self.service_type)
-        #return
 
-        logger.info(
-            "CHARGINGSTATION DEPURACION - Agent {}, slots usados: {}".format(
-                self.agent.name,
-                self.agent.get_slot_number_used(self.service_type)
-            )
-        )

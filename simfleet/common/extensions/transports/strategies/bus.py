@@ -8,30 +8,14 @@ from simfleet.common.extensions.transports.models.bus import BusStrategyBehaviou
 
 from simfleet.utils.utils_old import (
     TRANSPORT_WAITING,
-    TRANSPORT_NEEDS_CHARGING,
-    TRANSPORT_WAITING_FOR_APPROVAL,
-    TRANSPORT_MOVING_TO_STATION,
-    TRANSPORT_IN_STATION_PLACE,
-    TRANSPORT_IN_WAITING_LIST,
-    TRANSPORT_CHARGING,
-    TRANSPORT_CHARGED,
-    TRANSPORT_MOVING_TO_CUSTOMER,
-    TRANSPORT_IN_CUSTOMER_PLACE,
-    TRANSPORT_ARRIVED_AT_CUSTOMER,
     TRANSPORT_MOVING_TO_DESTINATION,
-    TRANSPORT_ARRIVED_AT_DESTINATION,
     TRANSPORT_IN_DEST,
     TRANSPORT_BOARDING,
 )
 
 from simfleet.communications.protocol import (
-    INFORM_PERFORMATIVE,
-    CANCEL_PERFORMATIVE,
     REQUEST_PERFORMATIVE,
-    QUERY_PROTOCOL
 )
-
-
 
 ################################################################
 #                                                              #
@@ -40,7 +24,13 @@ from simfleet.communications.protocol import (
 ################################################################
 
 class BusSelectDestState(BusStrategyBehaviour, State):
+    """
+        State where the bus selects its next destination.
 
+        Methods:
+            on_start(): Initializes the state and sets the status of the agent.
+            run(): Determines the next stop based on the bus line type and moves to that stop.
+        """
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING
@@ -48,35 +38,12 @@ class BusSelectDestState(BusStrategyBehaviour, State):
 
     async def run(self):
         if self.agent.stop_dic is None:
-            # New
+            # Fetch stop information if not yet available
             self.agent.stop_dic = await self.agent.get_list_agent_position(self.agent.type_service, self.agent.stop_dic)
-
             self.set_next_state(TRANSPORT_WAITING)
             return
 
-            #await self.send_get_stops()
-
-            # msg = await self.receive(timeout=300)       #Director envia informacion de las paradas
-            # if msg:
-            #     protocol = msg.get_metadata("protocol")
-            #     if protocol == QUERY_PROTOCOL:
-            #         performative = msg.get_metadata("performative")
-            #         if performative == INFORM_PERFORMATIVE:
-            #             self.agent.stop_dic = json.loads(msg.body)
-            #             logger.debug(
-            #                 "{} got stops {}".format(
-            #                     self.agent.name, self.agent.stop_dic
-            #                 )
-            #             )
-            #             self.agent.setup_current_stop()
-            #         elif performative == CANCEL_PERFORMATIVE:
-            #             logger.warning(
-            #                 "{} got cancellation of request for {} information".format(
-            #                     self.agent.name, self.agent.type_service
-            #                 )
-            #             )
-            # self.set_next_state(TRANSPORT_WAITING)
-            # return
+        self.agent.setup_current_stop()
 
         logger.debug("Transport {} in position {} within its stop_list ({})".format(self.agent.jid,
                                                                                     self.agent.get("current_pos"),
@@ -116,6 +83,13 @@ class BusSelectDestState(BusStrategyBehaviour, State):
 
 
 class BusMovingToDestState(BusStrategyBehaviour, State):
+    """
+        State where the bus is moving towards its next destination.
+
+        Methods:
+            on_start(): Initializes the state and sets the status of the agent.
+            run(): Waits for the bus to arrive at its destination and then transitions states.
+    """
 
     async def on_start(self):
         await super().on_start()
@@ -135,7 +109,13 @@ class BusMovingToDestState(BusStrategyBehaviour, State):
 
 
 class BusInDestState(BusStrategyBehaviour, State):
+    """
+        State where the bus is at a stop and allows passengers to board or exit.
 
+        Methods:
+            on_start(): Initializes the state and sets the status of the agent.
+            run(): Manages passengers boarding and exiting, and updates statistics.
+        """
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_IN_DEST
@@ -143,7 +123,6 @@ class BusInDestState(BusStrategyBehaviour, State):
 
     async def run(self):
         # Write occupation statistics
-        #self.agent.occupations.append(len(self.agent.current_customers))
         self.agent.occupations.append(len(self.agent.get("current_customer")))
         # Drop off customers who are at their destination
         await self.drop_customers()
@@ -154,7 +133,13 @@ class BusInDestState(BusStrategyBehaviour, State):
 
 
 class BusBoardingCustomersState(BusStrategyBehaviour, State):
+    """
+        State where the bus is boarding new passengers.
 
+        Methods:
+            on_start(): Initializes the state and sets the status of the agent.
+            run(): Manages passenger boarding based on the bus's current capacity.
+        """
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_BOARDING
@@ -182,6 +167,12 @@ class BusBoardingCustomersState(BusStrategyBehaviour, State):
 
 
 class FSMBusStrategyBehaviour(FSMBehaviour):
+    """
+        The finite state machine (FSM) that defines the behavior of the bus transport agent.
+
+        Methods:
+            setup(): Configures the FSM with states and transitions.
+        """
     def setup(self):
         # Create states
         self.add_state(TRANSPORT_WAITING, BusSelectDestState(), initial=True)

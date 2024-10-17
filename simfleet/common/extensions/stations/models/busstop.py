@@ -1,13 +1,10 @@
-import datetime
 import json
-import time
-from asyncio import CancelledError
 
 from loguru import logger
-from spade.agent import Agent
-from spade.behaviour import CyclicBehaviour
+from asyncio import CancelledError
 from spade.message import Message
 from spade.template import Template
+from spade.behaviour import CyclicBehaviour
 
 
 from simfleet.communications.protocol import (
@@ -15,28 +12,33 @@ from simfleet.communications.protocol import (
         INFORM_PERFORMATIVE,
         REGISTER_PROTOCOL,
         REQUEST_PERFORMATIVE,
-        TRAVEL_PROTOCOL,
         REQUEST_PROTOCOL
 )
 
 from simfleet.common.queuestationagent import QueueStationAgent
-from simfleet.utils.utils_old import StrategyBehaviour, TRANSPORT_IN_CUSTOMER_PLACE
-
+from simfleet.utils.utils_old import TRANSPORT_IN_CUSTOMER_PLACE
 
 
 class BusStopAgent(QueueStationAgent):
+    """
+        Represents a bus stop agent that manages customer registrations,
+        informs customers about bus arrivals, and handles the bus stop status.
+
+        Methods:
+            setup(): Initializes the bus stop agent and sets up its behavior templates.
+            set_name(name): Sets the name of the bus stop.
+            set_status(state): Sets the status of the bus stop.
+            set_type(station_type): Sets the type of the bus stop.
+            set_lines(lines): Sets the bus lines that serve the stop.
+            to_json(): Returns the bus stop information in JSON format.
+            run_strategy(): Sets the strategy behavior for the stop.
+    """
     def __init__(self, agentjid, password, **kwargs):
         super().__init__(agentjid, password)
 
-        #self.fleetmanager_id = kwargs.get('fleet', None)        # vehicle.py
-
         # Bus stop attributes
         self.stop_name = None
-        self.position = None            #GeolocationAgent - current_pos
         self.lines = None
-
-        #self.position = None
-        #self.lines = None
 
         # Customer registry
         self.registered_customers = {}
@@ -49,6 +51,9 @@ class BusStopAgent(QueueStationAgent):
         self.type = None
 
     async def setup(self):
+        """
+            Sets up the bus stop agent by defining its type and behaviors.
+        """
         await super().setup()
         logger.info("Stop agent {} running".format(self.name))
         self.set_type("stop")
@@ -83,22 +88,33 @@ class BusStopAgent(QueueStationAgent):
         self.ready = True
 
     def set_name(self, name):
+        """
+            Sets the name of the bus stop.
+        """
         self.stop_name = name
 
     def set_status(self, state=None):
+        """
+        Sets the status of the bus stop.
+        """
         self.status = state
 
     def set_type(self, station_type):
+        """
+        Sets the type of the bus stop.
+        """
         self.type = station_type
 
     def set_lines(self, lines):
+        """
+            Sets the bus lines that the stop serves.
+        """
         self.lines = lines
 
     def to_json(self):
         return {
             "id": self.agent_id,
             "name": self.stop_name,
-            #"position": self.position,
             "position": self.get("current_pos"),
             "lines": self.lines,
             "icon": self.icon,
@@ -109,22 +125,33 @@ class BusStopAgent(QueueStationAgent):
         Sets the strategy for the stop agent.
         """
         if not self.running_strategy:
-            #template = Template()
-            #template.set_metadata("protocol", REQUEST_PROTOCOL)
-            #self.add_behaviour(self.strategy(), template)
             self.running_strategy = True
 
 
 class RegistrationBehaviour(CyclicBehaviour):
+    """
+        Handles the registration behavior of the bus stop, allowing it to register with the directory agent.
+
+        Methods:
+            on_start(): Initializes the behavior and sets up the logger.
+            send_registration(): Sends a registration message to the directory.
+            run(): Manages the registration logic and response handling.
+    """
     async def on_start(self):
         logger.debug("Strategy {} started in directory".format(type(self).__name__))
 
     def set_registration(self, decision):
+        """
+            Sets the registration status of the agent.
+
+            Args:
+                decision (bool): Registration decision.
+        """
         self.agent.registration = decision
 
     async def send_registration(self):
         """
-        Send a ``spade.message.Message`` with a proposal to directory to register.
+        Sends a registration message to the directory agent with the bus stop's information.
         """
         logger.info(
             "Bus stop {} sent proposal to register to directory {}".format(
@@ -136,7 +163,6 @@ class RegistrationBehaviour(CyclicBehaviour):
             "jid": str(self.agent.jid),
             "type": "stops",
             "stop_name": self.agent.stop_name,
-            #"position": self.agent.position,
             "position": self.get("current_pos"),
             "lines": self.agent.lines,
         }
@@ -168,8 +194,13 @@ class RegistrationBehaviour(CyclicBehaviour):
 
 class BusStopStrategyBehaviour(CyclicBehaviour):
     """
-    Class from which to inherit to create a stop strategy.
-    You must overload the ```run`` coroutine
+    Strategy behavior for managing the bus stop operations, including handling customer notifications.
+
+    Methods:
+        on_start(): Initializes the behavior and sets up the logger.
+        dequeue_customers(): Manages the dequeueing of customers based on their destinations.
+        inform_customers(): Informs customers that their transport has arrived.
+        run(): Main loop handling incoming messages and customer notifications.
     """
 
     async def on_start(self):
@@ -181,10 +212,12 @@ class BusStopStrategyBehaviour(CyclicBehaviour):
 
     async def dequeue_customers(self, sender, line, list_of_stops=None):        #ADAPTAR A QUEUESTATIONAGENT
         """
-        Sends a message to the all customers whose destination is in list_of_stops
+        Sends a message to all customers whose destination is in the list of stops.
 
         Args:
-            list_of_stops (list): list of coordinates for each stop in the transport's route
+            sender (str): ID of the sender (bus).
+            line (str): The bus line.
+            list_of_stops (list, optional): Coordinates for each stop in the transport's route.
         """
         sender = str(sender)
 
@@ -210,19 +243,17 @@ class BusStopStrategyBehaviour(CyclicBehaviour):
                 logger.debug("Stop {} on line {} has no customers waiting in the queue.".format(self.agent.name,
                                                                                                 line))
         else:
-            #DEPURACION
-            logger.info(
-                "DEPURACION busstop - sender: {},  line: {}, waitin_list: {}".format(
-                    sender,
-                    line,
-                    self.agent.waiting_lists[line]
-                )
-            )
             self.agent.queuebehaviour.dequeue_agent_to_waiting_list(line, sender)
 
 
     async def inform_customers(self, inform_to, sender):
+        """
+            Informs the specified customers that their transport has arrived.
 
+            Args:
+                inform_to (list): List of customers to be informed.
+                sender (str): The ID of the bus notifying the customers.
+        """
         for customer in inform_to:
             data = {"status": TRANSPORT_IN_CUSTOMER_PLACE, "transport": sender}
             msg = Message()
@@ -234,18 +265,19 @@ class BusStopStrategyBehaviour(CyclicBehaviour):
 
 
     async def run(self):
-
+        """
+            Main loop that handles incoming messages and manages customer notifications.
+        """
         msg = await self.receive(timeout=30)
         logger.debug("Bus stop {} received message: {}".format(self.agent.jid, msg))
         if msg:
             sender = msg.sender
             performative = msg.get_metadata("performative")
             content = json.loads(msg.body)
-            # else if sender is transport
+
             if performative == INFORM_PERFORMATIVE:
                 line = content["line"]
 
-                #if content["list_of_stops"]:
                 if "list_of_stops" in content:
                     list_of_stops = content["list_of_stops"]
                 else:
@@ -253,113 +285,5 @@ class BusStopStrategyBehaviour(CyclicBehaviour):
 
                 logger.debug("Stop {} received message from transport {}, informing customers...".format(
                     self.agent.name, sender))
-                # Content is list of line stops
+
                 await self.dequeue_customers(sender, line, list_of_stops)
-
-                #if msg.body is None: # Content is empty, indicating the customer is not in the station anymore
-                #if content["dequeue_one"]:
-                #    await self.delete_customer(sender)
-                #else:
-                    #if sender is transport
-                    #content = json.loads(msg.body)
-                #    logger.debug("Stop {} received message from transport {}, informing customers...".format(
-                #        self.agent.name, sender))
-                    # Content is list of line stops
-                #    await self.inform_customers(sender, content)
-
-# ORIGINAL
-# class StopStrategyBehaviour(StrategyBehaviour):
-#     """
-#     Class from which to inherit to create a stop strategy.
-#     You must overload the ```run`` coroutine
-#     """
-#
-#     async def on_start(self):
-#         logger.debug(
-#             "Strategy {} started in transport {}".format(
-#                 type(self).__name__, self.agent.name
-#             )
-#         )
-#
-#     async def register_customer(self, customer, destinationStop):       #ADAPTAR A QUEUESTATIONAGENT
-#
-#         self.agent.registered_customers[str(customer)] = destinationStop.get("destination")
-#         logger.info("Stop {} registered customer {} --> {}".format(self.agent.name, customer,
-#                                                                    destinationStop.get("destination")))
-#         # Update statistics
-#         self.agent.total_customers += 1
-#         self.agent.num_customers.append(len(self.agent.registered_customers))
-#         await self.accept_customer_register(customer)
-#
-#
-#
-#     async def accept_customer_register(self, customer, data=None):
-#         """
-#         Sends a message to the confirming the register of a customer
-#
-#         Args:
-#             customer (string): jid of the customer to which the stop replies
-#             data (dict, optional): complementary info about the status
-#         """
-#         if data is None:
-#             data = {}
-#         msg = Message()
-#         msg.to = str(customer)
-#         msg.set_metadata("protocol", REQUEST_PROTOCOL)
-#         msg.set_metadata("performative", ACCEPT_PERFORMATIVE)
-#         msg.body = json.dumps(data)
-#         await self.send(msg)
-#
-#     async def delete_customer(self, customer):                      #ADAPTAR A QUEUESTATIONAGENT
-#         logger.info("Stop {} deleted customer {} from registry".format(self.agent.name, customer))
-#         del self.agent.registered_customers[str(customer)]
-#
-#     async def inform_customers(self, sender, list_of_stops):        #ADAPTAR A QUEUESTATIONAGENT
-#         """
-#         Sends a message to the all customers whose destination is in list_of_stops
-#
-#         Args:
-#             list_of_stops (list): list of coordinates for each stop in the transport's route
-#         """
-#         sender = str(sender)
-#
-#         inform_to = []
-#         for customer in self.agent.registered_customers.keys():
-#             if self.agent.registered_customers.get(customer) in list_of_stops:
-#                 inform_to.append(customer)
-#
-#         if len(inform_to) == 0:
-#             logger.debug("Stop {} has no registered customer with destination in {}".format(self.agent.name,
-#                                                                                             list_of_stops))
-#         for customer in inform_to:
-#             data = {"status": TRANSPORT_IN_CUSTOMER_PLACE, "transport": sender}
-#             msg = Message()
-#             msg.to = customer
-#             msg.set_metadata("protocol", REQUEST_PROTOCOL)
-#             msg.set_metadata("performative", INFORM_PERFORMATIVE)
-#             msg.body = json.dumps(data)
-#             await self.send(msg)
-#
-#     async def run(self):
-#
-#         msg = await self.receive(timeout=30)
-#         logger.debug("Bus stop {} received message: {}".format(self.agent.jid, msg))
-#         if msg:
-#             sender = msg.sender
-#             performative = msg.get_metadata("performative")
-#             # if sender is customer
-#             if performative == REQUEST_PERFORMATIVE:
-#                 if msg.body is None: # Content is empty, indicating the customer is not in the station anymore
-#                     await self.delete_customer(sender)
-#                 else:
-#                     # Content is destination stop
-#                     content = json.loads(msg.body)
-#                     if content["destination"] is not None:
-#                         await self.register_customer(sender, content)
-#             # else if sender is transport
-#             elif performative == INFORM_PERFORMATIVE:
-#                 content = json.loads(msg.body)
-#                 logger.debug("Stop {} received message from transport {}, informing customers...".format(
-#                     self.agent.name, sender))
-#                 # Content is list of line stops
-#                 await self.inform_customers(sender, content)

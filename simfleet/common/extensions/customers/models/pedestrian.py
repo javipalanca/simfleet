@@ -1,35 +1,7 @@
-import asyncio
-import json
-import time
-from asyncio import CancelledError
-from collections import defaultdict
-
-from loguru import logger
-from spade.agent import Agent
-from spade.behaviour import CyclicBehaviour, OneShotBehaviour
-from spade.message import Message
 from spade.template import Template
-
-from simfleet.utils.helpers import new_random_position
-from simfleet.utils.utils_old import (
-    CUSTOMER_WAITING,
-    CUSTOMER_IN_DEST,
-    TRANSPORT_MOVING_TO_CUSTOMER,
-    CUSTOMER_IN_TRANSPORT,
-    TRANSPORT_IN_CUSTOMER_PLACE,
-    CUSTOMER_LOCATION,
-    StrategyBehaviour,
-    request_path,
-    status_to_str,
-)
 
 from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
-    TRAVEL_PROTOCOL,
-    REQUEST_PERFORMATIVE,
-    ACCEPT_PERFORMATIVE,
-    REFUSE_PERFORMATIVE,
-    INFORM_PERFORMATIVE,
     QUERY_PROTOCOL,
 )
 
@@ -37,14 +9,9 @@ from simfleet.common.agents.customer import CustomerAgent
 from simfleet.common.movable import MovableMixin
 
 class PedestrianAgent(MovableMixin, CustomerAgent):
-#class BusCustomerAgent(CustomerAgent):
     def __init__(self, agentjid, password):
         CustomerAgent.__init__(self, agentjid, password)
         MovableMixin.__init__(self)
-
-        # Bus line attributes
-        #self.__observers = defaultdict(list)
-        #self.current_stop = None
 
         self.pedestrian_dest = None
 
@@ -60,7 +27,7 @@ class PedestrianAgent(MovableMixin, CustomerAgent):
             self.add_behaviour(self.strategy(), template1 | template2)
             self.running_strategy = True
 
-    async def set_position(self, coords=None):      #ANALIZAR CAMBIO - NOTAS
+    async def set_position(self, coords=None):
         """
         Sets the position of the customer. If no position is provided it is located in a random position.
 

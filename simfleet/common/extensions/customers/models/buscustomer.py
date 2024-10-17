@@ -4,28 +4,20 @@ import time
 from asyncio import CancelledError
 from collections import defaultdict
 
-from loguru import logger
-from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
-from spade.message import Message
 from spade.template import Template
+from spade.message import Message
+from loguru import logger
 
 from simfleet.utils.helpers import new_random_position
 from simfleet.utils.utils_old import (
-    CUSTOMER_WAITING,
-    CUSTOMER_IN_DEST,
-    TRANSPORT_MOVING_TO_CUSTOMER,
-    CUSTOMER_IN_TRANSPORT,
-    TRANSPORT_IN_CUSTOMER_PLACE,
     CUSTOMER_LOCATION,
     StrategyBehaviour,
-    request_path,
     status_to_str,
 )
 
 from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
-    TRAVEL_PROTOCOL,
     REQUEST_PERFORMATIVE,
     ACCEPT_PERFORMATIVE,
     REFUSE_PERFORMATIVE,
@@ -33,17 +25,28 @@ from simfleet.communications.protocol import (
     QUERY_PROTOCOL,
 )
 
-#from simfleet.common.agents.customer import CustomerAgent
-#from simfleet.common.movable import MovableMixin
-
 from simfleet.common.extensions.customers.models.pedestrian import PedestrianAgent
 
-#class BusCustomerAgent(MovableMixin, CustomerAgent):
-#class BusCustomerAgent(CustomerAgent):
 class BusCustomerAgent(PedestrianAgent):
+    """
+        Represents a customer agent using a bus service. It manages the interaction
+        with the transport system including setting stops, waiting times, and registering
+        to stops along the bus line.
+
+        Attributes:
+            __observers (dict): Observers for value changes.
+            current_stop (list): The current bus stop of the customer.
+            destination_stop (list): The destination bus stop of the customer.
+            type_service (str): The type of service the customer is using.
+            registered_in (str): The bus stop where the customer is registered.
+            stop_dic (dict): Dictionary of available stops.
+            in_transport_time (float): Time the customer spends in transport.
+            total_sim_time (float): Total simulation time for the customer.
+            alternative_transports (list): Alternative transport options.
+            line (str): The bus line assigned to the customer.
+            arguments (dict): Additional arguments for the customer.
+        """
     def __init__(self, agentjid, password):
-        #CustomerAgent.__init__(self, agentjid, password)
-        #MovableMixin.__init__(self)
         super().__init__(agentjid, password)
 
         # Bus line attributes
@@ -57,12 +60,12 @@ class BusCustomerAgent(PedestrianAgent):
         self.total_sim_time = None
         self.alternative_transports = []
 
-        #New atribute
+        # Additional attribute
         self.line = None
         self.arguments = {}
 
-        # Transport in stop event
-        self.set("arrived_to_destination", None)  # new
+        # Event for tracking when the customer arrives at the destination
+        self.set("arrived_to_destination", None)
         self.customer_arrived_to_destination_event = asyncio.Event(loop=self.loop)
 
         def customer_arrived_to_destination_callback(old, new):
@@ -72,23 +75,32 @@ class BusCustomerAgent(PedestrianAgent):
         self.customer_arrived_to_destination_callback = customer_arrived_to_destination_callback
 
     def set_line(self, line):
+        """
+            Sets the bus line the customer is using.
+
+            Args:
+                line (str): The bus line identifier.
+        """
         self.line = line
 
     def run_strategy(self):
-        """import json
-        Runs the strategy for the customer agent.
+        """
+        Runs the strategy for the customer agent. Initializes the behavior
+        for handling requests and messages related to the bus service.
         """
         if not self.running_strategy:
             template1 = Template()
             template1.set_metadata("protocol", REQUEST_PROTOCOL)
-            # template2 = Template()
-            # template2.set_metadata("protocol", QUERY_PROTOCOL)
-            # self.add_behaviour(self.strategy(), template1 | template2)
             self.add_behaviour(self.strategy(), template1)
             self.running_strategy = True
 
-    # Bus line
     def get_waiting_time_bus(self):
+        """
+            Calculates the waiting time for the customer before boarding the bus.
+
+            Returns:
+                float: The time the customer has been waiting for pickup.
+        """
         if self.waiting_for_pickup_time is not None:
             return self.waiting_for_pickup_time
         elif self.init_time is not None:
@@ -100,6 +112,12 @@ class BusCustomerAgent(PedestrianAgent):
             return None
 
     def in_transport_time_bus(self):
+        """
+            Calculates the time the customer has been in transport.
+
+            Returns:
+                float: The time the customer has spent in transport.
+        """
         if self.pickup_time:
             if self.end_time:
                 return self.end_time - self.pickup_time
@@ -119,121 +137,48 @@ class BusCustomerAgent(PedestrianAgent):
 
     def get_pickup_time(self):
         """
-        Returns the time that the customer was waiting to be picked up since it has been assigned to a transport.
+        Returns the time the customer waited to be picked up after being assigned to a transport.
 
         Returns:
-            float: The time that the customer was waiting to a transport since it has been assigned.
+            float: The waiting time for pickup, or None if not yet picked up.
         """
         if self.pickup_time:
             return self.pickup_time - self.waiting_for_pickup_time
         return None
 
-
-    # def watch_value(self, key, callback):
-    #     """
-    #     Registers an observer callback to be run when a value is changed
-    #
-    #     Args:
-    #         key (str): the name of the value
-    #         callback (function): a function to be called when the value changes. It receives two arguments: the old and the new value.
-    #     """
-    #     self.__observers[key].append(callback)
-
-
-    async def set_position(self, coords=None):      #ANALIZAR CAMBIO - NOTAS
+    async def set_position(self, coords=None):
         """
-        Sets the position of the customer. If no position is provided it is located in a random position.
+        Sets the position of the customer. If no position is provided, assigns a random one.
 
         Args:
-            coords (list): a list coordinates (longitude and latitude)
+            coords (list): Coordinates (longitude and latitude) where the customer is located.
         """
         await super().set_position(coords)
         self.set("current_pos", coords)
 
-        #if coords == self.dest:
-
-        #if self.is_in_destination():
         if self.destination_stop[1] == self.get_position():
 
             logger.success("Customer {} arrived to its destination {}".format(self.name, self.destination_stop[1]))
-            #self.status = CUSTOMER_IN_DEST
             self.set("arrived_to_destination", True)  # launch callback, awake FSMStrategyBehaviour
             self.end_time = time.time()
 
-
     async def setup(self):
+        """
+        Sets up the customer agent by configuring behaviors and templates (TravelBehaviour).
+        """
         await super().setup()
 
-        # ORIGINAL CODE - BUS
-        # try:
-        #     template = Template()
-        #     template.set_metadata("protocol", TRAVEL_PROTOCOL)
-        #     travel_behaviour = BusTravelBehaviour()
-        #     self.add_behaviour(travel_behaviour, template)
-        #     while not self.has_behaviour(travel_behaviour):
-        #         logger.warning(
-        #             "Customer {} could not create TravelBehaviour. Retrying...".format(
-        #                 self.agent_id
-        #             )
-        #         )
-        #         self.add_behaviour(travel_behaviour, template)
-        #     self.ready = True
-        # except Exception as e:
-        #     logger.error(
-        #         "EXCEPTION creating TravelBehaviour in Customer {}: {}".format(
-        #             self.agent_id, e
-        #         )
-        #     )
 
-
-
-# Bus line
-class BusTravelBehaviour(CyclicBehaviour):
-    """
-    This is the internal behaviour that manages the movement of the customer.
-    It is triggered when the transport informs the customer that it is going to the
-    customer's position until the customer is dropped in its destination.
-    """
-
-    async def on_start(self):
-        logger.debug("Customer {} started Bus Travel Behavior.".format(self.agent.name))
-
-    async def run(self):
-        try:
-            msg = await self.receive(timeout=5)
-            if not msg:
-                return
-            content = json.loads(msg.body)
-            # logger.debug("Customer {} informed of: {}".format(self.agent.name, content))
-            if "status" in content:
-                status = content["status"]
-                if status != CUSTOMER_LOCATION:
-                    logger.debug(
-                        "Customer {} informed of status: {}".format(
-                            self.agent.name, status_to_str(status)
-                        )
-                    )
-                if status == CUSTOMER_LOCATION:
-                    coords = content["location"]
-                    self.agent.set_position(coords)
-        except CancelledError:
-            logger.debug("Cancelling async tasks...")
-        except Exception as e:
-            logger.error(
-                "EXCEPTION in Bus Travel Behaviour of Customer {}: {}".format(
-                    self.agent.name, e
-                )
-            )
 
 class BusCustomerStrategyBehaviour(StrategyBehaviour):
     """
-    Class from which to inherit to create a transport strategy.
-    You must overload the ``run`` coroutine
+    Strategy behavior for a bus customer. This class manages the logic for customer requests,
+    accepting or refusing transport offers, and interacting with stops.
 
-    Helper functions:
-        * ``send_request``
-        * ``accept_transport``
-        * ``refuse_transport``
+    Helper methods:
+        - send_request
+        - accept_transport
+        - refuse_transport
     """
 
     async def on_start(self):
@@ -270,43 +215,6 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
                 self.agent.name, self.agent.directory_id, self.agent.type_service
             )
         )
-
-    async def send_request(self, content=None):
-        """
-        Sends an ``spade.message.Message`` to the fleetmanager to request a transport.
-        It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
-        If no content is set a default content with the customer_id,
-        origin and target coordinates is used.
-
-        Args:
-            content (dict): Optional content dictionary
-        """
-        if not self.agent.customer_dest:
-            self.agent.customer_dest = new_random_position(self.agent.boundingbox, self.agent.route_host)
-        if content is None or len(content) == 0:
-            content = {
-                "customer_id": str(self.agent.jid),
-                "origin": self.agent.get("current_pos"),
-                "dest": self.agent.customer_dest,
-            }
-
-        if self.agent.fleetmanagers is not None:
-            for (
-                fleetmanager
-            ) in self.agent.fleetmanagers.keys():  # Send a message to all FleetManagers
-                msg = Message()
-                msg.to = str(fleetmanager)
-                msg.set_metadata("protocol", REQUEST_PROTOCOL)
-                msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-                msg.body = json.dumps(content)
-                await self.send(msg)
-            logger.info(
-                "Customer {} asked for a transport to {}.".format(
-                    self.agent.name, self.agent.customer_dest
-                )
-            )
-        else:
-            logger.warning("Customer {} has no fleet managers.".format(self.agent.name))
 
     async def accept_transport(self, transport_id):
         """
@@ -360,51 +268,12 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
             )
         )
 
-    # Bus line
-    async def send_get_stops(self, content=None):
-        """
-        Sends an ``spade.message.Message`` to the DirectoryAgent to request the list of stops in the system.
-        It uses the QUERY_PROTOCOL and the REQUEST_PERFORMATIVE.
-        If no content is set a default content with the type_service that needs
-        Args:
-            content (dict): Optional content dictionary
-        """
-        if content is None or len(content) == 0:
-            content = "stops"
-        msg = Message()
-        msg.to = str(self.agent.directory_id)
-        msg.set_metadata("protocol", QUERY_PROTOCOL)
-        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-        msg.body = content
-        await self.send(msg)
-
-        logger.info(
-            "Customer {} asked for stops to directory {} for type {}.".format(
-                self.agent.name, self.agent.directory_id, self.agent.type_service
-            )
-        )
-
-    # def setup_stops_original(self):
-    #     for jid in self.agent.stop_dic.keys():
-    #         stop_info = self.agent.stop_dic.get(jid)
-    #         # Set origin stop
-    #         if stop_info.get("position") == self.agent.get("current_pos"):
-    #             self.agent.current_stop = stop_info
-    #         # Set destination stop
-    #         if stop_info.get("position") == self.agent.dest:
-    #             self.agent.destination_stop = stop_info
-    #     logger.debug("Customer {} set current_stop {} and destination_stop {}".format(self.agent.name,
-    #                                                                                   self.agent.current_stop.get(
-    #                                                                                       "jid"),
-    #                                                                                   self.agent.destination_stop.get(
-    #                                                                                       "jid")))
-
     def setup_stops(self):
+        """
+        Sets up the current and destination bus stops for the customer based on the nearest available stops.
+        """
         if self.agent.current_stop is None and self.agent.destination_stop is None:
-            # current_bus_stop, current_position = self.agent.nearst_agent(self.agent.stop_dic, self.agent.get_position())
             self.agent.current_stop = self.agent.nearst_agent(self.agent.stop_dic, self.agent.get_position())
-
-            # destination_bus_stop, destination_position = self.agent.nearst_agent(self.agent.stop_dic, self.agent.dest)
             self.agent.destination_stop = self.agent.nearst_agent(self.agent.stop_dic, self.agent.customer_dest)
 
             logger.debug("Customer {} set current_stop {} and destination_stop {}".format(self.agent.name,
@@ -412,11 +281,15 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
                                                                                       self.agent.destination_stop[0]))
 
     async def register_to_stop(self, content):  # ANALIZAR Y REDISEÑO
-        # content = {"destination": self.agent.destination_stop.get("position")}
+        """
+            Registers the customer at the current bus stop.
+
+            Args:
+                content (dict, optional): Information needed for registration.
+        """
         if content is None:
             content = {}
         msg = Message()
-        # msg.to = self.agent.current_stop.get("jid")
         msg.to = self.agent.current_stop[0]
         msg.set_metadata("protocol", REQUEST_PROTOCOL)
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
@@ -428,10 +301,15 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
         await self.send(msg)
 
     async def board_transport(self, transport):
+        """
+            Sends a message to board a transport.
+
+            Args:
+                transport (str): The transport agent ID.
+        """
         content = {
             "customer_id": str(self.agent.jid),
             "origin": self.agent.get("current_pos"),
-            #"dest": self.agent.dest,
             "dest": self.agent.destination_stop[1],
         }
         msg = Message()
@@ -442,18 +320,24 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
         await self.send(msg)
 
     async def inform_stop(self, content):
+        """
+            Informs the stop of the customer's status.
+
+            Args:
+                content (dict, optional): Information needed for the message.
+        """
 
         if content is None:
             content = {}
         msg = Message()
-        #msg.to = self.agent.current_stop.get("jid")
         msg.to = self.agent.current_stop[0]
         msg.set_metadata("protocol", REQUEST_PROTOCOL)
-        #msg.set_metadata("performative", REQUEST_PERFORMATIVE)     #CHANGE - FOR DEQUEUE IN QUEUESTATIONAGENT
         msg.set_metadata("performative", INFORM_PERFORMATIVE)
-        #msg.body = None                                            #CHANGE - FOR DEQUEUE IN QUEUESTATIONAGENT
         msg.body = json.dumps(content)
         await self.send(msg)
 
     async def run(self):
+        """
+            Abstract method to define the behavior strategy. This must be implemented in derived classes.
+        """
         raise NotImplementedError

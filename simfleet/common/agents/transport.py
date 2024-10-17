@@ -751,8 +751,14 @@ class TransportAgent(VehicleAgent):
             else None,
             "assignments": self.num_assignments,
             "distance": "{0:.2f}".format(sum(self.distances)),
-            "autonomy": self.current_autonomy_km,
-            "max_autonomy": self.max_autonomy_km,
+            #"autonomy": self.current_autonomy_km,          #CHANGE THE to_json with inheritance
+            #"autonomy": self.current_autonomy_km
+            #if self.current_autonomy_km
+            #else None,
+            #"max_autonomy": self.max_autonomy_km,          #CHANGE THE to_json with inheritance
+            #"max_autonomy": self.max_autonomy_km
+            #if self.max_autonomy_km
+            #else None,
             "service": self.fleet_type,
             "fleet": self.fleetmanager_id.split("@")[0]
             if self.fleetmanager_id

@@ -22,8 +22,8 @@ class TaxiAgent(TransportAgent):
     def __init__(self, agentjid, password, **kwargs):
         super().__init__(agentjid, password)
 
-        self.set("assigned_customer", {})            # MOD-STRATEGY-01-A
-        self.fleetmanager_id = kwargs.get('fleet', None)        # vehicle.py
+        self.set("assigned_customer", {})
+        self.fleetmanager_id = kwargs.get('fleet', None)
 
 
     async def add_assigned_taxicustomer(self, customer_id, origin=None, dest=None):
@@ -60,68 +60,6 @@ class TaxiStrategyBehaviour(State):
                 type(self).__name__, self.agent.name
             )
         )
-
-    # async def send_confirmation_travel(self, station_id):
-    #     logger.info(
-    #         "Transport {} sent confirmation to station {}".format(
-    #             self.agent.name, station_id
-    #         )
-    #     )
-    #     reply = Message()
-    #     reply.to = station_id
-    #     reply.set_metadata("protocol", REQUEST_PROTOCOL)
-    #     reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
-    #     await self.send(reply)
-
-    # async def go_to_the_station(self, station_id, dest):
-    #
-    #     logger.info(
-    #         "Transport {} on route to station {}".format(self.agent.name, station_id)
-    #     )
-    #     self.set("current_station", station_id)
-    #     self.agent.current_station_dest = dest
-    #     #self.agent.num_charges += 1            #DUDA ATRIBUTO
-    #     travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
-    #     self.agent.set_km_expense(travel_km)
-
-    # async def request_access_station(self, station_id, content):
-    #
-    #     if content is None:
-    #         content = {}
-    #     reply = Message()
-    #     reply.to = station_id
-    #     reply.set_metadata("protocol", REQUEST_PROTOCOL)
-    #     reply.set_metadata("performative", REQUEST_PERFORMATIVE)
-    #     reply.body = json.dumps(content)
-    #     logger.debug(
-    #         "{} requesting access to {}".format(
-    #             self.agent.name,
-    #             station_id,
-    #             reply.body
-    #         )
-    #     )
-    #     await self.send(reply)
-    #
-    #     # time waiting in station queue update
-    #     self.agent.waiting_in_queue_time = time.time()
-
-    # async def send_get_stations(self, content=None):
-    #
-    #     if content is None or len(content) == 0:
-    #         content = self.agent.service_type
-    #
-    #     msg = Message()
-    #     msg.to = str(self.agent.directory_id)
-    #     msg.set_metadata("protocol", QUERY_PROTOCOL)
-    #     msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-    #     msg.body = content
-    #     await self.send(msg)
-    #
-    #     logger.info(
-    #         "Transport {} asked for stations to Directory {} for type {}.".format(
-    #             self.agent.name, self.agent.directory_id, self.agent.service_type
-    #         )
-    #     )
 
     async def send_proposal(self, customer_id, content=None):
         """
@@ -166,76 +104,6 @@ class TaxiStrategyBehaviour(State):
         reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         reply.body = json.dumps(content)
         await self.send(reply)
-
-    # async def inform_station(self, data=None):
-    #     """
-    #     Sends a message to the current assigned customer to inform her about a new status.
-    #
-    #     Args:
-    #         status (int): The new status code
-    #         data (dict, optional): complementary info about the status
-    #     """
-    #     if data is None:
-    #         data = {}
-    #     msg = Message()
-    #     msg.to = self.get("current_station")
-    #     msg.set_metadata("protocol", REQUEST_PROTOCOL)
-    #     msg.set_metadata("performative", INFORM_PERFORMATIVE)
-    #     msg.body = json.dumps(data)
-    #     await self.send(msg)
-
-    # Cambiarlo
-    # async def comunicate_for_charging(self):
-    #
-    #     # trigger charging
-    #     self.agent.set("path", None)
-    #     self.agent.chunked_path = None
-    #
-    #     data = {
-    #         "need": self.agent.max_autonomy_km - self.agent.current_autonomy_km,        #Calcular al principio - añadir en
-    #     }
-    #
-    #     logger.debug(
-    #         "Transport {} with autonomy {} tells {} that it needs to charge "
-    #         "{} km/autonomy".format(
-    #             self.agent.agent_id,
-    #             self.agent.current_autonomy_km,
-    #             self.agent.get("current_station"),
-    #             self.agent.max_autonomy_km - self.agent.current_autonomy_km,
-    #         )
-    #     )
-    #
-    #     await self.agent.inform_station(data)
-
-    # async def begin_charging(self):
-    #
-    #     logger.info(
-    #         "Transport {} has started charging in the station {}.".format(
-    #             self.agent.agent_id, self.get("current_station")
-    #         )
-    #     )
-    #
-    #     # time waiting in station queue update
-    #     self.agent.charge_time = time.time()
-    #     elapsed_time = self.agent.charge_time - self.agent.waiting_in_queue_time
-    #     if elapsed_time > 0.1:
-    #         self.agent.total_waiting_time += elapsed_time
-
-    # async def drop_station(self):
-    #     """
-    #     Drops the customer that the transport is carring in the current location.
-    #     """
-    #
-    #     logger.debug(
-    #         "Transport {} has dropped the station {}.".format(
-    #             self.agent.agent_id, self.agent.get("current_station")
-    #         )
-    #     )
-    #     self.agent.set("current_station", None)
-
-    # async def charge_allowed(self):
-    #     self.set("in_station_place", None)  # new
-    #     await self.agent.begin_charging()
 
     async def run(self):
         raise NotImplementedError

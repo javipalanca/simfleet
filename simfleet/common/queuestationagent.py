@@ -16,22 +16,36 @@ from simfleet.communications.protocol import (
     REFUSE_PERFORMATIVE,
     CANCEL_PERFORMATIVE,
     INFORM_PERFORMATIVE,
-    QUERY_PROTOCOL,
     COORDINATION_PROTOCOL,
 )
 
 class QueueStationAgent(GeoLocatedAgent):
+    """
+        A QueueStationAgent is responsible for managing a queue of agents (vehicles) requesting various services,
+        such as charging or fueling. It extends GeoLocatedAgent to include geographic position tracking, and handles
+        both the queue of waiting agents and the management of service slots.
+
+        Attributes:
+            queuebehaviour (QueueBehaviour): Manages the waiting lists and the queue logic.
+            services_list (dict): Stores information about the services offered and their capacities.
+            waiting_lists (dict): Tracks the waiting lists of agents for each service type.
+            simulatorjid (str): Identifier for the simulator agent that provides coordination.
+            transports_in_queue_time (float): Tracks when agents start waiting in the queue.
+            empty_queue_time (float): Tracks when the queue becomes empty.
+            total_busy_time (float): Tracks the total time the queue has agents waiting.
+            queue_length (int): Tracks the length of the current queue.
+            max_queue_length (int): Tracks the maximum queue length experienced.
+    """
     def __init__(self, agentjid, password):
         GeoLocatedAgent.__init__(self, agentjid, password)
 
+        # Initialize queue management behaviour
         self.queuebehaviour = self.QueueBehaviour()
 
+        self.services_list = {}     # Stores service types and their attributes
+        self.waiting_lists = {}     # Waiting lists for each service type
 
-        self.services_list = {}
-        self.waiting_lists = {}
-
-        # ORIGINAL NEAR
-        #self.near_list = {}
+        # JID of the simulator agent
         self.simulatorjid = None
 
         #statics
@@ -42,31 +56,50 @@ class QueueStationAgent(GeoLocatedAgent):
         self.max_queue_length = 0
 
     def set_simulatorjid(self, jid):
+        """
+            Sets the JID of the simulator agent responsible for coordination.
+
+            Args:
+                jid (str): The JID of the simulator agent.
+        """
         self.simulatorjid = jid
 
     def get_simulatorjid(self):
+        """
+            Returns the JID of the simulator agent.
+
+            Returns:
+                str: The simulator agent JID.
+        """
         return self.simulatorjid
 
     async def setup(self):
+        """
+            Configures the agent, setting up the behavior templates to handle different performative messages.
+        """
         logger.info("Queue agent {} running".format(self.name))
 
         template1 = Template()
         template1.set_metadata("protocol", REQUEST_PROTOCOL)
-        template1.set_metadata("performative", REQUEST_PERFORMATIVE) #template slo permite una sola performativa y protocolo
+        template1.set_metadata("performative", REQUEST_PERFORMATIVE)
 
         template2 = Template()
         template2.set_metadata("protocol", REQUEST_PROTOCOL)
         template2.set_metadata("performative", CANCEL_PERFORMATIVE)
 
-        #template3 = Template()
-        #template3.set_metadata("protocol", COORDINATION_PROTOCOL)
-        #template3.set_metadata("performative", INFORM_PERFORMATIVE)
-
-        #self.add_behaviour(self.queuebehaviour, template1 | template2 | template3)
         self.add_behaviour(self.queuebehaviour, template1 | template2)
 
-    # Service Management
+
     def add_service(self, service_name, slots, one_shot_behaviour, **arguments):
+        """
+            Adds a new service to the agent's service list with defined slots and behavior.
+
+            Args:
+                service_name (str): The name of the service (e.g., charging, refueling).
+                slots (int): The number of slots available for this service.
+                one_shot_behaviour (OneShotBehaviour): The behavior to run for this service.
+                **arguments: Additional arguments for service-specific configurations.
+        """
         if service_name not in self.services_list:
             self.services_list[service_name] = {
                 'slots': slots,
@@ -74,8 +107,7 @@ class QueueStationAgent(GeoLocatedAgent):
                 'one_shot_behaviour': one_shot_behaviour,
                 'args': arguments,
             }
-            #New queue- Queue for service
-            #self.queuebehaviour.waiting_lists[service_name] = deque()
+
             self.waiting_lists[service_name] = deque()
 
             logger.debug(
@@ -90,15 +122,21 @@ class QueueStationAgent(GeoLocatedAgent):
                 )
             )
 
-    # Bus line
-    def add_queue(self, line, **arguments):      #add_queue - POSIBLE CAMBIO DE NOMBRE
+    def add_queue(self, line, **arguments):
+        """
+            Adds a queue for a specific bus line or service line.
+
+            Args:
+                line (str): The name of the line or service.
+                **arguments: Additional arguments related to the line.
+        """
+
         if line not in self.services_list:
             self.services_list[line] = {
                 'args': arguments,
             }
-            #New queue- Queue for service
-            #self.queuebehaviour.waiting_lists[service_name] = deque()
-            self.waiting_lists[line] = deque()                      #COLA POR LINEA - Adaptar crando una nueva definicion add_queue - line_name, args
+
+            self.waiting_lists[line] = deque()      # Create a deque for the line
 
             logger.debug(
                 "The line {} has been inserted in the agent {}. ".format(
@@ -113,18 +151,43 @@ class QueueStationAgent(GeoLocatedAgent):
             )
 
     def remove_service(self, service_name):
+        """
+            Removes a service from the service list.
+
+            Args:
+                service_name (str): The name of the service to remove.
+        """
         if service_name in self.services_list:
             del self.services_list[service_name]
 
     def show_services(self):
+        """
+            Returns the names of all the available services in the station.
+
+            Returns:
+                tuple: A tuple containing the service names.
+        """
         return tuple(self.services_list.keys())
 
     def show_service_arguments(self, service_name):
+        """
+            Returns the arguments associated with a specific service.
+
+            Args:
+                service_name (str): The name of the service.
+
+            Returns:
+                dict: The arguments for the specified service.
+        """
         return self.services_list[service_name]["args"]
 
     async def send_inform_service(self, agent_id, content):
         """
-        Send a message to the transport agent that the vehicle load has been completed
+        Sends a message to a transport agent to inform them that their service has been completed.
+
+        Args:
+            agent_id (str): The ID of the agent.
+            content (dict): The content of the message.
         """
         reply = Message()
         reply.to = str(self.agent_id)
@@ -135,7 +198,13 @@ class QueueStationAgent(GeoLocatedAgent):
         await self.send(reply)
 
     async def request_agent_position(self, agent_id, content):
+        """
+            Requests the position of an agent by sending a message.
 
+            Args:
+                agent_id (str): The ID of the agent.
+                content (dict): The content of the message.
+        """
         reply = Message()
         reply.to = str(agent_id)
         reply.set_metadata("protocol", COORDINATION_PROTOCOL)
@@ -144,41 +213,61 @@ class QueueStationAgent(GeoLocatedAgent):
         await self.send(reply)
 
 
-    # Waiting list for agents
+    # Queue management for agents requesting services
     class QueueBehaviour(CyclicBehaviour):
-
+        """
+            Manages the queue of agents waiting for services and handles requests for entry and cancellation.
+        """
         def __init__(self):
-            #self.agent.waiting_lists = {}
             super().__init__()
 
         def total_queue_size(self, service_name):
+            """
+                Returns the total size of the queue for a given service.
+
+                Args:
+                    service_name (str): The name of the service.
+
+                Returns:
+                    int: The number of agents in the queue.
+            """
             return len(self.agent.waiting_lists[service_name])
 
-        #Original
-        #def queue_agent_to_waiting_list(self, service_name, id_agent):      # Meter un args dentro de la queue - diccionario ---- APUNTES
-        #    self.agent.waiting_lists[service_name].append(id_agent)
+        def queue_agent_to_waiting_list(self, service_name, id_agent, **kwargs):
+            """
+                Adds an agent to the waiting list for a specific service.
 
-        #def queue_agent_to_waiting_list(self, service_name, id_agent, *args):      # Meter un args dentro de la queue - diccionario ---- APUNTES
-        def queue_agent_to_waiting_list(self, service_name, id_agent, **kwargs):  # Meter un args dentro de la queue - diccionario ---- APUNTES
-
+                Args:
+                    service_name (str): The name of the service.
+                    id_agent (str): The ID of the agent.
+                    **kwargs: Additional arguments for the agent.
+            """
             self.agent.waiting_lists[service_name].append((id_agent, kwargs))
 
-        def dequeue_first_agent_to_waiting_list(self, service_name):  # Desencolar al primer agente
+        def dequeue_first_agent_to_waiting_list(self, service_name):
+            """
+                Removes and returns the first agent from the waiting list for a service.
+
+                Args:
+                    service_name (str): The name of the service.
+
+                Returns:
+                    tuple: A tuple containing the agent ID and arguments.
+            """
             if len(self.agent.waiting_lists[service_name]) == 0:
                 return None
             return self.agent.waiting_lists[service_name].popleft()
 
-        def dequeue_agent_to_waiting_list(self, service_name, id_agent):  # Desencolar un agente de la cola por id - vrs 1
-            # self.agent.waiting_lists[service_name].remove(id_agent)    #FALLO
+        def dequeue_agent_to_waiting_list(self, service_name, id_agent):
+            """
+                Removes a specific agent from the waiting list of a service.
+
+                Args:
+                    service_name (str): The name of the service.
+                    id_agent (str): The ID of the agent to remove.
+            """
             if service_name in self.agent.waiting_lists:
                 for agent in self.agent.waiting_lists[service_name]:
-                    # DEPURACION
-                    logger.warning(
-                        "DEPURACION QUEUESTATIONAGENT - id_agent in queue: {},  sender: {}".format(
-                            agent[0],
-                            id_agent
-                        )
-                    )
                     if agent[0] == id_agent:
                         self.agent.waiting_lists[service_name].remove(agent)
                         break
@@ -198,11 +287,11 @@ class QueueStationAgent(GeoLocatedAgent):
 
         async def accept_request_agent(self, agent_id, content=None):
             """
-            Sends a ``spade.message.Message`` to a transport to accept a travel proposal for charge.
-            It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
+            Accepts a request from an agent by sending a message.
 
             Args:
-                transport_id (str): The Agent JID of the transport
+                agent_id (str): The ID of the agent.
+                content (dict, optional): The content of the message.
             """
             if content is None:
                 content = {}
@@ -210,7 +299,6 @@ class QueueStationAgent(GeoLocatedAgent):
             reply.to = str(agent_id)
             reply.set_metadata("protocol", REQUEST_PROTOCOL)
             reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
-            #content = {"station_id": str(self.agent.jid), "dest": self.agent.current_pos}
             reply.body = json.dumps(content)
             await self.send(reply)
             logger.debug(
@@ -221,11 +309,10 @@ class QueueStationAgent(GeoLocatedAgent):
 
         async def refuse_request_agent(self, agent_id):
             """
-            Sends an ``spade.message.Message`` to a transport to refuse a travel proposal for charge.
-            It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
+            Refuses a request from an agent by sending a message.
 
             Args:
-                transport_id (str): The Agent JID of the transport
+                agent_id (str): The ID of the agent.
             """
             reply = Message()
             reply.to = str(agent_id)
@@ -246,6 +333,10 @@ class QueueStationAgent(GeoLocatedAgent):
             logger.debug("Strategy {} started in station".format(type(self).__name__))
 
         async def run(self):
+            """
+                Main behavior logic for handling agent requests, including acceptance, refusal,
+                and cancellation based on service availability.
+            """
             msg = await self.receive(timeout=5)
 
             if msg:
@@ -253,33 +344,6 @@ class QueueStationAgent(GeoLocatedAgent):
                 protocol = msg.get_metadata("protocol")
                 agent_id = msg.sender
                 content = json.loads(msg.body)
-
-                #if content["service_name"]:
-                #    service_name = content["service_name"]
-
-                #if content["args"]:
-                #    arguments = content["args"]
-
-                #DEPURACION 4
-                logger.warning(
-                    "DEPURACION - Station {}, msg: {}".format(
-                        self.agent.name,
-                        msg,
-                    )
-                )
-
-                logger.warning(
-                    "AGENT ID {}.".format(
-                        agent_id
-                    )
-                )
-
-                #if content["agent_position"]:
-                #    agent_position = content["agent_position"]
-
-                #if content["user_agent_id"]:
-                #    user_agent_id = content["user_agent_id"]
-
 
                 if protocol == REQUEST_PROTOCOL and performative == CANCEL_PERFORMATIVE:
 
@@ -292,7 +356,6 @@ class QueueStationAgent(GeoLocatedAgent):
                         )
                     )
                     self.dequeue_agent_to_waiting_list(service_name, str(agent_id))
-                    #self.cancel_request_agent(str(agent_id))
 
                     logger.debug(
                         "Agent {} has been removed from the waiting_list.".format(
@@ -301,56 +364,21 @@ class QueueStationAgent(GeoLocatedAgent):
                     )
                 elif (
                         protocol == REQUEST_PROTOCOL and performative == REQUEST_PERFORMATIVE
-                ):  # comes from send_confirmation_travel
+                ):
 
                     if "service_name" in content:
                         service_name = content["service_name"]
 
-                    # NEW - Change to new name - line and service_name - BUS
-                    # Bus line
                     if "line" in content:
                         service_name = content["line"]
 
-                    # NEW
                     if "object_type" in content:
                         object_type = content["object_type"]
 
                     if "args" in content:
                         arguments = content["args"]
 
-                    # ORIGINAL NEAR
-                    # if str(agent_id) not in self.agent.near_list:
-                    #     self.agent.near_list[str(agent_id)] = {
-                    #         'service_name': service_name,
-                    #         'arguments': arguments
-                    #     }
-                    #
-                    #     logger.warning(
-                    #         "DICCIONARIO NEAR: {} exists in the near_list - agent_id: {}.".format(
-                    #             self.agent.near_list,
-                    #             agent_id
-                    #         )
-                    #     )
-                    #
-                    # else:
-                    #     logger.warning(
-                    #         "The agent {} exists in the near_list.".format(
-                    #             agent_id
-                    #         )
-                    #     )
-
-                    #Comprobamos la ubicación
-                    #content = {"user_agent_id": agent_id}
-
-                    #ORIGINAL NEAR
-                    #Bus Line
-                    #content = {"user_agent_id": agent_id, "object_type": object_type}
-                    #await self.agent.request_agent_position("simulator_none@localhost", content)    #Cambiarlo - JID simulador - DEBATIR
-
-                    # Request to SimulatorAgent for agent_position
-                    #msg = await self.receive(timeout=5)         #Duda PREGUNTAR
-
-                    #NEW NEAR
+                    # Check proximity before enqueuing
                     template3 = Template()
                     template3.set_metadata("protocol", COORDINATION_PROTOCOL)
                     template3.set_metadata("performative", INFORM_PERFORMATIVE)
@@ -365,44 +393,8 @@ class QueueStationAgent(GeoLocatedAgent):
                     user_agent_id = instance.user_agent_id
                     arguments = instance.arguments
 
-                # ORIGINAL - NEAR
-                # elif (
-                #         protocol == COORDINATION_PROTOCOL and performative == INFORM_PERFORMATIVE
-                # ):  # comes from send_confirmation_travel
-                #
-                #     if "agent_position" in content:
-                #         agent_position = content["agent_position"]
-                #
-                #     if "user_agent_id" in content:
-                #         user_agent_id = content["user_agent_id"]
-                #
-                #     logger.warning(
-                #         "NEAR depuracion - agent_position: {}, user_agent_id {}".format(
-                #             agent_position,
-                #             user_agent_id
-                #         )
-                #     )
-                #
-                #     logger.warning(
-                #         "NEAR_LIST: {} ".format(
-                #             self.agent.near_list[user_agent_id]
-                #         )
-                #     )
-                #
-                #     service_name = self.agent.near_list[user_agent_id]["service_name"]
-                #     arguments = self.agent.near_list[user_agent_id]["arguments"]
-                #     del self.agent.near_list[user_agent_id]
-                #
-                #     logger.debug(
-                #         "Station {} has received msg from agent {} for near check".format(
-                #             self.agent.name,
-                #             agent_id
-                #         )
-                #     )
-
-
                     if service_name not in self.agent.waiting_lists or not self.agent.near_agent(
-                            coords_1=self.agent.get_position(), coords_2=agent_position):    #New
+                            coords_1=self.agent.get_position(), coords_2=agent_position):
 
                         await self.refuse_request_agent(user_agent_id)
                         logger.warning(
@@ -419,7 +411,6 @@ class QueueStationAgent(GeoLocatedAgent):
 
                         # Encolamos
                         self.queue_agent_to_waiting_list(service_name, str(user_agent_id), **arguments)
-                        #self.queue_agent_to_waiting_list(service_name, str(agent_id), *arguments)     #Duda ARGS
 
                         if self.total_queue_size(service_name) > self.agent.max_queue_length:
                             self.agent.max_queue_length = self.total_queue_size(service_name)
@@ -448,101 +439,6 @@ class QueueStationAgent(GeoLocatedAgent):
                         self.agent.empty_queue_time - self.agent.transports_in_queue_time
                     )
 
-            # COPIA
-
-            # if msg:
-            #     performative = msg.get_metadata("performative")
-            #     agent_id = msg.sender
-            #     service_name = json.loads(msg.body)["service_name"]      #chequear
-            #     arguments = json.loads(msg.body)["args"]
-            #     #agent_position = json.loads(msg.content)["agent_position"]  #Preguntar al SimulatorAGent
-            #
-            #     if performative == CANCEL_PERFORMATIVE:
-            #
-            #         logger.warning(
-            #             "Agent {} received a REFUSE from agent {}.".format(
-            #                 self.agent.name, agent_id
-            #             )
-            #         )
-            #         self.dequeue_agent_to_waiting_list(service_name, str(agent_id))
-            #         #self.cancel_request_agent(str(agent_id))
-            #
-            #         logger.debug(
-            #             "Agent {} has been removed from the waiting_list.".format(
-            #                 self.agent.name, agent_id
-            #             )
-            #         )
-            #     elif (
-            #             performative == REQUEST_PERFORMATIVE
-            #     ):  # comes from send_confirmation_travel
-            #
-            #         content = {"user_agent_id": agent_id}
-            #         # Send msg to SimulatorAgent for agent_position
-            #         await self.agent.request_agent_position("simulator_none@localhost", content)    #Cambiarlo - JID simulador - DEBATIR
-            #
-            #         # Request to SimulatorAgent for agent_position
-            #         msg = await self.receive(timeout=5)         #Duda PREGUNTAR
-            #
-            #         logger.warning(
-            #             "MENSAJE DEL SIMULATOR: {} ".format(
-            #                 msg
-            #             )
-            #         )
-            #
-            #         if msg:
-            #             #CONTINUAR AQUI
-            #             performative = msg.get_metadata("performative")
-            #             agent_id_simulator = msg.sender
-            #             content = json.loads(msg.body)
-            #             agent_position = json.loads(msg.body)["agent_position"]
-            #
-            #             if agent_id_simulator == "simulator_none@localhost":
-            #                 logger.debug(
-            #                     "Transport {} received a message with ACCEPT_PERFORMATIVE from {}".format(
-            #                         self.agent.name, content["station_id"]
-            #                     )
-            #                 )
-            #
-            #             if service_name not in self.agent.waiting_lists or not self.agent.near_agent(coords_1=self.agent.get_position(), coords_2=agent_position):    #New
-            #                 self.refuse_request_agent(agent_id)
-            #                 logger.warning(
-            #                     "Station {} has REFUSED request from agent {} for service {}".format(
-            #                         self.agent.name,
-            #                         agent_id,
-            #                         service_name
-            #                     )
-            #                 )
-            #             else:
-            #
-            #                 if self.total_queue_size(service_name) == 0:
-            #                     self.agent.transports_in_queue_time = time.time()
-            #
-            #                 self.queue_agent_to_waiting_list(service_name, str(agent_id), *arguments)     #Duda ARGS
-            #
-            #                 content = {"station_id": str(self.agent.jid)}
-            #                 self.accept_request_agent(agent_id, content)
-            #
-            #                 logger.info(
-            #                     "Station {} has put {} in the waiting_list".format(
-            #                         self.agent.name,
-            #                         agent_id,
-            #                     )
-            #                 )
-            #         else:
-            #             logger.warning(
-            #                 "Station {} has not received agent position of {} from the Simulator".format(
-            #                     self.agent.name,
-            #                     agent_id,
-            #                 )
-            #             )
-            #
-            #     # time statistics update
-            #     if self.total_queue_size(service_name):
-            #         self.agent.empty_queue_time = time.time()
-            #         self.agent.total_busy_time += (
-            #             self.agent.empty_queue_time - self.agent.transports_in_queue_time
-            #         )
-
 class CheckNearBehaviour(OneShotBehaviour):
     def __init__(self, simulatorjid, user_agent_id, service_name, object_type, arguments):
         super().__init__()
@@ -554,8 +450,6 @@ class CheckNearBehaviour(OneShotBehaviour):
         self.arguments = arguments
         self.agent_position = None
 
-        #if 'transport_need' in kwargs:
-        #    self.transport_need = kwargs['transport_need']
 
     async def request_agent_position_near(self, agent_id, content):
         reply = Message()
@@ -588,24 +482,6 @@ class CheckNearBehaviour(OneShotBehaviour):
                 if "user_agent_id" in content:
                     user_agent_id = content["user_agent_id"]
 
-                logger.warning(
-                    "NEAR depuracion - agent_position: {}, user_agent_id {}".format(
-                        agent_position,
-                        user_agent_id
-                    )
-                )
-
-                #logger.warning(
-                #    "NEAR_LIST: {} ".format(
-                #        self.agent.near_list[user_agent_id]
-                #    )
-                #)
-
-                # Dentro del objeto
-                #service_name = self.agent.near_list[user_agent_id]["service_name"]
-                #arguments = self.agent.near_list[user_agent_id]["arguments"]
-                #del self.agent.near_list[user_agent_id]
-
                 logger.debug(
                     "Station {} has received msg from agent {} for near check".format(
                         self.agent.name,
@@ -614,42 +490,7 @@ class CheckNearBehaviour(OneShotBehaviour):
                 )
 
                 self.agent_position = agent_position
-                #self.result = (self.user_agent_id, self.service_name, agent_position, self.arguments)
-                #return (self.user_agent_id, self.service_name, agent_position, self.arguments)
 
-                # Fuera del objeto
-                # if service_name not in self.agent.waiting_lists or not self.agent.near_agent(
-                #         coords_1=self.agent.get_position(), coords_2=agent_position):  # New
-                #
-                #     await self.refuse_request_agent(user_agent_id)
-                #     logger.warning(
-                #         "Station {} has REFUSED request from agent {} for service {}".format(
-                #             self.agent.name,
-                #             user_agent_id,
-                #             service_name
-                #         )
-                #     )
-                # else:
-                #
-                #     if self.total_queue_size(service_name) == 0:
-                #         self.agent.transports_in_queue_time = time.time()
-                #
-                #     # Encolamos
-                #     self.queue_agent_to_waiting_list(service_name, str(user_agent_id), **arguments)
-                #     # self.queue_agent_to_waiting_list(service_name, str(agent_id), *arguments)     #Duda ARGS
-                #
-                #     if self.total_queue_size(service_name) > self.agent.max_queue_length:
-                #         self.agent.max_queue_length = self.total_queue_size(service_name)
-                #
-                #     content = {"station_id": str(self.agent.jid)}
-                #     await self.accept_request_agent(user_agent_id, content)
-                #
-                #     logger.info(
-                #         "Station {} has put {} in the waiting_list".format(
-                #             self.agent.name,
-                #             user_agent_id,
-                #         )
-                #     )
             else:
                 logger.warning(
                     "Station {} has not received agent position of {} from the Simulator".format(
@@ -657,5 +498,3 @@ class CheckNearBehaviour(OneShotBehaviour):
                         agent_id,
                     )
                 )
-
-        #return

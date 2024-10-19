@@ -274,8 +274,7 @@ class TransportFactory(Factory):
 class CustomerFactory(Factory):
     """
         Factory class for creating CustomerAgent instances.
-
-        """
+    """
     @classmethod
     def create_agent(cls,
                      domain,
@@ -352,6 +351,9 @@ class CustomerFactory(Factory):
             agent.set_initial_position(position)
 
         agent.set_target_position(target)
+
+        if speed:
+            agent.set_speed(speed)
 
         return agent
 

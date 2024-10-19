@@ -357,6 +357,7 @@ class SimulatorAgent(Agent):
             fleet_type = customer["fleet_type"]
             #position = customer["position"]
             position = customer.get("position")
+            speed = customer.get("speed")
             #target = customer["destination"]
             target = customer.get("destination")
             strategy = customer.get("strategy")
@@ -377,6 +378,7 @@ class SimulatorAgent(Agent):
                                                 target=target,
                                                 strategy=strategy,
                                                 delayed=delayed,
+                                                speed=speed,
                                                 line=line
                                                 )
 
@@ -1952,6 +1954,7 @@ class SimulatorAgent(Agent):
         strategy=None,
         target=None,
         delayed=False,
+        speed=None,
         line=None
     ):
         agent = CustomerFactory.create_agent(domain=self.jid.domain,
@@ -1965,6 +1968,7 @@ class SimulatorAgent(Agent):
                                             route_host=self.route_host,
                                             bbox=self.config.coords[1],
                                             position=position,
+                                            speed=speed,
                                             target=target,
                                             line=line,
                                             )

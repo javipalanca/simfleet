@@ -3,25 +3,15 @@ import json
 import sys
 import time
 from asyncio import CancelledError
-#from collections import defaultdict    #Not used
 
 from loguru import logger
-#from spade.agent import Agent       #Not used
-from spade.behaviour import PeriodicBehaviour, CyclicBehaviour
+from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 from spade.template import Template
 
-from simfleet.utils.helpers import (
-    #random_position,
-    distance_in_meters,
-    kmh_to_ms,
-    PathRequestException,
-    AlreadyInDestination,
-)
 from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     TRAVEL_PROTOCOL,
-    PROPOSE_PERFORMATIVE,
     CANCEL_PERFORMATIVE,
     INFORM_PERFORMATIVE,
     REGISTER_PROTOCOL,
@@ -32,69 +22,42 @@ from simfleet.communications.protocol import (
 )
 from simfleet.utils.utils_old import (
     TRANSPORT_WAITING,
-    TRANSPORT_MOVING_TO_CUSTOMER,
-    TRANSPORT_IN_CUSTOMER_PLACE,
-    TRANSPORT_MOVING_TO_DESTINATION,
     TRANSPORT_IN_STATION_PLACE,
     TRANSPORT_CHARGING,
-    CUSTOMER_IN_DEST,
     CUSTOMER_LOCATION,
-    TRANSPORT_MOVING_TO_STATION,
-    chunk_path,
-    request_path,
-    StrategyBehaviour,
     TRANSPORT_NEEDS_CHARGING,
 )
 from simfleet.common.extensions.vehicles.models.vehicle import VehicleAgent
 
-MIN_AUTONOMY = 2
-#ONESECOND_IN_MS = 1000                                         #movable.py
-
-
-#class TransportAgent(Agent):
-#    def __init__(self, agentjid, password):
-#        super().__init__(agentjid, password)
-
 class TransportAgent(VehicleAgent):
+    """
+        TransportAgent is responsible for handling transport-related tasks, such as managing customer assignments,
+        sending updates about travel status.
+        It extends the VehicleAgent to include functionalities for managing current customers and service stations.
+
+        Attributes:
+            current_customer (dict): Stores information about the current assigned customer.
+            num_assignments (int): Tracks the number of assignments completed.
+            transport_type (str): Represents the type of transport (e.g., bus, taxi).
+            request (str): Specifies the type of request (default is "station").
+            stations (list): List of available stations for the transport.
+            num_charges (int): Counter for the number of times the transport was charged.
+            current_station (str): The current station assigned to the transport.
+            current_station_dest (str): The destination station for charging or refueling.
+            waiting_in_queue_time (float): Tracks the waiting time in the station queue.
+            charge_time (float): Tracks the charging time.
+            total_waiting_time (float): Tracks the total waiting time.
+            total_charging_time (float): Tracks the total charging time.
+            transport_in_station_place_event (asyncio.Event): Event that tracks when the transport arrives at the station.
+            customer_in_transport_event (asyncio.Event): Event that tracks when a customer boards the transport.
+        """
     def __init__(self, agentjid, password):
         super().__init__(agentjid=agentjid, password=password)
-        #self.fleetmanager_id = None                             #vehicle.py
-        #self.route_host = None                                 #geolocatedagent.py
-        #self.strategy = None                                    #simfleetagent.py
-        #self.running_strategy = False                           #simfleetagent.py
-
-        #self.__observers = defaultdict(list)                    #simfleetagent.py
-        #self.agent_id = None                                    #simfleetagent.py
-        #self.status = TRANSPORT_WAITING                        #simfleetagent.py
-        #self.icon = None                                       #geolocatedagent.py
-        #self.set("current_pos", None)                          #geolocatedagent.py
-        #self.dest = None                                        #movavle.py
-        #self.set("path", None)                                 #movable.py
-        #self.chunked_path = None                                #movable.py
-        #self.set("speed_in_kmh", 3000)                         #movable.py
-        #self.animation_speed = ONESECOND_IN_MS                  #movale.py
-        #self.distances = []                                    #movable.py
-        #self.durations = []                                    #movable.py
-        #self.port = None                                        #simfleetagent.py
-        #self.set("current_customer", None)            # MOD-STRATEGY-02 - modify
         self.set("current_customer", {})
-        #self.current_customer_orig = None                       #taxi.py
-        #self.current_customer_dest = None               # MOD-STRATEGY-02 - comments
-        #self.set("customer_in_transport", None)         # MOD-STRATEGY-02 - comments
         self.num_assignments = 0
-        #self.stopped = False                                    #simfleetagent.py
-        #self.ready = False                                      #simfleetagent.py
-        #self.registration = False                               #simfleetagent.py
-        #self.is_launched = False                                #simfleetagent.py
-
-        #self.directory_id = None                                #simfleetagent.py
-        #self.fleet_type = None                                  #simfleetagent.py
         self.transport_type = None                              # nuevo para JSON
-
         self.request = "station"
         self.stations = None
-        #self.current_autonomy_km = 2000                         #chargeable.py
-        #self.max_autonomy_km = 2000                             #chargeable.py
         self.num_charges = 0
         self.set("current_station", None)
         self.current_station_dest = None
@@ -127,11 +90,11 @@ class TransportAgent(VehicleAgent):
 
         self.customer_in_transport_callback = customer_in_transport_callback
 
-    #simfleetagent.py
-    #def is_ready(self):
-    #    return not self.is_launched or (self.is_launched and self.ready)
-
     async def setup(self):
+        """
+            Sets up the transport agent, registers it with the fleet manager, and ensures that
+            the agent has the required behaviors for communication.
+        """
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)
@@ -152,58 +115,16 @@ class TransportAgent(VehicleAgent):
                 )
             )
 
-    # simfleetagent.py
-    #def set(self, key, value):
-    #    old = self.get(key)
-    #    super().set(key, value)
-    #    if key in self.__observers:
-    #        for callback in self.__observers[key]:
-    #            callback(old, value)
-
     def sleep(self, seconds):
         # await asyncio.sleep(seconds)
         time.sleep(seconds)
-
-    #simfleetagent.py
-    #def set_registration(self, status, content=None):
-    #    """
-    #    Sets the status of registration
-    #    Args:
-    #        status (boolean): True if the transport agent has registered or False if not
-    #        content (dict):
-    #    """
-    #    if content is not None:
-    #        self.icon = content["icon"] if self.icon is None else self.icon
-    #        self.fleet_type = content["fleet_type"]
-    #    self.registration = status
-
-    #simfleetagent.py
-    #def set_directory(self, directory_id):
-    #    """
-    #    Sets the directory JID address
-    #    Args:
-    #        directory_id (str): the DirectoryAgent jid
-
-    #    """
-    #    self.directory_id = directory_id
-
-    #simfleetagent.py
-    #def watch_value(self, key, callback):
-    #    """
-    #    Registers an observer callback to be run when a value is changed
-
-    #    Args:
-    #        key (str): the name of the value
-    #        callback (function): a function to be called when the value changes. It receives two arguments: the old and the new value.
-    #    """
-    #    self.__observers[key].append(callback)
 
     def run_strategy(self):
         """
         Sets the strategy for the transport agent.
 
         Args:
-            strategy_class (``TransportStrategyBehaviour``): The class to be used. Must inherit from ``TransportStrategyBehaviour``
+            strategy_class (TransportStrategyBehaviour): The class to be used. Must inherit from `TransportStrategyBehaviour`.
         """
         if not self.running_strategy:
             template1 = Template()
@@ -213,50 +134,13 @@ class TransportAgent(VehicleAgent):
             self.add_behaviour(self.strategy(), template1 | template2)
             self.running_strategy = True
 
-    # simfleetagent.py
-    #def set_id(self, agent_id):
-    #    """
-    #    Sets the agent identifier
-
-    #    Args:
-    #        agent_id (str): The new Agent Id
-    #    """
-    #    self.agent_id = agent_id
-
-    #geolocateagent.py
-    #def set_icon(self, icon):
-    #    self.icon = icon
-
-    #vehicle.py
-    #def set_fleetmanager(self, fleetmanager_id):
-    #    """
-    #    Sets the fleetmanager JID address
-    #    Args:
-    #        fleetmanager_id (str): the fleetmanager jid
-
-    #    """
-    #    logger.info(
-    #        "Setting fleet {} for agent {}".format(
-    #            fleetmanager_id.split("@")[0], self.name
-    #        )
-    #    )
-    #    self.fleetmanager_id = fleetmanager_id
-
-    #simfleetagent.py
-    #def set_fleet_type(self, fleet_type):
-    #    self.fleet_type = fleet_type
-
-    #geolocateagent.py
-    #def set_route_host(self, route_host):
-    #    """
-    #    Sets the route host server address
-    #    Args:
-    #        route_host (str): route host server address
-
-    #    """
-    #    self.route_host = route_host
-
     async def send(self, msg):
+        """
+            Sends a message via the XMPP protocol, ensuring the sender is correctly set.
+
+            Args:
+                msg (Message): The message to send.
+        """
         if not msg.sender:
             msg.sender = str(self.jid)
             logger.debug(f"Adding agent's jid as sender to message: {msg}")
@@ -265,241 +149,20 @@ class TransportAgent(VehicleAgent):
         msg.sent = True
         self.traces.append(msg, category=str(self))
 
-    # MOD-STRATEGY-02 - comments
-    #def is_customer_in_transport(self):
-    #    return self.get("customer_in_transport") is not None
-
-    # taxi.py
-    #def is_free(self):
-    #    return self.get("current_customer") is None
-
-    # MovableMixin - movable.py - ANALIZAR cambiar ubicación
-    # taxi.py
-    #async def arrived_to_destination(self):
-    #    """
-    #    Informs that the transport has arrived to its destination.
-    #    It recomputes the new destination and path if picking up a customer
-    #    or drops it and goes to WAITING status again.
-    #    """
-    #    self.set("path", None)
-    #    self.chunked_path = None
-    #    if (
-    #        not self.is_customer_in_transport()
-    #    ):  # self.status == TRANSPORT_MOVING_TO_CUSTOMER:
-    #        try:
-    #            self.set("customer_in_transport", self.get("current_customer"))
-    #            await self.move_to(self.current_customer_dest)
-    #        except PathRequestException:
-    #            await self.cancel_customer()
-    #            self.status = TRANSPORT_WAITING
-    #        except AlreadyInDestination:
-    #            await self.drop_customer()
-    #        else:
-    #            await self.inform_customer(TRANSPORT_IN_CUSTOMER_PLACE)
-    #            self.status = TRANSPORT_MOVING_TO_DESTINATION
-    #            logger.info(
-    #                "Transport {} has picked up the customer {}.".format(
-    #                    self.agent_id, self.get("current_customer")
-    #                )
-    #            )
-    #    else:  # elif self.status == TRANSPORT_MOVING_TO_DESTINATION:
-    #        await self.drop_customer()
-
-    async def arrived_to_station(self, station_id=None):
-        """
-        Informs that the transport has arrived to its destination.
-        It recomputes the new destination and path if picking up a customer
-        or drops it and goes to WAITING status again.
-        """
-        # self.status = TRANSPORT_IN_STATION_PLACE new
-
-        # ask for a place to charge
-        logger.info(
-            "Transport {} arrived to station {} and is waiting to charge".format(
-                self.agent_id, self.get("current_station")
-            )
-        )
-        self.set("in_station_place", True)  # new
-
-    async def request_access_station(self):
-
-        reply = Message()
-        reply.to = self.get("current_station")
-        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
-        logger.debug(
-            "{} requesting access to {}".format(
-                self.name, self.get("current_station"), reply.body
-            )
-        )
-        await self.send(reply)
-
-        # time waiting in station queue update
-        self.waiting_in_queue_time = time.time()
-
-        # WAIT FOR EXPLICIT CONFIRMATION THAT IT CAN CHARGE
-        # while True:
-        #     msg = await self.receive(timeout=5)
-        #     if msg:
-        #         performative = msg.get_metadata("performative")
-        #         if performative == ACCEPT_PERFORMATIVE:
-        #             await self.begin_charging()
-
-    async def begin_charging(self):
-
-        # trigger charging
-        self.set("path", None)
-        self.chunked_path = None
-
-        data = {
-            "status": TRANSPORT_IN_STATION_PLACE,
-            "need": self.max_autonomy_km - self.current_autonomy_km,
-        }
-        logger.debug(
-            "Transport {} with autonomy {} tells {} that it needs to charge "
-            "{} km/autonomy".format(
-                self.agent_id,
-                self.current_autonomy_km,
-                self.get("current_station"),
-                self.max_autonomy_km - self.current_autonomy_km,
-            )
-        )
-        await self.inform_station(data)
-        self.status = TRANSPORT_CHARGING
-        logger.info(
-            "Transport {} has started charging in the station {}.".format(
-                self.agent_id, self.get("current_station")
-            )
-        )
-
-        # time waiting in station queue update
-        self.charge_time = time.time()
-        elapsed_time = self.charge_time - self.waiting_in_queue_time
-        if elapsed_time > 0.1:
-            self.total_waiting_time += elapsed_time
-
-    def needs_charging(self):
-        return (self.status == TRANSPORT_NEEDS_CHARGING) or (
-            self.get_autonomy() <= MIN_AUTONOMY and self.status in [TRANSPORT_WAITING]
-        )
-
-    # chargeable.py
-    #def transport_charged(self):
-    #    self.current_autonomy_km = self.max_autonomy_km
-    #    self.total_charging_time += time.time() - self.charge_time
-
-    # MOD-STRATEGY-04 - Comments
-    #async def drop_customer(self):
-    #    """
-    #    Drops the customer that the transport is carring in the current location.
-    #    """
-    #    await self.inform_customer(CUSTOMER_IN_DEST)
-    #    self.status = TRANSPORT_WAITING
-    #    logger.debug(
-    #        "Transport {} has dropped the customer {} in destination.".format(
-    #            self.agent_id, self.get("current_customer")
-    #        )
-    #    )
-    #    self.set("current_customer", None)
-    #    self.set("customer_in_transport", None)
-
-    async def drop_station(self):
-        """
-        Drops the customer that the transport is carring in the current location.
-        """
-        # data = {"status": TRANSPORT_LOADED}
-        # await self.inform_station(data)
-        self.status = TRANSPORT_WAITING
-        logger.debug(
-            "Transport {} has dropped the station {}.".format(
-                self.agent_id, self.get("current_station")
-            )
-        )
-        self.set("current_station", None)
-
-    # Estará en movable.py
-    #async def move_to(self, dest):
-    #    """
-    #    Moves the transport to a new destination.
-
-    #    Args:
-    #        dest (list): the coordinates of the new destination (in lon, lat format)
-
-    #    Raises:
-    #         AlreadyInDestination: if the transport is already in the destination coordinates.
-    #    """
-    #    if self.get("current_pos") == dest:
-    #        raise AlreadyInDestination
-    #    counter = 5
-    #    path = None
-    #    distance, duration = 0, 0
-    #    while counter > 0 and path is None:
-    #        logger.debug(
-    #            "Requesting path from {} to {}".format(self.get("current_pos"), dest)
-    #        )
-    #        path, distance, duration = await self.request_path(
-    #            self.get("current_pos"), dest
-    #        )
-    #        counter -= 1
-    #    if path is None:
-    #        raise PathRequestException("Error requesting route.")
-
-    #    self.set("path", path)
-    #    try:
-    #        self.chunked_path = chunk_path(path, self.get("speed_in_kmh"))
-    #    except Exception as e:
-    #        logger.error("Exception chunking path {}: {}".format(path, e))
-    #        raise PathRequestException
-    #    self.dest = dest
-    #    self.distances.append(distance)
-    #    self.durations.append(duration)
-    #    behav = self.MovingBehaviour(period=1)
-    #    self.add_behaviour(behav)
-
-    #Estará en movable.py
-    #async def step(self):
-    #    """
-    #    Advances one step in the simulation
-    #    """
-    #    if self.chunked_path:
-    #        _next = self.chunked_path.pop(0)
-    #        distance = distance_in_meters(self.get_position(), _next)
-    #        self.animation_speed = (
-    #            distance / kmh_to_ms(self.get("speed_in_kmh")) * ONESECOND_IN_MS
-    #        )
-    #        await self.set_position(_next)
-
-    async def inform_station(self, data=None):
-        """
-        Sends a message to the current assigned customer to inform her about a new status.
-
-        Args:
-            status (int): The new status code
-            data (dict, optional): complementary info about the status
-        """
-        if data is None:
-            data = {}
-        msg = Message()
-        msg.to = self.get("current_station")
-        msg.set_metadata("protocol", TRAVEL_PROTOCOL)
-        msg.set_metadata("performative", INFORM_PERFORMATIVE)
-        msg.body = json.dumps(data)
-        await self.send(msg)
 
     async def inform_customer(self, customer_id, status, data=None):
         """
-        Sends a message to the current assigned customer to inform her about a new status.
+        Sends a message to inform the customer of the transport's new status.
 
         Args:
-            status (int): The new status code
-            data (dict, optional): complementary info about the status
+            customer_id (str): The ID of the customer.
+            status (int): The new status code.
+            data (dict, optional): Additional information about the status.
         """
         if data is None:
             data = {}
         msg = Message()
         msg.to = customer_id
-        #msg.to = self.get("current_customer")      #MOD-STRATEGY-01 - comments
-        #msg.set_metadata("protocol", TRAVEL_PROTOCOL)
         msg.set_metadata("protocol", REQUEST_PROTOCOL)
         msg.set_metadata("performative", INFORM_PERFORMATIVE)
         data["status"] = status
@@ -508,11 +171,12 @@ class TransportAgent(VehicleAgent):
 
     async def inform_customer_moving(self, customer_id, status, data=None):
         """
-        Sends a message to the current assigned customer to inform her about a new status.
+        Sends a message to the customer to inform them of the transport's movement.
 
         Args:
-            status (int): The new status code
-            data (dict, optional): complementary info about the status
+            customer_id (str): The ID of the customer.
+            status (int): The new status code.
+            data (dict, optional): Additional movement-related information.
         """
         if data is None:
             data = {}
@@ -525,13 +189,13 @@ class TransportAgent(VehicleAgent):
         msg.body = json.dumps(data)
         await self.send(msg)
 
-    # MOD-STRATEGY-03 - Modify function
     async def cancel_customer(self, customer_id, data=None):
         """
-        Sends a message to the current assigned customer to cancel the assignment.
+        Cancels the assignment of a customer and informs them via a message.
 
         Args:
-            data (dict, optional): Complementary info about the cancellation
+            customer_id (str): The ID of the customer.
+            data (dict, optional): Additional cancellation-related information.
         """
         logger.error(
             "Transport {} could not get a path to customer {}.".format(
@@ -541,164 +205,59 @@ class TransportAgent(VehicleAgent):
         if data is None:
             data = {}
         reply = Message()
-        #reply.to = self.get("current_customer")
         reply.to = customer_id
         reply.set_metadata("protocol", REQUEST_PROTOCOL)
         reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         reply.body = json.dumps(data)
         logger.debug(
             "Transport {} sent cancel proposal to customer {}".format(
-                #self.agent_id, self.get("current_customer")
                 self.agent_id, customer_id
             )
         )
         await self.send(reply)
 
-    #MOD-STRATEGY-01 - new function
     async def add_customer_in_transport(self, customer_id, origin=None, dest=None):
+        """
+            Adds a customer to the current transport and tracks their origin and destination.
+
+            Args:
+                customer_id (str): The ID of the customer.
+                origin (list, optional): The starting point of the customer.
+                dest (list, optional): The destination of the customer.
+        """
         customers = self.get("current_customer")
         customers[customer_id] = {"origin": origin, "destination": dest}
         self.set("current_customer", customers)
         self.num_assignments += 1
 
-    #MOD-STRATEGY-05 - new function
     async def remove_customer_in_transport(self, customer_id):
+        """
+            Removes a customer from the current transport.
+
+            Args:
+                customer_id (str): The ID of the customer to remove.
+        """
         customers = self.get("current_customer")
         del customers[customer_id]
         self.set("current_customer", customers)
 
-    #Estará en movable.py
-    #async def request_path(self, origin, destination):
-    #    """
-    #    Requests a path between two points (origin and destination) using the route server.
-
-    #    Args:
-    #        origin (list): the coordinates of the origin of the requested path
-    #        destination (list): the coordinates of the end of the requested path
-
-    #    Returns:
-    #        list, float, float: A list of points that represent the path from origin to destination, the distance and
-    #        the estimated duration
-
-    #    Examples:
-    #        >>> path, distance, duration = await self.request_path(origin=[0,0], destination=[1,1])
-    #        >>> print(path)
-    #        [[0,0], [0,1], [1,1]]
-    #        >>> print(distance)
-    #        2.0
-    #        >>> print(duration)
-    #        3.24
-    #    """
-    #    return await request_path(self, origin, destination, self.route_host)
-
-    #geolocatedagent.py
-    #def set_initial_position(self, coords):
-    #    self.set("current_pos", coords)
-
-    #Se usa el metodo de geolocated, aparte de la funcionalidad de avisar al customer, que es algo solo del transporte
     async def set_position(self, coords=None):
         """
-        Sets the position of the transport. If no position is provided it is located in a random position.
+        Sets the transport's position and updates customers with the new location.
 
         Args:
-            coords (list): a list coordinates (longitude and latitude)
+            coords (list, optional): Coordinates to set as the new position.
         """
-        # if coords:
-        #    self.set("current_pos", coords)
-        # else:
-        #    self.set("current_pos", random_position())
-
-        # logger.debug(
-        #    "Transport {} position is {}".format(self.agent_id, self.get("current_pos"))
-        # )
 
         await super().set_position(coords)
         self.set("current_pos", coords)
 
-        # MOD-STRATEGY-04 - Comments
-        # if self.status == TRANSPORT_MOVING_TO_DESTINATION:
-        #    await self.inform_customer_moving(
-        #        CUSTOMER_LOCATION, {"location": self.get("current_pos")}
-        #    )
-
-        # MOD-STRATEGY-04 - Alternativa 2 - Envio msg TRAVELBEHAVIOUR
         if len(self.get("current_customer")) > 0:
             for key, item in self.get("current_customer").items():
                 await self.inform_customer_moving(
                     customer_id=key, status=CUSTOMER_LOCATION,
                     data={"location": self.get("current_pos")}
                 )
-
-        # if self.is_in_destination():
-        #     logger.info(
-        #         "Transport {} has arrived to destination. Status: {}".format(
-        #             self.agent_id, self.status
-        #         )
-        #     )
-        #
-        #     if self.status == TRANSPORT_MOVING_TO_STATION:
-        #         await self.arrived_to_station()
-        #     else:
-        #         await self.arrived_to_stop()
-
-        # if self.status == TRANSPORT_MOVING_TO_STATION:
-        #    await self.arrived_to_station()
-        # MOD-STRATEGY-04 - Comments
-        # else:
-        #    await self.arrived_to_destination()
-
-    #geolocatedagent.py
-    #def get_position(self):
-    #    """
-    #    Returns the current position of the customer.
-
-    #    Returns:
-    #        list: the coordinates of the current position of the customer (lon, lat)
-    #    """
-    #    return self.get("current_pos")
-
-    # movable.py
-    #def set_speed(self, speed_in_kmh):
-    #    """
-    #    Sets the speed of the transport.
-
-    #    Args:
-    #        speed_in_kmh (float): the speed of the transport in km per hour
-    #    """
-    #    self.set("speed_in_kmh", speed_in_kmh)
-
-    #movable.py
-    #def is_in_destination(self):
-    #    """
-    #    Checks if the transport has arrived to its destination.
-
-    #    Returns:
-    #        bool: whether the transport is at its destination or not
-    #    """
-    #    return self.dest == self.get_position()
-
-    # chargeable.py
-    #def set_km_expense(self, expense=0):
-    #    self.current_autonomy_km -= expense
-
-    # chargeable.py
-    #def set_autonomy(self, autonomy, current_autonomy=None):
-    #    self.max_autonomy_km = autonomy
-    #    self.current_autonomy_km = (
-    #        current_autonomy if current_autonomy is not None else autonomy
-    #    )
-
-    # chargeable.py
-    #def get_autonomy(self):
-    #    return self.current_autonomy_km
-
-    # chargeable.py
-    #def calculate_km_expense(self, origin, start, dest=None):
-    #    fir_distance = distance_in_meters(origin, start)
-    #    sec_distance = distance_in_meters(start, dest)
-    #    if dest is None:
-    #        sec_distance = 0
-    #    return (fir_distance + sec_distance) // 1000
 
     def to_json(self):
         """
@@ -766,23 +325,6 @@ class TransportAgent(VehicleAgent):
             "icon": self.icon,
         }
 
-    #movable.py
-    #class MovingBehaviour(PeriodicBehaviour):
-    #    """
-    #    This is the internal behaviour that manages the movement of the transport.
-    #    It is triggered when the transport has a new destination and the periodic tick
-    #    is recomputed at every step to show a fine animation.
-    #    This moving behaviour includes to update the transport coordinates as it
-    #    moves along the path at the specified speed.
-    #    """
-
-    #    async def run(self):
-    #        await self.agent.step()
-    #        self.period = self.agent.animation_speed / ONESECOND_IN_MS
-    #        if self.agent.is_in_destination():
-    #            self.agent.remove_behaviour(self)
-
-
 class RegistrationBehaviour(CyclicBehaviour):
     async def on_start(self):
         logger.debug("Strategy {} started in transport".format(type(self).__name__))
@@ -810,8 +352,7 @@ class RegistrationBehaviour(CyclicBehaviour):
 
     async def run(self):
         try:
-            #if not self.agent.registration:
-            if not self.agent.registration and self.agent.fleetmanager_id!=None:            #New - Checks if a fleetmanager JID exist
+            if not self.agent.registration and self.agent.fleetmanager_id!=None:
                 await self.send_registration()
             msg = await self.receive(timeout=10)
             if msg:
@@ -838,225 +379,3 @@ class RegistrationBehaviour(CyclicBehaviour):
                     self.agent.name, e
                 )
             )
-
-#taxi.py
-#class TransportStrategyBehaviour(StrategyBehaviour):
-#    """
-#    Class from which to inherit to create a transport strategy.
-#    You must overload the ```run`` coroutine
-
-#    Helper functions:
-#        * ``pick_up_customer``
-#        * ``send_proposal``
-#        * ``cancel_proposal``
-#    """
-
-#    async def on_start(self):
-#        logger.debug(
-#            "Strategy {} started in transport {}".format(
-#                type(self).__name__, self.agent.name
-#            )
-#        )
-        # self.agent.total_waiting_time = 0.0
-
-#    async def pick_up_customer(self, customer_id, origin, dest):
-#        """
-#        Starts a TRAVEL_PROTOCOL to pick up a customer and get him to his destination.
-#        It automatically launches all the travelling process until the customer is
-#        delivered. This travelling process includes to update the transport coordinates as it
-#        moves along the path at the specified speed.
-
-#        Args:
-#            customer_id (str): the id of the customer
-#            origin (list): the coordinates of the current location of the customer
-#            dest (list): the coordinates of the target destination of the customer
-#        """
-#        logger.info(
-#            "Transport {} on route to customer {}".format(self.agent.name, customer_id)
-#        )
-#        reply = Message()
-#        reply.to = customer_id
-#        reply.set_metadata("performative", INFORM_PERFORMATIVE)
-#        reply.set_metadata("protocol", TRAVEL_PROTOCOL)
-#        content = {"status": TRANSPORT_MOVING_TO_CUSTOMER}
-#        reply.body = json.dumps(content)
-#        self.set("current_customer", customer_id)
-#        self.agent.current_customer_orig = origin
-#        self.agent.current_customer_dest = dest
-#        await self.send(reply)
-#        self.agent.num_assignments += 1
-#        try:
-#            await self.agent.move_to(self.agent.current_customer_orig)
-#        except AlreadyInDestination:
-#            await self.agent.arrived_to_destination()
-#        except PathRequestException as e:
-#            logger.error(
-#                "Raising PathRequestException in pick_up_customer for {}".format(
-#                    self.agent.name
-#                )
-#            )
-#            raise e
-
-#    async def send_confirmation_travel(self, station_id):
-#        logger.info(
-#            "Transport {} sent confirmation to station {}".format(
-#                self.agent.name, station_id
-#            )
-#        )
-#        reply = Message()
-#        reply.to = station_id
-#        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-#        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
-#        await self.send(reply)
-
-#    async def go_to_the_station(self, station_id, dest):
-#        """
-#        Starts a TRAVEL_PROTOCOL to pick up a customer and get him to his destination.
-#        It automatically launches all the travelling process until the customer is
-#        delivered. This travelling process includes to update the transport coordinates as it
-#        moves along the path at the specified speed.
-
-#        Args:
-#            station_id (str): the id of the customer
-#            dest (list): the coordinates of the target destination of the customer
-#        """
-#        logger.info(
-#            "Transport {} on route to station {}".format(self.agent.name, station_id)
-#        )
-#        self.status = TRANSPORT_MOVING_TO_STATION
-#        reply = Message()
-#        reply.to = station_id
-#        reply.set_metadata("performative", INFORM_PERFORMATIVE)
-#        reply.set_metadata("protocol", TRAVEL_PROTOCOL)
-#        content = {"status": TRANSPORT_MOVING_TO_STATION}
-#        reply.body = json.dumps(content)
-#        self.set("current_station", station_id)
-#        self.agent.current_station_dest = dest
-#        await self.send(reply)
-        # informs the TravelBehaviour of the station that the transport is coming
-
-#        self.agent.num_charges += 1
-#        travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
-#        self.agent.set_km_expense(travel_km)
-#        try:
-#            logger.debug("{} move_to station {}".format(self.agent.name, station_id))
-#            await self.agent.move_to(self.agent.current_station_dest)
-#        except AlreadyInDestination:
-#            logger.debug(
-#                "{} is already in the stations' {} position. . .".format(
-#                    self.agent.name, station_id
-#                )
-#            )
-#            await self.agent.arrived_to_station()
-
-#    def has_enough_autonomy(self, customer_orig, customer_dest):
-#        autonomy = self.agent.get_autonomy()
-#        if autonomy <= MIN_AUTONOMY:
-#            logger.warning(
-#                "{} has not enough autonomy ({}).".format(self.agent.name, autonomy)
-#            )
-#            return False
-#        travel_km = self.agent.calculate_km_expense(
-#            self.get("current_pos"), customer_orig, customer_dest
-#        )
-#        logger.debug(
-#            "Transport {} has autonomy {} when max autonomy is {}"
-#            " and needs {} for the trip".format(
-#                self.agent.name,
-#                self.agent.current_autonomy_km,
-#                self.agent.max_autonomy_km,
-#                travel_km,
-#            )
-#        )
-
-#        if autonomy - travel_km < MIN_AUTONOMY:
-#            logger.warning(
-#                "{} has not enough autonomy to do travel ({} for {} km).".format(
-#                    self.agent.name, autonomy, travel_km
-#                )
-#            )
-#            return False
-#        return True
-
-#    def check_and_decrease_autonomy(self, customer_orig, customer_dest):
-#        autonomy = self.agent.get_autonomy()
-#        travel_km = self.agent.calculate_km_expense(
-#            self.get("current_pos"), customer_orig, customer_dest
-#        )
-#        if autonomy - travel_km < MIN_AUTONOMY:
-#            logger.warning(
-#                "{} has not enough autonomy to do travel ({} for {} km).".format(
-#                    self.agent.name, autonomy, travel_km
-#                )
-#            )
-#            return False
-#        self.agent.set_km_expense(travel_km)
-#        return True
-
-#    async def send_get_stations(self, content=None):
-
-#        if content is None or len(content) == 0:
-#            content = self.agent.request
-#        msg = Message()
-#        msg.to = str(self.agent.directory_id)
-#        msg.set_metadata("protocol", QUERY_PROTOCOL)
-#        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-#        msg.body = content
-#        await self.send(msg)
-
-#        logger.info(
-#            "Transport {} asked for stations to Directory {} for type {}.".format(
-#                self.agent.name, self.agent.directory_id, self.agent.request
-#            )
-#        )
-
-#    async def send_proposal(self, customer_id, content=None):
-#        """
-#        Send a ``spade.message.Message`` with a proposal to a customer to pick up him.
-#        If the content is empty the proposal is sent without content.
-
-#        Args:
-#            customer_id (str): the id of the customer
-#            content (dict, optional): the optional content of the message
-#        """
-#        if content is None:
-#            content = {}
-#        logger.info(
-#            "Transport {} sent proposal to {}".format(self.agent.name, customer_id)
-#        )
-#        reply = Message()
-#        reply.to = customer_id
-#        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-#        reply.set_metadata("performative", PROPOSE_PERFORMATIVE)
-#        reply.body = json.dumps(content)
-#        await self.send(reply)
-
-#    async def cancel_proposal(self, customer_id, content=None):
-#        """
-#        Send a ``spade.message.Message`` to cancel a proposal.
-#        If the content is empty the proposal is sent without content.
-
-#        Args:
-#            customer_id (str): the id of the customer
-#            content (dict, optional): the optional content of the message
-#        """
-#        if content is None:
-#            content = {}
-#        logger.info(
-#            "Transport {} sent cancel proposal to customer {}".format(
-#                self.agent.name, customer_id
-#            )
-#        )
-#        reply = Message()
-#        reply.to = customer_id
-#        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-#        reply.set_metadata("performative", CANCEL_PERFORMATIVE)
-#        reply.body = json.dumps(content)
-#        await self.send(reply)
-
-#    async def charge_allowed(self):
-#        self.set("in_station_place", None)  # new
-#        await self.agent.begin_charging()
-
-#    async def run(self):
-#        raise NotImplementedError

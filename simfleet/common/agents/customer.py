@@ -3,68 +3,46 @@ import time
 from asyncio import CancelledError
 
 from loguru import logger
-#from spade.agent import Agent      Not used
 from spade.behaviour import CyclicBehaviour
-from spade.message import Message
 from spade.template import Template
 
-from simfleet.utils.helpers import new_random_position #, random_position
+from simfleet.utils.helpers import new_random_position
 from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     TRAVEL_PROTOCOL,
-    REQUEST_PERFORMATIVE,
-    ACCEPT_PERFORMATIVE,
-    REFUSE_PERFORMATIVE,
     QUERY_PROTOCOL,
 )
 from simfleet.utils.utils_old import (
-    CUSTOMER_WAITING,
-    CUSTOMER_IN_DEST,
-    TRANSPORT_MOVING_TO_CUSTOMER,
-    CUSTOMER_IN_TRANSPORT,
-    TRANSPORT_IN_CUSTOMER_PLACE,
     CUSTOMER_LOCATION,
-    StrategyBehaviour,
-    request_path,
-    status_to_str,
 )
 
 from simfleet.common.geolocatedagent import GeoLocatedAgent
 
-#class CustomerAgent(Agent):
-#    def __init__(self, agentjid, password):
-#        super().__init__(agentjid, password)
 
 class CustomerAgent(GeoLocatedAgent):
+    """
+        CustomerAgent is responsible for representing customers in the simulation. It handles tasks such as
+        requesting transport, tracking their destination, and interacting with assigned transport agents.
+
+        Attributes:
+            transport_assigned (str): The ID of the assigned transport agent.
+            waiting_for_pickup_time (float): The time the customer has waited for pickup.
+            pickup_time (float): The time the customer is picked up by the transport.
+            customer_dest (list): The destination coordinates of the customer.
+    """
     def __init__(self, agentjid, password):
         super().__init__(agentjid, password)
 
-        #self.agent_id = None                    #simfleetagent.py
-        #self.strategy = None                    #simfleetagent.py
-        #self.icon = None                        #geolocatedagent.py
-        #self.running_strategy = False           #simfleetagent.py
-        #self.fleet_type = None                  #simfleetagent.py
-        #self.fleetmanagers = None               #taxicustomer.py
-        #self.route_host = None                  #geolocatedagent.py
-        #self.status = CUSTOMER_WAITING          #taxicustomer.py
-        #self.current_pos = None                 #geolocatedagent.py
-        #self.dest = None                        #movable.py
-        #self.port = None                        #simfleetagent.py
         self.transport_assigned = None
-        #self.init_time = None                   #simfleetagent.py
         self.waiting_for_pickup_time = None
         self.pickup_time = None
-        #self.end_time = None                    #simfleetagent.py
-        #self.stopped = False                    #simfleetagent.py
-        #self.ready = False                      #simfleetagent.py
-        #self.is_launched = False                #simfleetagent.py
-
-        #self.directory_id = None                #simfleetagent.py
-        #self.type_service = "taxi"              #Not used
-
         self.customer_dest = None
 
     async def setup(self):
+        """
+            Sets up the customer agent, ensuring that the agent is prepared for travel by creating the required
+            behaviours and assigning a travel strategy.
+        """
         try:
             template = Template()
             template.set_metadata("protocol", TRAVEL_PROTOCOL)
@@ -85,13 +63,9 @@ class CustomerAgent(GeoLocatedAgent):
                 )
             )
 
-    # simfleetagent.py
-    #def is_ready(self):
-    #    return not self.is_launched or (self.is_launched and self.ready)
-
     def run_strategy(self):
-        """import json
-        Runs the strategy for the customer agent.
+        """
+        Runs the strategy for the customer agent by creating behaviours for requesting and querying transports.
         """
         if not self.running_strategy:
             template1 = Template()
@@ -103,191 +77,38 @@ class CustomerAgent(GeoLocatedAgent):
 
     def set_target_position(self, coords=None):
         """
-        Sets the target position of the customer (i.e. its destination).
-        If no position is provided the destination is setted to a random position.
+        Sets the target position of the customer (i.e., its destination).
+        If no position is provided, the destination is set to a random position.
 
         Args:
-            coords (list): a list coordinates (longitude and latitude)
+            coords (list): A list of coordinates (longitude and latitude) for the destination.
         """
         if coords:
             self.customer_dest = coords
         else:
-            #self.dest = random_position()
             self.customer_dest = new_random_position(self.boundingbox, self.route_host)
         logger.debug(
             "Customer {} target position is {}".format(self.agent_id, self.customer_dest)
         )
 
-    # simfleetagent.py
-    #def set_id(self, agent_id):
-    #    """
-    #    Sets the agent identifier
-    #    Args:
-    #        agent_id (str): The new Agent Id
-    #    """
-    #    self.agent_id = agent_id
-
-    # simfleetagent.py
-    #def set_icon(self, icon):
-    #    self.icon = icon
-
-    # simfleetagent.py
-    #def set_fleet_type(self, fleet_type):
-    #    """
-    #    Sets the type of fleet to be used.
-
-    #    Args:
-    #        fleet_type (str): the type of the fleet to be used
-    #    """
-    #    self.fleet_type = fleet_type
-
-    # taxicustomer.py
-    #def set_fleetmanager(self, fleetmanagers):
-    #    """
-    #    Sets the fleetmanager JID address
-    #    Args:
-    #        fleetmanagers (str): the fleetmanager jid
-
-    #    """
-    #    self.fleetmanagers = fleetmanagers
-
-    # gelocatedagent.py
-    #def set_route_host(self, route_host):
-    #    """
-    #    Sets the route host server address
-    #    Args:
-    #        route_host (str): the route host server address
-
-    #    """
-    #    self.route_host = route_host
-
-    # simfleetagent.py
-    #def set_directory(self, directory_id):
-    #    """
-    #    Sets the directory JID address
-    #    Args:
-    #        directory_id (str): the DirectoryAgent jid
-
-    #    """
-    #    self.directory_id = directory_id
-
-    # geolocatedagent.py
-    #def set_position(self, coords=None):
-    #    """
-    #    Sets the position of the customer. If no position is provided it is located in a random position.
-
-    #    Args:
-    #        coords (list): a list coordinates (longitude and latitude)
-    #    """
-    #    if coords:
-    #        self.current_pos = coords
-    #    else:
-    #        self.current_pos = random_position()
-    #    logger.debug(
-    #        "Customer {} position is {}".format(self.agent_id, self.current_pos)
-    #    )
-
-    #Bus line
     async def set_position(self, coords=None):
         """
-        Sets the position of the transport. If no position is provided it is located in a random position.
+        Sets the current position of the customer. If no coordinates are provided, the customer is
+        placed at a random position.
 
         Args:
-            coords (list): a list coordinates (longitude and latitude)
+            coords (list): A list of coordinates (longitude and latitude) representing the customer's position.
         """
-        #if coords:
-        #    self.set("current_pos", coords)
-        #else:
-        #    self.set("current_pos", random_position())
-
-        #logger.debug(
-        #    "Transport {} position is {}".format(self.agent_id, self.get("current_pos"))
-        #)
-
         super().set_position(coords)
         self.set("current_pos", coords)
 
-    # geolocatedagent.py
-    #def get_position(self):
-    #    """
-    #    Returns the current position of the customer.
-
-    #    Returns:
-    #        list: the coordinates of the current position of the customer (lon, lat)
-    #    """
-    #    return self.current_pos
-
-    # movable.py
-    #def set_target_position(self, coords=None):
-    #    """
-    #    Sets the target position of the customer (i.e. its destination).
-    #    If no position is provided the destination is setted to a random position.
-
-    #    Args:
-    #        coords (list): a list coordinates (longitude and latitude)
-    #    """
-    #    if coords:
-    #        self.dest = coords
-    #    else:
-            #self.dest = random_position()
-    #        self.dest = new_random_position(self.boundingbox, self.route_host)
-    #    logger.debug(
-    #        "Customer {} target position is {}".format(self.agent_id, self.dest)
-    #    )
-
-    # movable.py -- ANALIZAR el STATUS
-    #def is_in_destination(self):
-    #    """
-    #    Checks if the customer has arrived to its destination.
-
-    #    Returns:
-    #        bool: whether the customer is at its destination or not
-    #    """
-    #    return self.status == CUSTOMER_IN_DEST or self.get_position() == self.dest
-
-    #movable.py
-    #async def request_path(self, origin, destination):
-    #    """
-    #    Requests a path between two points (origin and destination) using the route server.
-
-    #    Args:
-    #        origin (list): the coordinates of the origin of the requested path
-    #        destination (list): the coordinates of the end of the requested path
-
-    #    Returns:
-    #        list, float, float: A list of points that represent the path from origin to destination, the distance and
-    #        the estimated duration
-
-    #    Examples:
-    #        >>> path, distance, duration = await self.request_path(origin=[0,0], destination=[1,1])
-    #        >>> print(path)
-    #        [[0,0], [0,1], [1,1]]
-    #        >>> print(distance)
-    #        2.0
-    #        >>> print(duration)
-    #        3.24
-    #    """
-    #    return await request_path(self, origin, destination, self.route_host)
-
-    # simfleetagent.py
-    #def total_time(self):
-    #    """
-    #    Returns the time since the customer was activated until it reached its destination.
-
-    #    Returns:
-    #        float: the total time of the customer's simulation.
-    #    """
-    #    if self.init_time and self.end_time:
-    #        return self.end_time - self.init_time
-    #    else:
-    #        return None
-
     def get_waiting_time(self):
         """
-        Returns the time that the agent was waiting for a transport, from its creation until it gets into a transport.
+        Calculates and returns the time the customer has been waiting for transport. This is calculated
+        from the time of creation until the customer is picked up or until the current time.
 
         Returns:
-            float: The time the customer was waiting.
+            float: The time the customer has been waiting for pickup.
         """
         if self.init_time:
             if self.pickup_time:
@@ -302,10 +123,10 @@ class CustomerAgent(GeoLocatedAgent):
 
     def get_pickup_time(self):
         """
-        Returns the time that the customer was waiting to be picked up since it has been assigned to a transport.
+        Returns the time the customer has waited for pickup since they were assigned to a transport.
 
         Returns:
-            float: The time that the customer was waiting to a transport since it has been assigned.
+            float: The time the customer waited for transport pickup.
         """
         if self.pickup_time:
             return self.pickup_time - self.waiting_for_pickup_time
@@ -334,7 +155,6 @@ class CustomerAgent(GeoLocatedAgent):
         t = self.get_waiting_time()
         return {
             "id": self.agent_id,
-            #"position": [float("{0:.6f}".format(coord)) for coord in self.current_pos],     #Non-parallel variable
             "position": [float("{0:.6f}".format(coord)) for coord in self.get("current_pos")],
             "dest": [float("{0:.6f}".format(coord)) for coord in self.customer_dest],
             "status": self.status,
@@ -348,15 +168,24 @@ class CustomerAgent(GeoLocatedAgent):
 
 class TravelBehaviour(CyclicBehaviour):
     """
-    This is the internal behaviour that manages the movement of the customer.
-    It is triggered when the transport informs the customer that it is going to the
-    customer's position until the customer is dropped in its destination.
+    The TravelBehaviour class manages the movement of the customer agent. It triggers when the assigned
+    transport informs the customer about its arrival and continues until the customer reaches their destination.
+
+    Attributes:
+        timeout (int): The timeout value for receiving a message from the transport.
     """
 
     async def on_start(self):
+        """
+            Called when the behaviour is started. Logs a message indicating the customer has started travel.
+        """
         logger.debug("Customer {} started TravelBehavior.".format(self.agent.name))
 
     async def run(self):
+        """
+            Continuously runs, checking for messages from the transport. Upon receiving information
+            (such as new coordinates or status), it updates the customer’s position.
+        """
         try:
             msg = await self.receive(timeout=5)
             if not msg:
@@ -365,30 +194,6 @@ class TravelBehaviour(CyclicBehaviour):
             logger.debug("Customer {} informed of: {}".format(self.agent.name, content))
             if "status" in content:
                 status = content["status"]
-                #if status != CUSTOMER_LOCATION:
-                #    logger.debug(
-                #        "Customer {} informed of status: {}".format(
-                #            self.agent.name, status_to_str(status)
-                #        )
-                #    )
-                #if status == TRANSPORT_MOVING_TO_CUSTOMER:
-                #    logger.info(
-                #        "Customer {} waiting for transport.".format(self.agent.name)
-                #    )
-                #    self.agent.waiting_for_pickup_time = time.time()
-                #elif status == TRANSPORT_IN_CUSTOMER_PLACE:
-                #    self.agent.status = CUSTOMER_IN_TRANSPORT
-                #    logger.info("Customer {} in transport.".format(self.agent.name))
-                #    self.agent.pickup_time = time.time()
-                #elif status == CUSTOMER_IN_DEST:
-                #    self.agent.status = CUSTOMER_IN_DEST
-                #    self.agent.end_time = time.time()
-                #    logger.info(
-                #        "Customer {} arrived to destination after {} seconds.".format(
-                #            self.agent.name, self.agent.total_time()
-                #        )
-                #    )
-                #elif status == CUSTOMER_LOCATION:
                 if status == CUSTOMER_LOCATION:
                     coords = content["location"]
                     await self.agent.set_position(coords)       #FIX ERROR POSITION - Ok
@@ -401,144 +206,3 @@ class TravelBehaviour(CyclicBehaviour):
                 )
             )
 
-#taxicustomer.py
-#class CustomerStrategyBehaviour(StrategyBehaviour):
-#    """
-#    Class from which to inherit to create a transport strategy.
-#    You must overload the ``run`` coroutine
-
-#    Helper functions:
-#        * ``send_request``
-#        * ``accept_transport``
-#        * ``refuse_transport``
-#    """
-
-#    async def on_start(self):
-#        """
-#        Initializes the logger and timers. Call to parent method if overloaded.
-#        """
-#        logger.debug(
-#            "Strategy {} started in customer {}".format(
-#                type(self).__name__, self.agent.name
-#            )
-#        )
-#        self.agent.init_time = time.time()
-
-#    async def send_get_managers(self, content=None):
-#        """
-#        Sends an ``spade.message.Message`` to the DirectoryAgent to request a managers.
-#        It uses the QUERY_PROTOCOL and the REQUEST_PERFORMATIVE.
-#        If no content is set a default content with the type_service that needs
-#        Args:
-#            content (dict): Optional content dictionary
-#        """
-#        if content is None or len(content) == 0:
-#            content = self.agent.fleet_type
-#        msg = Message()
-#        msg.to = str(self.agent.directory_id)
-#        msg.set_metadata("protocol", QUERY_PROTOCOL)
-#        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-#        msg.body = content
-#        await self.send(msg)
-
-#        logger.info(
-#            "Customer {} asked for managers to directory {} for type {}.".format(
-#                self.agent.name, self.agent.directory_id, self.agent.fleet_type
-#            )
-#        )
-
-#    async def send_request(self, content=None):
-#        """
-#        Sends an ``spade.message.Message`` to the fleetmanager to request a transport.
-#        It uses the REQUEST_PROTOCOL and the REQUEST_PERFORMATIVE.
-#        If no content is set a default content with the customer_id,
-#        origin and target coordinates is used.
-
-#        Args:
-#            content (dict): Optional content dictionary
-#        """
-#        if not self.agent.dest:
-            #self.agent.dest = random_position()
-#            self.agent.dest = new_random_position(self.boundingbox, self.route_host)
-#        if content is None or len(content) == 0:
-#            content = {
-#                "customer_id": str(self.agent.jid),
-                #"origin": self.agent.current_pos,       #Non-parallel variable
-#                "origin": self.agent.get("current_pos"),
-#                "dest": self.agent.dest,
-#            }
-
-#        if self.agent.fleetmanagers is not None:
-#            for (
-#                fleetmanager
-#            ) in self.agent.fleetmanagers.keys():  # Send a message to all FleetManagers
-#                msg = Message()
-#                msg.to = str(fleetmanager)
-#                msg.set_metadata("protocol", REQUEST_PROTOCOL)
-#                msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-#                msg.body = json.dumps(content)
-#                await self.send(msg)
-#            logger.info(
-#                "Customer {} asked for a transport to {}.".format(
-#                    self.agent.name, self.agent.dest
-#                )
-#            )
-#        else:
-#            logger.warning("Customer {} has no fleet managers.".format(self.agent.name))
-
-#    async def accept_transport(self, transport_id):
-#        """
-#        Sends a ``spade.message.Message`` to a transport to accept a travel proposal.
-#        It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
-
-#        Args:
-#            transport_id (str): The Agent JID of the transport
-#        """
-#        reply = Message()
-#        reply.to = str(transport_id)
-#        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-#        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
-#        content = {
-#            "customer_id": str(self.agent.jid),
-#            #"origin": self.agent.current_pos,               #Non-parallel variable
-#            "origin": self.agent.get("current_pos"),
-#            "dest": self.agent.dest,
-#        }
-#        reply.body = json.dumps(content)
-#        await self.send(reply)
-#        self.agent.transport_assigned = str(transport_id)
-#        logger.info(
-#            "Customer {} accepted proposal from transport {}".format(
-#                self.agent.name, transport_id
-#            )
-#        )
-
-#    async def refuse_transport(self, transport_id):
-#        """
-#        Sends an ``spade.message.Message`` to a transport to refuse a travel proposal.
-#        It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
-
-#        Args:
-#            transport_id (str): The Agent JID of the transport
-#        """
-#        reply = Message()
-#        reply.to = str(transport_id)
-#        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-#        reply.set_metadata("performative", REFUSE_PERFORMATIVE)
-#        content = {
-#            "customer_id": str(self.agent.jid),
-#            #"origin": self.agent.current_pos,              #Non-parallel variable
-#            "origin": self.agent.get("current_pos"),
-#            "dest": self.agent.dest,
-#        }
-#        reply.body = json.dumps(content)
-
-#        await self.send(reply)
-#        logger.info(
-#            "Customer {} refused proposal from transport {}".format(
-#                self.agent.name, transport_id
-#            )
-#        )
-
-#    async def run(self):
-#        raise NotImplementedError

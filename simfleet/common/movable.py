@@ -1,33 +1,51 @@
 from asyncio.log import logger
-from simfleet.utils.helpers import AlreadyInDestination, PathRequestException, distance_in_meters, kmh_to_ms, new_random_position#, random_position
+from simfleet.utils.helpers import AlreadyInDestination, PathRequestException, distance_in_meters, kmh_to_ms
 from spade.behaviour import PeriodicBehaviour
 from simfleet.utils.utils_old import chunk_path, request_path
 
-ONESECOND_IN_MS = 1000                          #transport.py
+ONESECOND_IN_MS = 1000
 
 
 class MovableMixin:
+    """
+        MovableMixin is a mixin class that provides functionality for agents that need to move along a defined path
+        to a specific destination. It manages the movement process, path calculation, and speed handling.
+
+        Attributes:
+            path (list): A list of coordinates that represents the path the vehicle should follow.
+            chunked_path (list): A list of smaller steps or 'chunks' of the path based on the speed of the vehicle.
+            animation_speed (int): The time in milliseconds between steps in the animation or movement process.
+            speed_in_kmh (float): The current speed of the vehicle in kilometers per hour.
+            dest (list): The destination coordinates (longitude, latitude) of the vehicle.
+            distances (list): A list of distances traveled.
+            durations (list): A list of durations for each travel route.
+        """
 
     def __init__(self):
-        self.set("path", None)                  #transport.py
-        self.chunked_path = None                #transport.py
-        self.animation_speed = ONESECOND_IN_MS  #transport.py
-        self.set("speed_in_kmh", None)          #transport.py
-        self.dest = None                        #transport.py
+        """
+            Initializes the MovableMixin with default values for path, speed, and destination.
+        """
+        self.set("path", None)
+        self.chunked_path = None
+        self.animation_speed = ONESECOND_IN_MS
+        self.set("speed_in_kmh", None)
+        self.dest = None
 
-        self.distances = []                     #transport.py
-        self.durations = []                     #transport.py
+        self.distances = []
+        self.durations = []
 
-    # transport.py
+
     async def move_to(self, dest):
         """
-        Moves the transport to a new destination.
+            Moves the transport agent to a new destination by requesting a path from its current position
+            and chunking the path based on the transport's speed.
 
-        Args:
-            dest (list): the coordinates of the new destination (in lon, lat format)
+            Args:
+                dest (list): The destination coordinates (longitude, latitude).
 
-        Raises:
-             AlreadyInDestination: if the transport is already in the destination coordinates.
+            Raises:
+                AlreadyInDestination: If the transport is already at the destination coordinates.
+                PathRequestException: If there is an error in obtaining the path from the current position to the destination.
         """
         if self.get("current_pos") == dest:
             raise AlreadyInDestination
@@ -57,7 +75,7 @@ class MovableMixin:
         behav = MovingBehaviour(period=1)
         self.add_behaviour(behav)
 
-    #transport.py
+
     async def request_path(self, origin, destination):
         """
         Requests a path between two points (origin and destination) using the route server.
@@ -81,7 +99,7 @@ class MovableMixin:
         """
         return await request_path(self, origin, destination, self.route_host)
 
-    #transport.py
+
     async def step(self):
         """
         Advances one step in the simulation
@@ -94,7 +112,7 @@ class MovableMixin:
             )
             await self.set_position(_next)
 
-    #transport.py
+
     def is_in_destination(self):
         """
         Checks if the transport has arrived to its destination.
@@ -104,25 +122,7 @@ class MovableMixin:
         """
         return self.dest == self.get_position()
 
-    #customer.py
-    # def set_target_position(self, coords=None):
-    #     """
-    #     Sets the target position of the customer (i.e. its destination).
-    #     If no position is provided the destination is setted to a random position.
-    #
-    #     Args:
-    #         coords (list): a list coordinates (longitude and latitude)
-    #     """
-    #     if coords:
-    #         self.dest = coords
-    #     else:
-    #         #self.dest = random_position()
-    #         self.dest = new_random_position(self.boundingbox, self.route_host)
-    #     logger.debug(
-    #         "Customer {} target position is {}".format(self.agent_id, self.dest)
-    #     )
 
-    #transport.py
     def set_speed(self, speed_in_kmh):
         """
         Sets the speed of the transport.

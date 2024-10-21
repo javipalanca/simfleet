@@ -1,4 +1,3 @@
-
 import json
 
 from loguru import logger
@@ -8,43 +7,49 @@ from spade.message import Message
 from spade.template import Template
 from spade.behaviour import CyclicBehaviour
 
-from simfleet.common.movable import MovableMixin#, MovingBehaviour
+from simfleet.common.movable import MovableMixin
 from simfleet.common.geolocatedagent import GeoLocatedAgent
 
-from simfleet.utils.utils_old import StrategyBehaviour      #New vehicle
+from simfleet.utils.utils_old import StrategyBehaviour
 
-from simfleet.communications.protocol import (              #New vehicle
+from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     REGISTER_PROTOCOL,
     ACCEPT_PERFORMATIVE,
     REQUEST_PERFORMATIVE,
-    REFUSE_PERFORMATIVE,
 )
 
-from simfleet.utils.utils_old import (                      #New vehicle
-    VEHICLE_WAITING,
-    VEHICLE_MOVING_TO_DESTINATION,
-    VEHICLE_IN_DEST,
-)
-
-from simfleet.utils.helpers import AlreadyInDestination     #New vehicle
+from simfleet.utils.helpers import AlreadyInDestination
 
 class VehicleAgent(MovableMixin, GeoLocatedAgent):
+    """
+        The VehicleAgent class represents a vehicle in the system. It inherits from both MovableMixin and GeoLocatedAgent,
+        combining the functionality of movement and geolocation. This agent can register with a fleet manager, move to a
+        destination, and execute strategies defined by specific behaviors.
+
+        Attributes:
+            fleetmanager_id (str): The ID of the fleet manager the vehicle is registered with.
+    """
     def __init__(self, agentjid, password):
+        """
+            Initializes the VehicleAgent with its unique JID and password. The vehicle agent also has attributes
+            to store the fleet manager's ID and manages its own state regarding its location and registration.
+
+            Args:
+                agentjid (str): The Jabber ID of the agent.
+                password (str): The password used for agent authentication.
+        """
         GeoLocatedAgent.__init__(self, agentjid, password)
         MovableMixin.__init__(self)
 
-        self.fleetmanager_id = None                     #transport.py
-        #self.registration = None
-        #self.current_autonomy_km = 2000                 #transport.py
-        #self.max_autonomy_km = 2000                     #transport.py
+        self.fleetmanager_id = None
 
     def set_fleetmanager(self, fleetmanager_id):
         """
-        Sets the fleetmanager JID address
-        Args:
-            fleetmanager_id (str): the fleetmanager jid
+        Sets the fleet manager's JID for the vehicle.
 
+        Args:
+            fleetmanager_id (str): The JID of the fleet manager to be set for this vehicle.
         """
         logger.info(
             "Setting fleet {} for agent {}".format(
@@ -53,8 +58,11 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
         )
         self.fleetmanager_id = fleetmanager_id
 
-    #New vehicle
     async def setup(self):
+        """
+            Sets up the vehicle agent by registering a behavior that handles the vehicle's registration process.
+            The vehicle will attempt to register with the directory and fleet manager upon setup.
+        """
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)
@@ -79,10 +87,10 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
                 )
             )
 
-    #New vehicle
     def run_strategy(self):
         """
-        Runs the strategy for the vehicle agent.
+        Runs the strategy for the vehicle agent. It initializes the behavior associated with the vehicle's operations
+        and begins executing its assigned strategy.
         """
         if not self.running_strategy:
             template = Template()
@@ -90,46 +98,30 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
             self.add_behaviour(self.strategy(), template)
             self.running_strategy = True
 
-    #New vehicle
+
     async def set_position(self, coords=None):
         """
-        Sets the position of the vehicle. If no position is provided it is located in a random position.
+        Sets the vehicle's position. If no position is provided, the vehicle will be assigned a random position.
 
         Args:
-            coords (list): a list coordinates (longitude and latitude)
+            coords (list): A list of coordinates representing the vehicle's longitude and latitude.
         """
-        #if coords:
-        #    self.set("current_pos", coords)
-        #else:
-        #    self.set("current_pos", random_position())
-
-        #logger.debug(
-        #    "Transport {} position is {}".format(self.agent_id, self.get("current_pos"))
-        #)
 
         super().set_position(coords)
         self.set("current_pos", coords)
 
-        #if self.is_in_destination():
-        #    logger.info(
-        #        "Vehicle {} has arrived to destination: {}. Position: {}".format(
-        #            self.agent_id, self.is_in_destination(), self.get("current_pos")
-        #        )
-        #    )
-        #    if self.status == VEHICLE_MOVING_TO_DESTINATION:
-        #        self.status = VEHICLE_IN_DEST
 
-    #New vehicle
     async def send_registration(self):
         """
-        Send a ``spade.message.Message`` with a proposal to directory to register.
+        Sends a registration request to the directory to register the vehicle. The vehicle sends its JID and type to
+        the directory for registration purposes.
         """
         logger.info(
             "Vehicle {} sent proposal to register to directory {}".format(
                 self.name, self.directory_id
             )
         )
-        #self.status = VEHICLE_WAITING
+
         content = {"jid": str(self.jid), "type": self.fleet_type}
         msg = Message()
         msg.to = str(self.directory_id)
@@ -138,7 +130,6 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
         msg.body = json.dumps(content)
         await self.send(msg)
 
-    #New vehicle
     def to_json(self):
         """
         Serializes the main information of a transport agent to a JSON format.
@@ -184,13 +175,22 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
         }
 
 
-
-#New vehicle
 class VehicleRegistrationBehaviour(CyclicBehaviour):
+    """
+        This behavior handles the registration process of the vehicle agent. It listens for registration responses
+        and manages the registration lifecycle of the vehicle within the system.
+    """
     async def on_start(self):
+        """
+                Logs the start of the registration strategy for the vehicle.
+        """
         logger.debug("Strategy {} started in vehicle".format(type(self).__name__))
 
     async def run(self):
+        """
+            Waits for registration responses and processes them. If the registration is accepted, the vehicle sets
+            itself as registered.
+        """
         try:
             msg = await self.receive(timeout=5)
             if msg:
@@ -208,30 +208,33 @@ class VehicleRegistrationBehaviour(CyclicBehaviour):
                 )
             )
 
-#New vehicle
 class VehicleStrategyBehaviour(StrategyBehaviour):
     """
-    Class from which to inherit to create a coordinator strategy.
-    You must overload the :func:`_process` method
+    This class defines the vehicle's behavior strategy. It is designed to be extended to implement
+    custom strategies for vehicle operations.
 
+    Key Methods:
+        - on_start(): Logs the initialization of the strategy.
+        - planned_trip(): Defines how the vehicle should move to its destination.
     """
 
     async def on_start(self):
+        """
+            Logs the start of the vehicle's strategy behavior.
+        """
         logger.debug("Strategy {} started in vehicle".format(type(self).__name__))
 
     async def planned_trip(self, dest=None):
         """
-        It automatically launches the travelling process until the vehicle reaches
-        the destination. This travelling process includes to update the transport coordinates as it
-        moves along the path at the specified speed.
+        Initiates the process for the vehicle to travel to the specified destination. The vehicle moves along the
+        path, updating its position until it reaches its destination.
 
         Args:
-            dest (list): the coordinates of the target destination of the vehicle
+            dest (list): The coordinates of the vehicle's destination.
         """
         logger.info(
             "Vehicle {} on route to destination {}".format(self.agent.name, self.agent.dest)
         )
-        #self.agent.status = VEHICLE_MOVING_TO_DESTINATION
         try:
             logger.debug("{} move_to destination {}".format(self.agent.name, self.agent.dest))
             await self.agent.move_to(self.agent.dest)
@@ -241,7 +244,10 @@ class VehicleStrategyBehaviour(StrategyBehaviour):
                     self.agent.name, self.agent.dest
                 )
             )
-            #self.agent.status = VEHICLE_IN_DEST
 
     async def run(self):
+        """
+            Abstract method that should be implemented in subclasses. This is where the specific strategy of the
+            vehicle will be executed.
+        """
         raise NotImplementedError

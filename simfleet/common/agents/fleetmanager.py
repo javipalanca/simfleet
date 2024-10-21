@@ -15,7 +15,7 @@ from simfleet.communications.protocol import (
     REQUEST_PERFORMATIVE,
     REFUSE_PERFORMATIVE,
 )
-from simfleet.utils.utils_old import StrategyBehaviour
+from simfleet.utils.abstractstrategies import StrategyBehaviour
 
 
 class FleetManagerAgent(SimfleetAgent):

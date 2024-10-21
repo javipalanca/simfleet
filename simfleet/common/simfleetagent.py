@@ -1,20 +1,32 @@
-#import json    #Not used
 import time
-from asyncio import Future
-#import asyncio     #Not used
-#from asyncio import CancelledError     #Not used
-from collections import defaultdict
-from typing import Union, Coroutine
-
 from loguru import logger
-
 from spade.agent import Agent
-
-#from simfleet.utils.helpers import random_position     #Not used
+from collections import defaultdict
 
 from simfleet.utils.statistics import StatisticsStore
 
 class SimfleetAgent(Agent):
+    """
+        SimfleetAgent is the base class for all agents in the SimFleet framework. It provides essential functionalities for managing
+        registration, messaging, and event observation for agents that interact with the transportation fleet and customer system.
+
+        Attributes:
+            __observers (dict): A dictionary of observer callbacks to monitor changes in agent properties.
+            agent_id (str): The identifier for the agent.
+            strategy (function): The current strategy assigned to the agent.
+            running_strategy (bool): Indicates if the strategy is currently running.
+            port (int): The port used by the agent.
+            stopped (bool): Indicates if the agent has stopped.
+            ready (bool): Flag to check if the agent is ready to operate.
+            is_launched (bool): Flag indicating if the agent has been launched.
+            directory_id (str): The JID of the directory service for agent registration.
+            status (str): The current status of the agent.
+            fleet_type (str): The type of fleet to which the agent belongs.
+            registration (bool): Indicates whether the agent is registered or not.
+            init_time (float): The start time of the agent's lifecycle.
+            end_time (float): The end time of the agent's lifecycle.
+            events_store (StatisticsStore): A storage mechanism for agent events and statistics.
+    """
     def __init__(self, agentjid, password):
         super().__init__(agentjid, password)
         self.__observers = defaultdict(list)
@@ -30,79 +42,109 @@ class SimfleetAgent(Agent):
         self.fleet_type = None
         self.registration = None
 
-        self.init_time = None
-        self.end_time = None
-
-        # New statistics
+        self.init_time = None   #Change
+        self.end_time = None    #Change
 
         self.events_store = StatisticsStore(agent_name=str(agentjid), class_type=type(self))
-        #self.events_log = None
 
-    # New testing idea
-    #def create_log(self):
-    #    self.events_log = self.events_store.generate_partial_log()
 
     async def stop(self):
+        """
+            Stops the agent and marks it as stopped. Overrides the default stop behavior in spade.
+        """
         self.stopped = True
         await super().stop()
 
-    #New function - Know if the agent is stopped
+
     def is_stopped(self):
+        """
+            Checks if the agent is stopped.
+
+            Returns:
+                bool: True if the agent is stopped, False otherwise.
+        """
         return self.stopped
 
-    #Used TransportAgent - CustomerAgent - StationAgent (different) -- ANALIZAR REUNION
+
     def is_ready(self):
+        """
+            Checks if the agent is ready for operation.
+
+            Returns:
+                bool: True if the agent is ready, False otherwise.
+        """
         return not self.is_launched or (self.is_launched and self.ready)
 
-    #Used TransportAgent
+
     def sleep(self, seconds):
+        """
+            Pauses the agent’s operation for a specified duration.
+
+            Args:
+                seconds (int): The duration in seconds for which the agent should pause.
+        """
         # await asyncio.sleep(seconds)
         time.sleep(seconds)
 
-    #Used TransportAgent
+
     def set(self, key, value):
+        """
+            Sets a value to a specific key in the agent’s properties. If an observer is registered for this key,
+            the callback is triggered upon value change.
+
+            Args:
+                key (str): The property name.
+                value (any): The value to be assigned.
+        """
         old = self.get(key)
         super().set(key, value)
         if key in self.__observers:
             for callback in self.__observers[key]:
                 callback(old, value)
 
-    #Used TransportAgent - StationAgent (different) - FleetMaganerAgent (different)
+
     def set_registration(self, status, content=None):
         """
-        Sets the status of registration
+        Sets the registration status of the agent.
+
         Args:
-            status (boolean): True if the transport agent has registered or False if not
-            content (dict):
+            status (bool): True if the agent is registered, False otherwise.
+            content (dict, optional): Additional information about the agent, such as its icon and fleet type.
         """
         if content is not None:
             self.icon = content["icon"] if self.icon is None else self.icon
             self.fleet_type = content["fleet_type"]
         self.registration = status
 
-    #Used TransportAgent (transport.py)
+
     def watch_value(self, key, callback):
         """
-        Registers an observer callback to be run when a value is changed
+        Registers a callback function that is triggered when a specified key's value changes.
 
         Args:
-            key (str): the name of the value
-            callback (function): a function to be called when the value changes. It receives two arguments: the old and the new value.
+            key (str): The property name to observe.
+            callback (function): The callback function to trigger when the property changes. Receives the old and new value.
         """
         self.__observers[key].append(callback)
 
-    #Used TransportAgent - CustomerAgent - FleetManagerAgent
+
     def set_fleet_type(self, fleet_type):
         """
-        Sets the type of fleet to be used.
+        Sets the type of fleet to which the agent belongs.
 
         Args:
-            fleet_type (str): the type of the fleet to be used
+            fleet_type (str): The type of fleet (e.g., "bus", "taxi").
         """
         self.fleet_type = fleet_type
 
-    #Used TransportAgent - StationAgent
+
     async def send(self, msg):
+        """
+            Sends a message to another agent, ensuring that the sender's JID is correctly included in the message.
+
+            Args:
+                msg (spade.message.Message): The message to be sent.
+        """
         if not msg.sender:
             msg.sender = str(self.jid)
             logger.debug(f"Adding agent's jid as sender to message: {msg}")
@@ -111,55 +153,45 @@ class SimfleetAgent(Agent):
         msg.sent = True
         self.traces.append(msg, category=str(self))
 
-    #Used TransportAgent - CustomerAgent - StationAgent - FleetManagerAgent
+
     def set_id(self, agent_id):
         """
-        Sets the agent identifier
+        Sets the agent's identifier.
+
         Args:
-            agent_id (str): The new Agent Id
+            agent_id (str): The new identifier for the agent.
         """
         self.agent_id = agent_id
 
-    # Used TransportAgent - CustomerAgent - StationAgent - FleetManagerAgent        #NEW
+
     def get_id(self):
         """
-        Gets the agent identifier
+        Retrieves the agent's identifier.
 
+        Returns:
+            str: The identifier of the agent.
         """
         return self.agent_id
 
-    #Used TransportAgent - CustomerAgent - StationAgent - FleetManagerAgent
+
     def set_directory(self, directory_id):
         """
-        Sets the directory JID address
-        Args:
-            directory_id (str): the DirectoryAgent jid
+        Sets the JID of the directory agent responsible for managing the directory of services.
 
+        Args:
+            directory_id (str): The JID of the directory agent.
         """
         self.directory_id = directory_id
 
-    #Used CustomerAgent
+
     def total_time(self):
         """
-        Returns the time since the customer was activated until it reached its destination.
+        Calculates the total simulation time from the agent's activation until it reaches its destination.
 
         Returns:
-            float: the total time of the customer's simulation.
+            float: The total time in seconds, or None if the times are not available.
         """
         if self.init_time and self.end_time:
             return self.end_time - self.init_time
         else:
             return None
-
-    #def to_json(self):
-    #    """
-    #    Returns a JSON with the relevant data of this type of agent
-    #    """
-    #    data = {}
-    #    data.update({
-    #        "id": self.agent_id,
-    #        "status": self.status,
-    #        "init_time": self.init_time,
-    #        "end_time": self.end_time
-    #    })
-    #    return data

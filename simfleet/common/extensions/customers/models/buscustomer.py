@@ -1,28 +1,20 @@
 import asyncio
 import json
 import time
-from asyncio import CancelledError
 from collections import defaultdict
 
-from spade.behaviour import CyclicBehaviour
 from spade.template import Template
 from spade.message import Message
 from loguru import logger
 
-from simfleet.utils.helpers import new_random_position
 from simfleet.utils.utils_old import (
-    CUSTOMER_LOCATION,
     StrategyBehaviour,
-    status_to_str,
 )
 
 from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     REQUEST_PERFORMATIVE,
-    ACCEPT_PERFORMATIVE,
-    REFUSE_PERFORMATIVE,
     INFORM_PERFORMATIVE,
-    QUERY_PROTOCOL,
 )
 
 from simfleet.common.extensions.customers.models.pedestrian import PedestrianAgent
@@ -40,8 +32,6 @@ class BusCustomerAgent(PedestrianAgent):
             type_service (str): The type of service the customer is using.
             registered_in (str): The bus stop where the customer is registered.
             stop_dic (dict): Dictionary of available stops.
-            in_transport_time (float): Time the customer spends in transport.
-            total_sim_time (float): Total simulation time for the customer.
             alternative_transports (list): Alternative transport options.
             line (str): The bus line assigned to the customer.
             arguments (dict): Additional arguments for the customer.
@@ -56,8 +46,6 @@ class BusCustomerAgent(PedestrianAgent):
         self.type_service = "stops"
         self.registered_in = None
         self.stop_dic = None
-        self.in_transport_time = None
-        self.total_sim_time = None
         self.alternative_transports = []
 
         # Additional attribute
@@ -93,58 +81,6 @@ class BusCustomerAgent(PedestrianAgent):
             template1.set_metadata("protocol", REQUEST_PROTOCOL)
             self.add_behaviour(self.strategy(), template1)
             self.running_strategy = True
-
-    def get_waiting_time_bus(self):
-        """
-            Calculates the waiting time for the customer before boarding the bus.
-
-            Returns:
-                float: The time the customer has been waiting for pickup.
-        """
-        if self.waiting_for_pickup_time is not None:
-            return self.waiting_for_pickup_time
-        elif self.init_time is not None:
-            if self.pickup_time is not None:
-                return self.pickup_time - self.init_time
-            else:
-                return time.time() - self.init_time
-        else:
-            return None
-
-    def in_transport_time_bus(self):
-        """
-            Calculates the time the customer has been in transport.
-
-            Returns:
-                float: The time the customer has spent in transport.
-        """
-        if self.pickup_time:
-            if self.end_time:
-                return self.end_time - self.pickup_time
-            else:
-                return time.time() - self.pickup_time
-        else:
-            return None
-
-    def get_waiting_for_pickup_time(self):
-        return self.waiting_for_pickup_time
-
-    def get_in_transport_time(self):
-        return self.in_transport_time
-
-    def get_total_sim_time(self):
-        return self.total_sim_time
-
-    def get_pickup_time(self):
-        """
-        Returns the time the customer waited to be picked up after being assigned to a transport.
-
-        Returns:
-            float: The waiting time for pickup, or None if not yet picked up.
-        """
-        if self.pickup_time:
-            return self.pickup_time - self.waiting_for_pickup_time
-        return None
 
     async def set_position(self, coords=None):
         """
@@ -190,83 +126,6 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
                 type(self).__name__, self.agent.name
             )
         )
-        # Bus line
-        # self.agent.init_time = time.time()
-
-    async def send_get_managers(self, content=None):
-        """
-        Sends an ``spade.message.Message`` to the DirectoryAgent to request a managers.
-        It uses the QUERY_PROTOCOL and the REQUEST_PERFORMATIVE.
-        If no content is set a default content with the type_service that needs
-        Args:
-            content (dict): Optional content dictionary
-        """
-        if content is None or len(content) == 0:
-            content = self.agent.fleet_type
-        msg = Message()
-        msg.to = str(self.agent.directory_id)
-        msg.set_metadata("protocol", QUERY_PROTOCOL)
-        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-        msg.body = content
-        await self.send(msg)
-
-        logger.info(
-            "Customer {} asked for managers to directory {} for type {}.".format(
-                self.agent.name, self.agent.directory_id, self.agent.type_service
-            )
-        )
-
-    async def accept_transport(self, transport_id):
-        """
-        Sends a ``spade.message.Message`` to a transport to accept a travel proposal.
-        It uses the REQUEST_PROTOCOL and the ACCEPT_PERFORMATIVE.
-
-        Args:
-            transport_id (str): The Agent JID of the transport
-        """
-        reply = Message()
-        reply.to = str(transport_id)
-        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
-        content = {
-            "customer_id": str(self.agent.jid),
-            "origin": self.agent.get("current_pos"),
-            "dest": self.agent.dest,
-        }
-        reply.body = json.dumps(content)
-        await self.send(reply)
-        self.agent.transport_assigned = str(transport_id)
-        logger.info(
-            "Customer {} accepted proposal from transport {}".format(
-                self.agent.name, transport_id
-            )
-        )
-
-    async def refuse_transport(self, transport_id):
-        """
-        Sends an ``spade.message.Message`` to a transport to refuse a travel proposal.
-        It uses the REQUEST_PROTOCOL and the REFUSE_PERFORMATIVE.
-
-        Args:
-            transport_id (str): The Agent JID of the transport
-        """
-        reply = Message()
-        reply.to = str(transport_id)
-        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        reply.set_metadata("performative", REFUSE_PERFORMATIVE)
-        content = {
-            "customer_id": str(self.agent.jid),
-            "origin": self.agent.get("current_pos"),
-            "dest": self.agent.dest,
-        }
-        reply.body = json.dumps(content)
-
-        await self.send(reply)
-        logger.info(
-            "Customer {} refused proposal from transport {}".format(
-                self.agent.name, transport_id
-            )
-        )
 
     def setup_stops(self):
         """
@@ -280,7 +139,7 @@ class BusCustomerStrategyBehaviour(StrategyBehaviour):
                                                                                       self.agent.current_stop[0],
                                                                                       self.agent.destination_stop[0]))
 
-    async def register_to_stop(self, content):  # ANALIZAR Y REDISEÑO
+    async def register_to_stop(self, content):
         """
             Registers the customer at the current bus stop.
 

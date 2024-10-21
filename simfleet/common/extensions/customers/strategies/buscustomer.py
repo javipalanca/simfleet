@@ -70,9 +70,6 @@ class BusCustomerWaitingToMoveState(BusCustomerStrategyBehaviour, State):
                 try:
                     logger.debug("{} move_to destination {}".format(self.agent.name, self.agent.current_stop[1]))
 
-                    #Hardcore SPEED - CHANGE
-                    #self.agent.set_speed(80)
-
                     await self.agent.move_to(self.agent.current_stop[1])
                     self.set_next_state(CUSTOMER_MOVING_TO_DEST)
                 except AlreadyInDestination:
@@ -323,9 +320,6 @@ class BusCustomerInDestState(BusCustomerStrategyBehaviour, State):
 
                         try:
                             logger.debug("{} move_to destination {}".format(self.agent.name, self.agent.customer_dest))
-
-                            # Hardcore SPEED - CHANGE
-                            #self.agent.set_speed(80)
 
                             await self.agent.move_to(self.agent.customer_dest)
                             self.set_next_state(CUSTOMER_MOVING_TO_DEST)

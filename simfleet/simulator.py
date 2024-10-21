@@ -1,7 +1,6 @@
 import asyncio
 import io
 import json
-import sys
 import threading
 import time
 from datetime import datetime
@@ -33,7 +32,6 @@ from simfleet.utils.statistics import Log
 
 from simfleet.communications.protocol import (
     REQUEST_PERFORMATIVE,
-    CANCEL_PERFORMATIVE,
     INFORM_PERFORMATIVE,
     COORDINATION_PROTOCOL,
 )
@@ -66,7 +64,7 @@ class SimulatorAgent(Agent):
             else ""
         )
         self.verbose = self.config.verbose
-        self.simulatorjid = agentjid    #JID for QueueStationAgent - Near
+        self.simulatorjid = agentjid
 
         self.host = config.host
 
@@ -86,18 +84,8 @@ class SimulatorAgent(Agent):
         self.kill_simulator.clear()
         self.lock = threading.RLock()
 
-        # New statistcs
-        #self.events_store = None
-        # self.events_log = None
-        #self.events_log = {"Customer": [], "Transport": []}     # Testing
-        self.events_log = None  # Testing
+        self.events_log = None
         self.simulatortimestamp = None
-
-        #self.fleetmanager_strategy = None
-        #self.transport_strategy = None
-        #self.customer_strategy = None
-        #self.directory_strategy = None
-        #self.station_strategy = None
 
         self.default_strategies = {}
 
@@ -140,7 +128,7 @@ class SimulatorAgent(Agent):
                 config.num_transport,
                 config.num_customers,
                 config.num_stations,
-                config.num_vehicles,  #New vehicle
+                config.num_vehicles,
             )
         )
         self.load_scenario()
@@ -240,7 +228,7 @@ class SimulatorAgent(Agent):
             all_coroutines += future.result()
         except Exception as e:
             logger.exception("EXCEPTION creating Station agents batch {}".format(e))
-        #New vehicle
+
         try:
             future = self.submit(
                 self.async_create_agents_batch_vehicle(self.config["vehicles"])
@@ -248,7 +236,7 @@ class SimulatorAgent(Agent):
             all_coroutines += future.result()
         except Exception as e:
             logger.exception("EXCEPTION creating Vehicles agents batch {}".format(e))
-        # Bus line
+
         try:
             future = self.submit(
                 self.async_create_agents_batch_stop(self.config["stops"])
@@ -294,20 +282,13 @@ class SimulatorAgent(Agent):
             fleet_type = transport["fleet_type"]
             service = transport.get("service")
             strategy = transport.get("strategy")
-            # position = transport["position"]
             position = transport.get("position")
-
-            fuel = transport.get("fuel")
             autonomy = transport.get("autonomy")
             current_autonomy = transport.get("current_autonomy")
             speed = transport.get("speed")
-            # fleetmanager = transport["fleet"]
             optional = transport.get("optional")
-
-            # Bus line
             line = transport.get("line")
             capacity = transport.get("capacity")
-
             icon = transport.get("icon")
             delay = transport["delay"] if "delay" in transport else None
 
@@ -327,7 +308,6 @@ class SimulatorAgent(Agent):
                                                 current_autonomy=current_autonomy,
                                                 speed=speed,
                                                 optional=optional,
-                                                # fleetmanager=fleetmanager,
                                                 delayed=delayed,
                                                 capacity=capacity,
                                                 line=line
@@ -355,10 +335,8 @@ class SimulatorAgent(Agent):
 
             class_ = customer["class"]
             fleet_type = customer["fleet_type"]
-            #position = customer["position"]
             position = customer.get("position")
             speed = customer.get("speed")
-            #target = customer["destination"]
             target = customer.get("destination")
             strategy = customer.get("strategy")
             line = customer.get("line")
@@ -421,7 +399,7 @@ class SimulatorAgent(Agent):
             coros.append(agent.start())
         return coros
 
-    # Bus line
+
     async def async_create_agents_batch_stop(self, agents: list) -> List:
         coros = []
         for stop in agents:
@@ -433,14 +411,6 @@ class SimulatorAgent(Agent):
             )
             strategy = stop.get("strategy")
             icon = stop.get("icon")
-            # agent = self.create_bus_stop_agent(
-            #    stop["id"],
-            #    stop["name"],
-            #    password,
-            #    position=stop["position"],
-            #    lines=stop["lines"],
-            #    strategy=strategy,
-            # )
             position = stop.get("position")
             class_ = stop["class"]
             lines = stop["lines"]
@@ -451,7 +421,6 @@ class SimulatorAgent(Agent):
                                                 password=password,
                                                 position=position,
                                                 class_=class_,
-                                                # services=services,
                                                 lines=lines,
                                                 strategy=strategy,
                                             )
@@ -461,7 +430,7 @@ class SimulatorAgent(Agent):
             coros.append(agent.start())
         return coros
 
-    #New vehicle
+
     async def async_create_agents_batch_vehicle(self, agents: list) -> List:
         coros = []
         for transport in agents:
@@ -473,16 +442,10 @@ class SimulatorAgent(Agent):
                 else faker_factory.password()
             )
 
-            #position = transport["position"]
             position = transport.get("position")
-            # fleetmanager = transport["fleet"]
             fleet_type = transport["fleet_type"]
             speed = transport.get("speed")
-            #target = transport["destination"]
             target = transport.get("destination")
-            # fuel = transport.get("fuel")
-            # autonomy = transport.get("autonomy")
-            # current_autonomy = transport.get("current_autonomy")
             strategy = transport.get("strategy")
             icon = transport.get("icon")
             delay = transport["delay"] if "delay" in transport else None
@@ -492,18 +455,15 @@ class SimulatorAgent(Agent):
                 delayed = True
 
             agent = self.create_vehicle_agent(
-                name,
-                password,
-                position=position,
-                speed=speed,
-                fleet_type=fleet_type,
-                # fleetmanager=fleetmanager,
-                strategy=strategy,
-                # autonomy=autonomy,
-                # current_autonomy=current_autonomy,
-                delayed=delayed,
-                target=target,
-            )
+                                                name,
+                                                password,
+                                                position=position,
+                                                speed=speed,
+                                                fleet_type=fleet_type,
+                                                strategy=strategy,
+                                                delayed=delayed,
+                                                target=target,
+                                            )
             self.set_icon(agent, icon, default="transport")
 
             if delay is not None:
@@ -552,7 +512,6 @@ class SimulatorAgent(Agent):
         """
         if self.config.max_time is None:
             return False
-        #return self.time_is_out() or self.all_customers_in_destination() and self.all_vehicles_in_destination()  #New vehicle
         return self.time_is_out() or self.all_agents_stopped()
 
     def time_is_out(self):
@@ -569,9 +528,8 @@ class SimulatorAgent(Agent):
         Starts the simulation
         """
 
-        #Guardar el TimeStamp del simulador
+        #Save the simulator timestamp
         self.simulatortimestamp = str(datetime.now())
-
 
         class RunBehaviour(OneShotBehaviour):
             async def run(self):
@@ -584,8 +542,7 @@ class SimulatorAgent(Agent):
                             + list(self.agent.transport_agents.values())
                             + list(self.agent.customer_agents.values())
                             + list(self.agent.station_agents.values())
-                            + list(self.agent.vehicle_agents.values())  # New vehicle
-                            # Bus line
+                            + list(self.agent.vehicle_agents.values())
                             + list(self.agent.bus_stop_agents.values())
                         )
                         while not all([agent.is_ready() for agent in all_agents]):
@@ -611,13 +568,11 @@ class SimulatorAgent(Agent):
                             logger.debug(
                                 f"Running strategy {self.agent.default_strategies['station']} to station {station.name}"
                             )
-                        # New vehicle
                         for vehicle in self.agent.vehicle_agents.values():
                             vehicle.run_strategy()
                             logger.debug(
                                 f"Running strategy {self.agent.default_strategies['vehicle']} to vehicle {vehicle.name}"
                             )
-                        # Bus line
                         for stop in self.agent.bus_stop_agents.values():
                             stop.run_strategy()
                             logger.debug(
@@ -658,10 +613,6 @@ class SimulatorAgent(Agent):
 
         self.stop_agents()
 
-        #self.generate_events()
-
-        #Añadir la funcion de las metricas de la clase cargada
-
         self.generate_all_events()
 
         self.generate_metrics()
@@ -677,15 +628,10 @@ class SimulatorAgent(Agent):
         #Create a instance
         statistics = statistics()
 
-        logger.debug("DEBUGED SimulatorAgent: {} - {}".format(statistics, type(statistics)))
-
         the_log = self.events_log
-
-        logger.debug("DEBUGED SimulatorAgent: {} - {}".format(the_log, type(the_log)))
 
         statistics.run(events_log=the_log)
 
-    # New statistics
     def generate_all_events(self):
 
         if len(self.customer_agents) > 0:
@@ -760,91 +706,6 @@ class SimulatorAgent(Agent):
         my_log_1 = self.events_log.all_events()
         self.save_log_to_file(my_log_1, "simfleet_log_all.json")
 
-    # New statistics
-    # Alternative - Erase
-    def generate_events(self):
-
-        if len(self.customer_agents) > 0:
-
-            #if "Customer" not in self.events_log:
-            #    self.events_log["Customer"] = []
-
-            if not hasattr(self, 'events_log') or self.events_log is None:
-                self.events_log = Log()
-
-            for customer in self.customer_agents.values():
-                # agent_name = customer.get_id()
-                # if agent_name not in self.events_log:
-                #    self.events_log[agent_name] = []
-
-                logger.warning(
-                    "DEPURACION 4a customertaxi: {}: {}".format(customer.name, customer.events_store))
-
-                logger.warning(
-                    "DEPURACION 4b customertaxi: {}: {}".format(customer.name, customer.events_store.get_agent_name()))
-
-                event_storen = customer.events_store
-                #self.events_log["Customer"].extend(event_storen.all_events())
-
-                partial_log = event_storen.generate_partial_log()
-
-                self.events_log.add_events(partial_log)
-
-                #Error - Testing this solution
-                #if self.events_log:
-                #    self.events_log = self.events_log + partial_log
-                #else:
-                #    self.events_log = partial_log
-
-                # event_storen = customer.get_events_store()
-
-                # self.events_log = self.build_log([event_storen])
-
-                # event_storen.all_events()
-
-        if len(self.transport_agents) > 0:
-
-            #if "Transport" not in self.events_log:
-            #    self.events_log["Transport"] = []
-
-            if not hasattr(self, 'events_log') or self.events_log is None:
-                self.events_log = Log()
-
-            for transport in self.transport_agents.values():
-                event_storen = transport.events_store
-                #self.events_log["Transport"].extend(event_storen.all_events())
-
-                partial_log = event_storen.generate_partial_log()
-
-                self.events_log.add_events(partial_log)
-
-                # Error - Testing this solution
-                #if self.events_log:
-                #    self.events_log = self.events_log + partial_log
-                #else:
-                #    self.events_log = partial_log
-
-        #Ordenar por timestamp - Dentro de propio Log
-        # Añadir unos cuantos filtros
-        # Filtrar por clase
-
-        # Save the log
-        self.events_log.sort_by_timestamp(reverse=True)
-        my_log_1 = self.events_log.all_events()
-        self.save_log_to_file(my_log_1, "simfleet_log_all.json")
-
-        filtered_log_electrictaxi = (
-            self.events_log
-            .filter(lambda event: event.class_type in ["ElectricTaxiAgent"])
-            .filter(lambda event: event.event_type in ["travel_to_destination", "trip_completion"])
-            .filter(lambda event: event.details.get("distance", 0) > 2000)
-        )
-        my_log_2 = filtered_log_electrictaxi.all_events()
-        #filtered_log_electrictaxi.sort_by_timestamp(reverse=True)
-        self.save_log_to_file(my_log_2, "simfleet_log_electrictaxi.json")
-
-
-
 
     # New statistics
     # Alternative - Erase
@@ -871,7 +732,6 @@ class SimulatorAgent(Agent):
             self.customer_df,
             self.manager_df,
             self.station_df,
-            # self.bus_stop_df
         ) = self.get_stats_dataframes()
 
         columns = []
@@ -1605,9 +1465,6 @@ class SimulatorAgent(Agent):
                 *[
                     (
                         p.name,
-                        # Bus line
-                        p.get_waiting_time_bus(),
-                        p.in_transport_time_bus(),
                         p.get_waiting_time(),
                         p.total_time(),
                         status_to_str(p.status),

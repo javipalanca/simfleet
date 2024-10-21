@@ -1,11 +1,9 @@
 import json
-import time
 from loguru import logger
 from asyncio import CancelledError
 
 from simfleet.common.extensions.customers.models.taxicustomer import TaxiCustomerStrategyBehaviour
 from simfleet.communications.protocol import (
-    QUERY_PROTOCOL,
     INFORM_PERFORMATIVE,
     CANCEL_PERFORMATIVE,
     PROPOSE_PERFORMATIVE
@@ -13,6 +11,7 @@ from simfleet.communications.protocol import (
 from simfleet.utils.utils_old import (
     CUSTOMER_WAITING,
     CUSTOMER_ASSIGNED,
+    TRANSPORT_WAITING,
     TRANSPORT_MOVING_TO_CUSTOMER,
     TRANSPORT_IN_CUSTOMER_PLACE,
     CUSTOMER_IN_TRANSPORT,
@@ -46,6 +45,10 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                 The customer will accept the first valid transport proposal and update its status
                 based on the incoming messages from transport agents.
         """
+
+        if self.agent.status is None:
+            self.agent.status = CUSTOMER_WAITING
+            return
 
         # If the customer does not have a fleet manager assigned, get the list of fleet managers.
         if self.agent.fleetmanagers is None:
@@ -150,13 +153,6 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                             # Event 7: Travel to destination
                             self.agent.events_store.emit(
                                 event_type="trip_completion",
-                                details={}
-                            )
-
-                            # New statistics
-                            # End time event - end_time
-                            self.agent.events_store.emit(
-                                event_type="end_time_event",
                                 details={}
                             )
 

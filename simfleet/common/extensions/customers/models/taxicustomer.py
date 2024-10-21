@@ -5,18 +5,13 @@ from spade.message import Message
 from spade.template import Template
 
 from simfleet.utils.helpers import new_random_position
-from simfleet.utils.utils_old import (
-    CUSTOMER_WAITING,
-)
 
 from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
-    TRAVEL_PROTOCOL,
     REQUEST_PERFORMATIVE,
     ACCEPT_PERFORMATIVE,
     REFUSE_PERFORMATIVE,
     INFORM_PERFORMATIVE,
-    QUERY_PROTOCOL,
 )
 
 from simfleet.common.agents.customer import CustomerAgent
@@ -36,8 +31,7 @@ class TaxiCustomerAgent(CustomerAgent):
     def __init__(self, agentjid, password):
         CustomerAgent.__init__(self, agentjid, password)
 
-        self.status = CUSTOMER_WAITING           #customer.py       #Check for frontend
-        self.fleetmanagers = None                #customer.py
+        self.fleetmanagers = None
 
 
     def set_fleetmanager(self, fleetmanagers):

@@ -7,9 +7,7 @@ from spade.template import Template
 from spade.message import Message
 from loguru import logger
 
-from simfleet.utils.utils_old import (
-    StrategyBehaviour,
-)
+from spade.behaviour import State
 
 from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
@@ -106,7 +104,7 @@ class BusCustomerAgent(PedestrianAgent):
 
 
 
-class BusCustomerStrategyBehaviour(StrategyBehaviour):
+class BusCustomerStrategyBehaviour(State):
     """
     Strategy behavior for a bus customer. This class manages the logic for customer requests,
     accepting or refusing transport offers, and interacting with stops.

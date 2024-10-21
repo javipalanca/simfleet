@@ -4,7 +4,7 @@ import time
 
 from loguru import logger
 
-from spade.behaviour import State, FSMBehaviour
+from simfleet.utils.abstractstrategies import FSMStrategyBehaviour
 
 from simfleet.common.extensions.customers.models.buscustomer import BusCustomerStrategyBehaviour
 
@@ -35,7 +35,7 @@ from simfleet.utils.helpers import (
 #                                                              #
 ################################################################
 
-class BusCustomerWaitingToMoveState(BusCustomerStrategyBehaviour, State):
+class BusCustomerWaitingToMoveState(BusCustomerStrategyBehaviour):
     """
         Represents the state where the customer is waiting to move to the bus stop.
     """
@@ -85,7 +85,7 @@ class BusCustomerWaitingToMoveState(BusCustomerStrategyBehaviour, State):
 
 
 
-class BusCustomerRegisterToStopState(BusCustomerStrategyBehaviour, State):
+class BusCustomerRegisterToStopState(BusCustomerStrategyBehaviour):
     """
         Represents the state where the customer registers at the bus stop.
     """
@@ -121,7 +121,7 @@ class BusCustomerRegisterToStopState(BusCustomerStrategyBehaviour, State):
             self.set_next_state(CUSTOMER_IN_STOP)
             return
 
-class BusCustomerMovingToDestState(BusCustomerStrategyBehaviour, State):
+class BusCustomerMovingToDestState(BusCustomerStrategyBehaviour):
     """
         Represents the state where the customer moves towards the destination.
     """
@@ -165,7 +165,7 @@ class BusCustomerMovingToDestState(BusCustomerStrategyBehaviour, State):
             self.set_next_state(CUSTOMER_WAITING_TO_MOVE)
             return
 
-class BusCustomerWaitingState(BusCustomerStrategyBehaviour, State):
+class BusCustomerWaitingState(BusCustomerStrategyBehaviour):
     """
         Represents the state where the customer is waiting for a transport after registering at the stop.
     """
@@ -199,7 +199,7 @@ class BusCustomerWaitingState(BusCustomerStrategyBehaviour, State):
             logger.critical("Agent {}, Exception {} in CustomerWaitingState".format(self.agent.name, e))
 
 
-class BusCustomerWaitingForApprovalState(BusCustomerStrategyBehaviour, State):
+class BusCustomerWaitingForApprovalState(BusCustomerStrategyBehaviour):
     """
         Represents the state where the customer is waiting for approval to board the transport.
 
@@ -260,7 +260,7 @@ class BusCustomerWaitingForApprovalState(BusCustomerStrategyBehaviour, State):
             logger.critical("Agent {}, Exception {} in CustomerWaitingForApprovalState".format(self.agent.name, e))
 
 
-class BusCustomerInTransportState(BusCustomerStrategyBehaviour, State):
+class BusCustomerInTransportState(BusCustomerStrategyBehaviour):
     """
         Represents the state where the customer is in the transport.
 
@@ -290,7 +290,7 @@ class BusCustomerInTransportState(BusCustomerStrategyBehaviour, State):
             logger.critical("Agent {}, Exception {} in CustomerInTransportState".format(self.agent.name, e))
 
 
-class BusCustomerInDestState(BusCustomerStrategyBehaviour, State):
+class BusCustomerInDestState(BusCustomerStrategyBehaviour):
     """
         Represents the state where the customer has arrived at the destination.
 
@@ -338,7 +338,7 @@ class BusCustomerInDestState(BusCustomerStrategyBehaviour, State):
             logger.critical("Agent {}, Exception {} in CustomerInDestState".format(self.agent.name, e))
 
 
-class FSMBusCustomerStrategyBehaviour(FSMBehaviour):
+class FSMBusCustomerStrategyBehaviour(FSMStrategyBehaviour):
     """
         The finite state machine that orchestrates the different states for the bus customer strategy.
     """

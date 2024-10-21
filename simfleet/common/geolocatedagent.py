@@ -8,80 +8,112 @@ from spade.behaviour import OneShotBehaviour
 
 from simfleet.common.simfleetagent import SimfleetAgent
 
-from simfleet.utils.helpers import new_random_position, distance_in_meters#, random_position
-from simfleet.communications.protocol import COORDINATION_PROTOCOL, INFORM_PERFORMATIVE, QUERY_PROTOCOL, REQUEST_PERFORMATIVE, CANCEL_PERFORMATIVE
+from simfleet.utils.helpers import new_random_position, distance_in_meters
+from simfleet.communications.protocol import INFORM_PERFORMATIVE, QUERY_PROTOCOL, REQUEST_PERFORMATIVE, CANCEL_PERFORMATIVE
 
 class GeoLocatedAgent(SimfleetAgent):
+    """
+        GeoLocatedAgent is a base class for agents that need to handle geographic location. It inherits from
+        SimfleetAgent and adds methods for setting, getting, and managing the position of an agent on the map.
+
+        Attributes:
+            route_host (str): The host of the route service used for requesting paths.
+            boundingbox (tuple): The bounding box coordinates that define the area where the agent can be placed.
+            icon (str): The visual representation or icon of the agent.
+    """
     def __init__(self, agentjid, password):
         super().__init__(agentjid, password)
-        self.route_host = None                                          #transport.py
-        self.set("current_pos", None)                        #transport.py
-        self.boundingbox = None                                         #New boundingbox
+        self.route_host = None
+        self.set("current_pos", None)
+        self.boundingbox = None
 
-        self.icon = None                                                #transport.py
+        self.icon = None
 
-    #Used TransportAgent - CustomerAgent - StationAgent - FleetMaganerAgent (different)
+
     def set_icon(self, icon):
+        """
+            Sets the icon for the agent.
+
+            Args:
+                icon (str): The icon representing the agent.
+        """
         self.icon = icon
 
-    #Used TransportAgent - CustomerAgent
+
     def set_route_host(self, route_host):
         """
-        Sets the route host server address
-        Args:
-            route_host (str): the route host server address
+        Sets the route host server address for requesting paths.
 
+        Args:
+            route_host (str): The route host server address.
         """
         self.route_host = route_host
 
-    #Used TransportAgent (hija) - CustomerAgent
+
     def set_position(self, coords=None):
         """
-        Sets the position of the Agent. If no position is provided it is located in a random position.
+        Sets the position of the agent. If no position is provided, the agent's position is randomized within its bounding box.
 
         Args:
-            coords (list): a list coordinates (longitude and latitude)
+            coords (list): A list of coordinates [longitude, latitude].
         """
-        #logger.debug("1)Agent {} position is {}".format(self.agent_id, coords))
 
         if coords:
-            #self.current_pos = coords      #Non-parallel variable - Used customer.py
             self.set("current_pos", coords)
         else:
-            #self.current_pos = random_position()       #Non-parallel variable - Used customer.py
-            #self.set("current_pos", random_position())
             self.set("current_pos", new_random_position(self.boundingbox, self.route_host))
         logger.debug(
             "Agent {} position is {}".format(self.agent_id, self.get("current_pos"))
         )
 
-    #Used TransportAgent
     def set_initial_position(self, coords):
-        #self.set("current_pos", coords)
+        """
+            Sets the initial position of the agent. If no coordinates are provided, a random position is generated.
+
+            Args:
+                coords (list): A list of coordinates [longitude, latitude].
+        """
         if coords:
-            #self.current_pos = coords      #Non-parallel variable - Used customer.py
             self.set("current_pos", coords)
         else:
-            #self.current_pos = random_position()       #Non-parallel variable - Used customer.py
             self.set("current_pos", new_random_position(self.boundingbox, self.route_host))
 
-    #Used TransportAgent - CustomerAgent - StationAgent
     def get_position(self):
         """
-        Returns the current position of the Agent.
+        Retrieves the current position of the agent.
 
         Returns:
-            list: the coordinates of the current position of the Agent (lon, lat)
+            list: The current coordinates of the agent (longitude, latitude).
         """
         return self.get("current_pos")
 
     def near_agent(self, coords_1, coords_2):
-        if geopy.distance.geodesic(coords_1, coords_2).km > 0.1:  #Añadir rango 100 metros min
+        """
+            Determines if two agents are near each other, within 100 meters.
+
+            Args:
+                coords_1 (list): The coordinates of the first agent.
+                coords_2 (list): The coordinates of the second agent.
+
+            Returns:
+                bool: True if the agents are near each other, False otherwise.
+        """
+        if geopy.distance.geodesic(coords_1, coords_2).km > 0.1:
             return False
         return True
 
-    #New funtion - Nearst agent - Pedestrian, ElectricTaxi, Delivery - A utils
+
     def nearst_agent(self, agent_list, position):
+        """
+            Finds the closest agent from a list of agents to the specified position.
+
+            Args:
+                agent_list (dict): A dictionary of agents with their positions.
+                position (list): The position to compare against.
+
+            Returns:
+                tuple: The closest agent's JID and position.
+        """
 
         agent_positions = []
         for key in agent_list.keys():
@@ -90,7 +122,6 @@ class GeoLocatedAgent(SimfleetAgent):
 
         closest_agent = min(
             agent_positions,
-            #key=lambda x: distance_in_meters(x[1], self.get_position()),   #Original
             key=lambda x: distance_in_meters(x[1], position),
         )
         logger.debug("Closest agent {}".format(closest_agent))
@@ -104,11 +135,26 @@ class GeoLocatedAgent(SimfleetAgent):
         )
         return result
 
-    # New boundingbox
     def set_boundingbox(self, bbox):
+        """
+            Sets the bounding box within which the agent operates.
+
+            Args:
+                bbox (tuple): A bounding box defining the area of operations for the agent.
+        """
         self.boundingbox = bbox
 
     async def get_list_agent_position(self, agent_type, agent_list):
+        """
+            Requests the list of agents of a given type from the directory agent and waits for the response.
+
+            Args:
+                agent_type (str): The type of agent being requested (e.g., 'bus stop', 'station').
+                agent_list (dict): The current list of agents.
+
+            Returns:
+                dict: A list of agent positions, updated after the request.
+        """
 
         # NEW LIST POSITION
         template1 = Template()
@@ -122,23 +168,19 @@ class GeoLocatedAgent(SimfleetAgent):
         instance = GetListOfAgentPosition(agent_type, agent_list)
         self.add_behaviour(instance, template1 | template2)
 
-        await instance.join()  # Wait for the behaviour to complete
+        # Wait for the behaviour to complete
+        await instance.join()
 
         return instance.agent_list
-    #def to_json(self):
-    #    """
-    #    Returns a JSON with the relevant data of this type of agent
-    #    """
-    #    data = super().to_json()
-    #    data.update({
-    #        "position": [
-    #            float(coord) for coord in self.get("current_pos")
-    #        ],
-    #        "icon": self.icon
-    #    })
-    #    return data
 
 class GetListOfAgentPosition(OneShotBehaviour):
+    """
+        This class handles the behavior of requesting a list of agent positions from the directory agent.
+
+        Attributes:
+            agent_type (str): The type of agent being requested.
+            agent_list (dict): The list of agents.
+    """
     def __init__(self, agent_type, agent_list):
         super().__init__()
 
@@ -148,11 +190,10 @@ class GetListOfAgentPosition(OneShotBehaviour):
 
     async def send_get_agents(self, content=None):
         """
-        Sends an ``spade.message.Message`` to the DirectoryAgent to request the list of stops in the system.
-        It uses the QUERY_PROTOCOL and the REQUEST_PERFORMATIVE.
-        If no content is set a default content with the type_service that needs
-        Args:
-            content (dict): Optional content dictionary
+            Sends a message to the directory agent to request a list of agents of a specific type.
+
+            Args:
+                content (dict): Optional content to be included in the request message.
         """
         if content is None or len(content) == 0:
             content = self.agent_type
@@ -164,7 +205,6 @@ class GetListOfAgentPosition(OneShotBehaviour):
 
         msg = Message()
         msg.to = str(self.agent.directory_id)
-        #msg.to = self.agent.directory_id
         msg.set_metadata("protocol", QUERY_PROTOCOL)
         msg.set_metadata("performative", REQUEST_PERFORMATIVE)
         msg.body = content
@@ -178,11 +218,13 @@ class GetListOfAgentPosition(OneShotBehaviour):
 
 
     async def run(self):
-
+        """
+            Executes the behavior to request and receive the list of agent positions.
+        """
         if self.agent_list is None:
             await self.send_get_agents(self.agent_type)
 
-            msg = await self.receive(timeout=300)  # Mensaje del director con las paradas
+            msg = await self.receive(timeout=300)
             if msg:
                 protocol = msg.get_metadata("protocol")
                 if protocol == QUERY_PROTOCOL:
@@ -194,7 +236,6 @@ class GetListOfAgentPosition(OneShotBehaviour):
                                 self.agent.name, self.agent_list
                             )
                         )
-                        #self.setup_stops()
                     elif performative == CANCEL_PERFORMATIVE:
                         logger.warning(
                             "{} got cancellation of request for {} information".format(

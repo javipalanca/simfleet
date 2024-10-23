@@ -143,11 +143,15 @@ class SimulatorAgent(Agent):
         self.web.add_get("/run", self.run_controller, None)
         self.web.add_get("/stop", self.stop_agents_controller, None)
         self.web.add_get("/clean", self.clean_controller, None)
+        #self.web.add_get(
+        #    "/download/excel/", self.download_stats_excel_controller, None, raw=True
+        #)
+        #self.web.add_get(
+        #    "/download/json/", self.download_stats_json_controller, None, raw=True
+        #)
+
         self.web.add_get(
-            "/download/excel/", self.download_stats_excel_controller, None, raw=True
-        )
-        self.web.add_get(
-            "/download/json/", self.download_stats_json_controller, None, raw=True
+            "/download/json/", self.download_events_json_controller, None, raw=True
         )
 
         self.web.app.router.add_static("/assets", str(self.template_path / "assets"))
@@ -613,15 +617,17 @@ class SimulatorAgent(Agent):
 
         self.stop_agents()
 
-        self.generate_all_events()
+        #self.generate_all_events()
 
         self.generate_metrics()
 
-        self.print_stats()
+        #self.print_stats()
 
         return super().stop()
 
     def generate_metrics(self):
+
+        self.generate_all_events()
 
         statistics = self.metrics_class['mobility_metrics']
 
@@ -634,10 +640,12 @@ class SimulatorAgent(Agent):
 
     def generate_all_events(self):
 
+        self.events_log = Log()
+
         if len(self.customer_agents) > 0:
 
-            if not hasattr(self, 'events_log') or self.events_log is None:
-                self.events_log = Log()
+            #if not hasattr(self, 'events_log') or self.events_log is None:
+            #    self.events_log = Log()
 
             for customer in self.customer_agents.values():
 
@@ -649,8 +657,8 @@ class SimulatorAgent(Agent):
 
         if len(self.transport_agents) > 0:
 
-            if not hasattr(self, 'events_log') or self.events_log is None:
-                self.events_log = Log()
+            #if not hasattr(self, 'events_log') or self.events_log is None:
+            #    self.events_log = Log()
 
             for transport in self.transport_agents.values():
 
@@ -662,8 +670,8 @@ class SimulatorAgent(Agent):
 
         if len(self.station_agents) > 0:
 
-            if not hasattr(self, 'events_log') or self.events_log is None:
-                self.events_log = Log()
+            #if not hasattr(self, 'events_log') or self.events_log is None:
+            #    self.events_log = Log()
 
             for station in self.station_agents.values():
 
@@ -688,8 +696,8 @@ class SimulatorAgent(Agent):
 
         if len(self.manager_agents) > 0:
 
-            if not hasattr(self, 'events_log') or self.events_log is None:
-                self.events_log = Log()
+            #if not hasattr(self, 'events_log') or self.events_log is None:
+            #    self.events_log = Log()
 
             for manager in self.manager_agents.values():
 
@@ -699,26 +707,101 @@ class SimulatorAgent(Agent):
 
                 self.events_log.add_events(partial_log)
 
-        self.events_log.sort_by_timestamp(reverse=False)
-
         self.events_log.adjust_timestamps(simulator_timestamp=self.simulatortimestamp)
 
-        my_log_1 = self.events_log.all_events()
-        self.save_log_to_file(my_log_1, "simfleet_log_all.json")
+        self.events_log.sort_by_timestamp(reverse=False)
+
+        #my_log_1 = self.events_log.all_events()
+        #self.save_log_to_file(my_log_1, "simfleet_log_all.json")
+
+
+    # def generate_all_events(self):
+    #
+    #     if len(self.customer_agents) > 0:
+    #
+    #         if not hasattr(self, 'events_log') or self.events_log is None:
+    #             self.events_log = Log()
+    #
+    #         for customer in self.customer_agents.values():
+    #
+    #             event_storen = customer.events_store
+    #
+    #             partial_log = event_storen.generate_partial_log()
+    #
+    #             self.events_log.add_events(partial_log)
+    #
+    #     if len(self.transport_agents) > 0:
+    #
+    #         if not hasattr(self, 'events_log') or self.events_log is None:
+    #             self.events_log = Log()
+    #
+    #         for transport in self.transport_agents.values():
+    #
+    #             event_storen = transport.events_store
+    #
+    #             partial_log = event_storen.generate_partial_log()
+    #
+    #             self.events_log.add_events(partial_log)
+    #
+    #     if len(self.station_agents) > 0:
+    #
+    #         if not hasattr(self, 'events_log') or self.events_log is None:
+    #             self.events_log = Log()
+    #
+    #         for station in self.station_agents.values():
+    #
+    #             event_storen = station.events_store
+    #
+    #             partial_log = event_storen.generate_partial_log()
+    #
+    #             self.events_log.add_events(partial_log)
+    #
+    #     #if len(self.bus_stop_agents) > 0:
+    #
+    #     #    if not hasattr(self, 'events_log') or self.events_log is None:
+    #     #        self.events_log = Log()
+    #
+    #     #    for bus_stop in self.bus_stop_agents.values():
+    #
+    #     #        event_storen = bus_stop.events_store
+    #
+    #     #        partial_log = event_storen.generate_partial_log()
+    #
+    #     #        self.events_log.add_events(partial_log)
+    #
+    #     if len(self.manager_agents) > 0:
+    #
+    #         if not hasattr(self, 'events_log') or self.events_log is None:
+    #             self.events_log = Log()
+    #
+    #         for manager in self.manager_agents.values():
+    #
+    #             event_storen = manager.events_store
+    #
+    #             partial_log = event_storen.generate_partial_log()
+    #
+    #             self.events_log.add_events(partial_log)
+    #
+    #     self.events_log.sort_by_timestamp(reverse=False)
+    #
+    #     self.events_log.adjust_timestamps(simulator_timestamp=self.simulatortimestamp)
+    #
+    #     #my_log_1 = self.events_log.all_events()
+    #     #self.save_log_to_file(my_log_1, "simfleet_log_all.json")
 
 
     # New statistics
     # Alternative - Erase
-    def save_log_to_file(self, log: dict, file_path: str) -> None:
-        """
-        Save the log to a JSON file.
-
-        Args:
-            log (dict): The log dictionary to save
-            file_path (str): The file path where the log will be saved
-        """
-        with open(file_path, 'w') as f:
-            json.dump(log, f, indent=4)
+    # def save_log_to_file(self, log: dict, file_path: str) -> None:
+    #     """
+    #     Save the log to a JSON file.
+    #
+    #     Args:
+    #         log (dict): The log dictionary to save
+    #         file_path (str): The file path where the log will be saved
+    #     """
+    #     with open(file_path, 'w') as f:
+    #         json.dump(log, f, indent=4)
 
 
     def collect_stats(self):
@@ -800,7 +883,22 @@ class SimulatorAgent(Agent):
             )
         )
 
-    def write_file(self, filename, fileformat="json"):
+    # def write_file(self, filename, fileformat="json"):
+    #     """
+    #     Writes the dataframes collected by ``collect_stats`` in JSON or Excel format.
+    #
+    #     Args:
+    #         filename (str): name of the output file to be written.
+    #         fileformat (str): format of the output file. Choices: json or excel
+    #     """
+    #     if self.df_avg is None:
+    #         self.collect_stats()
+    #     if fileformat == "json":
+    #         self.write_json(filename)
+    #     elif fileformat == "excel":
+    #         self.write_excel(filename)
+
+    def write_file(self, filename):
         """
         Writes the dataframes collected by ``collect_stats`` in JSON or Excel format.
 
@@ -808,49 +906,60 @@ class SimulatorAgent(Agent):
             filename (str): name of the output file to be written.
             fileformat (str): format of the output file. Choices: json or excel
         """
-        if self.df_avg is None:
-            self.collect_stats()
-        if fileformat == "json":
-            self.write_json(filename)
-        elif fileformat == "excel":
-            self.write_excel(filename)
+        # if self.df_avg is None:
+        #     self.collect_stats()
+        # if fileformat == "json":
+        #     self.write_json(filename)
+        # elif fileformat == "excel":
+        #     self.write_excel(filename)
 
-    def write_json(self, filename):
-        """
-        Writes the collected data by ``collect_stats`` in a json file.
+        #if self.events_log is None:
+        #    self.generate_all_events()
 
-        Args:
-            filename (str): name of the json file.
-        """
-        data = {
-            "simulation": json.loads(self.df_avg.to_json(orient="index"))["0"],
-            "customers": json.loads(self.customer_df.to_json(orient="index")),
-            "transports": json.loads(self.transport_df.to_json(orient="index")),
-            "managers": json.loads(self.manager_df.to_json(orient="index")),
-            "stations": json.loads(self.station_df.to_json(orient="index")),
-            # Bus line
-            "stops": json.loads(self.bus_stop_df.to_json(orient="index"))
-        }
+        self.generate_all_events()
+        log_events = self.events_log.all_events()
 
         with open(filename, "w") as f:
             f.seek(0)
-            json.dump(data, f, indent=4)
+            json.dump(log_events, f, indent=4)
 
-    def write_excel(self, filename):
-        """
-        Writes the collected data by ``collect_stats`` in an excel file.
 
-        Args:
-            filename (str): name of the excel file.
-        """
-        writer = pd.ExcelWriter(filename)
-        self.df_avg.to_excel(writer, "Simulation")
-        self.manager_df.to_excel(writer, "FleetManagers")
-        self.customer_df.to_excel(writer, "Customers")
-        self.transport_df.to_excel(writer, "Transports")
-        # Bus line
-        self.bus_stop_df.to_excel(writer, "Stops")
-        writer.save()
+    # def write_json(self, filename):
+    #     """
+    #     Writes the collected data by ``collect_stats`` in a json file.
+    #
+    #     Args:
+    #         filename (str): name of the json file.
+    #     """
+    #     data = {
+    #         "simulation": json.loads(self.df_avg.to_json(orient="index"))["0"],
+    #         "customers": json.loads(self.customer_df.to_json(orient="index")),
+    #         "transports": json.loads(self.transport_df.to_json(orient="index")),
+    #         "managers": json.loads(self.manager_df.to_json(orient="index")),
+    #         "stations": json.loads(self.station_df.to_json(orient="index")),
+    #         # Bus line
+    #         "stops": json.loads(self.bus_stop_df.to_json(orient="index"))
+    #     }
+    #
+    #     with open(filename, "w") as f:
+    #         f.seek(0)
+    #         json.dump(data, f, indent=4)
+
+    # def write_excel(self, filename):
+    #     """
+    #     Writes the collected data by ``collect_stats`` in an excel file.
+    #
+    #     Args:
+    #         filename (str): name of the excel file.
+    #     """
+    #     writer = pd.ExcelWriter(filename)
+    #     self.df_avg.to_excel(writer, "Simulation")
+    #     self.manager_df.to_excel(writer, "FleetManagers")
+    #     self.customer_df.to_excel(writer, "Customers")
+    #     self.transport_df.to_excel(writer, "Transports")
+    #     # Bus line
+    #     self.bus_stop_df.to_excel(writer, "Stops")
+    #     writer.save()
 
     # ////////////////////////////////////////////////////////////
 
@@ -1262,75 +1371,116 @@ class SimulatorAgent(Agent):
         await asyncio.gather(*coroutines)
         return {"status": "done"}
 
-    async def download_stats_excel_controller(self, request):
+    # async def download_stats_excel_controller(self, request):
+    #     """
+    #     Web controller that returns an Excel file with the simulation results.
+    #
+    #     Returns:
+    #         Response: a Response of type "attachment" with the file content.
+    #     """
+    #     headers = {"Content-Disposition": "Attachment; filename=simulation.xlsx"}
+    #
+    #     output = io.BytesIO()
+    #
+    #     # Use a temp filename to keep pandas happy.
+    #     writer = pd.ExcelWriter(output, engine="xlsxwriter")
+    #
+    #     # Write the data frame to the StringIO object.
+    #     (
+    #         df_avg,
+    #         transport_df,
+    #         customer_df,
+    #         manager_df,
+    #         stations_df,
+    #         # Bus line
+    #         stops_df
+    #     ) = self.get_stats_dataframes()
+    #     df_avg.to_excel(writer, sheet_name="Simulation")
+    #     customer_df.to_excel(writer, sheet_name="Customers")
+    #     transport_df.to_excel(writer, sheet_name="Transports")
+    #     manager_df.to_excel(writer, sheet_name="FleetManagers")
+    #     stations_df.to_excel(writer, sheet_name="Stations")
+    #     # Bus line
+    #     stops_df.to_excel(writer, sheet_name="Stops")
+    #     writer.save()
+    #     xlsx_data = output.getvalue()
+    #
+    #     return aioweb.Response(body=xlsx_data, headers=headers)
+
+    # async def download_stats_json_controller(self, request):
+    #     """
+    #     Web controller that returns a JSON file with the simulation results.
+    #
+    #     Returns:
+    #         Response: a Response of type "attachment" with the file content.
+    #     """
+    #     headers = {"Content-Disposition": "Attachment; filename=simulation.json"}
+    #
+    #     output = io.StringIO()
+    #
+    #     # Write the data frame to the StringIO object.
+    #     (
+    #         df_avg,
+    #         transport_df,
+    #         customer_df,
+    #         manager_df,
+    #         stations_df,
+    #         # Bus line
+    #         stops_df
+    #     ) = self.get_stats_dataframes()
+    #
+    #     data = {
+    #         "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
+    #         "customers": json.loads(customer_df.to_json(orient="index")),
+    #         "transports": json.loads(transport_df.to_json(orient="index")),
+    #         "fleetmanagers": json.loads(manager_df.to_json(orient="index")),
+    #         "stations": json.loads(stations_df.to_json(orient="index")),
+    #         # Bus line
+    #         "stops": json.loads(stops_df.to_json(orient="index")),
+    #     }
+    #
+    #     json.dump(data, output, indent=4)
+    #
+    #     return aioweb.Response(body=output.getvalue(), headers=headers)
+
+    async def download_events_json_controller(self, request):
         """
-        Web controller that returns an Excel file with the simulation results.
+        Web controller that returns a JSON file with the simulation events.
 
         Returns:
             Response: a Response of type "attachment" with the file content.
         """
-        headers = {"Content-Disposition": "Attachment; filename=simulation.xlsx"}
-
-        output = io.BytesIO()
-
-        # Use a temp filename to keep pandas happy.
-        writer = pd.ExcelWriter(output, engine="xlsxwriter")
-
-        # Write the data frame to the StringIO object.
-        (
-            df_avg,
-            transport_df,
-            customer_df,
-            manager_df,
-            stations_df,
-            # Bus line
-            stops_df
-        ) = self.get_stats_dataframes()
-        df_avg.to_excel(writer, sheet_name="Simulation")
-        customer_df.to_excel(writer, sheet_name="Customers")
-        transport_df.to_excel(writer, sheet_name="Transports")
-        manager_df.to_excel(writer, sheet_name="FleetManagers")
-        stations_df.to_excel(writer, sheet_name="Stations")
-        # Bus line
-        stops_df.to_excel(writer, sheet_name="Stops")
-        writer.save()
-        xlsx_data = output.getvalue()
-
-        return aioweb.Response(body=xlsx_data, headers=headers)
-
-    async def download_stats_json_controller(self, request):
-        """
-        Web controller that returns a JSON file with the simulation results.
-
-        Returns:
-            Response: a Response of type "attachment" with the file content.
-        """
-        headers = {"Content-Disposition": "Attachment; filename=simulation.json"}
+        headers = {"Content-Disposition": "Attachment; filename=events_simulation.json"}
 
         output = io.StringIO()
 
+        self.generate_all_events()
+
         # Write the data frame to the StringIO object.
-        (
-            df_avg,
-            transport_df,
-            customer_df,
-            manager_df,
-            stations_df,
-            # Bus line
-            stops_df
-        ) = self.get_stats_dataframes()
+        # (
+        #     df_avg,
+        #     transport_df,
+        #     customer_df,
+        #     manager_df,
+        #     stations_df,
+        #     # Bus line
+        #     stops_df
+        # ) = self.get_stats_dataframes()
+        #
+        # data = {
+        #     "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
+        #     "customers": json.loads(customer_df.to_json(orient="index")),
+        #     "transports": json.loads(transport_df.to_json(orient="index")),
+        #     "fleetmanagers": json.loads(manager_df.to_json(orient="index")),
+        #     "stations": json.loads(stations_df.to_json(orient="index")),
+        #     # Bus line
+        #     "stops": json.loads(stops_df.to_json(orient="index")),
+        # }
 
-        data = {
-            "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
-            "customers": json.loads(customer_df.to_json(orient="index")),
-            "transports": json.loads(transport_df.to_json(orient="index")),
-            "fleetmanagers": json.loads(manager_df.to_json(orient="index")),
-            "stations": json.loads(stations_df.to_json(orient="index")),
-            # Bus line
-            "stops": json.loads(stops_df.to_json(orient="index")),
-        }
+        log_events = self.events_log.all_events()
 
-        json.dump(data, output, indent=4)
+        #json.dump(data, output, indent=4)
+        json.dump(log_events, output, indent=4)
 
         return aioweb.Response(body=output.getvalue(), headers=headers)
 

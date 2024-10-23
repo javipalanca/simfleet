@@ -121,9 +121,25 @@ class Log:
         """Adds events from another log to this log."""
         self.events.extend(other_log.events)
 
+    # def adjust_timestamps(self, simulator_timestamp: str) -> None:
+    #     """
+    #     Adjusts the timestamps of all events to be relative to the provided simulator timestamp.
+    #
+    #     Args:
+    #         simulator_timestamp (str): The timestamp of the simulator in ISO format.
+    #     """
+    #     # Convert the simulator timestamp to a datetime object
+    #     simulator_time = datetime.fromisoformat(simulator_timestamp)
+    #
+    #     # Update each event's timestamp to be the difference in seconds from the simulator timestamp
+    #     for event in self.events:
+    #         delta = event.timestamp - simulator_time
+    #         event.timestamp = delta.total_seconds()
+
     def adjust_timestamps(self, simulator_timestamp: str) -> None:
         """
         Adjusts the timestamps of all events to be relative to the provided simulator timestamp.
+        It also ensures that all timestamps are in seconds.
 
         Args:
             simulator_timestamp (str): The timestamp of the simulator in ISO format.
@@ -131,10 +147,19 @@ class Log:
         # Convert the simulator timestamp to a datetime object
         simulator_time = datetime.fromisoformat(simulator_timestamp)
 
-        # Update each event's timestamp to be the difference in seconds from the simulator timestamp
         for event in self.events:
-            delta = event.timestamp - simulator_time
-            event.timestamp = delta.total_seconds()
+            # Check if the timestamp is already in seconds (i.e., it's a float)
+            if isinstance(event.timestamp, float):
+                # If the timestamp is in seconds, adjust it relative to the simulator's timestamp
+                #event.timestamp -= simulator_time.timestamp()
+                event.timestamp = event.timestamp
+            elif isinstance(event.timestamp, datetime):
+                # If the timestamp is a datetime, calculate the delta in seconds
+                delta = event.timestamp - simulator_time
+                event.timestamp = delta.total_seconds()
+            else:
+                # If the timestamp is of another type, raise an error or handle it
+                raise TypeError(f"Unsupported timestamp type: {type(event.timestamp)}")
 
     def sort_by_timestamp(self, reverse: bool = False) -> None:
         """

@@ -58,6 +58,9 @@ class MobilityStatistics(AgentStatsBase):
             "customer_total_distance": customer_total_distance
         }).fillna(0)
 
+        # Clear duplicate column names
+        result_df = result_df.reset_index(drop=True)
+
         # Calculating general averages for the "GeneralMetrics" section
         avg_total_distance = result_df["total_distance"].mean()
 
@@ -81,6 +84,9 @@ class MobilityStatistics(AgentStatsBase):
 
         # Exporting the result to a JSON file
         self.export_to_json(json_structure, file_path)
+
+        # Print stats
+        self.print_stats(result_df, title="Taxi")
 
     def electric_taxi_metrics(self, events_log: Log, file_path: str) -> None:
         """
@@ -134,6 +140,9 @@ class MobilityStatistics(AgentStatsBase):
             "charging_time": charging_time
         }).fillna(0)
 
+        # Clear duplicate column names
+        result_df = result_df.reset_index(drop=True)
+
         # Calculating general averages for the "GeneralMetrics" section
         avg_charging_time = result_df["charging_time"].mean()
         avg_total_distance = result_df["total_distance"].mean()
@@ -159,6 +168,9 @@ class MobilityStatistics(AgentStatsBase):
 
         # Exporting the result to a JSON file
         self.export_to_json(json_structure, file_path)
+
+        # Print stats
+        self.print_stats(result_df, title="ElectricTaxi")
 
 
     def customer_taxi_metrics(self, events_log: Log, file_path: str) -> None:
@@ -192,6 +204,9 @@ class MobilityStatistics(AgentStatsBase):
             "total_time": total_time
         }).fillna(0)
 
+        # Clear duplicate column names
+        result_df = result_df.reset_index(drop=True)
+
         # Calculating general averages for the "GeneralMetrics" section
         avg_waiting_time = result_df["waiting_time"].mean()
         avg_total_time = result_df["total_time"].mean()
@@ -217,6 +232,9 @@ class MobilityStatistics(AgentStatsBase):
 
         # Exporting the result to a JSON file
         self.export_to_json(json_structure, file_path)
+
+        # Print stats
+        self.print_stats(result_df, title="TaxiCustomer")
 
     def export_to_json(self, json_data: dict, file_path: str) -> None:
         """

@@ -26,7 +26,6 @@ from simfleet.communications.protocol import (
     REQUEST_PERFORMATIVE,
     ACCEPT_PERFORMATIVE,
     REFUSE_PERFORMATIVE,
-    QUERY_PROTOCOL,
 )
 
 from simfleet.common.agents.transport import TransportAgent
@@ -71,10 +70,6 @@ class BusAgent(TransportAgent):
         # Transport in stop event
         self.set("arrived_to_stop", None)  # new
         self.transport_arrived_to_stop_event = asyncio.Event(loop=self.loop)
-
-        # Hardcoded attributes for charging
-        self.current_autonomy_km = 0
-        self.max_autonomy_km = 0
 
         def transport_arrived_to_stop_callback(old, new):
             if not self.transport_arrived_to_stop_event.is_set() and new is True:

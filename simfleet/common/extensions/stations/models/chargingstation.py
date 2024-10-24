@@ -26,9 +26,6 @@ class ChargingStationAgent(ServiceStationAgent):
 
         Methods:
             setup(): Initializes the charging station and its behaviors.
-            set_service_type(service_type): Sets the type of service the station offers.
-            get_service_type(): Returns the service type of the station.
-            set_power(power): Sets the power capacity of the station.
             run_strategy(): Configures the behavior strategy for the station.
             to_json(): Serializes the station's main information to JSON format.
     """
@@ -36,41 +33,7 @@ class ChargingStationAgent(ServiceStationAgent):
     def __init__(self, agentjid, password):
         ServiceStationAgent.__init__(self, agentjid, password)
 
-        self.power = None  # Test charging variable --- Analice     #POSIBLE BORRADO DEL ATRIBUTO
-        self.service_type = None
         self.arguments = []
-
-        self.charged_transports = 0
-
-    def is_stopped(self):
-        """
-            Checks if the station is stopped.
-        """
-        return self.stopped
-
-    def is_ready(self):
-        """
-            Checks if the station is ready.
-        """
-        return self.ready
-
-    def set_service_type(self, service_type):
-        """
-            Sets the type of service the station provides (e.g., electricity, gasoline, diesel).
-        """
-        self.service_type = service_type
-
-    def get_service_type(self):
-        """
-            Gets the current service type of the station.
-        """
-        return self.service_type
-
-    def set_power(self, power):
-        """
-            Sets the power level of the charging station.
-        """
-        self.power = power
 
     def run_strategy(self):
         """
@@ -103,7 +66,7 @@ class ChargingStationAgent(ServiceStationAgent):
             "position": self.get("current_pos"),
             "status": self.status,
             #"places": self.get_slot_number_used(self.get_service_type()),      #CHECK FRONTEND
-            "power": self.power,
+            #"power": self.power,
             "icon": self.icon,
         }
 
@@ -113,7 +76,6 @@ class ChargingStationAgent(ServiceStationAgent):
             Sets up the agent with its behavior templates for registration.
         """
         await super().setup()
-        self.total_busy_time = 0.0
         logger.info("Station agent {} running".format(self.name))
         try:
             template = Template()
@@ -227,8 +189,6 @@ class ChargingService(OneShotBehaviour):
             )
         )
 
-        self.agent.charged_transports += 1
-
         await asyncio.sleep(recarge_time.total_seconds())
 
 
@@ -295,8 +255,6 @@ class GasolineService(OneShotBehaviour):
             )
         )
 
-        self.agent.charged_transports += 1
-
         await asyncio.sleep(recarge_time.total_seconds())
 
 
@@ -359,8 +317,6 @@ class DieselService(OneShotBehaviour):
                 self.agent.name, self.agent_id, recarge_time.total_seconds()
             )
         )
-
-        self.agent.charged_transports += 1
 
         await asyncio.sleep(recarge_time.total_seconds())
 

@@ -804,84 +804,84 @@ class SimulatorAgent(Agent):
     #         json.dump(log, f, indent=4)
 
 
-    def collect_stats(self):
-        """
-        Collects stats from all participant agents and from the simulation and stores it in three dataframes.
-        """
+    # def collect_stats(self):
+    #     """
+    #     Collects stats from all participant agents and from the simulation and stores it in three dataframes.
+    #     """
+    #
+    #     (
+    #         df_avg,
+    #         self.transport_df,
+    #         self.customer_df,
+    #         self.manager_df,
+    #         self.station_df,
+    #     ) = self.get_stats_dataframes()
+    #
+    #     columns = []
+    #     if self.config.simulation_name:
+    #         df_avg["Simulation Name"] = self.config.simulation_name
+    #         columns = ["Simulation Name"]
+    #     columns += [
+    #         "Avg Customer Waiting Time",
+    #         "Avg Customer Total Time",
+    #         "Avg Transport Waiting Time",
+    #         "Avg Transport Charging Time",
+    #         "Avg Distance",
+    #         "Simulation Time",
+    #     ]
+    #     if self.config.max_time:
+    #         df_avg["Max Time"] = self.config.max_time
+    #         columns += ["Max Time"]
+    #     columns += ["Simulation Finished"]
+    #     self.df_avg = df_avg[columns]
 
-        (
-            df_avg,
-            self.transport_df,
-            self.customer_df,
-            self.manager_df,
-            self.station_df,
-        ) = self.get_stats_dataframes()
-
-        columns = []
-        if self.config.simulation_name:
-            df_avg["Simulation Name"] = self.config.simulation_name
-            columns = ["Simulation Name"]
-        columns += [
-            "Avg Customer Waiting Time",
-            "Avg Customer Total Time",
-            "Avg Transport Waiting Time",
-            "Avg Transport Charging Time",
-            "Avg Distance",
-            "Simulation Time",
-        ]
-        if self.config.max_time:
-            df_avg["Max Time"] = self.config.max_time
-            columns += ["Max Time"]
-        columns += ["Simulation Finished"]
-        self.df_avg = df_avg[columns]
-
-    def print_stats(self):
-        """
-        Prints the dataframes collected by ``collect_stats``.
-        """
-        if self.df_avg is None:
-            self.collect_stats()
-
-        print("Simulation Results")
-        print(
-            tabulate(
-                self.df_avg, headers="keys", showindex=False, tablefmt="fancy_grid"
-            )
-        )
-        print("FleetManager stats")
-        print(
-            tabulate(
-                self.manager_df, headers="keys", showindex=False, tablefmt="fancy_grid"
-            )
-        )
-        print("Customer stats")
-        print(
-            tabulate(
-                self.customer_df, headers="keys", showindex=False, tablefmt="fancy_grid"
-            )
-        )
-        print("Transport stats")
-        print(
-            tabulate(
-                self.transport_df,
-                headers="keys",
-                showindex=False,
-                tablefmt="fancy_grid",
-            )
-        )
-        print("Station stats")
-        print(
-            tabulate(
-                self.station_df, headers="keys", showindex=False, tablefmt="fancy_grid"
-            )
-        )
-        # Bus line
-        print("Bus stop stats")
-        print(
-            tabulate(
-                self.bus_stop_df, headers="keys", showindex=False, tablefmt="fancy_grid"
-            )
-        )
+    # def print_stats(self):
+    #     """
+    #     Prints the dataframes collected by ``collect_stats``.
+    #     """
+    #     if self.df_avg is None:
+    #         self.collect_stats()
+    #
+    #     print("Simulation Results")
+    #     print(
+    #         tabulate(
+    #             self.df_avg, headers="keys", showindex=False, tablefmt="fancy_grid"
+    #         )
+    #     )
+    #     print("FleetManager stats")
+    #     print(
+    #         tabulate(
+    #             self.manager_df, headers="keys", showindex=False, tablefmt="fancy_grid"
+    #         )
+    #     )
+    #     print("Customer stats")
+    #     print(
+    #         tabulate(
+    #             self.customer_df, headers="keys", showindex=False, tablefmt="fancy_grid"
+    #         )
+    #     )
+    #     print("Transport stats")
+    #     print(
+    #         tabulate(
+    #             self.transport_df,
+    #             headers="keys",
+    #             showindex=False,
+    #             tablefmt="fancy_grid",
+    #         )
+    #     )
+    #     print("Station stats")
+    #     print(
+    #         tabulate(
+    #             self.station_df, headers="keys", showindex=False, tablefmt="fancy_grid"
+    #         )
+    #     )
+    #     # Bus line
+    #     print("Bus stop stats")
+    #     print(
+    #         tabulate(
+    #             self.bus_stop_df, headers="keys", showindex=False, tablefmt="fancy_grid"
+    #         )
+    #     )
 
     # def write_file(self, filename, fileformat="json"):
     #     """
@@ -1579,292 +1579,292 @@ class SimulatorAgent(Agent):
                 agent.stopped = True
         return results
 
-    def get_manager_stats(self):
-        """
-        Creates a dataframe with the simulation stats of the customers
-        The dataframe includes for each customer its name, waiting time, total time and status.
+    # def get_manager_stats(self):
+    #     """
+    #     Creates a dataframe with the simulation stats of the customers
+    #     The dataframe includes for each customer its name, waiting time, total time and status.
+    #
+    #     Returns:
+    #         ``pandas.DataFrame``: the dataframe with the customers stats.
+    #     """
+    #     try:
+    #         names, quantities, types = zip(
+    #             *[
+    #                 (manager.name, manager.transports_in_fleet, manager.fleet_type)
+    #                 for manager in self.manager_agents.values()
+    #             ]
+    #         )
+    #     except ValueError:
+    #         names, quantities, types = [], [], []
+    #
+    #     df = pd.DataFrame.from_dict(
+    #         {"fleet_name": names, "transports_in_fleet": quantities, "type": types}
+    #     )
+    #     return df
 
-        Returns:
-            ``pandas.DataFrame``: the dataframe with the customers stats.
-        """
-        try:
-            names, quantities, types = zip(
-                *[
-                    (manager.name, manager.transports_in_fleet, manager.fleet_type)
-                    for manager in self.manager_agents.values()
-                ]
-            )
-        except ValueError:
-            names, quantities, types = [], [], []
+    # def get_customer_stats(self):
+    #     """
+    #     Creates a dataframe with the simulation stats of the customers
+    #     The dataframe includes for each customer its name, waiting time, total time and status.
+    #
+    #     Returns:
+    #         ``pandas.DataFrame``: the dataframe with the customers stats.
+    #     """
+    #     try:
+    #         names, waitings, totals, statuses = zip(
+    #             *[
+    #                 (
+    #                     p.name,
+    #                     p.get_waiting_time(),
+    #                     p.total_time(),
+    #                     status_to_str(p.status),
+    #                 )
+    #                 for p in self.customer_agents.values()
+    #             ]
+    #         )
+    #     except ValueError:
+    #         names, waitings, totals, statuses = [], [], [], []
+    #
+    #     df = pd.DataFrame.from_dict(
+    #         {
+    #             "name": names,
+    #             "waiting_time": waitings,
+    #             "total_time": totals,
+    #             "status": statuses,
+    #         }
+    #     )
+    #     return df
 
-        df = pd.DataFrame.from_dict(
-            {"fleet_name": names, "transports_in_fleet": quantities, "type": types}
-        )
-        return df
+    # def get_transport_stats(self):
+    #     """
+    #     Creates a dataframe with the simulation stats of the transports
+    #     The dataframe includes for each transport its name, assignments, traveled distance and status.
+    #
+    #     Returns:
+    #         ``pandas.DataFrame``: the dataframe with the transports stats.
+    #     """
+    #     try:
+    #         (
+    #             names,
+    #             assignments,
+    #             distances,
+    #             waiting_in_station_time,
+    #             charging_time,
+    #             statuses,
+    #         ) = zip(
+    #             *[
+    #                 (
+    #                     t.name,
+    #                     t.num_assignments,
+    #                     "{0:.2f}".format(sum(t.distances)),
+    #                     "{0:.2f}".format(t.total_waiting_time),
+    #                     "{0:.2f}".format(t.total_charging_time),
+    #                     status_to_str(t.status),
+    #                 )
+    #                 for t in self.transport_agents.values()
+    #             ]
+    #         )
+    #     except ValueError:
+    #         (
+    #             names,
+    #             assignments,
+    #             distances,
+    #             waiting_in_station_time,
+    #             charging_time,
+    #             statuses,
+    #         ) = ([], [], [], [], [])
+    #     df = pd.DataFrame.from_dict(
+    #         {
+    #             "name": names,
+    #             "assignments": assignments,
+    #             "distance": distances,
+    #             "waiting_in_station_time": waiting_in_station_time,
+    #             "charging_time": charging_time,
+    #             "status": statuses,
+    #         }
+    #     )
+    #     return df
 
-    def get_customer_stats(self):
-        """
-        Creates a dataframe with the simulation stats of the customers
-        The dataframe includes for each customer its name, waiting time, total time and status.
-
-        Returns:
-            ``pandas.DataFrame``: the dataframe with the customers stats.
-        """
-        try:
-            names, waitings, totals, statuses = zip(
-                *[
-                    (
-                        p.name,
-                        p.get_waiting_time(),
-                        p.total_time(),
-                        status_to_str(p.status),
-                    )
-                    for p in self.customer_agents.values()
-                ]
-            )
-        except ValueError:
-            names, waitings, totals, statuses = [], [], [], []
-
-        df = pd.DataFrame.from_dict(
-            {
-                "name": names,
-                "waiting_time": waitings,
-                "total_time": totals,
-                "status": statuses,
-            }
-        )
-        return df
-
-    def get_transport_stats(self):
-        """
-        Creates a dataframe with the simulation stats of the transports
-        The dataframe includes for each transport its name, assignments, traveled distance and status.
-
-        Returns:
-            ``pandas.DataFrame``: the dataframe with the transports stats.
-        """
-        try:
-            (
-                names,
-                assignments,
-                distances,
-                waiting_in_station_time,
-                charging_time,
-                statuses,
-            ) = zip(
-                *[
-                    (
-                        t.name,
-                        t.num_assignments,
-                        "{0:.2f}".format(sum(t.distances)),
-                        "{0:.2f}".format(t.total_waiting_time),
-                        "{0:.2f}".format(t.total_charging_time),
-                        status_to_str(t.status),
-                    )
-                    for t in self.transport_agents.values()
-                ]
-            )
-        except ValueError:
-            (
-                names,
-                assignments,
-                distances,
-                waiting_in_station_time,
-                charging_time,
-                statuses,
-            ) = ([], [], [], [], [])
-        df = pd.DataFrame.from_dict(
-            {
-                "name": names,
-                "assignments": assignments,
-                "distance": distances,
-                "waiting_in_station_time": waiting_in_station_time,
-                "charging_time": charging_time,
-                "status": statuses,
-            }
-        )
-        return df
-
-    def get_station_stats(self):
-        """
-        Creates a dataframe with the simulation stats of the customers
-        The dataframe includes for each customer its name, waiting time, total time and status.
-
-        Returns:
-            ``pandas.DataFrame``: the dataframe with the customers stats.
-        """
-        try:
-            avg_busy_time = []
-            for p in self.station_agents.values():
-                if p.charged_transports > 0:
-                    avg_busy_time.append(
-                        "{0:.2f}".format(p.total_busy_time / p.charged_transports)
-                    )
-                else:
-                    avg_busy_time.append(0)
-
-            (
-                names,
-                status,
-                places,
-                power,
-                charged_transports,
-                max_queue_length,
-                total_busy_time,
-            ) = zip(
-                *[
-                    (
-                        p.name,
-                        p.status,
-                        #p.available_places,
-                        #p.get_slot_number_used(p.get_service_type()),           #CHECK FRONTED
-                        p.power,
-                        p.charged_transports,
-                        p.max_queue_length,
-                        "{0:.2f}".format(p.total_busy_time),
-                    )
-                    for p in self.station_agents.values()
-                ]
-            )
-
-        except ValueError:
-            (
-                names,
-                status,
-                places,
-                power,
-                charged_transports,
-                max_queue_length,
-                total_busy_time,
-                avg_busy_time,
-            ) = ([], [], [], [], [], [], [], [])
-
-        df = pd.DataFrame.from_dict(
-            {
-                "name": names,
-                "status": status,
-                "available_places": places,
-                "power": power,
-                "charged_transports": charged_transports,
-                "max_queue_length": max_queue_length,
-                "total_busy_time": total_busy_time,
-                "avg_busy_time": avg_busy_time,
-            }
-        )
-        return df
+    # def get_station_stats(self):
+    #     """
+    #     Creates a dataframe with the simulation stats of the customers
+    #     The dataframe includes for each customer its name, waiting time, total time and status.
+    #
+    #     Returns:
+    #         ``pandas.DataFrame``: the dataframe with the customers stats.
+    #     """
+    #     try:
+    #         avg_busy_time = []
+    #         for p in self.station_agents.values():
+    #             if p.charged_transports > 0:
+    #                 avg_busy_time.append(
+    #                     "{0:.2f}".format(p.total_busy_time / p.charged_transports)
+    #                 )
+    #             else:
+    #                 avg_busy_time.append(0)
+    #
+    #         (
+    #             names,
+    #             status,
+    #             places,
+    #             power,
+    #             charged_transports,
+    #             max_queue_length,
+    #             total_busy_time,
+    #         ) = zip(
+    #             *[
+    #                 (
+    #                     p.name,
+    #                     p.status,
+    #                     #p.available_places,
+    #                     #p.get_slot_number_used(p.get_service_type()),           #CHECK FRONTED
+    #                     p.power,
+    #                     p.charged_transports,
+    #                     p.max_queue_length,
+    #                     "{0:.2f}".format(p.total_busy_time),
+    #                 )
+    #                 for p in self.station_agents.values()
+    #             ]
+    #         )
+    #
+    #     except ValueError:
+    #         (
+    #             names,
+    #             status,
+    #             places,
+    #             power,
+    #             charged_transports,
+    #             max_queue_length,
+    #             total_busy_time,
+    #             avg_busy_time,
+    #         ) = ([], [], [], [], [], [], [], [])
+    #
+    #     df = pd.DataFrame.from_dict(
+    #         {
+    #             "name": names,
+    #             "status": status,
+    #             "available_places": places,
+    #             "power": power,
+    #             "charged_transports": charged_transports,
+    #             "max_queue_length": max_queue_length,
+    #             "total_busy_time": total_busy_time,
+    #             "avg_busy_time": avg_busy_time,
+    #         }
+    #     )
+    #     return df
 
     # Bus line
-    def get_bus_stop_stats(self):
-        """
-        Creates a dataframe with the simulation stats of the bus stops
-        The dataframe includes for each stop its id, name, , total time and status.
+    # def get_bus_stop_stats(self):
+    #     """
+    #     Creates a dataframe with the simulation stats of the bus stops
+    #     The dataframe includes for each stop its id, name, , total time and status.
+    #
+    #     Returns:
+    #         ``pandas.DataFrame``: the dataframe with the customers stats.
+    #     """
+    #     try:
+    #         (
+    #             agent_id,
+    #             names,
+    #             lines,
+    #             max_customers,
+    #             total_customers
+    #         ) = zip(
+    #             *[
+    #                 (
+    #                     bs.agent_id,
+    #                     bs.stop_name,
+    #                     bs.lines,
+    #                     "{:2d}".format(max(bs.num_customers)),
+    #                     "{:2d}".format(bs.total_customers)
+    #                 )
+    #                 for bs in self.bus_stop_agents.values()
+    #             ]
+    #         )
+    #
+    #     except ValueError:
+    #         (
+    #             agent_id,
+    #             names,
+    #             lines,
+    #             max_customers,
+    #             total_customers
+    #         ) = ([], [], [], [], [])
+    #
+    #     df = pd.DataFrame.from_dict(
+    #         {
+    #             "id": agent_id,
+    #             "name": names,
+    #             "lines": lines,
+    #             "max_customers": max_customers,
+    #             "total_customers": total_customers
+    #         }
+    #     )
+    #     return df
 
-        Returns:
-            ``pandas.DataFrame``: the dataframe with the customers stats.
-        """
-        try:
-            (
-                agent_id,
-                names,
-                lines,
-                max_customers,
-                total_customers
-            ) = zip(
-                *[
-                    (
-                        bs.agent_id,
-                        bs.stop_name,
-                        bs.lines,
-                        "{:2d}".format(max(bs.num_customers)),
-                        "{:2d}".format(bs.total_customers)
-                    )
-                    for bs in self.bus_stop_agents.values()
-                ]
-            )
-
-        except ValueError:
-            (
-                agent_id,
-                names,
-                lines,
-                max_customers,
-                total_customers
-            ) = ([], [], [], [], [])
-
-        df = pd.DataFrame.from_dict(
-            {
-                "id": agent_id,
-                "name": names,
-                "lines": lines,
-                "max_customers": max_customers,
-                "total_customers": total_customers
-            }
-        )
-        return df
-
-    def get_stats_dataframes(self):
-        """
-        Collects simulation stats and returns 3 dataframes with the information:
-        A general dataframe with the average information, a dataframe with the transport's information
-        and a dataframe with the customer's information.
-        Returns:
-            pandas.Dataframe, pandas.Dataframe, pandas.Dataframe: avg df, transport df and customer df
-        """
-        manager_df = self.get_manager_stats()
-        manager_df = manager_df[["fleet_name", "transports_in_fleet", "type"]]
-        customer_df = self.get_customer_stats()
-        customer_df = customer_df[["name", "waiting_time", "total_time", "status"]]
-        transport_df = self.get_transport_stats()
-        transport_df = transport_df[
-            [
-                "name",
-                "assignments",
-                "distance",
-                "waiting_in_station_time",
-                "charging_time",
-                "status",
-            ]
-        ]
-        station_df = self.get_station_stats()
-        station_df = station_df[
-            [
-                "name",
-                "status",
-                "available_places",
-                "power",
-                "charged_transports",
-                "max_queue_length",
-                "total_busy_time",
-                "avg_busy_time",
-            ]
-        ]
-
-        stats = self.get_stats()
-
-        df_avg = pd.DataFrame.from_dict(
-            {
-                "Avg Customer Waiting Time": [stats["waiting"]],
-                "Avg Customer Total Time": [stats["totaltime"]],
-                "Avg Transport Waiting Time": [stats["t_waiting"]],
-                "Avg Transport Charging Time": [stats["t_charging"]],
-                "Avg Distance": [stats["distance"]],
-                "Simulation Finished": [stats["finished"]],
-                "Simulation Time": [self.get_simulation_time()],
-            }
-        )
-        columns = [
-            "Avg Customer Waiting Time",
-            "Avg Customer Total Time",
-            "Avg Transport Waiting Time",
-            "Avg Transport Charging Time",
-            "Avg Distance",
-            "Simulation Time",
-            "Simulation Finished",
-        ]
-
-        df_avg = df_avg[columns]
-
-        return df_avg, transport_df, customer_df, manager_df, station_df
+    # def get_stats_dataframes(self):
+    #     """
+    #     Collects simulation stats and returns 3 dataframes with the information:
+    #     A general dataframe with the average information, a dataframe with the transport's information
+    #     and a dataframe with the customer's information.
+    #     Returns:
+    #         pandas.Dataframe, pandas.Dataframe, pandas.Dataframe: avg df, transport df and customer df
+    #     """
+    #     manager_df = self.get_manager_stats()
+    #     manager_df = manager_df[["fleet_name", "transports_in_fleet", "type"]]
+    #     customer_df = self.get_customer_stats()
+    #     customer_df = customer_df[["name", "waiting_time", "total_time", "status"]]
+    #     transport_df = self.get_transport_stats()
+    #     transport_df = transport_df[
+    #         [
+    #             "name",
+    #             "assignments",
+    #             "distance",
+    #             "waiting_in_station_time",
+    #             "charging_time",
+    #             "status",
+    #         ]
+    #     ]
+    #     station_df = self.get_station_stats()
+    #     station_df = station_df[
+    #         [
+    #             "name",
+    #             "status",
+    #             "available_places",
+    #             "power",
+    #             "charged_transports",
+    #             "max_queue_length",
+    #             "total_busy_time",
+    #             "avg_busy_time",
+    #         ]
+    #     ]
+    #
+    #     stats = self.get_stats()
+    #
+    #     df_avg = pd.DataFrame.from_dict(
+    #         {
+    #             "Avg Customer Waiting Time": [stats["waiting"]],
+    #             "Avg Customer Total Time": [stats["totaltime"]],
+    #             "Avg Transport Waiting Time": [stats["t_waiting"]],
+    #             "Avg Transport Charging Time": [stats["t_charging"]],
+    #             "Avg Distance": [stats["distance"]],
+    #             "Simulation Finished": [stats["finished"]],
+    #             "Simulation Time": [self.get_simulation_time()],
+    #         }
+    #     )
+    #     columns = [
+    #         "Avg Customer Waiting Time",
+    #         "Avg Customer Total Time",
+    #         "Avg Transport Waiting Time",
+    #         "Avg Transport Charging Time",
+    #         "Avg Distance",
+    #         "Simulation Time",
+    #         "Simulation Finished",
+    #     ]
+    #
+    #     df_avg = df_avg[columns]
+    #
+    #     return df_avg, transport_df, customer_df, manager_df, station_df
 
     async def async_start_agent(self, agent):
         await agent.start()

@@ -355,7 +355,6 @@ class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour):
                         details={}
                     )
 
-                    await self.begin_charging()  # Cambiar - QUITAR SI DA PROBLEMAS
                     self.agent.status = TRANSPORT_CHARGING
                     self.set_next_state(TRANSPORT_CHARGING)
                     return

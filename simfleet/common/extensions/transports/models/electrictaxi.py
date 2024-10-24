@@ -27,15 +27,9 @@ class ElectricTaxiAgent(ChargeableMixin, TaxiAgent):
         ChargeableMixin.__init__(self)
         TaxiAgent.__init__(self, agentjid, password, **kwargs)
 
-        self.stations = None                                #transport.py
-        self.current_station_dest = None                    #transport.py
-        self.set("current_station", None)        #transport.py
-
-        # waiting time statistics
-        self.waiting_in_queue_time = None                   #Check for backend
-        self.charge_time = None
-        self.total_waiting_time = 0.0
-        self.total_charging_time = 0.0
+        self.stations = None
+        self.current_station_dest = None
+        self.set("current_station", None)
 
         self.arguments = {}
 
@@ -86,7 +80,6 @@ class ElectricTaxiStrategyBehaviour(State):
         )
         self.set("current_station", station_id)
         self.agent.current_station_dest = dest
-        #self.agent.num_charges += 1            #DUDA ATRIBUTO
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
         self.agent.set_km_expense(travel_km)
 
@@ -107,9 +100,6 @@ class ElectricTaxiStrategyBehaviour(State):
             )
         )
         await self.send(reply)
-
-        # time waiting in station queue update
-        self.agent.waiting_in_queue_time = time.time()
 
     async def send_get_stations(self, content=None):
 
@@ -190,7 +180,6 @@ class ElectricTaxiStrategyBehaviour(State):
         msg.body = json.dumps(data)
         await self.send(msg)
 
-    # Cambiarlo
     async def comunicate_for_charging(self):
 
         # trigger charging
@@ -198,7 +187,7 @@ class ElectricTaxiStrategyBehaviour(State):
         self.agent.chunked_path = None
 
         data = {
-            "need": self.agent.max_autonomy_km - self.agent.current_autonomy_km,        #Calcular al principio - añadir en
+            "need": self.agent.max_autonomy_km - self.agent.current_autonomy_km,
         }
 
         logger.debug(
@@ -213,20 +202,6 @@ class ElectricTaxiStrategyBehaviour(State):
 
         await self.agent.inform_station(data)
 
-    async def begin_charging(self):
-
-        logger.info(
-            "Transport {} has started charging in the station {}.".format(
-                self.agent.agent_id, self.get("current_station")
-            )
-        )
-
-        # time waiting in station queue update
-        self.agent.charge_time = time.time()
-        elapsed_time = self.agent.charge_time - self.agent.waiting_in_queue_time
-        if elapsed_time > 0.1:
-            self.agent.total_waiting_time += elapsed_time
-
     async def drop_station(self):
         """
         Drops the customer that the transport is carring in the current location.
@@ -238,10 +213,6 @@ class ElectricTaxiStrategyBehaviour(State):
             )
         )
         self.agent.set("current_station", None)
-
-    async def charge_allowed(self):
-        self.set("in_station_place", None)  # new
-        await self.agent.begin_charging()
 
     async def run(self):
         raise NotImplementedError

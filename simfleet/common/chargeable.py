@@ -18,7 +18,6 @@ class ChargeableMixin:
             current_autonomy_km (int): The current autonomy of the vehicle in kilometers.
             max_autonomy_km (int): The maximum autonomy of the vehicle in kilometers.
             service_type (str): The type of service the vehicle provides (e.g., taxi, delivery).
-            total_charging_time (float): The cumulative charging time of the vehicle.
         """
 
     def __init__(self):
@@ -26,12 +25,10 @@ class ChargeableMixin:
                 Initializes the mixin with default values for autonomy and charging time.
         """
 
-        self.current_autonomy_km = 2000         #transport.py
-        self.max_autonomy_km = 2000             #transport.py
-        self.service_type = None  # New
+        self.current_autonomy_km = 2000
+        self.max_autonomy_km = 2000
+        self.service_type = None
 
-        #statics
-        self.total_charging_time = 0.0
 
     def set_service_type(self, service_type):
         """
@@ -79,7 +76,6 @@ class ChargeableMixin:
                 Also updates the total charging time.
         """
         self.current_autonomy_km = self.max_autonomy_km
-        self.total_charging_time += time.time() - self.charge_time
 
     def calculate_km_expense(self, current_pos, origin, dest=None):
         """

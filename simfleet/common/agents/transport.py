@@ -44,10 +44,6 @@ class TransportAgent(VehicleAgent):
             num_charges (int): Counter for the number of times the transport was charged.
             current_station (str): The current station assigned to the transport.
             current_station_dest (str): The destination station for charging or refueling.
-            waiting_in_queue_time (float): Tracks the waiting time in the station queue.
-            charge_time (float): Tracks the charging time.
-            total_waiting_time (float): Tracks the total waiting time.
-            total_charging_time (float): Tracks the total charging time.
             transport_in_station_place_event (asyncio.Event): Event that tracks when the transport arrives at the station.
             customer_in_transport_event (asyncio.Event): Event that tracks when a customer boards the transport.
         """
@@ -61,15 +57,6 @@ class TransportAgent(VehicleAgent):
         self.num_charges = 0
         self.set("current_station", None)
         self.current_station_dest = None
-
-        # waiting time statistics
-        self.waiting_in_queue_time = None
-        self.charge_time = None
-        self.total_waiting_time = 0.0
-        self.total_charging_time = 0.0
-
-        # Transport in station place event
-        self.set("in_station_place", None)  # new
 
         self.transport_in_station_place_event = asyncio.Event(loop=self.loop)
 

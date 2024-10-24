@@ -1218,18 +1218,6 @@ class SimulatorAgent(Agent):
             waiting, total = 0, 0
 
         if len(self.transport_agents) > 0:
-            t_waiting = avg(
-                [
-                    transport.total_waiting_time
-                    for transport in self.transport_agents.values()
-                ]
-            )
-            t_charging = avg(
-                [
-                    transport.total_charging_time
-                    for transport in self.transport_agents.values()
-                ]
-            )
             distance = avg(
                 [
                     sum(transport.distances)
@@ -1237,15 +1225,11 @@ class SimulatorAgent(Agent):
                 ]
             )
         else:
-            t_waiting = 0
-            t_charging = 0
             distance = 0
 
         return {
             "waiting": "{0:.2f}".format(waiting),
             "totaltime": "{0:.2f}".format(total),
-            "t_waiting": "{0:.2f}".format(t_waiting),
-            "t_charging": "{0:.2f}".format(t_charging),
             "distance": "{0:.2f}".format(distance),
             "finished": self.is_simulation_finished(),
             "is_running": self.simulation_running,

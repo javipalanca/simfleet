@@ -30,11 +30,6 @@ class QueueStationAgent(GeoLocatedAgent):
             services_list (dict): Stores information about the services offered and their capacities.
             waiting_lists (dict): Tracks the waiting lists of agents for each service type.
             simulatorjid (str): Identifier for the simulator agent that provides coordination.
-            transports_in_queue_time (float): Tracks when agents start waiting in the queue.
-            empty_queue_time (float): Tracks when the queue becomes empty.
-            total_busy_time (float): Tracks the total time the queue has agents waiting.
-            queue_length (int): Tracks the length of the current queue.
-            max_queue_length (int): Tracks the maximum queue length experienced.
     """
     def __init__(self, agentjid, password):
         GeoLocatedAgent.__init__(self, agentjid, password)
@@ -48,12 +43,6 @@ class QueueStationAgent(GeoLocatedAgent):
         # JID of the simulator agent
         self.simulatorjid = None
 
-        #statics
-        self.transports_in_queue_time = 0
-        self.empty_queue_time = 0
-        self.total_busy_time = 0  # total time with some transport waiting in queue
-        self.queue_length = 0
-        self.max_queue_length = 0
 
     def set_simulatorjid(self, jid):
         """
@@ -283,8 +272,6 @@ class QueueStationAgent(GeoLocatedAgent):
             if service_name in self.agent.waiting_lists:
                 return self.agent.waiting_lists[service_name]
 
-        # MSG
-
         async def accept_request_agent(self, agent_id, content=None):
             """
             Accepts a request from an agent by sending a message.
@@ -406,14 +393,8 @@ class QueueStationAgent(GeoLocatedAgent):
                         )
                     else:
 
-                        if self.total_queue_size(service_name) == 0:
-                            self.agent.transports_in_queue_time = time.time()
-
-                        # Encolamos
+                        # Queue
                         self.queue_agent_to_waiting_list(service_name, str(user_agent_id), **arguments)
-
-                        if self.total_queue_size(service_name) > self.agent.max_queue_length:
-                            self.agent.max_queue_length = self.total_queue_size(service_name)
 
                         content = {"station_id": str(self.agent.jid)}
                         await self.accept_request_agent(user_agent_id, content)
@@ -432,12 +413,6 @@ class QueueStationAgent(GeoLocatedAgent):
                         )
                     )
 
-                # time statistics update
-                if self.total_queue_size(service_name):
-                    self.agent.empty_queue_time = time.time()
-                    self.agent.total_busy_time += (
-                        self.agent.empty_queue_time - self.agent.transports_in_queue_time
-                    )
 
 class CheckNearBehaviour(OneShotBehaviour):
     def __init__(self, simulatorjid, user_agent_id, service_name, object_type, arguments):

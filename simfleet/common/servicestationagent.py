@@ -80,7 +80,6 @@ class ServiceStationAgent(QueueStationAgent):
 
         def __init__(self):
             super().__init__()
-            #self.test = []
 
         async def refuse_service(self, agent_id, content=None):
             """

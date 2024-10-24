@@ -40,13 +40,6 @@ class BusStopAgent(QueueStationAgent):
         self.stop_name = None
         self.lines = None
 
-        # Customer registry
-        self.registered_customers = {}
-
-        # Statistics
-        self.total_customers = 0
-        self.num_customers = [0]
-
         # Atribut afegit perque funcione
         self.type = None
 

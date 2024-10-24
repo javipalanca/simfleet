@@ -1,9 +1,10 @@
 import pandas as pd
-from simfleet.metrics.agentstatsbase import AgentStatsBase
+from tabulate import tabulate
+from simfleet.metrics.basestatistics import BaseStatisticsClass
 from simfleet.utils.statistics import Log
 
 
-class MobilityStatistics(AgentStatsBase):
+class MobilityStatisticsClass(BaseStatisticsClass):
 
     def run(self, events_log: Log) -> None:
         """
@@ -18,6 +19,8 @@ class MobilityStatistics(AgentStatsBase):
         self.electric_taxi_metrics(events_log, "simfleet_metrics_electrictaxi.json")
 
         self.customer_taxi_metrics(events_log, "simfleet_metrics_taxicustomer.json")
+
+        self.print_stats()
 
 
     def taxi_metrics(self, events_log: Log, file_path: str) -> None:
@@ -59,13 +62,13 @@ class MobilityStatistics(AgentStatsBase):
         }).fillna(0)
 
         # Clear duplicate column names
-        result_df = result_df.reset_index(drop=True)
+        self.taxi_df = result_df.reset_index(drop=True)
 
         # Calculating general averages for the "GeneralMetrics" section
-        avg_total_distance = result_df["total_distance"].mean()
+        avg_total_distance = self.taxi_df["total_distance"].mean()
 
         # Convert the DataFrame into a dictionary structure indexed by an agent number
-        agent_metrics = result_df.to_dict(orient="records")
+        agent_metrics = self.taxi_df.to_dict(orient="records")
 
         # Convert the agent metrics into a dictionary with numeric keys (0, 1, 2, ...)
         numbered_agents = {str(i): agent_metrics[i] for i in range(len(agent_metrics))}
@@ -86,7 +89,7 @@ class MobilityStatistics(AgentStatsBase):
         self.export_to_json(json_structure, file_path)
 
         # Print stats
-        self.print_stats(result_df, title="Taxi")
+        #self.print_stats(result_df, title="Taxi")
 
     def electric_taxi_metrics(self, events_log: Log, file_path: str) -> None:
         """
@@ -141,14 +144,14 @@ class MobilityStatistics(AgentStatsBase):
         }).fillna(0)
 
         # Clear duplicate column names
-        result_df = result_df.reset_index(drop=True)
+        self.electrictaxi_df = result_df.reset_index(drop=True)
 
         # Calculating general averages for the "GeneralMetrics" section
-        avg_charging_time = result_df["charging_time"].mean()
-        avg_total_distance = result_df["total_distance"].mean()
+        avg_charging_time = self.electrictaxi_df["charging_time"].mean()
+        avg_total_distance = self.electrictaxi_df["total_distance"].mean()
 
         # Convert the DataFrame into a dictionary structure indexed by an agent number
-        agent_metrics = result_df.to_dict(orient="records")
+        agent_metrics = self.electrictaxi_df.to_dict(orient="records")
 
         # Convert the agent metrics into a dictionary with numeric keys (0, 1, 2, ...)
         numbered_agents = {str(i): agent_metrics[i] for i in range(len(agent_metrics))}
@@ -170,7 +173,7 @@ class MobilityStatistics(AgentStatsBase):
         self.export_to_json(json_structure, file_path)
 
         # Print stats
-        self.print_stats(result_df, title="ElectricTaxi")
+        #self.print_stats(result_df, title="ElectricTaxi")
 
 
     def customer_taxi_metrics(self, events_log: Log, file_path: str) -> None:
@@ -205,14 +208,14 @@ class MobilityStatistics(AgentStatsBase):
         }).fillna(0)
 
         # Clear duplicate column names
-        result_df = result_df.reset_index(drop=True)
+        self.taxicustomer_df = result_df.reset_index(drop=True)
 
         # Calculating general averages for the "GeneralMetrics" section
-        avg_waiting_time = result_df["waiting_time"].mean()
-        avg_total_time = result_df["total_time"].mean()
+        avg_waiting_time = self.taxicustomer_df["waiting_time"].mean()
+        avg_total_time = self.taxicustomer_df["total_time"].mean()
 
         # Convert the DataFrame into a dictionary structure indexed by an agent number
-        agent_metrics = result_df.to_dict(orient="records")
+        agent_metrics = self.taxicustomer_df.to_dict(orient="records")
 
         # Convert the agent metrics into a dictionary with numeric keys (0, 1, 2, ...)
         numbered_agents = {str(i): agent_metrics[i] for i in range(len(agent_metrics))}
@@ -234,7 +237,7 @@ class MobilityStatistics(AgentStatsBase):
         self.export_to_json(json_structure, file_path)
 
         # Print stats
-        self.print_stats(result_df, title="TaxiCustomer")
+        #self.print_stats(result_df, title="TaxiCustomer")
 
     def export_to_json(self, json_data: dict, file_path: str) -> None:
         """
@@ -247,3 +250,21 @@ class MobilityStatistics(AgentStatsBase):
         with open(file_path, 'w') as f:
             import json
             json.dump(json_data, f, indent=4)
+
+    def print_stats(self):
+        """
+        Prints all DataFrames stored as attributes in the class dynamically.
+        """
+        print("Simulation Results:")
+
+        # Iterate over all attributes of the class that are DataFrames
+        for attr_name in dir(self):
+            attr_value = getattr(self, attr_name)
+            if isinstance(attr_value, pd.DataFrame):
+                print(f"{attr_name} stats")
+                print(
+                    tabulate(
+                        attr_value, headers="keys", showindex=False, tablefmt="fancy_grid"
+                    )
+                )
+                print("\n")  # Space between tables

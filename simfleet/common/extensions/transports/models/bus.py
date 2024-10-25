@@ -47,7 +47,6 @@ class BusAgent(TransportAgent):
             capacity (int): Maximum capacity of the bus.
             current_capacity (int): Current number of available seats.
             rounds (int): Number of rounds the bus has completed.
-            occupations (list): Records of bus occupation levels.
         """
     def __init__(self, agentjid, password, **kwargs):
         super().__init__(agentjid, password)
@@ -62,7 +61,6 @@ class BusAgent(TransportAgent):
         self.capacity = None
         self.current_capacity = None
         self.rounds = 0
-        self.occupations = [0]
         # For movement
         self.set("origin_stop", None)
         self.set("destination_stop", None)
@@ -403,7 +401,7 @@ class BusStrategyBehaviour(StrategyBehaviour):
             # Update capacity
             self.agent.current_capacity += 1
             # Delete customer from current customers
-            del self.agent.get("current_customer")[customer]
+            self.agent.remove_customer_in_transport(customer)
 
     def get_customers_from_stop(self, current_position):
         """
@@ -457,8 +455,7 @@ class BusStrategyBehaviour(StrategyBehaviour):
                                                                                   customer_origin, customer_dest)
         )
         # Add customer to the current customers dict
-        self.agent.get("current_customer")[str(customer_id)] = {"origin": customer_origin, "dest": customer_dest}
-        self.agent.num_assignments += 1
+        self.agent.add_customer_in_transport(customer_id, customer_origin, customer_dest)
 
         # Send message accepting the boarding
         reply = Message()

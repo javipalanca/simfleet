@@ -122,8 +122,6 @@ class BusInDestState(BusStrategyBehaviour, State):
         logger.debug("Transport {} in TransportInDestState".format(self.agent.name))
 
     async def run(self):
-        # Write occupation statistics
-        self.agent.occupations.append(len(self.agent.get("current_customer")))
         # Drop off customers who are at their destination
         await self.drop_customers()
         # Inform the stop the boarding may begin

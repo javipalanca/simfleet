@@ -1,6 +1,4 @@
 import json
-import time
-
 from loguru import logger
 
 from spade.message import Message
@@ -8,14 +6,11 @@ from spade.behaviour import State
 
 from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
-    TRAVEL_PROTOCOL,
     PROPOSE_PERFORMATIVE,
     CANCEL_PERFORMATIVE,
     INFORM_PERFORMATIVE,
-    REGISTER_PROTOCOL,
     REQUEST_PERFORMATIVE,
     ACCEPT_PERFORMATIVE,
-    REFUSE_PERFORMATIVE,
     QUERY_PROTOCOL,
 )
 

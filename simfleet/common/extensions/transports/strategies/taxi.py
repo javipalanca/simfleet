@@ -304,7 +304,7 @@ class TaxiArrivedAtCustomerState(TaxiStrategyBehaviour):
                             "Customer {} in transport.".format(self.agent.name)
                         )
 
-                        await self.agent.add_customer_in_transport(
+                        self.agent.add_customer_in_transport(
                             customer_id=customer_id, dest=dest
                         )
                         await self.agent.remove_assigned_taxicustomer()
@@ -469,7 +469,7 @@ class TaxiArrivedAtCustomerDestState(TaxiStrategyBehaviour):
 
                     if status == CUSTOMER_IN_DEST:
 
-                        await self.agent.remove_customer_in_transport(customer_id)
+                        self.agent.remove_customer_in_transport(customer_id)
                         logger.debug(
                             "Transport {} has dropped the customer {} in destination.".format(
                                 self.agent.agent_id, customer_id

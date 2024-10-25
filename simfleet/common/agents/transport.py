@@ -203,7 +203,7 @@ class TransportAgent(VehicleAgent):
         )
         await self.send(reply)
 
-    async def add_customer_in_transport(self, customer_id, origin=None, dest=None):
+    def add_customer_in_transport(self, customer_id, origin=None, dest=None):
         """
             Adds a customer to the current transport and tracks their origin and destination.
 
@@ -212,21 +212,24 @@ class TransportAgent(VehicleAgent):
                 origin (list, optional): The starting point of the customer.
                 dest (list, optional): The destination of the customer.
         """
-        customers = self.get("current_customer")
-        customers[customer_id] = {"origin": origin, "destination": dest}
-        self.set("current_customer", customers)
+        if customer_id is not str:
+            customer_id = str(customer_id)
+
+        self.get("current_customer")[str(customer_id)] = {"origin": origin, "dest": dest}
+
         self.num_assignments += 1
 
-    async def remove_customer_in_transport(self, customer_id):
+    def remove_customer_in_transport(self, customer_id):
         """
             Removes a customer from the current transport.
 
             Args:
                 customer_id (str): The ID of the customer to remove.
         """
-        customers = self.get("current_customer")
-        del customers[customer_id]
-        self.set("current_customer", customers)
+        if customer_id is not str:
+            customer_id = str(customer_id)
+
+        del self.get("current_customer")[customer_id]
 
     async def set_position(self, coords=None):
         """

@@ -1,6 +1,5 @@
 import asyncio
 import json
-import sys
 import time
 from asyncio import CancelledError
 
@@ -21,11 +20,7 @@ from simfleet.communications.protocol import (
     QUERY_PROTOCOL,
 )
 from simfleet.utils.utils_old import (
-    TRANSPORT_WAITING,
-    TRANSPORT_IN_STATION_PLACE,
-    TRANSPORT_CHARGING,
     CUSTOMER_LOCATION,
-    TRANSPORT_NEEDS_CHARGING,
 )
 from simfleet.common.extensions.vehicles.models.vehicle import VehicleAgent
 
@@ -39,32 +34,13 @@ class TransportAgent(VehicleAgent):
             current_customer (dict): Stores information about the current assigned customer.
             num_assignments (int): Tracks the number of assignments completed.
             transport_type (str): Represents the type of transport (e.g., bus, taxi).
-            request (str): Specifies the type of request (default is "station").
-            stations (list): List of available stations for the transport.
-            num_charges (int): Counter for the number of times the transport was charged.
-            current_station (str): The current station assigned to the transport.
-            current_station_dest (str): The destination station for charging or refueling.
-            transport_in_station_place_event (asyncio.Event): Event that tracks when the transport arrives at the station.
             customer_in_transport_event (asyncio.Event): Event that tracks when a customer boards the transport.
         """
     def __init__(self, agentjid, password):
         super().__init__(agentjid=agentjid, password=password)
         self.set("current_customer", {})
         self.num_assignments = 0
-        self.transport_type = None                              # nuevo para JSON
-        self.request = "station"
-        self.stations = None
-        self.num_charges = 0
-        self.set("current_station", None)
-        self.current_station_dest = None
-
-        self.transport_in_station_place_event = asyncio.Event(loop=self.loop)
-
-        def transport_in_station_place_callback(old, new):
-            if not self.transport_in_station_place_event.is_set() and new is True:
-                self.transport_in_station_place_event.set()
-
-        self.transport_in_station_place_callback = transport_in_station_place_callback
+        self.transport_type = None
 
         # Customer in transport event
         self.customer_in_transport_event = asyncio.Event(loop=self.loop)
@@ -168,7 +144,6 @@ class TransportAgent(VehicleAgent):
         if data is None:
             data = {}
         msg = Message()
-        #msg.to = self.get("current_customer")
         msg.to = customer_id
         msg.set_metadata("protocol", TRAVEL_PROTOCOL)
         msg.set_metadata("performative", INFORM_PERFORMATIVE)

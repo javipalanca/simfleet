@@ -94,7 +94,6 @@ class BusCustomerAgent(PedestrianAgent):
 
             logger.success("Customer {} arrived to its destination {}".format(self.name, self.destination_stop[1]))
             self.set("arrived_to_destination", True)  # launch callback, awake FSMStrategyBehaviour
-            self.end_time = time.time()
 
     async def setup(self):
         """

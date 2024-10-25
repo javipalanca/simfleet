@@ -92,9 +92,6 @@ class BusCustomerRegisterToStopState(BusCustomerStrategyBehaviour):
 
     async def on_start(self):
         await super().on_start()
-        if self.agent.init_time is None:
-            self.agent.init_time = time.time()
-            logger.debug("Customer {}  begins in time {}".format(self.agent.name, self.agent.init_time))
         self.agent.status = CUSTOMER_IN_STOP
         logger.debug("Customer {} in CustomerRegisterToStopState".format(self.agent.name))
 
@@ -104,7 +101,7 @@ class BusCustomerRegisterToStopState(BusCustomerStrategyBehaviour):
         self.agent.arguments["jid"] = str(self.agent.jid)
         self.agent.arguments["destination_stop"] = self.agent.destination_stop[1]
 
-        content = {"line": self.agent.line, "object_type": "customer", "args": self.agent.arguments}  # Añadir lo que necesita
+        content = {"line": self.agent.line, "object_type": "customer", "args": self.agent.arguments}
         await self.register_to_stop(content)
         # Wait for registration acceptance
         msg = await self.receive(timeout=30)
@@ -271,12 +268,6 @@ class BusCustomerInTransportState(BusCustomerStrategyBehaviour):
         self.agent.status = CUSTOMER_IN_TRANSPORT
         logger.debug("Customer {} in CustomerInTransportState".format(self.agent.name))
         # Compute time waiting to board a transport
-        if self.agent.pickup_time is None:
-            self.agent.pickup_time = time.time()
-            self.agent.waiting_for_pickup_time = self.agent.pickup_time - self.agent.init_time
-            logger.debug("Customer {}  boards a transport in time {}".format(self.agent.name, self.agent.pickup_time))
-            logger.debug("Customer {}  waited for {} time units".format(self.agent.name,
-                                                                        self.agent.waiting_for_pickup_time))
 
     async def run(self):
         try:
@@ -284,7 +275,6 @@ class BusCustomerInTransportState(BusCustomerStrategyBehaviour):
             self.agent.customer_arrived_to_destination_event.clear()
             self.agent.watch_value("arrived_to_destination", self.agent.customer_arrived_to_destination_callback)
             await self.agent.customer_arrived_to_destination_event.wait()
-            logger.warning("DEPURACION STRATEGY - Status: {} ".format(self.agent.status))
             return self.set_next_state(CUSTOMER_IN_DEST)
         except Exception as e:
             logger.critical("Agent {}, Exception {} in CustomerInTransportState".format(self.agent.name, e))

@@ -6,6 +6,7 @@ from spade.behaviour import State, FSMBehaviour
 from simfleet.common.extensions.vehicles.models.vehicle import VehicleStrategyBehaviour
 from simfleet.utils.helpers import PathRequestException, AlreadyInDestination
 from simfleet.utils.utils_old import VEHICLE_WAITING, VEHICLE_MOVING_TO_DESTINATION, VEHICLE_IN_DEST
+from simfleet.utils.abstractstrategies import FSMStrategyBehaviour
 
 
 ################################################################
@@ -14,7 +15,7 @@ from simfleet.utils.utils_old import VEHICLE_WAITING, VEHICLE_MOVING_TO_DESTINAT
 #                                                              #
 ################################################################
 
-class OneShotVehicleWaitingState(VehicleStrategyBehaviour, State):
+class OneShotVehicleWaitingState(VehicleStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = VEHICLE_WAITING
@@ -42,7 +43,7 @@ class OneShotVehicleWaitingState(VehicleStrategyBehaviour, State):
                 return
 
 
-class OneShotVehicleMovingState(VehicleStrategyBehaviour, State):
+class OneShotVehicleMovingState(VehicleStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = VEHICLE_MOVING_TO_DESTINATION
@@ -77,7 +78,7 @@ class OneShotVehicleMovingState(VehicleStrategyBehaviour, State):
             return
 
 
-class OneShotVehicleInDestState(VehicleStrategyBehaviour, State):
+class OneShotVehicleInDestState(VehicleStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = VEHICLE_IN_DEST
@@ -87,7 +88,7 @@ class OneShotVehicleInDestState(VehicleStrategyBehaviour, State):
         logger.info("{} arrived at its destination".format(self.agent.jid))
 
 
-class FSMOneShotVehicleStrategyBehaviour(FSMBehaviour):
+class FSMOneShotVehicleStrategyBehaviour(FSMStrategyBehaviour):
     def setup(self):
         # Create states
         self.add_state(VEHICLE_WAITING, OneShotVehicleWaitingState(), initial=True)
@@ -119,7 +120,7 @@ class FSMOneShotVehicleStrategyBehaviour(FSMBehaviour):
 #                                                              #
 ################################################################
 
-class CycleVehicleWaitingState(VehicleStrategyBehaviour, State):
+class CycleVehicleWaitingState(VehicleStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = VEHICLE_WAITING
@@ -146,7 +147,7 @@ class CycleVehicleWaitingState(VehicleStrategyBehaviour, State):
                 return
 
 
-class CycleVehicleMovingState(VehicleStrategyBehaviour, State):
+class CycleVehicleMovingState(VehicleStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = VEHICLE_MOVING_TO_DESTINATION
@@ -181,7 +182,7 @@ class CycleVehicleMovingState(VehicleStrategyBehaviour, State):
             return
 
 
-class CycleVehicleInDestState(VehicleStrategyBehaviour, State):
+class CycleVehicleInDestState(VehicleStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = VEHICLE_IN_DEST
@@ -196,7 +197,7 @@ class CycleVehicleInDestState(VehicleStrategyBehaviour, State):
         self.set_next_state(VEHICLE_WAITING)
         return
 
-class FSMCycleVehicleStrategyBehaviour(FSMBehaviour):
+class FSMCycleVehicleStrategyBehaviour(FSMStrategyBehaviour):
     def setup(self):
         # Create states
         self.add_state(VEHICLE_WAITING, CycleVehicleWaitingState(), initial=True)

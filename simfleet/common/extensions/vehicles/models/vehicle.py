@@ -5,12 +5,11 @@ from asyncio import CancelledError
 
 from spade.message import Message
 from spade.template import Template
-from spade.behaviour import CyclicBehaviour
+from spade.behaviour import CyclicBehaviour, State
 
 from simfleet.common.movable import MovableMixin
 from simfleet.common.geolocatedagent import GeoLocatedAgent
-
-from simfleet.utils.utils_old import StrategyBehaviour
+#
 
 from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
@@ -208,7 +207,7 @@ class VehicleRegistrationBehaviour(CyclicBehaviour):
                 )
             )
 
-class VehicleStrategyBehaviour(StrategyBehaviour):
+class VehicleStrategyBehaviour(State):
     """
     This class defines the vehicle's behavior strategy. It is designed to be extended to implement
     custom strategies for vehicle operations.

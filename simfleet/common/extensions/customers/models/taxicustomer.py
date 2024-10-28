@@ -32,6 +32,7 @@ class TaxiCustomerAgent(CustomerAgent):
         CustomerAgent.__init__(self, agentjid, password)
 
         self.fleetmanagers = None
+        self.transport_assigned = None
 
 
     def set_fleetmanager(self, fleetmanagers):

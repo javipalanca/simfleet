@@ -25,17 +25,11 @@ class CustomerAgent(GeoLocatedAgent):
         requesting transport, tracking their destination, and interacting with assigned transport agents.
 
         Attributes:
-            transport_assigned (str): The ID of the assigned transport agent.
-            waiting_for_pickup_time (float): The time the customer has waited for pickup.
-            pickup_time (float): The time the customer is picked up by the transport.
             customer_dest (list): The destination coordinates of the customer.
     """
     def __init__(self, agentjid, password):
         super().__init__(agentjid, password)
 
-        self.transport_assigned = None
-        self.waiting_for_pickup_time = None
-        self.pickup_time = None
         self.customer_dest = None
 
     async def setup(self):
@@ -102,36 +96,6 @@ class CustomerAgent(GeoLocatedAgent):
         super().set_position(coords)
         self.set("current_pos", coords)
 
-    def get_waiting_time(self):
-        """
-        Calculates and returns the time the customer has been waiting for transport. This is calculated
-        from the time of creation until the customer is picked up or until the current time.
-
-        Returns:
-            float: The time the customer has been waiting for pickup.
-        """
-        if self.init_time:
-            if self.pickup_time:
-                t = self.pickup_time - self.init_time
-            elif not self.stopped:
-                t = time.time() - self.init_time
-                self.waiting_for_pickup_time = t
-            else:
-                t = self.waiting_for_pickup_time
-            return t
-        return None
-
-    def get_pickup_time(self):
-        """
-        Returns the time the customer has waited for pickup since they were assigned to a transport.
-
-        Returns:
-            float: The time the customer waited for transport pickup.
-        """
-        if self.pickup_time:
-            return self.pickup_time - self.waiting_for_pickup_time
-        return None
-
     def to_json(self):
         """
         Serializes the main information of a customer agent to a JSON format.
@@ -152,16 +116,16 @@ class CustomerAgent(GeoLocatedAgent):
                     "waiting": 13.45
                 }
         """
-        t = self.get_waiting_time()
+        #t = self.get_waiting_time()
         return {
             "id": self.agent_id,
             "position": [float("{0:.6f}".format(coord)) for coord in self.get("current_pos")],
             "dest": [float("{0:.6f}".format(coord)) for coord in self.customer_dest],
             "status": self.status,
-            "transport": self.transport_assigned.split("@")[0]
-            if self.transport_assigned
-            else None,
-            "waiting": float("{0:.2f}".format(t)) if t else None,
+            #"transport": self.transport_assigned.split("@")[0]
+            #if self.transport_assigned
+            #else None,
+            #"waiting": float("{0:.2f}".format(t)) if t else None,
             "icon": self.icon,
         }
 
@@ -196,7 +160,7 @@ class TravelBehaviour(CyclicBehaviour):
                 status = content["status"]
                 if status == CUSTOMER_LOCATION:
                     coords = content["location"]
-                    await self.agent.set_position(coords)       #FIX ERROR POSITION - Ok
+                    await self.agent.set_position(coords)
         except CancelledError:
             logger.debug("Cancelling async tasks...")
         except Exception as e:

@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import datetime
 from typing import Optional, List, Dict, Callable
+import time
 
 
 class Event:
@@ -16,12 +17,10 @@ class Event:
         self.timestamp = datetime.fromisoformat(timestamp) if timestamp else datetime.now()
         self.details = details if details else {}  # Corresponds to "details" in your logs
 
-    # Alternative - Erase
     def to_dict(self) -> Dict:
         """Convert the event to a dictionary."""
         return {
             "name": self.name,
-            #"timestamp": self.timestamp.isoformat(),
             "timestamp": self.timestamp,
             "event_type": self.event_type,
             "class_type": self.class_type,
@@ -67,10 +66,6 @@ class StatisticsStore:
         """
         Generates a partial log of all events associated with this agent.
         """
-
-        # Definicion aparte en la clase Statistics
-        # Calcular de DataTime a segundos el timestamp del agente utilizando el timestamp del agentesimulator
-
         return Log(self.all())
 
 
@@ -121,21 +116,6 @@ class Log:
         """Adds events from another log to this log."""
         self.events.extend(other_log.events)
 
-    # def adjust_timestamps(self, simulator_timestamp: str) -> None:
-    #     """
-    #     Adjusts the timestamps of all events to be relative to the provided simulator timestamp.
-    #
-    #     Args:
-    #         simulator_timestamp (str): The timestamp of the simulator in ISO format.
-    #     """
-    #     # Convert the simulator timestamp to a datetime object
-    #     simulator_time = datetime.fromisoformat(simulator_timestamp)
-    #
-    #     # Update each event's timestamp to be the difference in seconds from the simulator timestamp
-    #     for event in self.events:
-    #         delta = event.timestamp - simulator_time
-    #         event.timestamp = delta.total_seconds()
-
     def adjust_timestamps(self, simulator_timestamp: str) -> None:
         """
         Adjusts the timestamps of all events to be relative to the provided simulator timestamp.
@@ -144,17 +124,13 @@ class Log:
         Args:
             simulator_timestamp (str): The timestamp of the simulator in ISO format.
         """
-        # Convert the simulator timestamp to a datetime object
-        simulator_time = datetime.fromisoformat(simulator_timestamp)
+        # Convert the simulator timestamp
+        simulator_time = datetime.fromtimestamp(float(simulator_timestamp))
 
         for event in self.events:
-            # Check if the timestamp is already in seconds (i.e., it's a float)
             if isinstance(event.timestamp, float):
-                # If the timestamp is in seconds, adjust it relative to the simulator's timestamp
-                #event.timestamp -= simulator_time.timestamp()
                 event.timestamp = event.timestamp
             elif isinstance(event.timestamp, datetime):
-                # If the timestamp is a datetime, calculate the delta in seconds
                 delta = event.timestamp - simulator_time
                 event.timestamp = delta.total_seconds()
             else:
@@ -170,36 +146,6 @@ class Log:
         """
         self.events.sort(key=lambda event: event.timestamp, reverse=reverse)
 
-    # def to_dataframe(self, event_fields: List[str], details_fields: List[str]) -> pd.DataFrame:
-    #     """
-    #     Converts the log of events into a DataFrame, using the specified fields.
-    #
-    #     Args:
-    #         event_fields (List[str]): The fields of the event to include in the DataFrame.
-    #         details_fields (List[str]): The fields within the "details" to include in the DataFrame.
-    #
-    #     Returns:
-    #         pd.DataFrame: A DataFrame containing the specified event and details fields.
-    #     """
-    #     # Initialize an empty list to store processed event data
-    #     data = []
-    #
-    #     for event in self.events:
-    #         # Extract the specified fields from the event
-    #         row = {field: getattr(event, field, None) for field in event_fields}
-    #
-    #         # Extract the specified fields from the "details"
-    #         details_data = {field: event.details.get(field, None) for field in details_fields}
-    #
-    #         # Merge the event fields and details fields into a single row
-    #         row.update(details_data)
-    #
-    #         # Append the processed row to the data list
-    #         data.append(row)
-    #
-    #     # Create and return the DataFrame
-    #     return pd.DataFrame(data)
-
     def to_dataframe(self, event_fields: List[str], details_fields: List[str]) -> pd.DataFrame:
         """
         Converts the log of events into a DataFrame, using the specified fields.
@@ -214,27 +160,18 @@ class Log:
         # Initialize an empty list to store processed event data
         data = []
 
-        # Debugging: print events before processing
-        #print("Debug: Starting to convert events to DataFrame")
-
         for event in self.events:
             # Extract the specified fields from the event
             row = {}
             for field in event_fields:
                 row[field] = getattr(event, field, None)
-                # Debugging: print the extracted field and value
-                #print(f"Debug: Extracted {field} = {row[field]} from event")
-
             # Extract the specified fields from the "details"
             details_data = {}
+
             for field in details_fields:
                 details_data[field] = event.details.get(field, None)
-                # Debugging: print the extracted details field and value
-                #print(f"Debug: Extracted details {field} = {details_data[field]} from event details")
-
             # Merge the event fields and details fields into a single row
             row.update(details_data)
-
             # Append the processed row to the data list
             data.append(row)
 

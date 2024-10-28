@@ -8,14 +8,12 @@ from pathlib import Path
 from typing import List
 
 import faker
-import pandas as pd
 from aiohttp import web as aioweb
 from loguru import logger
 from spade.agent import Agent
 from spade.behaviour import TimeoutBehaviour, OneShotBehaviour, CyclicBehaviour
 from spade.template import Template
 from spade.message import Message
-from tabulate import tabulate
 
 from simfleet.common.agents.factory.create import CustomerFactory
 from simfleet.common.agents.factory.create import DirectoryFactory
@@ -24,7 +22,7 @@ from simfleet.common.agents.factory.create import StationFactory
 from simfleet.common.agents.factory.create import TransportFactory
 from simfleet.common.agents.factory.create import VehicleFactory
 from simfleet.common.agents.factory.create import TransportStopFactory
-from simfleet.utils.utils_old import status_to_str, avg, request_path as async_request_path
+from simfleet.utils.utils_old import request_path as async_request_path
 
 from simfleet.config.settings import set_default_strategies, set_default_metrics
 
@@ -85,10 +83,7 @@ class SimulatorAgent(Agent):
         self.lock = threading.RLock()
 
         self.events_log = None
-        self.simulatortimestamp = None
-
         self.default_strategies = {}
-
         self.delayed_launch_agents = {}
 
         logger.info("Starting SimFleet {}".format(self.pretty_name))
@@ -99,11 +94,10 @@ class SimulatorAgent(Agent):
                                                 config.transport_strategy,
                                                 config.customer_strategy,
                                                 config.station_strategy,
-                                                config.vehicle_strategy,  # New vehicle
-                                                config.bus_stop_strategy  # Bus line
+                                                config.vehicle_strategy,
+                                                config.bus_stop_strategy
                                                 )
 
-        #New statistics
         self.metrics_class = {}
 
         self.metrics_class = set_default_metrics(config.mobility_metrics)
@@ -202,7 +196,6 @@ class SimulatorAgent(Agent):
             time.sleep(0.1)
 
         # Bus line
-        # Add lines to the self.bus_lines dictionary
         logger.info("Loading lines...")
         for line in self.config["lines"]:
             line_id = line["id"]
@@ -393,9 +386,7 @@ class SimulatorAgent(Agent):
                                                 password=password,
                                                 position=position,
                                                 class_=class_,
-                                                # power=station["power"],
                                                 services=services,
-                                                # slots=station["slots"],
                                                 strategy=strategy,
                                             )
             self.set_icon(agent, icon, default="electric_station")
@@ -532,9 +523,6 @@ class SimulatorAgent(Agent):
         Starts the simulation
         """
 
-        #Save the simulator timestamp
-        self.simulatortimestamp = str(datetime.now())
-
         class RunBehaviour(OneShotBehaviour):
             async def run(self):
                 #  self.clear_stopped_agents()
@@ -617,11 +605,7 @@ class SimulatorAgent(Agent):
 
         self.stop_agents()
 
-        #self.generate_all_events()
-
         self.generate_metrics()
-
-        #self.print_stats()
 
         return super().stop()
 
@@ -644,9 +628,6 @@ class SimulatorAgent(Agent):
 
         if len(self.customer_agents) > 0:
 
-            #if not hasattr(self, 'events_log') or self.events_log is None:
-            #    self.events_log = Log()
-
             for customer in self.customer_agents.values():
 
                 event_storen = customer.events_store
@@ -656,9 +637,6 @@ class SimulatorAgent(Agent):
                 self.events_log.add_events(partial_log)
 
         if len(self.transport_agents) > 0:
-
-            #if not hasattr(self, 'events_log') or self.events_log is None:
-            #    self.events_log = Log()
 
             for transport in self.transport_agents.values():
 
@@ -670,9 +648,6 @@ class SimulatorAgent(Agent):
 
         if len(self.station_agents) > 0:
 
-            #if not hasattr(self, 'events_log') or self.events_log is None:
-            #    self.events_log = Log()
-
             for station in self.station_agents.values():
 
                 event_storen = station.events_store
@@ -681,23 +656,7 @@ class SimulatorAgent(Agent):
 
                 self.events_log.add_events(partial_log)
 
-        #if len(self.bus_stop_agents) > 0:
-
-        #    if not hasattr(self, 'events_log') or self.events_log is None:
-        #        self.events_log = Log()
-
-        #    for bus_stop in self.bus_stop_agents.values():
-
-        #        event_storen = bus_stop.events_store
-
-        #        partial_log = event_storen.generate_partial_log()
-
-        #        self.events_log.add_events(partial_log)
-
         if len(self.manager_agents) > 0:
-
-            #if not hasattr(self, 'events_log') or self.events_log is None:
-            #    self.events_log = Log()
 
             for manager in self.manager_agents.values():
 
@@ -707,196 +666,9 @@ class SimulatorAgent(Agent):
 
                 self.events_log.add_events(partial_log)
 
-        self.events_log.adjust_timestamps(simulator_timestamp=self.simulatortimestamp)
+        self.events_log.adjust_timestamps(simulator_timestamp=str(self.simulation_init_time))
 
         self.events_log.sort_by_timestamp(reverse=False)
-
-        #my_log_1 = self.events_log.all_events()
-        #self.save_log_to_file(my_log_1, "simfleet_log_all.json")
-
-
-    # def generate_all_events(self):
-    #
-    #     if len(self.customer_agents) > 0:
-    #
-    #         if not hasattr(self, 'events_log') or self.events_log is None:
-    #             self.events_log = Log()
-    #
-    #         for customer in self.customer_agents.values():
-    #
-    #             event_storen = customer.events_store
-    #
-    #             partial_log = event_storen.generate_partial_log()
-    #
-    #             self.events_log.add_events(partial_log)
-    #
-    #     if len(self.transport_agents) > 0:
-    #
-    #         if not hasattr(self, 'events_log') or self.events_log is None:
-    #             self.events_log = Log()
-    #
-    #         for transport in self.transport_agents.values():
-    #
-    #             event_storen = transport.events_store
-    #
-    #             partial_log = event_storen.generate_partial_log()
-    #
-    #             self.events_log.add_events(partial_log)
-    #
-    #     if len(self.station_agents) > 0:
-    #
-    #         if not hasattr(self, 'events_log') or self.events_log is None:
-    #             self.events_log = Log()
-    #
-    #         for station in self.station_agents.values():
-    #
-    #             event_storen = station.events_store
-    #
-    #             partial_log = event_storen.generate_partial_log()
-    #
-    #             self.events_log.add_events(partial_log)
-    #
-    #     #if len(self.bus_stop_agents) > 0:
-    #
-    #     #    if not hasattr(self, 'events_log') or self.events_log is None:
-    #     #        self.events_log = Log()
-    #
-    #     #    for bus_stop in self.bus_stop_agents.values():
-    #
-    #     #        event_storen = bus_stop.events_store
-    #
-    #     #        partial_log = event_storen.generate_partial_log()
-    #
-    #     #        self.events_log.add_events(partial_log)
-    #
-    #     if len(self.manager_agents) > 0:
-    #
-    #         if not hasattr(self, 'events_log') or self.events_log is None:
-    #             self.events_log = Log()
-    #
-    #         for manager in self.manager_agents.values():
-    #
-    #             event_storen = manager.events_store
-    #
-    #             partial_log = event_storen.generate_partial_log()
-    #
-    #             self.events_log.add_events(partial_log)
-    #
-    #     self.events_log.sort_by_timestamp(reverse=False)
-    #
-    #     self.events_log.adjust_timestamps(simulator_timestamp=self.simulatortimestamp)
-    #
-    #     #my_log_1 = self.events_log.all_events()
-    #     #self.save_log_to_file(my_log_1, "simfleet_log_all.json")
-
-
-    # New statistics
-    # Alternative - Erase
-    # def save_log_to_file(self, log: dict, file_path: str) -> None:
-    #     """
-    #     Save the log to a JSON file.
-    #
-    #     Args:
-    #         log (dict): The log dictionary to save
-    #         file_path (str): The file path where the log will be saved
-    #     """
-    #     with open(file_path, 'w') as f:
-    #         json.dump(log, f, indent=4)
-
-
-    # def collect_stats(self):
-    #     """
-    #     Collects stats from all participant agents and from the simulation and stores it in three dataframes.
-    #     """
-    #
-    #     (
-    #         df_avg,
-    #         self.transport_df,
-    #         self.customer_df,
-    #         self.manager_df,
-    #         self.station_df,
-    #     ) = self.get_stats_dataframes()
-    #
-    #     columns = []
-    #     if self.config.simulation_name:
-    #         df_avg["Simulation Name"] = self.config.simulation_name
-    #         columns = ["Simulation Name"]
-    #     columns += [
-    #         "Avg Customer Waiting Time",
-    #         "Avg Customer Total Time",
-    #         "Avg Transport Waiting Time",
-    #         "Avg Transport Charging Time",
-    #         "Avg Distance",
-    #         "Simulation Time",
-    #     ]
-    #     if self.config.max_time:
-    #         df_avg["Max Time"] = self.config.max_time
-    #         columns += ["Max Time"]
-    #     columns += ["Simulation Finished"]
-    #     self.df_avg = df_avg[columns]
-
-    # def print_stats(self):
-    #     """
-    #     Prints the dataframes collected by ``collect_stats``.
-    #     """
-    #     if self.df_avg is None:
-    #         self.collect_stats()
-    #
-    #     print("Simulation Results")
-    #     print(
-    #         tabulate(
-    #             self.df_avg, headers="keys", showindex=False, tablefmt="fancy_grid"
-    #         )
-    #     )
-    #     print("FleetManager stats")
-    #     print(
-    #         tabulate(
-    #             self.manager_df, headers="keys", showindex=False, tablefmt="fancy_grid"
-    #         )
-    #     )
-    #     print("Customer stats")
-    #     print(
-    #         tabulate(
-    #             self.customer_df, headers="keys", showindex=False, tablefmt="fancy_grid"
-    #         )
-    #     )
-    #     print("Transport stats")
-    #     print(
-    #         tabulate(
-    #             self.transport_df,
-    #             headers="keys",
-    #             showindex=False,
-    #             tablefmt="fancy_grid",
-    #         )
-    #     )
-    #     print("Station stats")
-    #     print(
-    #         tabulate(
-    #             self.station_df, headers="keys", showindex=False, tablefmt="fancy_grid"
-    #         )
-    #     )
-    #     # Bus line
-    #     print("Bus stop stats")
-    #     print(
-    #         tabulate(
-    #             self.bus_stop_df, headers="keys", showindex=False, tablefmt="fancy_grid"
-    #         )
-    #     )
-
-    # def write_file(self, filename, fileformat="json"):
-    #     """
-    #     Writes the dataframes collected by ``collect_stats`` in JSON or Excel format.
-    #
-    #     Args:
-    #         filename (str): name of the output file to be written.
-    #         fileformat (str): format of the output file. Choices: json or excel
-    #     """
-    #     if self.df_avg is None:
-    #         self.collect_stats()
-    #     if fileformat == "json":
-    #         self.write_json(filename)
-    #     elif fileformat == "excel":
-    #         self.write_excel(filename)
 
     def write_file(self, filename):
         """
@@ -906,15 +678,6 @@ class SimulatorAgent(Agent):
             filename (str): name of the output file to be written.
             fileformat (str): format of the output file. Choices: json or excel
         """
-        # if self.df_avg is None:
-        #     self.collect_stats()
-        # if fileformat == "json":
-        #     self.write_json(filename)
-        # elif fileformat == "excel":
-        #     self.write_excel(filename)
-
-        #if self.events_log is None:
-        #    self.generate_all_events()
 
         self.generate_all_events()
         log_events = self.events_log.all_events()
@@ -924,42 +687,6 @@ class SimulatorAgent(Agent):
             json.dump(log_events, f, indent=4)
 
 
-    # def write_json(self, filename):
-    #     """
-    #     Writes the collected data by ``collect_stats`` in a json file.
-    #
-    #     Args:
-    #         filename (str): name of the json file.
-    #     """
-    #     data = {
-    #         "simulation": json.loads(self.df_avg.to_json(orient="index"))["0"],
-    #         "customers": json.loads(self.customer_df.to_json(orient="index")),
-    #         "transports": json.loads(self.transport_df.to_json(orient="index")),
-    #         "managers": json.loads(self.manager_df.to_json(orient="index")),
-    #         "stations": json.loads(self.station_df.to_json(orient="index")),
-    #         # Bus line
-    #         "stops": json.loads(self.bus_stop_df.to_json(orient="index"))
-    #     }
-    #
-    #     with open(filename, "w") as f:
-    #         f.seek(0)
-    #         json.dump(data, f, indent=4)
-
-    # def write_excel(self, filename):
-    #     """
-    #     Writes the collected data by ``collect_stats`` in an excel file.
-    #
-    #     Args:
-    #         filename (str): name of the excel file.
-    #     """
-    #     writer = pd.ExcelWriter(filename)
-    #     self.df_avg.to_excel(writer, "Simulation")
-    #     self.manager_df.to_excel(writer, "FleetManagers")
-    #     self.customer_df.to_excel(writer, "Customers")
-    #     self.transport_df.to_excel(writer, "Transports")
-    #     # Bus line
-    #     self.bus_stop_df.to_excel(writer, "Stops")
-    #     writer.save()
 
     # ////////////////////////////////////////////////////////////
 
@@ -1200,81 +927,30 @@ class SimulatorAgent(Agent):
             dict: a dict with the total time, waiting time, is_running and finished values
 
         """
-        if len(self.customer_agents) > 0:
-            waiting = avg(
-                [
-                    customer.get_waiting_time()
-                    for customer in self.customer_agents.values()
-                ]
-            )
-            total = avg(
-                [
-                    customer.total_time()
-                    for customer in self.customer_agents.values()
-                    if customer.total_time()
-                ]
-            )
-        else:
-            waiting, total = 0, 0
 
-        if len(self.transport_agents) > 0:
-            distance = avg(
-                [
-                    sum(transport.distances)
-                    for transport in self.transport_agents.values()
-                ]
-            )
-        else:
-            distance = 0
+        waiting = self.get_waiting_time()
 
         return {
-            "waiting": "{0:.2f}".format(waiting),
-            "totaltime": "{0:.2f}".format(total),
-            "distance": "{0:.2f}".format(distance),
+            "waiting": "{0:.2f}".format(waiting if waiting is not None else 0.0),
+            "totaltime": "{0:.2f}".format(waiting if waiting is not None else 0.0),
             "finished": self.is_simulation_finished(),
             "is_running": self.simulation_running,
         }
 
-    #def all_customers_in_destination(self):
-    #    """
-    #    Checks whether the simulation has finished or not.
-    #    A simulation is finished if all customers are at their destinations.
-    #    If there is no customers the simulation is not finished.
+    def get_waiting_time(self):
+        """
+        Calculates and returns the time the customer has been waiting for transport. This is calculated
+        from the time of creation until the customer is picked up or until the current time.
 
-    #    Returns:`
-    #        bool: whether the simulation has finished or not.
-    #    """
-    #    if len(self.customer_agents) > 0:
-    #        return all(
-    #            [
-    #                customer.is_in_destination()
-    #                for customer in self.customer_agents.values()
-    #            ]
-    #        )
-    #    else:
-    #        return False
+        Returns:
+            float: The time the customer has been waiting for pickup.
+        """
+        if self.simulation_init_time:
+            t = time.time() - self.simulation_init_time
+            return t
+        return None
 
-    # New vehicle
-    #def all_vehicles_in_destination(self):
-    #    """
-    #    Checks whether the simulation has finished or not.
-    #    A simulation is finished if all customers are at their destinations.
-    #    If there is no customers the simulation is not finished.
 
-    #    Returns:`
-    #        bool: whether the simulation has finished or not.
-    #    """
-    #    if len(self.vehicle_agents) > 0:
-    #        return all(
-    #            [
-    #                vehicle.is_in_destination()
-    #                for vehicle in self.vehicle_agents.values()
-    #            ]
-    #        )
-    #    else:
-    #        return False
-
-    # New function - comprobar si esta todos los agentes parados
     def all_agents_stopped(self):
         """
         Checks whether all agents have finished or not.
@@ -1355,77 +1031,6 @@ class SimulatorAgent(Agent):
         await asyncio.gather(*coroutines)
         return {"status": "done"}
 
-    # async def download_stats_excel_controller(self, request):
-    #     """
-    #     Web controller that returns an Excel file with the simulation results.
-    #
-    #     Returns:
-    #         Response: a Response of type "attachment" with the file content.
-    #     """
-    #     headers = {"Content-Disposition": "Attachment; filename=simulation.xlsx"}
-    #
-    #     output = io.BytesIO()
-    #
-    #     # Use a temp filename to keep pandas happy.
-    #     writer = pd.ExcelWriter(output, engine="xlsxwriter")
-    #
-    #     # Write the data frame to the StringIO object.
-    #     (
-    #         df_avg,
-    #         transport_df,
-    #         customer_df,
-    #         manager_df,
-    #         stations_df,
-    #         # Bus line
-    #         stops_df
-    #     ) = self.get_stats_dataframes()
-    #     df_avg.to_excel(writer, sheet_name="Simulation")
-    #     customer_df.to_excel(writer, sheet_name="Customers")
-    #     transport_df.to_excel(writer, sheet_name="Transports")
-    #     manager_df.to_excel(writer, sheet_name="FleetManagers")
-    #     stations_df.to_excel(writer, sheet_name="Stations")
-    #     # Bus line
-    #     stops_df.to_excel(writer, sheet_name="Stops")
-    #     writer.save()
-    #     xlsx_data = output.getvalue()
-    #
-    #     return aioweb.Response(body=xlsx_data, headers=headers)
-
-    # async def download_stats_json_controller(self, request):
-    #     """
-    #     Web controller that returns a JSON file with the simulation results.
-    #
-    #     Returns:
-    #         Response: a Response of type "attachment" with the file content.
-    #     """
-    #     headers = {"Content-Disposition": "Attachment; filename=simulation.json"}
-    #
-    #     output = io.StringIO()
-    #
-    #     # Write the data frame to the StringIO object.
-    #     (
-    #         df_avg,
-    #         transport_df,
-    #         customer_df,
-    #         manager_df,
-    #         stations_df,
-    #         # Bus line
-    #         stops_df
-    #     ) = self.get_stats_dataframes()
-    #
-    #     data = {
-    #         "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
-    #         "customers": json.loads(customer_df.to_json(orient="index")),
-    #         "transports": json.loads(transport_df.to_json(orient="index")),
-    #         "fleetmanagers": json.loads(manager_df.to_json(orient="index")),
-    #         "stations": json.loads(stations_df.to_json(orient="index")),
-    #         # Bus line
-    #         "stops": json.loads(stops_df.to_json(orient="index")),
-    #     }
-    #
-    #     json.dump(data, output, indent=4)
-    #
-    #     return aioweb.Response(body=output.getvalue(), headers=headers)
 
     async def download_events_json_controller(self, request):
         """
@@ -1440,30 +1045,8 @@ class SimulatorAgent(Agent):
 
         self.generate_all_events()
 
-        # Write the data frame to the StringIO object.
-        # (
-        #     df_avg,
-        #     transport_df,
-        #     customer_df,
-        #     manager_df,
-        #     stations_df,
-        #     # Bus line
-        #     stops_df
-        # ) = self.get_stats_dataframes()
-        #
-        # data = {
-        #     "simulation": json.loads(df_avg.to_json(orient="index"))["0"],
-        #     "customers": json.loads(customer_df.to_json(orient="index")),
-        #     "transports": json.loads(transport_df.to_json(orient="index")),
-        #     "fleetmanagers": json.loads(manager_df.to_json(orient="index")),
-        #     "stations": json.loads(stations_df.to_json(orient="index")),
-        #     # Bus line
-        #     "stops": json.loads(stops_df.to_json(orient="index")),
-        # }
-
         log_events = self.events_log.all_events()
 
-        #json.dump(data, output, indent=4)
         json.dump(log_events, output, indent=4)
 
         return aioweb.Response(body=output.getvalue(), headers=headers)
@@ -1476,8 +1059,7 @@ class SimulatorAgent(Agent):
         self.set("transport_agents", {})
         self.set("customer_agents", {})
         self.set("station_agents", {})
-        self.set("vehicle_agents", {})  #New vehicle
-        # Bus line
+        self.set("vehicle_agents", {})
         self.set("bus_stop_agents", {})
         self.set("bus_lines", {})
         self.simulation_time = None
@@ -1560,295 +1142,8 @@ class SimulatorAgent(Agent):
             for name, agent in self.bus_stop_agents.items():
                 logger.debug("Stopping stop {}".format(name))
                 results.append(agent.stop())
-                agent.stopped = True
+                #agent.stopped = True
         return results
-
-    # def get_manager_stats(self):
-    #     """
-    #     Creates a dataframe with the simulation stats of the customers
-    #     The dataframe includes for each customer its name, waiting time, total time and status.
-    #
-    #     Returns:
-    #         ``pandas.DataFrame``: the dataframe with the customers stats.
-    #     """
-    #     try:
-    #         names, quantities, types = zip(
-    #             *[
-    #                 (manager.name, manager.transports_in_fleet, manager.fleet_type)
-    #                 for manager in self.manager_agents.values()
-    #             ]
-    #         )
-    #     except ValueError:
-    #         names, quantities, types = [], [], []
-    #
-    #     df = pd.DataFrame.from_dict(
-    #         {"fleet_name": names, "transports_in_fleet": quantities, "type": types}
-    #     )
-    #     return df
-
-    # def get_customer_stats(self):
-    #     """
-    #     Creates a dataframe with the simulation stats of the customers
-    #     The dataframe includes for each customer its name, waiting time, total time and status.
-    #
-    #     Returns:
-    #         ``pandas.DataFrame``: the dataframe with the customers stats.
-    #     """
-    #     try:
-    #         names, waitings, totals, statuses = zip(
-    #             *[
-    #                 (
-    #                     p.name,
-    #                     p.get_waiting_time(),
-    #                     p.total_time(),
-    #                     status_to_str(p.status),
-    #                 )
-    #                 for p in self.customer_agents.values()
-    #             ]
-    #         )
-    #     except ValueError:
-    #         names, waitings, totals, statuses = [], [], [], []
-    #
-    #     df = pd.DataFrame.from_dict(
-    #         {
-    #             "name": names,
-    #             "waiting_time": waitings,
-    #             "total_time": totals,
-    #             "status": statuses,
-    #         }
-    #     )
-    #     return df
-
-    # def get_transport_stats(self):
-    #     """
-    #     Creates a dataframe with the simulation stats of the transports
-    #     The dataframe includes for each transport its name, assignments, traveled distance and status.
-    #
-    #     Returns:
-    #         ``pandas.DataFrame``: the dataframe with the transports stats.
-    #     """
-    #     try:
-    #         (
-    #             names,
-    #             assignments,
-    #             distances,
-    #             waiting_in_station_time,
-    #             charging_time,
-    #             statuses,
-    #         ) = zip(
-    #             *[
-    #                 (
-    #                     t.name,
-    #                     t.num_assignments,
-    #                     "{0:.2f}".format(sum(t.distances)),
-    #                     "{0:.2f}".format(t.total_waiting_time),
-    #                     "{0:.2f}".format(t.total_charging_time),
-    #                     status_to_str(t.status),
-    #                 )
-    #                 for t in self.transport_agents.values()
-    #             ]
-    #         )
-    #     except ValueError:
-    #         (
-    #             names,
-    #             assignments,
-    #             distances,
-    #             waiting_in_station_time,
-    #             charging_time,
-    #             statuses,
-    #         ) = ([], [], [], [], [])
-    #     df = pd.DataFrame.from_dict(
-    #         {
-    #             "name": names,
-    #             "assignments": assignments,
-    #             "distance": distances,
-    #             "waiting_in_station_time": waiting_in_station_time,
-    #             "charging_time": charging_time,
-    #             "status": statuses,
-    #         }
-    #     )
-    #     return df
-
-    # def get_station_stats(self):
-    #     """
-    #     Creates a dataframe with the simulation stats of the customers
-    #     The dataframe includes for each customer its name, waiting time, total time and status.
-    #
-    #     Returns:
-    #         ``pandas.DataFrame``: the dataframe with the customers stats.
-    #     """
-    #     try:
-    #         avg_busy_time = []
-    #         for p in self.station_agents.values():
-    #             if p.charged_transports > 0:
-    #                 avg_busy_time.append(
-    #                     "{0:.2f}".format(p.total_busy_time / p.charged_transports)
-    #                 )
-    #             else:
-    #                 avg_busy_time.append(0)
-    #
-    #         (
-    #             names,
-    #             status,
-    #             places,
-    #             power,
-    #             charged_transports,
-    #             max_queue_length,
-    #             total_busy_time,
-    #         ) = zip(
-    #             *[
-    #                 (
-    #                     p.name,
-    #                     p.status,
-    #                     #p.available_places,
-    #                     #p.get_slot_number_used(p.get_service_type()),           #CHECK FRONTED
-    #                     p.power,
-    #                     p.charged_transports,
-    #                     p.max_queue_length,
-    #                     "{0:.2f}".format(p.total_busy_time),
-    #                 )
-    #                 for p in self.station_agents.values()
-    #             ]
-    #         )
-    #
-    #     except ValueError:
-    #         (
-    #             names,
-    #             status,
-    #             places,
-    #             power,
-    #             charged_transports,
-    #             max_queue_length,
-    #             total_busy_time,
-    #             avg_busy_time,
-    #         ) = ([], [], [], [], [], [], [], [])
-    #
-    #     df = pd.DataFrame.from_dict(
-    #         {
-    #             "name": names,
-    #             "status": status,
-    #             "available_places": places,
-    #             "power": power,
-    #             "charged_transports": charged_transports,
-    #             "max_queue_length": max_queue_length,
-    #             "total_busy_time": total_busy_time,
-    #             "avg_busy_time": avg_busy_time,
-    #         }
-    #     )
-    #     return df
-
-    # Bus line
-    # def get_bus_stop_stats(self):
-    #     """
-    #     Creates a dataframe with the simulation stats of the bus stops
-    #     The dataframe includes for each stop its id, name, , total time and status.
-    #
-    #     Returns:
-    #         ``pandas.DataFrame``: the dataframe with the customers stats.
-    #     """
-    #     try:
-    #         (
-    #             agent_id,
-    #             names,
-    #             lines,
-    #             max_customers,
-    #             total_customers
-    #         ) = zip(
-    #             *[
-    #                 (
-    #                     bs.agent_id,
-    #                     bs.stop_name,
-    #                     bs.lines,
-    #                     "{:2d}".format(max(bs.num_customers)),
-    #                     "{:2d}".format(bs.total_customers)
-    #                 )
-    #                 for bs in self.bus_stop_agents.values()
-    #             ]
-    #         )
-    #
-    #     except ValueError:
-    #         (
-    #             agent_id,
-    #             names,
-    #             lines,
-    #             max_customers,
-    #             total_customers
-    #         ) = ([], [], [], [], [])
-    #
-    #     df = pd.DataFrame.from_dict(
-    #         {
-    #             "id": agent_id,
-    #             "name": names,
-    #             "lines": lines,
-    #             "max_customers": max_customers,
-    #             "total_customers": total_customers
-    #         }
-    #     )
-    #     return df
-
-    # def get_stats_dataframes(self):
-    #     """
-    #     Collects simulation stats and returns 3 dataframes with the information:
-    #     A general dataframe with the average information, a dataframe with the transport's information
-    #     and a dataframe with the customer's information.
-    #     Returns:
-    #         pandas.Dataframe, pandas.Dataframe, pandas.Dataframe: avg df, transport df and customer df
-    #     """
-    #     manager_df = self.get_manager_stats()
-    #     manager_df = manager_df[["fleet_name", "transports_in_fleet", "type"]]
-    #     customer_df = self.get_customer_stats()
-    #     customer_df = customer_df[["name", "waiting_time", "total_time", "status"]]
-    #     transport_df = self.get_transport_stats()
-    #     transport_df = transport_df[
-    #         [
-    #             "name",
-    #             "assignments",
-    #             "distance",
-    #             "waiting_in_station_time",
-    #             "charging_time",
-    #             "status",
-    #         ]
-    #     ]
-    #     station_df = self.get_station_stats()
-    #     station_df = station_df[
-    #         [
-    #             "name",
-    #             "status",
-    #             "available_places",
-    #             "power",
-    #             "charged_transports",
-    #             "max_queue_length",
-    #             "total_busy_time",
-    #             "avg_busy_time",
-    #         ]
-    #     ]
-    #
-    #     stats = self.get_stats()
-    #
-    #     df_avg = pd.DataFrame.from_dict(
-    #         {
-    #             "Avg Customer Waiting Time": [stats["waiting"]],
-    #             "Avg Customer Total Time": [stats["totaltime"]],
-    #             "Avg Transport Waiting Time": [stats["t_waiting"]],
-    #             "Avg Transport Charging Time": [stats["t_charging"]],
-    #             "Avg Distance": [stats["distance"]],
-    #             "Simulation Finished": [stats["finished"]],
-    #             "Simulation Time": [self.get_simulation_time()],
-    #         }
-    #     )
-    #     columns = [
-    #         "Avg Customer Waiting Time",
-    #         "Avg Customer Total Time",
-    #         "Avg Transport Waiting Time",
-    #         "Avg Transport Charging Time",
-    #         "Avg Distance",
-    #         "Simulation Time",
-    #         "Simulation Finished",
-    #     ]
-    #
-    #     df_avg = df_avg[columns]
-    #
-    #     return df_avg, transport_df, customer_df, manager_df, station_df
 
     async def async_start_agent(self, agent):
         await agent.start()
@@ -1892,7 +1187,6 @@ class SimulatorAgent(Agent):
                                fleet_type,
                                position,
                                service,
-                               # fleetmanager,
                                strategy=None,
                                autonomy=None,
                                current_autonomy=None,
@@ -1915,7 +1209,6 @@ class SimulatorAgent(Agent):
                                               default_strategy=self.default_strategies['transport'],
                                               position=position,
                                               services=service,
-                                              # fleetmanager=fleetmanager,
                                               autonomy=autonomy,
                                               current_autonomy=current_autonomy,
                                               speed=speed,
@@ -2000,17 +1293,13 @@ class SimulatorAgent(Agent):
 
         return agent
 
-    #New vehicle
     def create_vehicle_agent(self,
                             name,
                             password,
                             fleet_type,
-                            # fleetmanager,
                             position,
                             strategy=None,
                             speed=None,
-                            # autonomy=None,
-                            # current_autonomy=None,
                             delayed=False,
                             target=None,
                             ):
@@ -2022,11 +1311,8 @@ class SimulatorAgent(Agent):
                                             strategy=strategy,
                                             jid_directory=self.get_directory().jid,
                                             bbox=self.config.coords[1],
-                                            # fleetmanager=fleetmanager,
                                             fleet_type=fleet_type,
                                             route_host=self.route_host,
-                                            # autonomy=autonomy,
-                                            # current_autonomy=current_autonomy,
                                             position=position,
                                             speed=speed,
                                             target=target,
@@ -2122,7 +1408,6 @@ class SimulatorAgent(Agent):
         with self.simulation_mutex:
             self.get("station_agents")[agent.name] = agent
 
-    #New vehicle
     def add_vehicle(self, agent):
         """
         Adds a new :class:`VehicleAgent` to the store.
@@ -2220,10 +1505,8 @@ class CoordinationBehaviour(CyclicBehaviour):
             user_agent_id = json.loads(msg.body)["user_agent_id"][0]
             host = json.loads(msg.body)["user_agent_id"][1]
             object_type = json.loads(msg.body)["object_type"]
-            #user_agent_id = user_agent_id[0]+"@"+user_agent_id[1]
 
 
-            #request = msg.body
             if performative == REQUEST_PERFORMATIVE:
 
                 logger.info(
@@ -2236,54 +1519,20 @@ class CoordinationBehaviour(CyclicBehaviour):
 
                     for transport in self.agent.transport_agents.values():
 
-                        # DEPURACION
-                        logger.warning(
-                            "Modificacion de user_agent_id: {} y transport.get_id(): {}".format(
-                                user_agent_id, transport.get_id()
-                            )
-                        )
-
                         if transport.get_id() == user_agent_id:
                             agent_position = transport.get_position()
                             send_agent_id = user_agent_id + "@" + host
 
-                            # DEPURACION
-                            logger.warning(
-                                "SIMULATOR - Agent: {} send msg to {} of transport_agent: {} - {} with agent_position: {}".format(
-                                    self.agent.name, agent_id, send_agent_id, transport.get_id(), agent_position
-                                )
-                            )
-
                             content = {"agent_position": agent_position, "user_agent_id": send_agent_id}
                             await self.inform_agent_position(agent_id, content)
-
-                            logger.debug(
-                                "SimulatorAgent {} send msg to {}".format(
-                                    self.agent.name, agent_id
-                                )
-                            )
 
                 if object_type == "customer":
 
                     for customer in self.agent.customer_agents.values():
 
-                        # DEPURACION
-                        logger.warning(
-                            "Modificacion de user_agent_id: {} y transport.get_id(): {}".format(
-                                user_agent_id, customer.get_id()
-                            )
-                        )
-
                         if customer.get_id() == user_agent_id:
                             agent_position = customer.get_position()
                             send_agent_id = user_agent_id + "@" + host
-
-                            # DEPURACION
-                            logger.warning(
-                                "SIMULATOR - Agent: {} send msg to {} of transport_agent: {} - {} with agent_position: {}".format(
-                                    self.agent.name, agent_id, send_agent_id, customer.get_id(), agent_position
-                                )
-                            )
 
                             content = {"agent_position": agent_position, "user_agent_id": send_agent_id}
                             await self.inform_agent_position(agent_id, content)
@@ -2293,6 +1542,3 @@ class CoordinationBehaviour(CyclicBehaviour):
                                     self.agent.name, agent_id
                                 )
                             )
-
-                        #Enviar un mensaje a la estacion
-

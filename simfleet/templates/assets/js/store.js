@@ -126,8 +126,6 @@ let update_station_in_collection = function (collection, item, get_popup) {
     }
     else {
         collection[p].popup = get_popup(item);
-        collection[p].power = item.power;
-        collection[p].places = item.places;
         collection[p].status = item.status;
         item.icon_url = item.icon;
         if(item.icon) {
@@ -204,7 +202,5 @@ function station_popup(station) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" +
         "<tr><th>STATUS</th><td>" + station.status + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" +
-        "<tr><th>POWERCHARGE</th><td>" + station.power + 'kW' + "</td></tr>" +
-        "<tr><th>PLACES</th><td>" + station.places + "</td></tr>" +
         "</table>"
 }

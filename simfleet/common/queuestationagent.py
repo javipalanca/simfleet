@@ -201,6 +201,10 @@ class QueueStationAgent(GeoLocatedAgent):
         reply.body = json.dumps(content)
         await self.send(reply)
 
+    def to_json(self):
+        data = super().to_json()
+        return data
+
 
     # Queue management for agents requesting services
     class QueueBehaviour(CyclicBehaviour):

@@ -75,6 +75,10 @@ class ServiceStationAgent(QueueStationAgent):
             return False
         return True
 
+    def to_json(self):
+        data = super().to_json()
+        return data
+
 
     class ServiceRunBehaviour(CyclicBehaviour):
 

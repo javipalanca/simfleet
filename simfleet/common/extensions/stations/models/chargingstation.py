@@ -43,32 +43,8 @@ class ChargingStationAgent(ServiceStationAgent):
             self.running_strategy = True
 
     def to_json(self):
-        """
-        Serializes the main information of a station agent to a JSON format.
-        It includes the id of the agent, its current position, the destination coordinates of the agent,
-        the current status, the transport that it has assigned (if any) and its waiting time.
-
-        Returns:
-            dict: a JSON doc with the main information of the station.
-
-            Example::
-
-                {
-                    "id": "cphillips",
-                    "position": [ 39.461327, -0.361839 ],
-                    "status": True,
-                    "places": 10,
-                    "power": 10
-                }
-        """
-        return {
-            "id": self.agent_id,
-            "position": self.get("current_pos"),
-            "status": self.status,
-            #"places": self.get_slot_number_used(self.get_service_type()),      #CHECK FRONTEND
-            #"power": self.power,
-            "icon": self.icon,
-        }
+        data = super().to_json()
+        return data
 
 
     async def setup(self):

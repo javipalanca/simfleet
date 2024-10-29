@@ -225,70 +225,12 @@ class TransportAgent(VehicleAgent):
                 )
 
     def to_json(self):
-        """
-        Serializes the main information of a transport agent to a JSON format.
-        It includes the id of the agent, its current position, the destination coordinates of the agent,
-        the current status, the speed of the transport (in km/h), the path it is following (if any), the customer that it
-        has assigned (if any), the number of assignments if has done and the distance that the transport has traveled.
+        data = super().to_json()
 
-        Returns:
-            dict: a JSON doc with the main information of the transport.
-
-            Example::
-
-                {
-                    "id": "cphillips",
-                    "position": [ 39.461327, -0.361839 ],
-                    "dest": [ 39.460599, -0.335041 ],
-                    "status": 24,
-                    "speed": 1000,
-                    "path": [[0,0], [0,1], [1,0], [1,1], ...],
-                    "customer": "ghiggins@127.0.0.1",
-                    "assignments": 2,
-                    "distance": 3481.34
-                }
-        """
-        # MOD-STRATEGY-02 - modify
-        customers = self.get("current_customer")
-        if len(customers) != 0:
-            customer_id = next(iter(customers.items()))[0]
-        else:
-            customer_id = None
-
-        return {
-            "id": self.agent_id,
-            "position": [
-                float("{0:.6f}".format(coord)) for coord in self.get("current_pos")
-            ],
-            "dest": [float("{0:.6f}".format(coord)) for coord in self.dest]
-            if self.dest
-            else None,
-            "status": self.status,
-            "speed": float("{0:.2f}".format(self.animation_speed))
-            if self.animation_speed
-            else None,
-            "path": self.get("path"),
-            #"customer": self.get("current_customer").split("@")[0]         # MOD-STRATEGY-02 - modify
-            #if self.get("current_customer")                                # MOD-STRATEGY-02 - modify
-            "customer": customer_id.split("@")[0]
-            if customer_id
-            else None,
+        data.update({
             "assignments": self.num_assignments,
-            "distance": "{0:.2f}".format(sum(self.distances)),
-            #"autonomy": self.current_autonomy_km,          #CHANGE THE to_json with inheritance
-            #"autonomy": self.current_autonomy_km
-            #if self.current_autonomy_km
-            #else None,
-            #"max_autonomy": self.max_autonomy_km,          #CHANGE THE to_json with inheritance
-            #"max_autonomy": self.max_autonomy_km
-            #if self.max_autonomy_km
-            #else None,
-            "service": self.fleet_type,
-            "fleet": self.fleetmanager_id.split("@")[0]
-            if self.fleetmanager_id
-            else None,
-            "icon": self.icon,
-        }
+        })
+        return data
 
 class RegistrationBehaviour(CyclicBehaviour):
     async def on_start(self):

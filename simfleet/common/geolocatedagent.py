@@ -87,6 +87,14 @@ class GeoLocatedAgent(SimfleetAgent):
         """
         return self.get("current_pos")
 
+    def to_json(self):
+        data = super().to_json()  # Call to to_json of SimfleetAgent
+        data.update({
+            "position": [float("{0:.6f}".format(coord)) for coord in self.get("current_pos")],
+            "icon": self.icon,
+        })
+        return data
+
     def near_agent(self, coords_1, coords_2):
         """
             Determines if two agents are near each other, within 100 meters.

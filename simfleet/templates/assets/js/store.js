@@ -186,8 +186,6 @@ function customer_popup(customer) {
         "<tr><th>STATUS</th><td>" + customer.status + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + customer.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + customer.dest + "</td></tr>" +
-        "<tr><th>TRANSPORT</th><td>" + customer.transport + "</td></tr>" +
-        "<tr><th>WAITING</th><td>" + customer.waiting + "</td></tr>" +
         "</table>"
 }
 

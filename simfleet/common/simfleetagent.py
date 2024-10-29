@@ -183,6 +183,15 @@ class SimfleetAgent(Agent):
         """
         self.directory_id = directory_id
 
+    def to_json(self):
+        """
+        Serialises the basic information of a Simfleet agent to a JSON format.
+        This function is the basis for JSON representations of specific subclasses.
+        """
+        return {
+            "id": self.agent_id,
+            "status": self.status,
+        }
 
     def total_time(self):
         """

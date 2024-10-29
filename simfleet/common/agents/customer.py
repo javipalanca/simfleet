@@ -97,37 +97,11 @@ class CustomerAgent(GeoLocatedAgent):
         self.set("current_pos", coords)
 
     def to_json(self):
-        """
-        Serializes the main information of a customer agent to a JSON format.
-        It includes the id of the agent, its current position, the destination coordinates of the agent,
-        the current status, the transport that it has assigned (if any) and its waiting time.
-
-        Returns:
-            dict: a JSON doc with the main information of the customer.
-
-            Example::
-
-                {
-                    "id": "cphillips",
-                    "position": [ 39.461327, -0.361839 ],
-                    "dest": [ 39.460599, -0.335041 ],
-                    "status": 24,
-                    "transport": "ghiggins@127.0.0.1",
-                    "waiting": 13.45
-                }
-        """
-        #t = self.get_waiting_time()
-        return {
-            "id": self.agent_id,
-            "position": [float("{0:.6f}".format(coord)) for coord in self.get("current_pos")],
+        data = super().to_json()
+        data.update({
             "dest": [float("{0:.6f}".format(coord)) for coord in self.customer_dest],
-            "status": self.status,
-            #"transport": self.transport_assigned.split("@")[0]
-            #if self.transport_assigned
-            #else None,
-            #"waiting": float("{0:.2f}".format(t)) if t else None,
-            "icon": self.icon,
-        }
+        })
+        return data
 
 
 class TravelBehaviour(CyclicBehaviour):

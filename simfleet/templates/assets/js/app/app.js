@@ -999,7 +999,7 @@ let statuses = {
 };
 
 function customer_popup(customer) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + customer.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + customer.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + customer.position + "</td></tr>" + "<tr><th>DEST</th><td>" + customer.dest + "</td></tr>" + "<tr><th>TRANSPORT</th><td>" + customer.transport + "</td></tr>" + "<tr><th>WAITING</th><td>" + customer.waiting + "</td></tr>" + "</table>";
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + customer.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + customer.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + customer.position + "</td></tr>" + "<tr><th>DEST</th><td>" + customer.dest + "</td></tr>" + "</table>";
 }
 
 function transport_popup(transport) {

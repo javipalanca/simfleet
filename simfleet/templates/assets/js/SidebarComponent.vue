@@ -66,8 +66,7 @@
                                     <span class="caret"></span>
                                   </button>
                                   <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
-                                    <li><a href="/download/excel/">Excel</a></li>
-                                    <li><a href="/download/json/">JSON</a></li>
+                                    <li><a href="/download/json/">Events - JSON</a></li>
                                   </ul>
                                 </div>
 

@@ -137,12 +137,6 @@ class SimulatorAgent(Agent):
         self.web.add_get("/run", self.run_controller, None)
         self.web.add_get("/stop", self.stop_agents_controller, None)
         self.web.add_get("/clean", self.clean_controller, None)
-        #self.web.add_get(
-        #    "/download/excel/", self.download_stats_excel_controller, None, raw=True
-        #)
-        #self.web.add_get(
-        #    "/download/json/", self.download_stats_json_controller, None, raw=True
-        #)
 
         self.web.add_get(
             "/download/json/", self.download_events_json_controller, None, raw=True

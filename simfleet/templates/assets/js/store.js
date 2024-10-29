@@ -6,7 +6,6 @@ export const store = new Vuex.Store({
         customers: [],
         stations: [],
         paths: [],
-        waiting_time: 0,
         total_time: 0,
         simulation_status: false,
         treedata: {}
@@ -68,9 +67,6 @@ export const store = new Vuex.Store({
         },
         get_paths: (state) => {
             return state.paths;
-        },
-        get_waiting_time: (state) => {
-            return state.waiting_time;
         },
         get_total_time: (state) => {
             return state.total_time;

@@ -50,11 +50,7 @@
                         </thead>
                         <tbody class="list">
                         <tr>
-                            <th colspan="2">Waiting Time</th>
-                            <td id="waiting">{{ waiting }}</td>
-                        </tr>
-                        <tr>
-                            <th colspan="2">Total Time</th>
+                            <th colspan="2">Simulation time</th>
                             <td id="total">{{ totaltime }}</td>
                         </tr>
                         <tr>
@@ -94,9 +90,6 @@
             }
         },
         computed: {
-            waiting() {
-                return this.$store.getters.get_waiting_time;
-            },
             totaltime() {
                 return this.$store.getters.get_total_time;
             },

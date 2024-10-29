@@ -922,28 +922,13 @@ class SimulatorAgent(Agent):
 
         """
 
-        waiting = self.get_waiting_time()
+        totaltime = self.get_simulation_time()
 
         return {
-            "waiting": "{0:.2f}".format(waiting if waiting is not None else 0.0),
-            "totaltime": "{0:.2f}".format(waiting if waiting is not None else 0.0),
+            "totaltime": "{0:.2f}".format(totaltime if totaltime is not None else 0.0),
             "finished": self.is_simulation_finished(),
             "is_running": self.simulation_running,
         }
-
-    def get_waiting_time(self):
-        """
-        Calculates and returns the time the customer has been waiting for transport. This is calculated
-        from the time of creation until the customer is picked up or until the current time.
-
-        Returns:
-            float: The time the customer has been waiting for pickup.
-        """
-        if self.simulation_init_time:
-            t = time.time() - self.simulation_init_time
-            return t
-        return None
-
 
     def all_agents_stopped(self):
         """

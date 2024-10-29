@@ -48,7 +48,6 @@ new Vue({
                     this.$store.commit('addTransports', data.data.transports);
                     this.$store.commit('addCustomers', data.data.customers);
                     this.$store.commit("addStations", data.data.stations);
-                    this.$store.state.waiting_time = data.data.stats.waiting;
                     this.$store.state.total_time = data.data.stats.totaltime;
                     this.$store.commit('update_simulation_status', data.data.stats);
                     this.$store.commit("update_tree", data.data.tree);

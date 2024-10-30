@@ -39,12 +39,6 @@
                                     <i class="fa fa-stop"></i>
                                     &nbsp;&nbsp;Stop
                                 </button>
-                                <button type="button" class="btn btn-warning"
-                                        data-sort="feature-name"
-                                        @click="clean">
-                                    <i class="fa fa-trash-alt"></i>
-                                    &nbsp;&nbsp;Clear
-                                </button>
                             </th>
                         </tr>
                         </thead>
@@ -103,9 +97,6 @@
             },
             stop() {
                 axios.get("/stop");
-            },
-            clean() {
-                axios.get("/clean");
             }
         }
     }

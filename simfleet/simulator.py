@@ -136,7 +136,6 @@ class SimulatorAgent(Agent):
         self.web.add_get("/entities", self.entities_controller, None)
         self.web.add_get("/run", self.run_controller, None)
         self.web.add_get("/stop", self.stop_agents_controller, None)
-        self.web.add_get("/clean", self.clean_controller, None)
 
         self.web.add_get(
             "/download/json/", self.download_events_json_controller, None, raw=True
@@ -986,19 +985,6 @@ class SimulatorAgent(Agent):
         self.run()
         return {"status": "ok"}
 
-    async def clean_controller(self, request):
-        """
-        Web controller that resets the simulator to a clean state.
-
-        Returns:
-            dict: no template is returned since this is an AJAX controller, a dict with status=done
-        """
-        logger.info("Stopping simulation...")
-        coroutines = self.stop_agents()
-        await asyncio.gather(*coroutines)
-        self.clear_agents()
-        return {"status": "done"}
-
     async def stop_agents_controller(self, request):
         """
         Web controller that stops all the customer and transport agents.
@@ -1030,19 +1016,6 @@ class SimulatorAgent(Agent):
 
         return aioweb.Response(body=output.getvalue(), headers=headers)
 
-    def clear_agents(self):
-        """
-        Resets the set of transports and customers. Resets the simulation clock.
-        """
-        self.set("manager_agents", {})
-        self.set("transport_agents", {})
-        self.set("customer_agents", {})
-        self.set("station_agents", {})
-        self.set("vehicle_agents", {})
-        self.set("bus_stop_agents", {})
-        self.set("bus_lines", {})
-        self.simulation_time = None
-        self.simulation_init_time = None
 
     def clear_stopped_agents(self):
         """
@@ -1094,34 +1067,34 @@ class SimulatorAgent(Agent):
             for name, agent in self.manager_agents.items():
                 logger.debug("Stopping manager {}".format(name))
                 results.append(agent.stop())
-                #agent.stopped = True
+                agent.stopped = True
         with self.lock:
             for name, agent in self.transport_agents.items():
                 logger.debug("Stopping transport {}".format(name))
                 results.append(agent.stop())
-                #agent.stopped = True
+                agent.stopped = True
         with self.lock:
             for name, agent in self.customer_agents.items():
                 logger.debug("Stopping customer {}".format(name))
                 results.append(agent.stop())
-                #agent.stopped = True
+                agent.stopped = True
         with self.lock:
             for name, agent in self.station_agents.items():
                 logger.debug("Stopping station {}".format(name))
                 results.append(agent.stop())
-                #agent.stopped = True
+                agent.stopped = True
         # New vehicle
         with self.lock:
             for name, agent in self.vehicle_agents.items():
                 logger.debug("Stopping vehicle {}".format(name))
                 results.append(agent.stop())
-                #agent.stopped = True
+                agent.stopped = True
         # Bus line
         with self.lock:
             for name, agent in self.bus_stop_agents.items():
                 logger.debug("Stopping stop {}".format(name))
                 results.append(agent.stop())
-                #agent.stopped = True
+                agent.stopped = True
         return results
 
     async def async_start_agent(self, agent):

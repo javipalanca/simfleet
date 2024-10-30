@@ -869,7 +869,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            "status": i.status,
+                            #"status": i.status,
                             "icon": "fa-taxi",
                         }
                         for i in self.transport_agents.values()
@@ -881,7 +881,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            "status": i.status,
+                            #"status": i.status,
                             "icon": "fa-lib",
                         }
                         for i in self.customer_agents.values()
@@ -894,7 +894,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            "status": i.status,
+                            #"status": i.status,
                             "icon": "fa-taxi",
                         }
                         for i in self.vehicle_agents.values()

@@ -181,7 +181,6 @@ let statuses = {
 
 function customer_popup(customer) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + customer.id + "</td></tr>" +
-        "<tr><th>STATUS</th><td>" + customer.status + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + customer.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + customer.dest + "</td></tr>" +
         "</table>"
@@ -189,7 +188,6 @@ function customer_popup(customer) {
 
 function transport_popup(transport) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + transport.id + "</td></tr>" +
-        "<tr><th>STATUS</th><td>" + transport.status + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + transport.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + transport.dest + "</td></tr>" +
         "<tr><th>ASSIGNMENTS</th><td>" + transport.assignments + "</td></tr>" +
@@ -200,7 +198,6 @@ function transport_popup(transport) {
 
 function station_popup(station) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" +
-        "<tr><th>STATUS</th><td>" + station.status + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" +
         "</table>"
 }

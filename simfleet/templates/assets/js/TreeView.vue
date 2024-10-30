@@ -11,10 +11,11 @@
       </li>
 
       <li v-for="transport in transports" v-show="openTransport">
-          <div class="list-group-item" v-tooltip.top="{content: status2str(transport.status), delay:100}">
+          <div class="list-group-item">
               <img v-bind:src="transport.icon_url" height="20px"/>  {{transport.id}}
               <status-indicator positive v-if="transport.status == 'TRANSPORT_WAITING'"></status-indicator>
               <status-indicator intermediary v-else-if="transport.status == 'TRANSPORT_WAITING_FOR_APPROVAL'"></status-indicator>
+              <status-indicator negative pulse v-else-if="transport.status == 'TRANSPORT_MOVING_TO_STATION'"></status-indicator>
               <status-indicator intermediary pulse v-else-if="transport.status == 'TRANSPORT_MOVING_TO_CUSTOMER'"></status-indicator>
               <status-indicator active pulse v-else-if="transport.status == 'TRANSPORT_MOVING_TO_DESTINATION'"></status-indicator>
           </div>
@@ -31,10 +32,11 @@
       </li>
 
       <li v-for="customer in customers" v-show="openCustomer">
-          <div class="list-group-item" v-tooltip.top="{content: status2str(customer.status), delay:100}">
+          <div class="list-group-item">
               <img v-bind:src="customer.icon_url" height="20px"/>  {{customer.id}}
               <status-indicator v-if="customer.status == 'CUSTOMER_WAITING'"></status-indicator>
               <status-indicator intermediary v-else-if="customer.status == 'CUSTOMER_ASSIGNED'"></status-indicator>
+              <status-indicator intermediary v-else-if="customer.status == 'CUSTOMER_MOVING_TO_DEST'"></status-indicator>
               <status-indicator active pulse v-else-if="customer.status == 'CUSTOMER_IN_TRANSPORT'"></status-indicator>
               <status-indicator positive v-else-if="customer.status == 'CUSTOMER_IN_DEST'"></status-indicator>
           </div>
@@ -77,20 +79,6 @@
             },
             toggleCustomer: function () {
                 this.openCustomer = !this.openCustomer
-            },
-            status2str: function(status) {
-                switch(status){
-                    case 10: return 'TRANSPORT_WAITING';
-                    case 11: return 'TRANSPORT_MOVING_TO_CUSTOMER';
-                    case 12: return 'TRANSPORT_IN_CUSTOMER_PLACE';
-                    case 13: return 'TRANSPORT_MOVING_TO_DESTINATION';
-                    case 14: return 'TRANSPORT_WAITING_FOR_APPROVAL';
-                    case 20: return 'CUSTOMER_WAITING';
-                    case 21: return 'CUSTOMER_IN_TRANSPORT';
-                    case 22: return 'CUSTOMER_IN_DEST';
-                    case 24: return 'CUSTOMER_ASSIGNED';
-                }
-                return status;
             }
         },
         components: {

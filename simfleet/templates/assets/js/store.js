@@ -5,6 +5,7 @@ export const store = new Vuex.Store({
         transports: [],
         customers: [],
         stations: [],
+        vehicles: [],
         paths: [],
         total_time: 0,
         simulation_status: false,
@@ -45,6 +46,17 @@ export const store = new Vuex.Store({
                 state.stations = [];
             }
         },
+        addVehicles: (state, payload) => {
+            if (payload.length > 0) {
+                for (let i = 0; i < payload.length; i++) {
+                    update_item_in_collection(state.vehicles, payload[i], vehicle_popup); // Usa una función similar a la de transports
+
+
+                }
+            } else {
+                state.vehicles = [];
+            }
+        },
         update_simulation_status: (state, stats) => {
             if (!stats.is_running) state.simulation_status = false;
             else {
@@ -65,6 +77,9 @@ export const store = new Vuex.Store({
         get_stations: (state) => {
             return state.stations;
         },
+        get_vehicles: (state) => {
+            return state.vehicles;
+        },
         get_paths: (state) => {
             return state.paths;
         },
@@ -72,7 +87,7 @@ export const store = new Vuex.Store({
             return state.total_time;
         },
         status: (state) => {
-            return state.simulation_status && (state.customers.length || state.transports.length);
+            return state.simulation_status && (state.customers.length || state.transports.length || state.vehicles.length);
         },
         tree: (state) => {
             return state.treedata;
@@ -149,7 +164,7 @@ let color = {
     15: "rgb(0, 255, 15)",
     "TRANSPORT_MOVING_TO_CUSTOMER": "rgb(255, 170, 0)",
     "TRANSPORT_MOVING_TO_DESTINATION": "rgb(0, 149, 255)",
-    "TRANSPORT_MOVING_TO_STATION": "rgb(0, 255, 15)"
+    "TRANSPORT_MOVING_TO_STATION": "rgb(0, 255, 15)",
 };
 
 function get_color(status) {
@@ -199,5 +214,14 @@ function transport_popup(transport) {
 function station_popup(station) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" +
+        "</table>"
+}
+
+function vehicle_popup(vehicle) {
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + vehicle.id + "</td></tr>" +
+        "<tr><th>POSITION</th><td>" + vehicle.position + "</td></tr>" +
+        "<tr><th>DEST</th><td>" + vehicle.dest + "</td></tr>" +
+        "<tr><th>SPEED</th><td>" + vehicle.speed + "</td></tr>" +
+        "<tr><th>DISTANCE</th><td>" + vehicle.distance + "</td></tr>" +
         "</table>"
 }

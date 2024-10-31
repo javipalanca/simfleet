@@ -1,5 +1,24 @@
 <template>
     <ul id="treeview-ul" class="list-group" style="list-style-type: none;">
+
+      <li>
+          <div class=" bold list-group-item" @click="toggleVehicle">
+            <span class="icon expand-icon glyphicon"
+                    :class="{'glyphicon-chevron-down': openVehicle, 'glyphicon-chevron-right': !openVehicle}">
+            </span>
+              Vehicles
+            <span class="badge">{{vehicles.length}}</span>
+          </div>
+      </li>
+
+      <li v-for="vehicle in vehicles" v-show="openVehicle">
+          <div class="list-group-item">
+              <img v-bind:src="vehicle.icon_url" height="20px"/>  {{vehicle.id}}
+              <status-indicator positive v-if="vehicle.status == 'VEHICLE_WAITING'"></status-indicator>
+              <status-indicator active pulse v-else-if="vehicle.status == 'VEHICLE_MOVING_TO_DESTINATION'"></status-indicator>
+          </div>
+      </li>
+
       <li>
           <div class=" bold list-group-item" @click="toggleTransport">
             <span class="icon expand-icon glyphicon"
@@ -42,6 +61,23 @@
           </div>
       </li>
 
+      <li>
+          <div class=" bold list-group-item" @click="toggleStation">
+            <span class="icon expand-icon glyphicon"
+                    :class="{'glyphicon-chevron-down': openStation, 'glyphicon-chevron-right': !openStation}">
+            </span>
+              Stations
+            <span class="badge">{{stations.length}}</span>
+          </div>
+      </li>
+
+      <li v-for="station in stations" v-show="openStation">
+          <div class="list-group-item">
+              <img v-bind:src="station.icon_url" height="20px"/>  {{station.id}}
+
+          </div>
+      </li>
+
     </ul>
 </template>
 
@@ -54,13 +90,17 @@
         name: "tree-view",
         props: {
             transports: Array,
-            customers: Array
+            customers: Array,
+            vehicles: Array,
+            stations: Array
         },
         data: function () {
             return {
               open: true,
               openTransport: true,
-              openCustomer: true
+              openCustomer: true,
+              openVehicle: true,
+              openStation: true
             }
         },
         computed: {
@@ -79,6 +119,12 @@
             },
             toggleCustomer: function () {
                 this.openCustomer = !this.openCustomer
+            },
+            toggleVehicle: function () {
+                this.openVehicle = !this.openVehicle
+            },
+            toggleStation: function () {
+                this.openStation = !this.openStation
             }
         },
         components: {

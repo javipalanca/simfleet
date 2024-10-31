@@ -828,25 +828,20 @@ class SimulatorAgent(Agent):
                 transport.to_json()
                 for transport in self.transport_agents.values()
                 if transport.is_launched
-            ]+[     #New vehicle - partial solution
-                vehicle.to_json()
-                for vehicle in self.vehicle_agents.values()
-                if vehicle.is_launched
             ],
             "customers": [
                 customer.to_json()
                 for customer in self.customer_agents.values()
                 if customer.is_launched
             ],
-            "tree": self.generate_tree(),
-            "stats": self.get_stats(),
-            "stations": [station.to_json() for station in self.station_agents.values()],
-            # New vehicle - partial solution
             "vehicles": [
                 vehicle.to_json()
                 for vehicle in self.vehicle_agents.values()
                 if vehicle.is_launched
             ],
+            "tree": self.generate_tree(),
+            "stats": self.get_stats(),
+            "stations": [station.to_json() for station in self.station_agents.values()],
             # Bus line
             "stops": [stop.to_json() for stop in self.bus_stop_agents.values()],
         }
@@ -868,7 +863,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            #"status": i.status,
+                            # "status": i.status,
                             "icon": "fa-taxi",
                         }
                         for i in self.transport_agents.values()
@@ -880,23 +875,34 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            #"status": i.status,
+                            # "status": i.status,
                             "icon": "fa-lib",
                         }
                         for i in self.customer_agents.values()
                     ],
                 },
-                # New vehicle
                 {
                     "name": "Vehicles",
                     "count": "{}".format(len(self.vehicle_agents)),
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            #"status": i.status,
-                            "icon": "fa-taxi",
+                            # "status": i.status,
+                            "icon": "fa-vehicle",
                         }
                         for i in self.vehicle_agents.values()
+                    ],
+                },
+                {
+                    "name": "Stations",
+                    "count": "{}".format(len(self.station_agents)),
+                    "children": [
+                        {
+                            "name": " {}".format(i.name.split("@")[0]),
+                            # "status": i.status,
+                            "icon": "fa-station",
+                        }
+                        for i in self.station_agents.values()
                     ],
                 },
             ],

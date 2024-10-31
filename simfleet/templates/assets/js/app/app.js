@@ -644,6 +644,42 @@ function applyToTag (styleElement, obj) {
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -652,13 +688,17 @@ function applyToTag (styleElement, obj) {
     name: "tree-view",
     props: {
         transports: Array,
-        customers: Array
+        customers: Array,
+        vehicles: Array,
+        stations: Array
     },
     data: function () {
         return {
             open: true,
             openTransport: true,
-            openCustomer: true
+            openCustomer: true,
+            openVehicle: true,
+            openStation: true
         };
     },
     computed: {
@@ -677,6 +717,12 @@ function applyToTag (styleElement, obj) {
         },
         toggleCustomer: function () {
             this.openCustomer = !this.openCustomer;
+        },
+        toggleVehicle: function () {
+            this.openVehicle = !this.openVehicle;
+        },
+        toggleStation: function () {
+            this.openStation = !this.openStation;
         }
     },
     components: {
@@ -733,7 +779,8 @@ new Vue({
             url: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
             transportIcon: L.icon({ iconUrl: 'assets/img/transport.png', iconSize: [38, 55] }),
             customerIcon: L.icon({ iconUrl: 'assets/img/customer.png', iconSize: [38, 40] }),
-            stationIcon: L.icon({ iconUrl: 'assets/img/station.png', iconSize: [38, 40] })
+            stationIcon: L.icon({ iconUrl: 'assets/img/station.png', iconSize: [38, 40] }),
+            vehicleIcon: L.icon({ iconUrl: 'assets/img/transport.png', iconSize: [38, 55] })
         };
     },
     mounted() {
@@ -755,6 +802,7 @@ new Vue({
                 this.$store.commit('addTransports', data.data.transports);
                 this.$store.commit('addCustomers', data.data.customers);
                 this.$store.commit("addStations", data.data.stations);
+                this.$store.commit("addVehicles", data.data.vehicles);
                 this.$store.state.total_time = data.data.stats.totaltime;
                 this.$store.commit('update_simulation_status', data.data.stats);
                 this.$store.commit("update_tree", data.data.tree);
@@ -777,6 +825,9 @@ new Vue({
         stations() {
             return this.$store.getters.get_stations;
         },
+        vehicles() {
+            return this.$store.getters.get_vehicles;
+        },
         paths() {
             return this.$store.getters.get_paths;
         },
@@ -798,6 +849,7 @@ const store = new Vuex.Store({
         transports: [],
         customers: [],
         stations: [],
+        vehicles: [],
         paths: [],
         total_time: 0,
         simulation_status: false,
@@ -838,6 +890,16 @@ const store = new Vuex.Store({
                 state.stations = [];
             }
         },
+        addVehicles: (state, payload) => {
+            if (payload.length > 0) {
+                for (let i = 0; i < payload.length; i++) {
+                    update_item_in_collection(state.vehicles, payload[i], vehicle_popup); // Usa una función similar a la de transports
+
+                }
+            } else {
+                state.vehicles = [];
+            }
+        },
         update_simulation_status: (state, stats) => {
             if (!stats.is_running) state.simulation_status = false;else {
                 state.simulation_status = !stats.finished;
@@ -857,6 +919,9 @@ const store = new Vuex.Store({
         get_stations: state => {
             return state.stations;
         },
+        get_vehicles: state => {
+            return state.vehicles;
+        },
         get_paths: state => {
             return state.paths;
         },
@@ -864,7 +929,7 @@ const store = new Vuex.Store({
             return state.total_time;
         },
         status: state => {
-            return state.simulation_status && (state.customers.length || state.transports.length);
+            return state.simulation_status && (state.customers.length || state.transports.length || state.vehicles.length);
         },
         tree: state => {
             return state.treedata;
@@ -978,6 +1043,10 @@ function station_popup(station) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" + "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" + "</table>";
 }
 
+function vehicle_popup(vehicle) {
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + vehicle.id + "</td></tr>" + "<tr><th>POSITION</th><td>" + vehicle.position + "</td></tr>" + "<tr><th>DEST</th><td>" + vehicle.dest + "</td></tr>" + "<tr><th>SPEED</th><td>" + vehicle.speed + "</td></tr>" + "<tr><th>DISTANCE</th><td>" + vehicle.distance + "</td></tr>" + "</table>";
+}
+
 /***/ }),
 /* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
@@ -1029,7 +1098,7 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_TreeView_vue__ = __webpack_require__(4);
 /* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_12608470_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_31c438b8_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__ = __webpack_require__(18);
 function injectStyle (ssrContext) {
   __webpack_require__(11)
 }
@@ -1044,12 +1113,12 @@ var __vue_template_functional__ = false
 /* styles */
 var __vue_styles__ = injectStyle
 /* scopeId */
-var __vue_scopeId__ = "data-v-12608470"
+var __vue_scopeId__ = "data-v-31c438b8"
 /* moduleIdentifier (server only) */
 var __vue_module_identifier__ = null
 var Component = normalizeComponent(
   __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_TreeView_vue__["a" /* default */],
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_12608470_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__["a" /* default */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_31c438b8_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__["a" /* default */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
@@ -1070,7 +1139,7 @@ var content = __webpack_require__(12);
 if(typeof content === 'string') content = [[module.i, content, '']];
 if(content.locals) module.exports = content.locals;
 // add the styles to the DOM
-var update = __webpack_require__(3)("6c473d14", content, true, {});
+var update = __webpack_require__(3)("79d5f1dc", content, true, {});
 
 /***/ }),
 /* 12 */
@@ -1081,7 +1150,7 @@ exports = module.exports = __webpack_require__(2)(false);
 
 
 // module
-exports.push([module.i, ".item[data-v-12608470]{cursor:pointer}.bold[data-v-12608470]{font-weight:700}ul[data-v-12608470]{-webkit-padding-start:0;list-style-type:none}.list-group-item[data-v-12608470]{border-radius:0;position:relative;display:block;padding:10px 15px;margin-bottom:-2px;background-color:#fff;border:1px solid #ddd}.status-indicator[data-v-12608470]{float:right}", ""]);
+exports.push([module.i, ".item[data-v-31c438b8]{cursor:pointer}.bold[data-v-31c438b8]{font-weight:700}ul[data-v-31c438b8]{-webkit-padding-start:0;list-style-type:none}.list-group-item[data-v-31c438b8]{border-radius:0;position:relative;display:block;padding:10px 15px;margin-bottom:-2px;background-color:#fff;border:1px solid #ddd}.status-indicator[data-v-31c438b8]{float:right}", ""]);
 
 // exports
 
@@ -1198,7 +1267,7 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"list-group",staticStyle:{"list-style-type":"none"},attrs:{"id":"treeview-ul"}},[_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleTransport}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openTransport, 'glyphicon-chevron-right': !_vm.openTransport}}),_vm._v("\n          Transports\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.transports.length))])])]),_vm._v(" "),_vm._l((_vm.transports),function(transport){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openTransport),expression:"openTransport"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":transport.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(transport.id)+"\n          "),(transport.status == 'TRANSPORT_WAITING')?_c('status-indicator',{attrs:{"positive":""}}):(transport.status == 'TRANSPORT_WAITING_FOR_APPROVAL')?_c('status-indicator',{attrs:{"intermediary":""}}):(transport.status == 'TRANSPORT_MOVING_TO_STATION')?_c('status-indicator',{attrs:{"negative":"","pulse":""}}):(transport.status == 'TRANSPORT_MOVING_TO_CUSTOMER')?_c('status-indicator',{attrs:{"intermediary":"","pulse":""}}):(transport.status == 'TRANSPORT_MOVING_TO_DESTINATION')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleCustomer}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openCustomer, 'glyphicon-chevron-right': !_vm.openCustomer}}),_vm._v("\n          Customers\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.customers.length))])])]),_vm._v(" "),_vm._l((_vm.customers),function(customer){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openCustomer),expression:"openCustomer"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":customer.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(customer.id)+"\n          "),(customer.status == 'CUSTOMER_WAITING')?_c('status-indicator'):(customer.status == 'CUSTOMER_ASSIGNED')?_c('status-indicator',{attrs:{"intermediary":""}}):(customer.status == 'CUSTOMER_MOVING_TO_DEST')?_c('status-indicator',{attrs:{"intermediary":""}}):(customer.status == 'CUSTOMER_IN_TRANSPORT')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):(customer.status == 'CUSTOMER_IN_DEST')?_c('status-indicator',{attrs:{"positive":""}}):_vm._e()],1)])})],2)}
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"list-group",staticStyle:{"list-style-type":"none"},attrs:{"id":"treeview-ul"}},[_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleVehicle}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openVehicle, 'glyphicon-chevron-right': !_vm.openVehicle}}),_vm._v("\n          Vehicles\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.vehicles.length))])])]),_vm._v(" "),_vm._l((_vm.vehicles),function(vehicle){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openVehicle),expression:"openVehicle"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":vehicle.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(vehicle.id)+"\n          "),(vehicle.status == 'VEHICLE_WAITING')?_c('status-indicator',{attrs:{"positive":""}}):(vehicle.status == 'VEHICLE_MOVING_TO_DESTINATION')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleTransport}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openTransport, 'glyphicon-chevron-right': !_vm.openTransport}}),_vm._v("\n          Transports\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.transports.length))])])]),_vm._v(" "),_vm._l((_vm.transports),function(transport){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openTransport),expression:"openTransport"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":transport.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(transport.id)+"\n          "),(transport.status == 'TRANSPORT_WAITING')?_c('status-indicator',{attrs:{"positive":""}}):(transport.status == 'TRANSPORT_WAITING_FOR_APPROVAL')?_c('status-indicator',{attrs:{"intermediary":""}}):(transport.status == 'TRANSPORT_MOVING_TO_STATION')?_c('status-indicator',{attrs:{"negative":"","pulse":""}}):(transport.status == 'TRANSPORT_MOVING_TO_CUSTOMER')?_c('status-indicator',{attrs:{"intermediary":"","pulse":""}}):(transport.status == 'TRANSPORT_MOVING_TO_DESTINATION')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleCustomer}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openCustomer, 'glyphicon-chevron-right': !_vm.openCustomer}}),_vm._v("\n          Customers\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.customers.length))])])]),_vm._v(" "),_vm._l((_vm.customers),function(customer){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openCustomer),expression:"openCustomer"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":customer.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(customer.id)+"\n          "),(customer.status == 'CUSTOMER_WAITING')?_c('status-indicator'):(customer.status == 'CUSTOMER_ASSIGNED')?_c('status-indicator',{attrs:{"intermediary":""}}):(customer.status == 'CUSTOMER_MOVING_TO_DEST')?_c('status-indicator',{attrs:{"intermediary":""}}):(customer.status == 'CUSTOMER_IN_TRANSPORT')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):(customer.status == 'CUSTOMER_IN_DEST')?_c('status-indicator',{attrs:{"positive":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleStation}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openStation, 'glyphicon-chevron-right': !_vm.openStation}}),_vm._v("\n          Stations\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.stations.length))])])]),_vm._v(" "),_vm._l((_vm.stations),function(station){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openStation),expression:"openStation"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":station.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(station.id)+"\n\n      ")])])})],2)}
 var staticRenderFns = []
 var esExports = { render: render, staticRenderFns: staticRenderFns }
 /* harmony default export */ __webpack_exports__["a"] = (esExports);

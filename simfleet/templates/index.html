@@ -79,7 +79,7 @@
             <sidebar-component ref="sidebar">
                 <div class="treeview">
                     <ul id="treeview-ul" class="list-group" style="list-style-type: none;">
-                      <tree-view class="item" :transports="transports" :customers="customers"></tree-view>
+                      <tree-view class="item" :transports="transports" :customers="customers" :vehicles="vehicles" :stations="stations" ></tree-view>
                     </ul>
                 </div>
             </sidebar-component>
@@ -103,6 +103,11 @@
                 <span v-for="station in stations">
                     <v-marker :lat-lng="station.latlng" :icon="station.icon" :visible="station.visible">
                         <v-popup :content="station.popup"></v-popup>
+                    </v-marker>
+                </span>
+                <span v-for="vehicle in vehicles">
+                    <v-marker :lat-lng="vehicle.latlng" :icon="vehicle.icon" @l-move="set_speed($event, vehicle)">
+                        <v-popup :content="vehicle.popup"></v-popup>
                     </v-marker>
                 </span>
             </v-map>

@@ -13,21 +13,25 @@ export const store = new Vuex.Store({
     },
     mutations: {
         addTransports: (state, payload) => {
-            if (payload.length > 0) {
-                let new_paths = [];
-                for (let i = 0; i < payload.length; i++) {
-                    update_item_in_collection(state.transports, payload[i], transport_popup);
+        if (payload.length > 0) {
+            let new_paths = [];
+            for (let i = 0; i < payload.length; i++) {
+                update_item_in_collection(state.transports, payload[i], transport_popup);
 
-                    if (payload[i].path) {
-                        new_paths.push({latlngs: payload[i].path, color: get_color(payload[i].status)})
-                    }
+                // Ahora el path se dibuja siempre que exista, sin depender del estado
+                if (payload[i].path) {
+                    new_paths.push({
+                        latlngs: payload[i].path,
+                        color: "rgb(255, 170, 0)"  // Color naranja para todos los paths
+                    });
                 }
-                state.paths = new_paths;
-            } else {
-                state.transports = [];
-                state.paths = [];
             }
-        },
+            state.paths = new_paths;
+        } else {
+            state.transports = [];
+            state.paths = [];
+        }
+    },
         addCustomers: (state, payload) => {
             if (payload.length > 0) {
                 for (let i = 0; i < payload.length; i++) {
@@ -157,19 +161,6 @@ let getitem = function (collection, item) {
     }
     return false;
 };
-
-let color = {
-    11: "rgb(255, 170, 0)",
-    13: "rgb(0, 149, 255)",
-    15: "rgb(0, 255, 15)",
-    "TRANSPORT_MOVING_TO_CUSTOMER": "rgb(255, 170, 0)",
-    "TRANSPORT_MOVING_TO_DESTINATION": "rgb(0, 149, 255)",
-    "TRANSPORT_MOVING_TO_STATION": "rgb(0, 255, 15)",
-};
-
-function get_color(status) {
-    return color[status];
-}
 
 let statuses = {
     10: "TRANSPORT_WAITING",

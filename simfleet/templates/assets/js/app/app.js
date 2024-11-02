@@ -680,6 +680,12 @@ function applyToTag (styleElement, obj) {
 //
 //
 //
+//
+//
+//
+//
+//
+//
 
 
 
@@ -1089,7 +1095,7 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_TreeView_vue__ = __webpack_require__(4);
 /* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_31c438b8_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_be786dba_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__ = __webpack_require__(18);
 function injectStyle (ssrContext) {
   __webpack_require__(11)
 }
@@ -1104,12 +1110,12 @@ var __vue_template_functional__ = false
 /* styles */
 var __vue_styles__ = injectStyle
 /* scopeId */
-var __vue_scopeId__ = "data-v-31c438b8"
+var __vue_scopeId__ = "data-v-be786dba"
 /* moduleIdentifier (server only) */
 var __vue_module_identifier__ = null
 var Component = normalizeComponent(
   __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_TreeView_vue__["a" /* default */],
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_31c438b8_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__["a" /* default */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_be786dba_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__["a" /* default */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
@@ -1130,7 +1136,7 @@ var content = __webpack_require__(12);
 if(typeof content === 'string') content = [[module.i, content, '']];
 if(content.locals) module.exports = content.locals;
 // add the styles to the DOM
-var update = __webpack_require__(3)("79d5f1dc", content, true, {});
+var update = __webpack_require__(3)("3e07e516", content, true, {});
 
 /***/ }),
 /* 12 */
@@ -1141,7 +1147,7 @@ exports = module.exports = __webpack_require__(2)(false);
 
 
 // module
-exports.push([module.i, ".item[data-v-31c438b8]{cursor:pointer}.bold[data-v-31c438b8]{font-weight:700}ul[data-v-31c438b8]{-webkit-padding-start:0;list-style-type:none}.list-group-item[data-v-31c438b8]{border-radius:0;position:relative;display:block;padding:10px 15px;margin-bottom:-2px;background-color:#fff;border:1px solid #ddd}.status-indicator[data-v-31c438b8]{float:right}", ""]);
+exports.push([module.i, ".item[data-v-be786dba]{cursor:pointer}.bold[data-v-be786dba]{font-weight:700}ul[data-v-be786dba]{-webkit-padding-start:0;list-style-type:none}.list-group-item[data-v-be786dba]{border-radius:0;position:relative;display:block;padding:10px 15px;margin-bottom:-2px;background-color:#fff;border:1px solid #ddd}.status-indicator[data-v-be786dba]{float:right}", ""]);
 
 // exports
 
@@ -1258,7 +1264,7 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"list-group",staticStyle:{"list-style-type":"none"},attrs:{"id":"treeview-ul"}},[_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleVehicle}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openVehicle, 'glyphicon-chevron-right': !_vm.openVehicle}}),_vm._v("\n          Vehicles\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.vehicles.length))])])]),_vm._v(" "),_vm._l((_vm.vehicles),function(vehicle){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openVehicle),expression:"openVehicle"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":vehicle.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(vehicle.id)+"\n          "),(vehicle.status == 'VEHICLE_WAITING')?_c('status-indicator',{attrs:{"positive":""}}):(vehicle.status == 'VEHICLE_MOVING_TO_DESTINATION')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleTransport}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openTransport, 'glyphicon-chevron-right': !_vm.openTransport}}),_vm._v("\n          Transports\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.transports.length))])])]),_vm._v(" "),_vm._l((_vm.transports),function(transport){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openTransport),expression:"openTransport"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":transport.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(transport.id)+"\n          "),(transport.status == 'TRANSPORT_WAITING')?_c('status-indicator',{attrs:{"positive":""}}):(transport.status == 'TRANSPORT_WAITING_FOR_APPROVAL')?_c('status-indicator',{attrs:{"intermediary":""}}):(transport.status == 'TRANSPORT_MOVING_TO_STATION')?_c('status-indicator',{attrs:{"negative":"","pulse":""}}):(transport.status == 'TRANSPORT_MOVING_TO_CUSTOMER')?_c('status-indicator',{attrs:{"intermediary":"","pulse":""}}):(transport.status == 'TRANSPORT_MOVING_TO_DESTINATION')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleCustomer}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openCustomer, 'glyphicon-chevron-right': !_vm.openCustomer}}),_vm._v("\n          Customers\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.customers.length))])])]),_vm._v(" "),_vm._l((_vm.customers),function(customer){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openCustomer),expression:"openCustomer"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":customer.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(customer.id)+"\n          "),(customer.status == 'CUSTOMER_WAITING')?_c('status-indicator'):(customer.status == 'CUSTOMER_ASSIGNED')?_c('status-indicator',{attrs:{"intermediary":""}}):(customer.status == 'CUSTOMER_MOVING_TO_DEST')?_c('status-indicator',{attrs:{"intermediary":""}}):(customer.status == 'CUSTOMER_IN_TRANSPORT')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):(customer.status == 'CUSTOMER_IN_DEST')?_c('status-indicator',{attrs:{"positive":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleStation}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openStation, 'glyphicon-chevron-right': !_vm.openStation}}),_vm._v("\n          Stations\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.stations.length))])])]),_vm._v(" "),_vm._l((_vm.stations),function(station){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openStation),expression:"openStation"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":station.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(station.id)+"\n\n      ")])])})],2)}
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"list-group",staticStyle:{"list-style-type":"none"},attrs:{"id":"treeview-ul"}},[_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleVehicle}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openVehicle, 'glyphicon-chevron-right': !_vm.openVehicle}}),_vm._v("\n          Vehicles\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.vehicles.length))])])]),_vm._v(" "),_vm._l((_vm.vehicles),function(vehicle){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openVehicle),expression:"openVehicle"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":vehicle.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(vehicle.id)+"\n        ")])])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleTransport}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openTransport, 'glyphicon-chevron-right': !_vm.openTransport}}),_vm._v("\n          Transports\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.transports.length))])])]),_vm._v(" "),_vm._l((_vm.transports),function(transport){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openTransport),expression:"openTransport"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":transport.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(transport.id)+"\n          ")])])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleCustomer}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openCustomer, 'glyphicon-chevron-right': !_vm.openCustomer}}),_vm._v("\n          Customers\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.customers.length))])])]),_vm._v(" "),_vm._l((_vm.customers),function(customer){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openCustomer),expression:"openCustomer"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":customer.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(customer.id)+"\n          ")])])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleStation}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openStation, 'glyphicon-chevron-right': !_vm.openStation}}),_vm._v("\n          Stations\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.stations.length))])])]),_vm._v(" "),_vm._l((_vm.stations),function(station){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openStation),expression:"openStation"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":station.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(station.id)+"\n\n      ")])])})],2)}
 var staticRenderFns = []
 var esExports = { render: render, staticRenderFns: staticRenderFns }
 /* harmony default export */ __webpack_exports__["a"] = (esExports);

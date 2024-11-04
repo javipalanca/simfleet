@@ -7,6 +7,7 @@ from asyncio import CancelledError
 from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 from spade.template import Template
+from spade.behaviour import State
 
 from simfleet.utils.helpers import (
     PathRequestException,
@@ -310,7 +311,7 @@ class RegistrationBehaviour(CyclicBehaviour):
                 )
             )
 
-class BusStrategyBehaviour(StrategyBehaviour):
+class BusStrategyBehaviour(State):
     """
     Class to define a transport strategy for the bus agent. Inherit from this class to implement custom strategies.
 

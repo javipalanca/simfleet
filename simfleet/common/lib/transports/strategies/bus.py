@@ -2,8 +2,8 @@ import json
 import time
 
 from loguru import logger
-from spade.behaviour import State, FSMBehaviour
 
+from simfleet.utils.abstractstrategies import FSMStrategyBehaviour
 from simfleet.common.lib.transports.models.bus import BusStrategyBehaviour
 
 from simfleet.utils.status import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_IN_DEST, TRANSPORT_BOARDING
@@ -18,7 +18,7 @@ from simfleet.communications.protocol import (
 #                                                              #
 ################################################################
 
-class BusSelectDestState(BusStrategyBehaviour, State):
+class BusSelectDestState(BusStrategyBehaviour):
     """
         State where the bus selects its next destination.
 
@@ -77,7 +77,7 @@ class BusSelectDestState(BusStrategyBehaviour, State):
         return
 
 
-class BusMovingToDestState(BusStrategyBehaviour, State):
+class BusMovingToDestState(BusStrategyBehaviour):
     """
         State where the bus is moving towards its next destination.
 
@@ -103,7 +103,7 @@ class BusMovingToDestState(BusStrategyBehaviour, State):
         return self.set_next_state(TRANSPORT_IN_DEST)
 
 
-class BusInDestState(BusStrategyBehaviour, State):
+class BusInDestState(BusStrategyBehaviour):
     """
         State where the bus is at a stop and allows passengers to board or exit.
 
@@ -125,7 +125,7 @@ class BusInDestState(BusStrategyBehaviour, State):
         return self.set_next_state(TRANSPORT_BOARDING)
 
 
-class BusBoardingCustomersState(BusStrategyBehaviour, State):
+class BusBoardingCustomersState(BusStrategyBehaviour):
     """
         State where the bus is boarding new passengers.
 
@@ -159,7 +159,7 @@ class BusBoardingCustomersState(BusStrategyBehaviour, State):
         return self.set_next_state(TRANSPORT_WAITING)
 
 
-class FSMBusStrategyBehaviour(FSMBehaviour):
+class FSMBusStrategyBehaviour(FSMStrategyBehaviour):
     """
         The finite state machine (FSM) that defines the behavior of the bus transport agent.
 

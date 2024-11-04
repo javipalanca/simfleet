@@ -3,24 +3,14 @@ import json
 import socket
 import time
 import uuid
-from abc import ABCMeta
 
 import aiohttp
 from loguru import logger
-from spade.behaviour import CyclicBehaviour, OneShotBehaviour
+from spade.behaviour import OneShotBehaviour
 from spade.message import Message
 from spade.template import Template
 
-#CAMBIAR helpers al package utils
 from simfleet.utils.helpers import distance_in_meters, kmh_to_ms
-
-
-class StrategyBehaviour(CyclicBehaviour, metaclass=ABCMeta):
-    """
-    The behaviour that all parent strategies must inherit from. It complies with the Strategy Pattern.
-    """
-
-    pass
 
 
 class RequestRouteBehaviour(OneShotBehaviour):

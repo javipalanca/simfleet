@@ -1,12 +1,9 @@
 import asyncio
 import json
-import os
 import socket
-import sys
 import time
 import uuid
 from abc import ABCMeta
-from importlib import import_module
 
 import aiohttp
 from loguru import logger
@@ -14,30 +11,43 @@ from spade.behaviour import CyclicBehaviour, OneShotBehaviour
 from spade.message import Message
 from spade.template import Template
 
-from .helpers import distance_in_meters, kmh_to_ms
+#CAMBIAR helpers al package utils
+from simfleet.utils.helpers import distance_in_meters, kmh_to_ms
 
 TRANSPORT_WAITING = "TRANSPORT_WAITING"
+TRANSPORT_WAITING_FOR_APPROVAL = "TRANSPORT_WAITING_FOR_APPROVAL"
 TRANSPORT_MOVING_TO_CUSTOMER = "TRANSPORT_MOVING_TO_CUSTOMER"
+TRANSPORT_ARRIVED_AT_CUSTOMER = "TRANSPORT_ARRIVED_AT_CUSTOMER"
 TRANSPORT_IN_CUSTOMER_PLACE = "TRANSPORT_IN_CUSTOMER_PLACE"
 TRANSPORT_MOVING_TO_DESTINATION = "TRANSPORT_MOVING_TO_DESTINATION"
-TRANSPORT_WAITING_FOR_APPROVAL = "TRANSPORT_WAITING_FOR_APPROVAL"
+TRANSPORT_ARRIVED_AT_DESTINATION = "TRANSPORT_ARRIVED_AT_DESTINATION"
 
 TRANSPORT_MOVING_TO_STATION = "TRANSPORT_MOVING_TO_STATION"
 TRANSPORT_IN_STATION_PLACE = "TRANSPORT_IN_STATION_PLACE"
+TRANSPORT_IN_WAITING_LIST = "TRANSPORT_IN_WAITING_LIST"
 TRANSPORT_WAITING_FOR_STATION_APPROVAL = "TRANSPORT_WAITING_FOR_STATION_APPROVAL"
 TRANSPORT_NEEDS_CHARGING = "TRANSPORT_NEEDS_CHARGING"
 TRANSPORT_CHARGING = "TRANSPORT_LOADING"
 TRANSPORT_CHARGED = "TRANSPORT_LOADED"
+TRANSPORT_IN_DEST = "TRANSPORT_IN_DEST"
+TRANSPORT_BOARDING = "TRANSPORT_BOARDING"
 
 FREE_STATION = "FREE_STATION"
 BUSY_STATION = "BUSY_STATION"
 
 CUSTOMER_WAITING = "CUSTOMER_WAITING"
+CUSTOMER_WAITING_TO_MOVE = "CUSTOMER_WAITING_TO_MOVE"
 CUSTOMER_IN_TRANSPORT = "CUSTOMER_IN_TRANSPORT"
+CUSTOMER_MOVING_TO_DEST = "CUSTOMER_MOVING_TO_DEST"
 CUSTOMER_IN_DEST = "CUSTOMER_IN_DEST"
 CUSTOMER_LOCATION = "CUSTOMER_LOCATION"
 CUSTOMER_ASSIGNED = "CUSTOMER_ASSIGNED"
+CUSTOMER_IN_STOP = "CUSTOMER_IN_STOP"
+CUSTOMER_WAITING_FOR_APPROVAL = "CUSTOMER_WAITING_FOR_APPROVAL"
 
+VEHICLE_WAITING = "VEHICLE_WAITING"
+VEHICLE_MOVING_TO_DESTINATION = "VEHICLE_MOVING_TO_DESTINATION"
+VEHICLE_IN_DEST = "VEHICLE_IN_DEST"
 
 def status_to_str(status_code):
     """
@@ -231,22 +241,6 @@ def chunk_path(path, speed_in_kmh):
     chunked_lat_lngs.append(path[length - 1])
 
     return chunked_lat_lngs
-
-
-def load_class(class_path):
-    """
-    Tricky method that imports a class form a string.
-
-    Args:
-        class_path (str): the path where the class to be imported is.
-
-    Returns:
-        class: the class imported and ready to be instantiated.
-    """
-    sys.path.append(os.getcwd())
-    module_path, class_name = class_path.rsplit(".", 1)
-    mod = import_module(module_path)
-    return getattr(mod, class_name)
 
 
 def avg(array):

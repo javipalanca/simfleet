@@ -255,17 +255,6 @@ module.exports = function normalizeComponent (
 //
 //
 //
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
 
 /* harmony default export */ __webpack_exports__["a"] = ({
     data() {
@@ -274,9 +263,6 @@ module.exports = function normalizeComponent (
         };
     },
     computed: {
-        waiting() {
-            return this.$store.getters.get_waiting_time;
-        },
         totaltime() {
             return this.$store.getters.get_total_time;
         },
@@ -290,9 +276,6 @@ module.exports = function normalizeComponent (
         },
         stop() {
             axios.get("/stop");
-        },
-        clean() {
-            axios.get("/clean");
         }
     }
 });
@@ -659,6 +642,50 @@ function applyToTag (styleElement, obj) {
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -667,13 +694,17 @@ function applyToTag (styleElement, obj) {
     name: "tree-view",
     props: {
         transports: Array,
-        customers: Array
+        customers: Array,
+        vehicles: Array,
+        stations: Array
     },
     data: function () {
         return {
             open: true,
             openTransport: true,
-            openCustomer: true
+            openCustomer: true,
+            openVehicle: true,
+            openStation: true
         };
     },
     computed: {
@@ -693,28 +724,11 @@ function applyToTag (styleElement, obj) {
         toggleCustomer: function () {
             this.openCustomer = !this.openCustomer;
         },
-        status2str: function (status) {
-            switch (status) {
-                case 10:
-                    return 'TRANSPORT_WAITING';
-                case 11:
-                    return 'TRANSPORT_MOVING_TO_CUSTOMER';
-                case 12:
-                    return 'TRANSPORT_IN_CUSTOMER_PLACE';
-                case 13:
-                    return 'TRANSPORT_MOVING_TO_DESTINATION';
-                case 14:
-                    return 'TRANSPORT_WAITING_FOR_APPROVAL';
-                case 20:
-                    return 'CUSTOMER_WAITING';
-                case 21:
-                    return 'CUSTOMER_IN_TRANSPORT';
-                case 22:
-                    return 'CUSTOMER_IN_DEST';
-                case 24:
-                    return 'CUSTOMER_ASSIGNED';
-            }
-            return status;
+        toggleVehicle: function () {
+            this.openVehicle = !this.openVehicle;
+        },
+        toggleStation: function () {
+            this.openStation = !this.openStation;
         }
     },
     components: {
@@ -771,7 +785,8 @@ new Vue({
             url: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
             transportIcon: L.icon({ iconUrl: 'assets/img/transport.png', iconSize: [38, 55] }),
             customerIcon: L.icon({ iconUrl: 'assets/img/customer.png', iconSize: [38, 40] }),
-            stationIcon: L.icon({ iconUrl: 'assets/img/station.png', iconSize: [38, 40] })
+            stationIcon: L.icon({ iconUrl: 'assets/img/station.png', iconSize: [38, 40] }),
+            vehicleIcon: L.icon({ iconUrl: 'assets/img/transport.png', iconSize: [38, 55] })
         };
     },
     mounted() {
@@ -793,7 +808,7 @@ new Vue({
                 this.$store.commit('addTransports', data.data.transports);
                 this.$store.commit('addCustomers', data.data.customers);
                 this.$store.commit("addStations", data.data.stations);
-                this.$store.state.waiting_time = data.data.stats.waiting;
+                this.$store.commit("addVehicles", data.data.vehicles);
                 this.$store.state.total_time = data.data.stats.totaltime;
                 this.$store.commit('update_simulation_status', data.data.stats);
                 this.$store.commit("update_tree", data.data.tree);
@@ -816,6 +831,9 @@ new Vue({
         stations() {
             return this.$store.getters.get_stations;
         },
+        vehicles() {
+            return this.$store.getters.get_vehicles;
+        },
         paths() {
             return this.$store.getters.get_paths;
         },
@@ -837,8 +855,8 @@ const store = new Vuex.Store({
         transports: [],
         customers: [],
         stations: [],
+        vehicles: [],
         paths: [],
-        waiting_time: 0,
         total_time: 0,
         simulation_status: false,
         treedata: {}
@@ -850,8 +868,12 @@ const store = new Vuex.Store({
                 for (let i = 0; i < payload.length; i++) {
                     update_item_in_collection(state.transports, payload[i], transport_popup);
 
+                    // Ahora el path se dibuja siempre que exista, sin depender del estado
                     if (payload[i].path) {
-                        new_paths.push({ latlngs: payload[i].path, color: get_color(payload[i].status) });
+                        new_paths.push({
+                            latlngs: payload[i].path,
+                            color: "rgb(255, 170, 0)" // Color naranja para todos los paths
+                        });
                     }
                 }
                 state.paths = new_paths;
@@ -878,6 +900,16 @@ const store = new Vuex.Store({
                 state.stations = [];
             }
         },
+        addVehicles: (state, payload) => {
+            if (payload.length > 0) {
+                for (let i = 0; i < payload.length; i++) {
+                    update_item_in_collection(state.vehicles, payload[i], vehicle_popup); // Usa una función similar a la de transports
+
+                }
+            } else {
+                state.vehicles = [];
+            }
+        },
         update_simulation_status: (state, stats) => {
             if (!stats.is_running) state.simulation_status = false;else {
                 state.simulation_status = !stats.finished;
@@ -897,17 +929,17 @@ const store = new Vuex.Store({
         get_stations: state => {
             return state.stations;
         },
+        get_vehicles: state => {
+            return state.vehicles;
+        },
         get_paths: state => {
             return state.paths;
-        },
-        get_waiting_time: state => {
-            return state.waiting_time;
         },
         get_total_time: state => {
             return state.total_time;
         },
         status: state => {
-            return state.simulation_status && (state.customers.length || state.transports.length);
+            return state.simulation_status && (state.customers.length || state.transports.length || state.vehicles.length);
         },
         tree: state => {
             return state.treedata;
@@ -957,8 +989,6 @@ let update_station_in_collection = function (collection, item, get_popup) {
         collection.push(item);
     } else {
         collection[p].popup = get_popup(item);
-        collection[p].power = item.power;
-        collection[p].places = item.places;
         collection[p].status = item.status;
         item.icon_url = item.icon;
         if (item.icon) {
@@ -975,19 +1005,6 @@ let getitem = function (collection, item) {
     }
     return false;
 };
-
-let color = {
-    11: "rgb(255, 170, 0)",
-    13: "rgb(0, 149, 255)",
-    15: "rgb(0, 255, 15)",
-    "TRANSPORT_MOVING_TO_CUSTOMER": "rgb(255, 170, 0)",
-    "TRANSPORT_MOVING_TO_DESTINATION": "rgb(0, 149, 255)",
-    "TRANSPORT_MOVING_TO_STATION": "rgb(0, 255, 15)"
-};
-
-function get_color(status) {
-    return color[status];
-}
 
 let statuses = {
     10: "TRANSPORT_WAITING",
@@ -1012,15 +1029,19 @@ let statuses = {
 };
 
 function customer_popup(customer) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + customer.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + customer.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + customer.position + "</td></tr>" + "<tr><th>DEST</th><td>" + customer.dest + "</td></tr>" + "<tr><th>TRANSPORT</th><td>" + customer.transport + "</td></tr>" + "<tr><th>WAITING</th><td>" + customer.waiting + "</td></tr>" + "</table>";
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + customer.id + "</td></tr>" + "<tr><th>POSITION</th><td>" + customer.position + "</td></tr>" + "<tr><th>DEST</th><td>" + customer.dest + "</td></tr>" + "</table>";
 }
 
 function transport_popup(transport) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + transport.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + transport.status + "</td></tr>" + "<tr><th>FLEETNAME</th><td>" + transport.fleet + "</td></tr>" + "<tr><th>TYPE</th><td>" + transport.service + "</td></tr>" + "<tr><th>CUSTOMER</th><td>" + transport.customer + "</td></tr>" + "<tr><th>POSITION</th><td>" + transport.position + "</td></tr>" + "<tr><th>DEST</th><td>" + transport.dest + "</td></tr>" + "<tr><th>ASSIGNMENTS</th><td>" + transport.assignments + "</td></tr>" + "<tr><th>SPEED</th><td>" + transport.speed + "</td></tr>" + "<tr><th>DISTANCE</th><td>" + transport.distance + "</td></tr>" + "<tr><th>AUTONOMY</th><td>" + transport.autonomy + " / " + transport.max_autonomy + "</td></tr>" + "</table>";
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + transport.id + "</td></tr>" + "<tr><th>POSITION</th><td>" + transport.position + "</td></tr>" + "<tr><th>DEST</th><td>" + transport.dest + "</td></tr>" + "<tr><th>ASSIGNMENTS</th><td>" + transport.assignments + "</td></tr>" + "<tr><th>SPEED</th><td>" + transport.speed + "</td></tr>" + "<tr><th>DISTANCE</th><td>" + transport.distance + "</td></tr>" + "</table>";
 }
 
 function station_popup(station) {
-    return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" + "<tr><th>STATUS</th><td>" + station.status + "</td></tr>" + "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" + "<tr><th>POWERCHARGE</th><td>" + station.power + 'kW' + "</td></tr>" + "<tr><th>PLACES</th><td>" + station.places + "</td></tr>" + "</table>";
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" + "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" + "</table>";
+}
+
+function vehicle_popup(vehicle) {
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + vehicle.id + "</td></tr>" + "<tr><th>POSITION</th><td>" + vehicle.position + "</td></tr>" + "<tr><th>DEST</th><td>" + vehicle.dest + "</td></tr>" + "<tr><th>SPEED</th><td>" + vehicle.speed + "</td></tr>" + "<tr><th>DISTANCE</th><td>" + vehicle.distance + "</td></tr>" + "</table>";
 }
 
 /***/ }),
@@ -1030,7 +1051,7 @@ function station_popup(station) {
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_SidebarComponent_vue__ = __webpack_require__(1);
 /* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_2f0657f7_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_SidebarComponent_vue__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_576178a9_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_SidebarComponent_vue__ = __webpack_require__(9);
 var normalizeComponent = __webpack_require__(0)
 /* script */
 
@@ -1047,7 +1068,7 @@ var __vue_scopeId__ = null
 var __vue_module_identifier__ = null
 var Component = normalizeComponent(
   __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_SidebarComponent_vue__["a" /* default */],
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_2f0657f7_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_SidebarComponent_vue__["a" /* default */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_576178a9_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_SidebarComponent_vue__["a" /* default */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
@@ -1062,7 +1083,7 @@ var Component = normalizeComponent(
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('transition',{attrs:{"name":"slide","enter-active-class":"animated slideInLeft","leave-active-class":"animated slideOutLeft"}},[(!_vm.hideSidebar)?_c('div',{staticClass:"bodycontainer table-scrollable",attrs:{"id":"sidebar"}},[_c('div',{staticClass:"sidebar-wrapper"},[_c('div',{staticClass:"panel panel-default",attrs:{"id":"features"}},[_c('div',{staticClass:"panel-heading"},[_c('h3',{staticClass:"panel-title"},[_vm._v("Control Panel\n                    "),_c('button',{staticClass:"btn btn-xs btn-default pull-right",attrs:{"type":"button","id":"sidebar-hide-btn"},on:{"click":function($event){_vm.hideSidebar=!_vm.hideSidebar}}},[_c('i',{staticClass:"fa fa-chevron-left"})])])]),_vm._v(" "),_c('div',{staticClass:"panel-body"},[_c('table',{staticClass:"table table-hover",attrs:{"id":"feature-list"}},[_c('thead',{staticClass:"list"},[_c('tr',[_c('th',{attrs:{"colspan":"3"}},[(!_vm.is_running)?_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.run}},[_c('i',{staticClass:"fa fa-play"}),_vm._v("\n                                  Run\n                            ")]):_vm._e(),_vm._v(" "),(_vm.is_running)?_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name","disabled":""}},[_c('i',{staticClass:"fa fa-spinner fa-spin"}),_vm._v("\n                                  Run\n                            ")]):_vm._e(),_vm._v(" "),(_vm.is_running)?_c('button',{staticClass:"btn btn-danger",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.stop}},[_c('i',{staticClass:"fa fa-stop"}),_vm._v("\n                                  Stop\n                            ")]):_vm._e(),_vm._v(" "),_c('button',{staticClass:"btn btn-warning",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.clean}},[_c('i',{staticClass:"fa fa-trash-alt"}),_vm._v("\n                                  Clear\n                            ")])])])]),_vm._v(" "),_c('tbody',{staticClass:"list"},[_c('tr',[_c('th',{attrs:{"colspan":"2"}},[_vm._v("Waiting Time")]),_vm._v(" "),_c('td',{attrs:{"id":"waiting"}},[_vm._v(_vm._s(_vm.waiting))])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"2"}},[_vm._v("Total Time")]),_vm._v(" "),_c('td',{attrs:{"id":"total"}},[_vm._v(_vm._s(_vm.totaltime))])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"3"}},[_c('div',{staticClass:"dropdown"},[_c('button',{staticClass:"btn btn-info dropdown-toggle",attrs:{"type":"button","id":"dropdownMenu1","data-toggle":"dropdown","aria-haspopup":"true","aria-expanded":"true"}},[_c('i',{staticClass:"fa fa-download"}),_vm._v("  Download\n                                "),_c('span',{staticClass:"caret"})]),_vm._v(" "),_c('ul',{staticClass:"dropdown-menu",attrs:{"aria-labelledby":"dropdownMenu1"}},[_c('li',[_c('a',{attrs:{"href":"/download/excel/"}},[_vm._v("Excel")])]),_vm._v(" "),_c('li',[_c('a',{attrs:{"href":"/download/json/"}},[_vm._v("JSON")])])])])])]),_vm._v(" "),_c('tr',[_c('td',{attrs:{"colspan":"3"}},[_vm._t("default")],2)])])])])])])]):_vm._e()])}
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('transition',{attrs:{"name":"slide","enter-active-class":"animated slideInLeft","leave-active-class":"animated slideOutLeft"}},[(!_vm.hideSidebar)?_c('div',{staticClass:"bodycontainer table-scrollable",attrs:{"id":"sidebar"}},[_c('div',{staticClass:"sidebar-wrapper"},[_c('div',{staticClass:"panel panel-default",attrs:{"id":"features"}},[_c('div',{staticClass:"panel-heading"},[_c('h3',{staticClass:"panel-title"},[_vm._v("Control Panel\n                    "),_c('button',{staticClass:"btn btn-xs btn-default pull-right",attrs:{"type":"button","id":"sidebar-hide-btn"},on:{"click":function($event){_vm.hideSidebar=!_vm.hideSidebar}}},[_c('i',{staticClass:"fa fa-chevron-left"})])])]),_vm._v(" "),_c('div',{staticClass:"panel-body"},[_c('table',{staticClass:"table table-hover",attrs:{"id":"feature-list"}},[_c('thead',{staticClass:"list"},[_c('tr',[_c('th',{attrs:{"colspan":"3"}},[(!_vm.is_running)?_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.run}},[_c('i',{staticClass:"fa fa-play"}),_vm._v("\n                                  Run\n                            ")]):_vm._e(),_vm._v(" "),(_vm.is_running)?_c('button',{staticClass:"btn btn-primary",attrs:{"type":"button","data-sort":"feature-name","disabled":""}},[_c('i',{staticClass:"fa fa-spinner fa-spin"}),_vm._v("\n                                  Run\n                            ")]):_vm._e(),_vm._v(" "),(_vm.is_running)?_c('button',{staticClass:"btn btn-danger",attrs:{"type":"button","data-sort":"feature-name"},on:{"click":_vm.stop}},[_c('i',{staticClass:"fa fa-stop"}),_vm._v("\n                                  Stop\n                            ")]):_vm._e()])])]),_vm._v(" "),_c('tbody',{staticClass:"list"},[_c('tr',[_c('th',{attrs:{"colspan":"2"}},[_vm._v("Simulation time")]),_vm._v(" "),_c('td',{attrs:{"id":"total"}},[_vm._v(_vm._s(_vm.totaltime))])]),_vm._v(" "),_c('tr',[_c('th',{attrs:{"colspan":"3"}},[_c('div',{staticClass:"dropdown"},[_c('button',{staticClass:"btn btn-info dropdown-toggle",attrs:{"type":"button","id":"dropdownMenu1","data-toggle":"dropdown","aria-haspopup":"true","aria-expanded":"true"}},[_c('i',{staticClass:"fa fa-download"}),_vm._v("  Download\n                                "),_c('span',{staticClass:"caret"})]),_vm._v(" "),_c('ul',{staticClass:"dropdown-menu",attrs:{"aria-labelledby":"dropdownMenu1"}},[_c('li',[_c('a',{attrs:{"href":"/download/json/"}},[_vm._v("Events - JSON")])])])])])]),_vm._v(" "),_c('tr',[_c('td',{attrs:{"colspan":"3"}},[_vm._t("default")],2)])])])])])])]):_vm._e()])}
 var staticRenderFns = []
 var esExports = { render: render, staticRenderFns: staticRenderFns }
 /* harmony default export */ __webpack_exports__["a"] = (esExports);
@@ -1074,7 +1095,7 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_TreeView_vue__ = __webpack_require__(4);
 /* unused harmony namespace reexport */
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_f0be742a_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_be786dba_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__ = __webpack_require__(18);
 function injectStyle (ssrContext) {
   __webpack_require__(11)
 }
@@ -1089,12 +1110,12 @@ var __vue_template_functional__ = false
 /* styles */
 var __vue_styles__ = injectStyle
 /* scopeId */
-var __vue_scopeId__ = "data-v-f0be742a"
+var __vue_scopeId__ = "data-v-be786dba"
 /* moduleIdentifier (server only) */
 var __vue_module_identifier__ = null
 var Component = normalizeComponent(
   __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_TreeView_vue__["a" /* default */],
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_f0be742a_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__["a" /* default */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_be786dba_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_TreeView_vue__["a" /* default */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
@@ -1115,7 +1136,7 @@ var content = __webpack_require__(12);
 if(typeof content === 'string') content = [[module.i, content, '']];
 if(content.locals) module.exports = content.locals;
 // add the styles to the DOM
-var update = __webpack_require__(3)("2ca428ad", content, true, {});
+var update = __webpack_require__(3)("3e07e516", content, true, {});
 
 /***/ }),
 /* 12 */
@@ -1126,7 +1147,7 @@ exports = module.exports = __webpack_require__(2)(false);
 
 
 // module
-exports.push([module.i, ".item[data-v-f0be742a]{cursor:pointer}.bold[data-v-f0be742a]{font-weight:700}ul[data-v-f0be742a]{-webkit-padding-start:0;list-style-type:none}.list-group-item[data-v-f0be742a]{border-radius:0;position:relative;display:block;padding:10px 15px;margin-bottom:-2px;background-color:#fff;border:1px solid #ddd}.status-indicator[data-v-f0be742a]{float:right}", ""]);
+exports.push([module.i, ".item[data-v-be786dba]{cursor:pointer}.bold[data-v-be786dba]{font-weight:700}ul[data-v-be786dba]{-webkit-padding-start:0;list-style-type:none}.list-group-item[data-v-be786dba]{border-radius:0;position:relative;display:block;padding:10px 15px;margin-bottom:-2px;background-color:#fff;border:1px solid #ddd}.status-indicator[data-v-be786dba]{float:right}", ""]);
 
 // exports
 
@@ -1243,7 +1264,7 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"list-group",staticStyle:{"list-style-type":"none"},attrs:{"id":"treeview-ul"}},[_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleTransport}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openTransport, 'glyphicon-chevron-right': !_vm.openTransport}}),_vm._v("\n          Transports\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.transports.length))])])]),_vm._v(" "),_vm._l((_vm.transports),function(transport){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openTransport),expression:"openTransport"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(transport.status), delay:100}),expression:"{content: status2str(transport.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('img',{attrs:{"src":transport.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(transport.id)+"\n          "),(transport.status == 'TRANSPORT_WAITING')?_c('status-indicator',{attrs:{"positive":""}}):(transport.status == 'TRANSPORT_WAITING_FOR_APPROVAL')?_c('status-indicator',{attrs:{"intermediary":""}}):(transport.status == 'TRANSPORT_MOVING_TO_CUSTOMER')?_c('status-indicator',{attrs:{"intermediary":"","pulse":""}}):(transport.status == 'TRANSPORT_MOVING_TO_DESTINATION')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):_vm._e()],1)])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleCustomer}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openCustomer, 'glyphicon-chevron-right': !_vm.openCustomer}}),_vm._v("\n          Customers\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.customers.length))])])]),_vm._v(" "),_vm._l((_vm.customers),function(customer){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openCustomer),expression:"openCustomer"}]},[_c('div',{directives:[{name:"tooltip",rawName:"v-tooltip.top",value:({content: _vm.status2str(customer.status), delay:100}),expression:"{content: status2str(customer.status), delay:100}",modifiers:{"top":true}}],staticClass:"list-group-item"},[_c('img',{attrs:{"src":customer.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(customer.id)+"\n          "),(customer.status == 'CUSTOMER_WAITING')?_c('status-indicator'):(customer.status == 'CUSTOMER_ASSIGNED')?_c('status-indicator',{attrs:{"intermediary":""}}):(customer.status == 'CUSTOMER_IN_TRANSPORT')?_c('status-indicator',{attrs:{"active":"","pulse":""}}):(customer.status == 'CUSTOMER_IN_DEST')?_c('status-indicator',{attrs:{"positive":""}}):_vm._e()],1)])})],2)}
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"list-group",staticStyle:{"list-style-type":"none"},attrs:{"id":"treeview-ul"}},[_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleVehicle}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openVehicle, 'glyphicon-chevron-right': !_vm.openVehicle}}),_vm._v("\n          Vehicles\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.vehicles.length))])])]),_vm._v(" "),_vm._l((_vm.vehicles),function(vehicle){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openVehicle),expression:"openVehicle"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":vehicle.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(vehicle.id)+"\n        ")])])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleTransport}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openTransport, 'glyphicon-chevron-right': !_vm.openTransport}}),_vm._v("\n          Transports\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.transports.length))])])]),_vm._v(" "),_vm._l((_vm.transports),function(transport){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openTransport),expression:"openTransport"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":transport.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(transport.id)+"\n          ")])])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleCustomer}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openCustomer, 'glyphicon-chevron-right': !_vm.openCustomer}}),_vm._v("\n          Customers\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.customers.length))])])]),_vm._v(" "),_vm._l((_vm.customers),function(customer){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openCustomer),expression:"openCustomer"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":customer.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(customer.id)+"\n          ")])])}),_vm._v(" "),_c('li',[_c('div',{staticClass:" bold list-group-item",on:{"click":_vm.toggleStation}},[_c('span',{staticClass:"icon expand-icon glyphicon",class:{'glyphicon-chevron-down': _vm.openStation, 'glyphicon-chevron-right': !_vm.openStation}}),_vm._v("\n          Stations\n        "),_c('span',{staticClass:"badge"},[_vm._v(_vm._s(_vm.stations.length))])])]),_vm._v(" "),_vm._l((_vm.stations),function(station){return _c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.openStation),expression:"openStation"}]},[_c('div',{staticClass:"list-group-item"},[_c('img',{attrs:{"src":station.icon_url,"height":"20px"}}),_vm._v("  "+_vm._s(station.id)+"\n\n      ")])])})],2)}
 var staticRenderFns = []
 var esExports = { render: render, staticRenderFns: staticRenderFns }
 /* harmony default export */ __webpack_exports__["a"] = (esExports);

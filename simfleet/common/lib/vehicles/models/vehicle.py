@@ -218,15 +218,15 @@ class VehicleStrategyBehaviour(State):
             dest (list): The coordinates of the vehicle's destination.
         """
         logger.info(
-            "Vehicle {} on route to destination {}".format(self.agent.name, self.agent.dest)
+            "Vehicle {} on route to destination {}".format(self.agent.name, dest)
         )
         try:
-            logger.debug("{} move_to destination {}".format(self.agent.name, self.agent.dest))
-            await self.agent.move_to(self.agent.dest)
+            logger.debug("{} move_to destination {}".format(self.agent.name, dest))
+            await self.agent.move_to(dest)
         except AlreadyInDestination:
             logger.debug(
                 "{} is already in the destination' {} position. . .".format(
-                    self.agent.name, self.agent.dest
+                    self.agent.name, dest
                 )
             )
 

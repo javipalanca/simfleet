@@ -2,7 +2,7 @@ import json
 from loguru import logger
 from asyncio import CancelledError
 
-from simfleet.common.extensions.customers.models.taxicustomer import TaxiCustomerStrategyBehaviour
+from simfleet.common.lib.customers.models.taxicustomer import TaxiCustomerStrategyBehaviour
 from simfleet.communications.protocol import (
     INFORM_PERFORMATIVE,
     CANCEL_PERFORMATIVE,

@@ -4,7 +4,7 @@ import time
 from loguru import logger
 from spade.behaviour import State, FSMBehaviour
 
-from simfleet.common.extensions.transports.models.bus import BusStrategyBehaviour
+from simfleet.common.lib.transports.models.bus import BusStrategyBehaviour
 
 from simfleet.utils.utils_old import (
     TRANSPORT_WAITING,

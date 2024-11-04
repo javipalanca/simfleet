@@ -15,7 +15,7 @@ from simfleet.communications.protocol import (
 )
 
 from simfleet.common.chargeable import ChargeableMixin
-from simfleet.common.extensions.transports.models.taxi import TaxiAgent
+from simfleet.common.lib.transports.models.taxi import TaxiAgent
 
 class ElectricTaxiAgent(ChargeableMixin, TaxiAgent):
     def __init__(self, agentjid, password, **kwargs):

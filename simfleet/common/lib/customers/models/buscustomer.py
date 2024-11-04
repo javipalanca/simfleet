@@ -15,7 +15,7 @@ from simfleet.communications.protocol import (
     INFORM_PERFORMATIVE,
 )
 
-from simfleet.common.extensions.customers.models.pedestrian import PedestrianAgent
+from simfleet.common.lib.customers.models.pedestrian import PedestrianAgent
 
 class BusCustomerAgent(PedestrianAgent):
     """

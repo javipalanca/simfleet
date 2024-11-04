@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 from simfleet.common.agents.directory import DirectoryAgent
 from simfleet.common.agents.fleetmanager import FleetManagerAgent
-from simfleet.common.extensions.vehicles.models.vehicle import VehicleAgent
+from simfleet.common.lib.vehicles.models.vehicle import VehicleAgent
 
 from simfleet.utils.reflection import load_class
 

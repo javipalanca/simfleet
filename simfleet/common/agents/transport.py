@@ -22,7 +22,7 @@ from simfleet.communications.protocol import (
 from simfleet.utils.utils_old import (
     CUSTOMER_LOCATION,
 )
-from simfleet.common.extensions.vehicles.models.vehicle import VehicleAgent
+from simfleet.common.lib.vehicles.models.vehicle import VehicleAgent
 
 class TransportAgent(VehicleAgent):
     """

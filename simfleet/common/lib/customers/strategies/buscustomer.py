@@ -6,7 +6,7 @@ from loguru import logger
 
 from simfleet.utils.abstractstrategies import FSMStrategyBehaviour
 
-from simfleet.common.extensions.customers.models.buscustomer import BusCustomerStrategyBehaviour
+from simfleet.common.lib.customers.models.buscustomer import BusCustomerStrategyBehaviour
 
 from simfleet.utils.utils_old import (
     CUSTOMER_IN_STOP,

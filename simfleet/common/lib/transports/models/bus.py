@@ -14,9 +14,6 @@ from simfleet.utils.helpers import (
     AlreadyInDestination,
 )
 
-from simfleet.utils.routing import (
-    StrategyBehaviour,
-)
 from simfleet.utils.status import TRANSPORT_MOVING_TO_STATION, CUSTOMER_IN_DEST
 
 from simfleet.communications.protocol import (
@@ -196,56 +193,6 @@ class BusAgent(TransportAgent):
             )
         )
         self.set("arrived_to_stop", True)
-
-    # Copia - Bus line
-    # def to_json(self):
-    #     """
-    #     Serializes the main information of a transport agent to a JSON format.
-    #     It includes the id of the agent, its current position, the destination coordinates of the agent,
-    #     the current status, the speed of the transport (in km/h), the path it is following (if any), the customer that it
-    #     has assigned (if any), the number of assignments if has done and the distance that the transport has traveled.
-    #
-    #     Returns:
-    #         dict: a JSON doc with the main information of the transport.
-    #
-    #         Example::
-    #
-    #             {
-    #                 "id": "cphillips",
-    #                 "position": [ 39.461327, -0.361839 ],
-    #                 "dest": [ 39.460599, -0.335041 ],
-    #                 "status": 24,
-    #                 "speed": 1000,
-    #                 "path": [[0,0], [0,1], [1,0], [1,1], ...],
-    #                 "customer": "ghiggins@127.0.0.1",
-    #                 "assignments": 2,
-    #                 "distance": 3481.34
-    #             }
-    #     """
-    #     return {
-    #         "id": self.agent_id,
-    #         "position": [
-    #             float("{0:.6f}".format(coord)) for coord in self.get("current_pos")
-    #         ],
-    #         "dest": [float("{0:.6f}".format(coord)) for coord in self.dest]
-    #         if self.dest
-    #         else None,
-    #         "status": self.status,
-    #         "speed": float("{0:.2f}".format(self.animation_speed))
-    #         if self.animation_speed
-    #         else None,
-    #         "path": self.get("path"),
-    #         "customer": self.get("current_customer").split("@")[0]
-    #         if self.get("current_customer")
-    #         else None,
-    #         "assignments": self.num_assignments,
-    #         "distance": "{0:.2f}".format(sum(self.distances)),
-    #         #"autonomy": self.current_autonomy_km,
-    #         #"max_autonomy": self.max_autonomy_km,
-    #         "service": self.fleet_type,
-    #         "fleet": self.fleetmanager_id.split("@")[0],
-    #         "icon": self.icon,
-    #     }
 
 
 class RegistrationBehaviour(CyclicBehaviour):

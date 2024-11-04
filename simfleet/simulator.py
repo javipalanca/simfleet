@@ -841,9 +841,9 @@ class SimulatorAgent(Agent):
             ],
             "tree": self.generate_tree(),
             "stats": self.get_stats(),
-            "stations": [station.to_json() for station in self.station_agents.values()],
+            "stations": [station.to_json() for station in self.station_agents.values()] + [stop.to_json() for stop in self.bus_stop_agents.values()],
             # Bus line
-            "stops": [stop.to_json() for stop in self.bus_stop_agents.values()],
+            #"stops": [stop.to_json() for stop in self.bus_stop_agents.values()],
         }
         return result
 
@@ -863,7 +863,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            # "status": i.status,
+                            #"status": i.status,
                             "icon": "fa-taxi",
                         }
                         for i in self.transport_agents.values()
@@ -875,7 +875,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            # "status": i.status,
+                            #"status": i.status,
                             "icon": "fa-lib",
                         }
                         for i in self.customer_agents.values()
@@ -887,7 +887,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            # "status": i.status,
+                            #"status": i.status,
                             "icon": "fa-vehicle",
                         }
                         for i in self.vehicle_agents.values()
@@ -998,6 +998,7 @@ class SimulatorAgent(Agent):
         Returns:
             dict: no template is returned since this is an AJAX controller, a dict with status=done
         """
+        logger.info("Stopping simulation...")
         coroutines = self.stop_agents()
         await asyncio.gather(*coroutines)
         return {"status": "done"}
@@ -1022,6 +1023,19 @@ class SimulatorAgent(Agent):
 
         return aioweb.Response(body=output.getvalue(), headers=headers)
 
+    def clear_agents(self):
+        """
+        Resets the set of transports and customers. Resets the simulation clock.
+        """
+        self.set("manager_agents", {})
+        self.set("transport_agents", {})
+        self.set("customer_agents", {})
+        self.set("station_agents", {})
+        self.set("vehicle_agents", {})
+        self.set("bus_stop_agents", {})
+        self.set("bus_lines", {})
+        self.simulation_time = None
+        self.simulation_init_time = None
 
     def clear_stopped_agents(self):
         """
@@ -1453,11 +1467,6 @@ class CoordinationBehaviour(CyclicBehaviour):
             )
         )
         if msg:
-            logger.warning(
-                "SimulatorAgent {} message: {}".format(
-                    self.agent.name, msg
-                )
-            )
             performative = msg.get_metadata("performative")
             agent_id = msg.sender
             user_agent_id = json.loads(msg.body)["user_agent_id"][0]

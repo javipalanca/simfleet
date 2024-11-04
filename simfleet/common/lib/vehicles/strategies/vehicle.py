@@ -30,7 +30,7 @@ class OneShotVehicleWaitingState(VehicleStrategyBehaviour):
                         self.agent.name
                     )
                 )
-                await self.planned_trip()
+                await self.planned_trip(self.agent.vehicle_dest)
                 self.set_next_state(VEHICLE_MOVING_TO_DESTINATION)
                 return
             except PathRequestException:
@@ -134,7 +134,7 @@ class CycleVehicleWaitingState(VehicleStrategyBehaviour):
                         self.agent.name
                     )
                 )
-                await self.planned_trip()
+                await self.planned_trip(self.agent.vehicle_dest)
                 self.set_next_state(VEHICLE_MOVING_TO_DESTINATION)
                 return
             except PathRequestException:

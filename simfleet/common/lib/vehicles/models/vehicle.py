@@ -9,6 +9,7 @@ from spade.behaviour import CyclicBehaviour, State
 
 from simfleet.common.movable import MovableMixin
 from simfleet.common.geolocatedagent import GeoLocatedAgent
+from simfleet.utils.helpers import new_random_position
 #
 
 from simfleet.communications.protocol import (
@@ -42,6 +43,7 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
         MovableMixin.__init__(self)
 
         self.fleetmanager_id = None
+        self.vehicle_dest = None
 
     def set_fleetmanager(self, fleetmanager_id):
         """
@@ -56,6 +58,22 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
             )
         )
         self.fleetmanager_id = fleetmanager_id
+
+    def set_target_position(self, coords=None):
+        """
+        Sets the target position of the customer (i.e., its destination).
+        If no position is provided, the destination is set to a random position.
+
+        Args:
+            coords (list): A list of coordinates (longitude and latitude) for the destination.
+        """
+        if coords:
+            self.vehicle_dest = coords
+        else:
+            self.vehicle_dest = new_random_position(self.boundingbox, self.route_host)
+        logger.debug(
+            "Vehicle {} target position is {}".format(self.agent_id, self.vehicle_dest)
+        )
 
     async def setup(self):
         """

@@ -13,11 +13,10 @@ from simfleet.utils.helpers import (
     AlreadyInDestination,
 )
 
-from simfleet.utils.utils_old import (
-    CUSTOMER_IN_DEST,
-    TRANSPORT_MOVING_TO_STATION,
+from simfleet.utils.routing import (
     StrategyBehaviour,
 )
+from simfleet.utils.status import TRANSPORT_MOVING_TO_STATION, CUSTOMER_IN_DEST
 
 from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,

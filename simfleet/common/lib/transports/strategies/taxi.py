@@ -17,17 +17,10 @@ from simfleet.utils.helpers import (
     PathRequestException,
     AlreadyInDestination
 )
-from simfleet.utils.utils_old import (
-    TRANSPORT_WAITING,
-    TRANSPORT_WAITING_FOR_APPROVAL,
-    TRANSPORT_MOVING_TO_CUSTOMER,
-    TRANSPORT_IN_CUSTOMER_PLACE,
-    TRANSPORT_ARRIVED_AT_CUSTOMER,
-    CUSTOMER_IN_TRANSPORT,
-    TRANSPORT_MOVING_TO_DESTINATION,
-    TRANSPORT_ARRIVED_AT_DESTINATION,
-    CUSTOMER_IN_DEST
-)
+from simfleet.utils.status import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_MOVING_TO_CUSTOMER, \
+    TRANSPORT_ARRIVED_AT_CUSTOMER, TRANSPORT_IN_CUSTOMER_PLACE, TRANSPORT_MOVING_TO_DESTINATION, \
+    TRANSPORT_ARRIVED_AT_DESTINATION, CUSTOMER_IN_TRANSPORT, CUSTOMER_IN_DEST
+
 
 ################################################################
 #                                                              #

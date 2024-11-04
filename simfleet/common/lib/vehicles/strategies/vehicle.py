@@ -5,7 +5,7 @@ from spade.behaviour import State, FSMBehaviour
 
 from simfleet.common.lib.vehicles.models.vehicle import VehicleStrategyBehaviour
 from simfleet.utils.helpers import PathRequestException, AlreadyInDestination
-from simfleet.utils.utils_old import VEHICLE_WAITING, VEHICLE_MOVING_TO_DESTINATION, VEHICLE_IN_DEST
+from simfleet.utils.status import VEHICLE_WAITING, VEHICLE_MOVING_TO_DESTINATION, VEHICLE_IN_DEST
 from simfleet.utils.abstractstrategies import FSMStrategyBehaviour
 
 

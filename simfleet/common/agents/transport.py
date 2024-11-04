@@ -19,9 +19,7 @@ from simfleet.communications.protocol import (
     REFUSE_PERFORMATIVE,
     QUERY_PROTOCOL,
 )
-from simfleet.utils.utils_old import (
-    CUSTOMER_LOCATION,
-)
+from simfleet.utils.status import CUSTOMER_LOCATION
 from simfleet.common.lib.vehicles.models.vehicle import VehicleAgent
 
 class TransportAgent(VehicleAgent):

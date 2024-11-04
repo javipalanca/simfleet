@@ -1,7 +1,7 @@
 from asyncio.log import logger
 from simfleet.utils.helpers import AlreadyInDestination, PathRequestException, distance_in_meters, kmh_to_ms
 from spade.behaviour import PeriodicBehaviour
-from simfleet.utils.utils_old import chunk_path, request_path
+from simfleet.utils.routing import chunk_path, request_path
 
 ONESECOND_IN_MS = 1000
 

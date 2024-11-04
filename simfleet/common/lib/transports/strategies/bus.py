@@ -6,12 +6,7 @@ from spade.behaviour import State, FSMBehaviour
 
 from simfleet.common.lib.transports.models.bus import BusStrategyBehaviour
 
-from simfleet.utils.utils_old import (
-    TRANSPORT_WAITING,
-    TRANSPORT_MOVING_TO_DESTINATION,
-    TRANSPORT_IN_DEST,
-    TRANSPORT_BOARDING,
-)
+from simfleet.utils.status import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_IN_DEST, TRANSPORT_BOARDING
 
 from simfleet.communications.protocol import (
     REQUEST_PERFORMATIVE,

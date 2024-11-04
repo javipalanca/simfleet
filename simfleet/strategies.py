@@ -16,18 +16,9 @@ from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
 )
 from simfleet.common.agents.transport import TransportStrategyBehaviour
-from simfleet.utils.utils_old import (
-    TRANSPORT_WAITING,
-    TRANSPORT_WAITING_FOR_APPROVAL,
-    CUSTOMER_WAITING,
-    TRANSPORT_MOVING_TO_CUSTOMER,
-    CUSTOMER_ASSIGNED,
-    TRANSPORT_MOVING_TO_STATION,
-    TRANSPORT_CHARGING,
-    TRANSPORT_CHARGED,
-    TRANSPORT_NEEDS_CHARGING,
-    TRANSPORT_IN_STATION_PLACE,
-)
+from simfleet.utils.status import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPROVAL, TRANSPORT_MOVING_TO_CUSTOMER, \
+    TRANSPORT_MOVING_TO_STATION, TRANSPORT_IN_STATION_PLACE, TRANSPORT_NEEDS_CHARGING, TRANSPORT_CHARGING, \
+    TRANSPORT_CHARGED, CUSTOMER_WAITING, CUSTOMER_ASSIGNED
 
 
 ################################################################

@@ -12,9 +12,7 @@ from simfleet.communications.protocol import (
     TRAVEL_PROTOCOL,
     QUERY_PROTOCOL,
 )
-from simfleet.utils.utils_old import (
-    CUSTOMER_LOCATION,
-)
+from simfleet.utils.status import CUSTOMER_LOCATION
 
 from simfleet.common.geolocatedagent import GeoLocatedAgent
 

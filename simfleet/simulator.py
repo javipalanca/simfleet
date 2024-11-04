@@ -22,7 +22,7 @@ from simfleet.common.agents.factory.create import StationFactory
 from simfleet.common.agents.factory.create import TransportFactory
 from simfleet.common.agents.factory.create import VehicleFactory
 from simfleet.common.agents.factory.create import TransportStopFactory
-from simfleet.utils.utils_old import request_path as async_request_path
+from simfleet.utils.routing import request_path as async_request_path
 
 from simfleet.config.settings import set_default_strategies, set_default_metrics
 

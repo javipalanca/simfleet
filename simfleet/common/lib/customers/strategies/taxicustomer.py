@@ -8,15 +8,8 @@ from simfleet.communications.protocol import (
     CANCEL_PERFORMATIVE,
     PROPOSE_PERFORMATIVE
 )
-from simfleet.utils.utils_old import (
-    CUSTOMER_WAITING,
-    CUSTOMER_ASSIGNED,
-    TRANSPORT_WAITING,
-    TRANSPORT_MOVING_TO_CUSTOMER,
-    TRANSPORT_IN_CUSTOMER_PLACE,
-    CUSTOMER_IN_TRANSPORT,
-    CUSTOMER_IN_DEST
-)
+from simfleet.utils.status import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_CUSTOMER, TRANSPORT_IN_CUSTOMER_PLACE, CUSTOMER_WAITING, \
+    CUSTOMER_IN_TRANSPORT, CUSTOMER_IN_DEST, CUSTOMER_ASSIGNED
 
 
 ################################################################

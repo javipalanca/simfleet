@@ -16,7 +16,7 @@ from simfleet.communications.protocol import (
 )
 
 from simfleet.common.queuestationagent import QueueStationAgent
-from simfleet.utils.utils_old import TRANSPORT_IN_CUSTOMER_PLACE
+from simfleet.utils.status import TRANSPORT_IN_CUSTOMER_PLACE
 
 
 class BusStopAgent(QueueStationAgent):

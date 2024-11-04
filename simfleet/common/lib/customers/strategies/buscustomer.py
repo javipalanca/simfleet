@@ -8,15 +8,8 @@ from simfleet.utils.abstractstrategies import FSMStrategyBehaviour
 
 from simfleet.common.lib.customers.models.buscustomer import BusCustomerStrategyBehaviour
 
-from simfleet.utils.utils_old import (
-    CUSTOMER_IN_STOP,
-    CUSTOMER_WAITING,
-    CUSTOMER_WAITING_TO_MOVE,
-    CUSTOMER_MOVING_TO_DEST,
-    CUSTOMER_IN_DEST,
-    CUSTOMER_WAITING_FOR_APPROVAL,
-    CUSTOMER_IN_TRANSPORT,
-)
+from simfleet.utils.status import CUSTOMER_WAITING, CUSTOMER_WAITING_TO_MOVE, CUSTOMER_IN_TRANSPORT, CUSTOMER_MOVING_TO_DEST, \
+    CUSTOMER_IN_DEST, CUSTOMER_IN_STOP, CUSTOMER_WAITING_FOR_APPROVAL
 
 from simfleet.communications.protocol import (
     INFORM_PERFORMATIVE,

@@ -259,8 +259,7 @@ class TransportFactory(Factory):
             agent.set_initial_position(stop_list[0])
 
         # Additional attributes
-        if position:
-            agent.set_initial_position(position)
+        agent.set_initial_position(position)
 
         if capacity:
             agent.set_capacity(capacity)
@@ -347,8 +346,7 @@ class CustomerFactory(Factory):
         agent.set_route_host(route_host)
         agent.set_boundingbox(bbox)
 
-        if position:
-            agent.set_initial_position(position)
+        agent.set_initial_position(position)
 
         agent.set_target_position(target)
 

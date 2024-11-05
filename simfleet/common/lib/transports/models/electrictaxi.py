@@ -14,7 +14,7 @@ from simfleet.communications.protocol import (
     QUERY_PROTOCOL,
 )
 
-from simfleet.common.chargeable import ChargeableMixin
+from simfleet.common.mixins.chargeable import ChargeableMixin
 from simfleet.common.lib.transports.models.taxi import TaxiAgent
 
 class ElectricTaxiAgent(ChargeableMixin, TaxiAgent):

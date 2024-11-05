@@ -7,7 +7,7 @@ from spade.message import Message
 from spade.template import Template
 from spade.behaviour import CyclicBehaviour, State
 
-from simfleet.common.movable import MovableMixin
+from simfleet.common.mixins.movable import MovableMixin
 from simfleet.common.geolocatedagent import GeoLocatedAgent
 from simfleet.utils.helpers import new_random_position
 #

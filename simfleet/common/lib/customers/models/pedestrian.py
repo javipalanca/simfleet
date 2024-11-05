@@ -6,7 +6,7 @@ from simfleet.communications.protocol import (
 )
 
 from simfleet.common.agents.customer import CustomerAgent
-from simfleet.common.movable import MovableMixin
+from simfleet.common.mixins.movable import MovableMixin
 
 class PedestrianAgent(MovableMixin, CustomerAgent):
     def __init__(self, agentjid, password):

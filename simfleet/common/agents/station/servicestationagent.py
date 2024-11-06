@@ -5,7 +5,7 @@ from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 from spade.template import Template
 
-from simfleet.common.queuestationagent import QueueStationAgent
+from simfleet.common.agents.station.queuestationagent import QueueStationAgent
 
 from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,

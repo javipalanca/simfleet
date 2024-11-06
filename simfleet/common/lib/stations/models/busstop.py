@@ -15,7 +15,7 @@ from simfleet.communications.protocol import (
         REQUEST_PROTOCOL
 )
 
-from simfleet.common.queuestationagent import QueueStationAgent
+from simfleet.common.agents.station.queuestationagent import QueueStationAgent
 from simfleet.utils.status import TRANSPORT_IN_CUSTOMER_PLACE
 
 

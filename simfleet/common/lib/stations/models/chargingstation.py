@@ -8,7 +8,7 @@ from spade.message import Message
 from spade.template import Template
 from asyncio import CancelledError
 
-from simfleet.common.servicestationagent import ServiceStationAgent
+from simfleet.common.agents.station.servicestationagent import ServiceStationAgent
 
 from simfleet.communications.protocol import (
     REGISTER_PROTOCOL,

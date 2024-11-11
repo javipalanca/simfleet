@@ -74,7 +74,6 @@ class MobilityStatisticsClass(BaseStatisticsClass):
         numbered_agents = {str(i): agent_metrics[i] for i in range(len(agent_metrics))}
 
         # Converting the result DataFrame into a JSON-like structure
-        #agent_metrics = result_df.to_dict(orient="index")
         json_structure = {
             "GeneralMetrics": {
                 "Class type": "ElectricTaxiAgent",
@@ -128,8 +127,11 @@ class MobilityStatisticsClass(BaseStatisticsClass):
 
         # Using pivot table to calculate waiting and charging times
         pivot_df = dataframe.pivot_table(index="name", columns="event_type", values="timestamp", aggfunc="first")
-        waiting_in_station_time = (pivot_df["service_start"] - pivot_df["arrival_at_station"])
-        charging_time = (pivot_df["service_completion"] - pivot_df["service_start"])
+
+        waiting_in_station_time = (pivot_df["service_start"] - pivot_df[
+            "arrival_at_station"]) if "service_start" in pivot_df.columns and "arrival_at_station" in pivot_df.columns else 0
+        charging_time = (pivot_df["service_completion"] - pivot_df[
+            "service_start"]) if "service_completion" in pivot_df.columns and "service_start" in pivot_df.columns else 0
 
         # Combining all metrics into a final DataFrame
         result_df = pd.DataFrame({
@@ -157,23 +159,17 @@ class MobilityStatisticsClass(BaseStatisticsClass):
         numbered_agents = {str(i): agent_metrics[i] for i in range(len(agent_metrics))}
 
         # Converting the result DataFrame into a JSON-like structure
-        #agent_metrics = result_df.to_dict(orient="index")
         json_structure = {
             "GeneralMetrics": {
                 "Class type": "ElectricTaxiAgent",
                 "Avg Transport Charging Time": f"{avg_charging_time:.2f}",
                 "Avg Total Distance": f"{avg_total_distance:.2f}"
             },
-            "ElectricTaxiAgent": numbered_agents#{
-                #str(i): agent_metrics[i] for i in agent_metrics
-            #}
+            "ElectricTaxiAgent": numbered_agents
         }
 
         # Exporting the result to a JSON file
         self.export_to_json(json_structure, file_path)
-
-        # Print stats
-        #self.print_stats(result_df, title="ElectricTaxi")
 
 
     def customer_taxi_metrics(self, events_log: Log, file_path: str) -> None:
@@ -221,23 +217,18 @@ class MobilityStatisticsClass(BaseStatisticsClass):
         numbered_agents = {str(i): agent_metrics[i] for i in range(len(agent_metrics))}
 
         # Converting the result DataFrame into a JSON-like structure
-        #agent_metrics = result_df.to_dict(orient="index")
         json_structure = {
             "GeneralMetrics": {
                 "Class type": "TaxiCustomerAgent",
                 "Avg Waiting Time": f"{avg_waiting_time:.2f}",
                 "Avg Total Time": f"{avg_total_time:.2f}"
             },
-            "TaxiCustomerAgent": numbered_agents #{
-                #str(i): agent_metrics[i] for i in agent_metrics
-            #}
+            "TaxiCustomerAgent": numbered_agents
         }
 
         # Exporting the result to a JSON file
         self.export_to_json(json_structure, file_path)
 
-        # Print stats
-        #self.print_stats(result_df, title="TaxiCustomer")
 
     def export_to_json(self, json_data: dict, file_path: str) -> None:
         """

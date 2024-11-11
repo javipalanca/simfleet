@@ -15,13 +15,6 @@ from simfleet.simulator import SimulatorAgent
 @click.command()
 @click.option("-n", "--name", help="Name of the simulation execution.")
 @click.option("-o", "--output", help="Filename for saving simulation events in JSON format.")
-# @click.option(
-#     "-of",
-#     "--oformat",
-#     help="Output format used to save simulation results. (default: json)",
-#     type=click.Choice(["json", "excel"]),
-#     default="json",
-# )
 @click.option(
     "-mt", "--max-time", help="Maximum simulation time (in seconds).", type=int
 )
@@ -38,7 +31,7 @@ from simfleet.simulator import SimulatorAgent
     count=True,
     help="Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4",
 )
-#def main(name, output, oformat, max_time, autorun, config, verbose):
+#def main(name, output, max_time, autorun, config, verbose):
 def main(name, output, max_time, autorun, config, verbose):
     """
     Console script for SimFleet.
@@ -67,7 +60,6 @@ def main(name, output, max_time, autorun, config, verbose):
     simulator_name = "simulator_{}@{}".format(simfleet_config.simulation_name, simfleet_config.host)
 
     simulator = SimulatorAgent(config=simfleet_config, agentjid=simulator_name)
-    #sys.exit(0)
     simulator.start()
 
     if autorun:

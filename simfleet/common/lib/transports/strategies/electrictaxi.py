@@ -104,32 +104,36 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
     async def run(self):
 
         if (
-            self.agent.stations is None
-            or len(self.agent.stations) < 1
+            self.agent.get_stations() is None
+            or self.agent.get_number_stations() < 1
         ):
             logger.info("Transport {} looking for a station.".format(self.agent.name))
 
             # New
-            self.agent.stations = await self.agent.get_list_agent_position(self.agent.service_type, self.agent.stations)
+            stations = await self.agent.get_list_agent_position(self.agent.service_type, self.agent.get_stations())
+
+            self.agent.set_stations(stations)
 
             self.set_next_state(TRANSPORT_NEEDS_CHARGING)
             return
 
         else:
 
-            self.agent.current_station_dest = self.agent.nearst_agent(self.agent.stations, self.agent.get_position())
+            nearby_station_dest = self.agent.nearst_agent(self.agent.get_stations(), self.agent.get_position())
+
+            self.agent.set_nearby_station(nearby_station_dest)
+
             logger.info(
-                 "Transport {} selected station {}.".format(self.agent.name, self.agent.current_station_dest[0])
+                 "Transport {} selected station {}.".format(self.agent.name, self.agent.get_nearby_station_id())
              )
 
             try:
 
-                station, position = self.agent.current_station_dest
-                await self.go_to_the_station(station, position)
+                await self.go_to_the_station(self.agent.get_nearby_station_id(), self.agent.get_nearby_station_position())
 
                 # New statistics - TESTING
                 path, distance, duration = await self.agent.request_path(
-                    self.agent.get("current_pos"), position
+                    self.agent.get("current_pos"), self.agent.get_nearby_station_position()
                 )
 
                 # New statistics
@@ -140,8 +144,8 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
                 )
 
                 try:
-                    logger.debug("{} move_to station {}".format(self.agent.name, station))
-                    await self.agent.move_to(position)
+                    logger.debug("{} move_to station {}".format(self.agent.name, self.agent.get_nearby_station_id()))
+                    await self.agent.move_to(self.agent.get_nearby_station_position())
 
                     self.agent.status = TRANSPORT_MOVING_TO_STATION
                     self.set_next_state(TRANSPORT_MOVING_TO_STATION)
@@ -149,7 +153,7 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
                 except AlreadyInDestination:
                     logger.debug(
                         "{} is already in the stations' {} position. . .".format(
-                            self.agent.name, station
+                            self.agent.name, self.agent.get_nearby_station_id()
                         )
                     )
 
@@ -168,10 +172,10 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
             except PathRequestException:
                 logger.error(
                     "Transport {} could not get a path to station {}. Cancelling...".format(
-                        self.agent.name, station
+                        self.agent.name, self.agent.get_nearby_station_id()
                     )
                 )
-                await self.cancel_proposal(station)
+                await self.cancel_proposal(self.agent.get_nearby_station_id())
                 self.agent.status = TRANSPORT_WAITING
                 self.set_next_state(TRANSPORT_WAITING)
                 return
@@ -228,7 +232,7 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
                 )
             )
 
-            self.agent.arguments["need"] = self.agent.max_autonomy_km - self.agent.current_autonomy_km
+            self.agent.arguments["transport_need"] = self.agent.max_autonomy_km - self.agent.current_autonomy_km
 
             content = {"service_name": self.agent.service_type, "args": self.agent.arguments}
             await self.request_access_station(self.agent.get("current_station"), content)

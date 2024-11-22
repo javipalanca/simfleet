@@ -23,10 +23,75 @@ class ElectricTaxiAgent(ChargeableMixin, TaxiAgent):
         TaxiAgent.__init__(self, agentjid, password, **kwargs)
 
         self.stations = None
-        self.current_station_dest = None
+        self.nearby_station = None
         self.set("current_station", None)
 
         self.arguments = {}
+
+    def set_stations(self, stations):
+        """
+               Set the list of charging stations.
+
+               Args:
+                   stations (list): A list of charging station details.
+        """
+        self.stations = stations
+
+    def get_stations(self):
+        """
+                Retrieve the list of charging stations.
+
+                Returns:
+                    list: A list of charging station details.
+        """
+        return self.stations
+
+    def get_number_stations(self):
+        """
+                Retrieve the number of available charging stations.
+
+                Returns:
+                    int: The number of charging stations in the list.
+        """
+        return len(self.stations)
+
+    def set_nearby_station(self, station):
+        """
+                Set the nearest charging station.
+
+                Args:
+                    station (tuple): A tuple containing the ID and position of the station.
+        """
+        self.nearby_station = station
+
+    def get_nearby_station(self):
+        """
+                Retrieve the nearest charging station.
+
+                Returns:
+                    tuple: A tuple containing the ID and position of the nearest charging station.
+        """
+        return self.nearby_station
+
+    def get_nearby_station_id(self):
+        """
+                Retrieve the ID of the nearest charging station.
+
+                Returns:
+                    Any: The ID of the nearest charging station.
+        """
+        return self.nearby_station[0]
+
+    def get_nearby_station_position(self):
+        """
+                Retrieve the position of the nearest charging station.
+
+                Returns:
+                    Any: The position of the nearest charging station.
+        """
+        return self.nearby_station[1]
+
+
 
 
 class ElectricTaxiStrategyBehaviour(State):
@@ -74,7 +139,7 @@ class ElectricTaxiStrategyBehaviour(State):
             "Transport {} on route to station {}".format(self.agent.name, station_id)
         )
         self.set("current_station", station_id)
-        self.agent.current_station_dest = dest
+        #self.agent.current_station_dest = dest
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
         self.agent.set_km_expense(travel_km)
 

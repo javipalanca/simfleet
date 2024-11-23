@@ -8,6 +8,10 @@ from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     PROPOSE_PERFORMATIVE,
     CANCEL_PERFORMATIVE,
+    INFORM_PERFORMATIVE,
+    REQUEST_PERFORMATIVE,
+    ACCEPT_PERFORMATIVE,
+    QUERY_PROTOCOL,
 )
 
 from simfleet.common.agents.transport import TransportAgent
@@ -34,6 +38,8 @@ class TaxiAgent(TransportAgent):
         self.set("assigned_customer", {})
         self.fleetmanager_id = kwargs.get('fleet', None)
 
+    async def setup(self):
+        await super().setup()
 
     async def add_assigned_taxicustomer(self, customer_id, origin=None, dest=None):
         customers = self.get("assigned_customer")

@@ -63,7 +63,7 @@ class GeoLocatedAgent(SimfleetAgent):
         else:
             self.set("current_pos", new_random_position(self.boundingbox, self.route_host))
         logger.debug(
-            "Agent {} position is {}".format(self.agent_id, self.get("current_pos"))
+            "Agent[{}]: The agent position is ({})".format(self.agent_id, self.get("current_pos"))
         )
 
     def set_initial_position(self, coords=None):
@@ -139,7 +139,7 @@ class GeoLocatedAgent(SimfleetAgent):
             agent_list[agent]["position"],
         )
         logger.info(
-            "Transport {} selected station {}.".format(self.name, agent)
+            "Agent[{}]: The agent selected agent ({}).".format(self.name, agent)
         )
         return result
 
@@ -206,7 +206,8 @@ class GetListOfAgentPosition(OneShotBehaviour):
         if content is None or len(content) == 0:
             content = self.agent_type
             logger.warning(
-                "The message has no content: {}".format(
+                "Agent[{}]: The message has no content: {}".format(
+                    self.agent.name,
                     content
                 )
             )
@@ -219,7 +220,7 @@ class GetListOfAgentPosition(OneShotBehaviour):
         await self.send(msg)
 
         logger.info(
-            "Agent {} asked for stops to directory {} for type {}.".format(
+            "Agent[{}]: The agent asked for services to directory [{}] for type ({}).".format(
                 self.agent.name, self.agent.directory_id, self.agent_type
             )
         )
@@ -240,13 +241,13 @@ class GetListOfAgentPosition(OneShotBehaviour):
                     if performative == INFORM_PERFORMATIVE:
                         self.agent_list = json.loads(msg.body)
                         logger.debug(
-                            "Customer {} got stops from directory: {}".format(
+                            "Agent[{}]: The agent got services from directory: {}".format(
                                 self.agent.name, self.agent_list
                             )
                         )
                     elif performative == CANCEL_PERFORMATIVE:
                         logger.warning(
-                            "{} got cancellation of request for {} information".format(
+                            "Agent[{}]: THe agent got cancellation of request for ({}) information".format(
                                 self.agent.name, self.agent_type
                             )
                         )

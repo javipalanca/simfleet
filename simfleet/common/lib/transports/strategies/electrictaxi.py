@@ -206,7 +206,7 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
 
             if not self.agent.is_in_destination():
 
-                await asyncio.sleep(1)
+                await self.agent.sleep(1)
                 self.set_next_state(TRANSPORT_MOVING_TO_STATION)
             else:
 
@@ -714,7 +714,7 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour):
         try:
 
             if not self.agent.is_in_destination():
-                await asyncio.sleep(1)
+                await self.agent.sleep(1)
                 self.set_next_state(TRANSPORT_MOVING_TO_DESTINATION)
             else:
                 logger.info(

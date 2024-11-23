@@ -1,4 +1,6 @@
 import time
+import asyncio
+
 from loguru import logger
 from spade.agent import Agent
 from collections import defaultdict
@@ -31,6 +33,7 @@ class SimfleetAgent(Agent):
         super().__init__(agentjid, password)
         self.__observers = defaultdict(list)
         self.agent_id = None
+        #self.agent_name = None
         self.strategy = None
         self.running_strategy = False
         self.port = None
@@ -76,15 +79,15 @@ class SimfleetAgent(Agent):
         return not self.is_launched or (self.is_launched and self.ready)
 
 
-    def sleep(self, seconds):
+    async def sleep(self, seconds):
         """
             Pauses the agent’s operation for a specified duration.
 
             Args:
                 seconds (int): The duration in seconds for which the agent should pause.
         """
-        # await asyncio.sleep(seconds)
-        time.sleep(seconds)
+        await asyncio.sleep(seconds)
+        #time.sleep(seconds)
 
 
     def set(self, key, value):

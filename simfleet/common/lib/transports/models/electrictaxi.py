@@ -52,6 +52,9 @@ class ElectricTaxiAgent(ChargeableMixin, TaxiAgent):
 
         self.arguments = {}
 
+    async def setup(self):
+        await super().setup()
+
     def set_stations(self, stations):
         """
                Set the list of charging stations.

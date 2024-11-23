@@ -39,14 +39,14 @@ class ElectricTaxiWaitingState(TaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING
-        logger.debug("{} in Transport Waiting State".format(self.agent.jid))
+        #logger.debug("Agent[{}]: in Transport Waiting State".format(self.agent.jid))
 
     async def run(self):
         msg = await self.receive(timeout=60)
         if not msg:
             self.set_next_state(TRANSPORT_WAITING)
             return
-        logger.debug("Transport {} received: {}".format(self.agent.jid, msg.body))
+        logger.debug("Agent[{}]: The agent received: {}".format(self.agent.jid, msg.body))
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
         if performative == REQUEST_PERFORMATIVE:
@@ -86,9 +86,9 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
-        logger.debug(
-            "{} in Transport Waiting For Approval State".format(self.agent.jid)
-        )
+        #logger.debug(
+        #    "{} in Transport Waiting For Approval State".format(self.agent.jid)
+        #)
 
     async def run(self):
         msg = await self.receive(timeout=60)
@@ -101,7 +101,7 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour):
             # Handle acceptance by the customer or station
             try:
                 logger.debug(
-                    "Transport {} got accept from {}".format(
+                    "Agent[{}]: The agent got accept from [{}]".format(
                         self.agent.name, content["customer_id"]
                     )
                 )
@@ -142,7 +142,7 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour):
 
             except PathRequestException:
                 logger.error(
-                    "Transport {} could not get a path to customer {}. Cancelling...".format(
+                    "Agent[{}]: The agent could not get a path to customer [{}]. Cancelling...".format(
                         self.agent.name, content["customer_id"]
                     )
                 )
@@ -160,7 +160,7 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour):
                 return
             except Exception as e:
                 logger.error(
-                    "Unexpected error in transport {}: {}".format(self.agent.name, e)
+                    "Unexpected error in agent [{}]: {}".format(self.agent.name, e)
                 )
                 await self.cancel_proposal(content["customer_id"])
                 self.set_next_state(TRANSPORT_WAITING)
@@ -168,7 +168,7 @@ class TaxiWaitingForApprovalState(TaxiStrategyBehaviour):
 
         elif performative == REFUSE_PERFORMATIVE:
             logger.debug(
-                "Transport {} got refusal from customer/station".format(self.agent.name)
+                "Agent[{}]: The agent got refusal from customer/station".format(self.agent.name)
             )
             self.set_next_state(TRANSPORT_WAITING)
             return
@@ -209,7 +209,7 @@ class TaxiMovingToCustomerState(TaxiStrategyBehaviour):
                         return
                     elif performative == REFUSE_PERFORMATIVE:
                         logger.debug(
-                            "Transport {} got refusal from customer/station".format(self.agent.name)
+                            "Agent[{}]: The agent got refusal from customer/station".format(self.agent.name)
                         )
                         self.agent.status = TRANSPORT_WAITING
                         self.set_next_state(TRANSPORT_WAITING)
@@ -219,7 +219,7 @@ class TaxiMovingToCustomerState(TaxiStrategyBehaviour):
                     self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
             else:
                 logger.info(
-                    "Transport {} has arrived to destination. Status: {}".format(
+                    "Agent[{}]: The agent has arrived to destination. Status: {}".format(
                         self.agent.agent_id, self.agent.status
                     )
                 )
@@ -232,7 +232,7 @@ class TaxiMovingToCustomerState(TaxiStrategyBehaviour):
 
         except PathRequestException:
             logger.error(
-                "Transport {} could not get a path to customer {}. Cancelling...".format(
+                "Agent[{}]: The agent could not get a path to customer [{}]. Cancelling...".format(
                     self.agent.name, customer_id
                 )
             )
@@ -250,7 +250,7 @@ class TaxiMovingToCustomerState(TaxiStrategyBehaviour):
             return
         except Exception as e:
             logger.error(
-                "Unexpected error in transport {}: {}".format(self.agent.name, e)
+                "Unexpected error in transport [{}]: {}".format(self.agent.name, e)
             )
             await self.cancel_proposal(customer_id)
             self.agent.status = TRANSPORT_WAITING
@@ -270,7 +270,7 @@ class TaxiArrivedAtCustomerState(TaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
-        logger.debug("{} in Transport Arrived At Customer State".format(self.agent.jid))
+        #logger.debug("{} in Transport Arrived At Customer State".format(self.agent.jid))
 
     async def run(self):
 
@@ -294,7 +294,7 @@ class TaxiArrivedAtCustomerState(TaxiStrategyBehaviour):
 
                     try:
                         logger.debug(
-                            "Customer {} in transport.".format(self.agent.name)
+                            "Agent[{}]: Customer [{}] in transport.".format(self.agent.name, customer_id)
                         )
 
                         self.agent.add_customer_in_transport(
@@ -303,7 +303,7 @@ class TaxiArrivedAtCustomerState(TaxiStrategyBehaviour):
                         await self.agent.remove_assigned_taxicustomer()
 
                         logger.info(
-                            "Transport {} on route to customer destination of {}".format(self.agent.name, customer_id)
+                            "Agent[{}]: The agent on route to [{}] destination.".format(self.agent.name, customer_id)
                         )
 
                         # New statistics
@@ -339,7 +339,7 @@ class TaxiArrivedAtCustomerState(TaxiStrategyBehaviour):
 
                     except Exception as e:
                         logger.error(
-                            "Unexpected error in transport {}: {}".format(self.agent.name, e)
+                            "Unexpected error in transport [{}]: {}".format(self.agent.name, e)
                         )
 
         elif performative == CANCEL_PERFORMATIVE:
@@ -363,7 +363,7 @@ class TaxiMovingToCustomerDestState(TaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_DESTINATION
-        logger.debug("{} in Transport Moving To Customer Dest State".format(self.agent.jid))
+        #logger.debug("{} in Transport Moving To Customer Dest State".format(self.agent.jid))
 
     async def run(self):
 
@@ -377,7 +377,7 @@ class TaxiMovingToCustomerDestState(TaxiStrategyBehaviour):
                 self.set_next_state(TRANSPORT_MOVING_TO_DESTINATION)
             else:
                 logger.info(
-                    "Transport {} has arrived to destination. Status: {}".format(
+                    "Agent[{}]: The agent has arrived to destination. Status: {}".format(
                         self.agent.agent_id, self.agent.status
                     )
                 )
@@ -397,7 +397,7 @@ class TaxiMovingToCustomerDestState(TaxiStrategyBehaviour):
 
         except PathRequestException:
             logger.error(
-                "Transport {} could not get a path to customer {}. Cancelling...".format(
+                "Agent[{}]: The agent could not get a path to customer [{}]. Cancelling...".format(
                     self.agent.name, customer_id
                 )
             )
@@ -422,7 +422,7 @@ class TaxiMovingToCustomerDestState(TaxiStrategyBehaviour):
             return
         except Exception as e:
             logger.error(
-                "Unexpected error in transport {}: {}".format(self.agent.name, e)
+                "Unexpected error in transport [{}]: {}".format(self.agent.name, e)
             )
             await self.cancel_proposal(customer_id)
             self.agent.status = TRANSPORT_WAITING
@@ -440,7 +440,7 @@ class TaxiArrivedAtCustomerDestState(TaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_ARRIVED_AT_DESTINATION
-        logger.debug("{} in Transport Arrived at Customer Dest State".format(self.agent.jid))
+        #logger.debug("{} in Transport Arrived at Customer Dest State".format(self.agent.jid))
 
     async def run(self):
 
@@ -464,7 +464,7 @@ class TaxiArrivedAtCustomerDestState(TaxiStrategyBehaviour):
 
                         self.agent.remove_customer_in_transport(customer_id)
                         logger.debug(
-                            "Transport {} has dropped the customer {} in destination.".format(
+                            "Agent[{}]: The agent has dropped the customer [{}] in destination.".format(
                                 self.agent.agent_id, customer_id
                             )
                         )

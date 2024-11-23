@@ -8,17 +8,26 @@ from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     PROPOSE_PERFORMATIVE,
     CANCEL_PERFORMATIVE,
-    INFORM_PERFORMATIVE,
-    REQUEST_PERFORMATIVE,
-    ACCEPT_PERFORMATIVE,
-    QUERY_PROTOCOL,
 )
 
 from simfleet.common.agents.transport import TransportAgent
 
-MIN_AUTONOMY = 2
-
 class TaxiAgent(TransportAgent):
+    """
+        Represents a taxi agent, inheriting from `TransportAgent`. This class provides
+        functionalities specific to taxis, such as managing assigned customers.
+
+        Attributes:
+            fleetmanager_id (str): The ID of the fleet manager the taxi belongs to.
+            assigned_customer (dict): A dictionary storing the currently assigned customer's
+                                      ID, origin, and destination.
+
+        Methods:
+            async add_assigned_taxicustomer(customer_id, origin=None, dest=None):
+                Adds a customer to the taxi's assigned customer list.
+            async remove_assigned_taxicustomer():
+                Removes all assigned customers from the taxi's customer list.
+        """
     def __init__(self, agentjid, password, **kwargs):
         super().__init__(agentjid, password)
 
@@ -36,28 +45,36 @@ class TaxiAgent(TransportAgent):
 
 class TaxiStrategyBehaviour(State):
     """
-    Class from which to inherit to create a transport strategy.
-    You must overload the ```run`` coroutine
+    Base class to define the transport strategy for a taxi.
+    This class should be inherited and extended to create custom strategies.
+    Subclasses must override the `run` coroutine to define specific behaviors.
 
-    Helper functions:
-        * ``pick_up_customer``
-        * ``send_proposal``
-        * ``cancel_proposal``
+    Methods:
+        async on_start():
+            Logs the beginning of the strategy execution.
+        async on_end():
+            Logs the end of the strategy execution.
+        async send_proposal(customer_id, content=None):
+            Sends a transport proposal to a customer.
+        async cancel_proposal(agent_id, content=None):
+            Cancels a previously sent proposal to a customer.
+        async run():
+            Abstract method that must be implemented by subclasses.
     """
 
     async def on_start(self):
         # await super().on_start()
         logger.debug(
-            "Strategy {} started in transport {}".format(
-                type(self).__name__, self.agent.name
+            "Agent[{}]: Strategy {} started.".format(
+                self.agent.name, type(self).__name__
             )
         )
 
     async def on_end(self):
         # await super().on_start()
         logger.debug(
-            "Strategy {} finished in transport {}".format(
-                type(self).__name__, self.agent.name
+            "Agent[{}]: Strategy {} finished.".format(
+                self.agent.name, type(self).__name__
             )
         )
 
@@ -73,7 +90,7 @@ class TaxiStrategyBehaviour(State):
         if content is None:
             content = {}
         logger.info(
-            "Transport {} sent proposal to {}".format(self.agent.name, customer_id)
+            "Agent[{}]: The agent sent proposal to [{}]".format(self.agent.name, customer_id)
         )
         reply = Message()
         reply.to = customer_id
@@ -94,7 +111,7 @@ class TaxiStrategyBehaviour(State):
         if content is None:
             content = {}
         logger.info(
-            "Transport {} sent cancel proposal to customer {}".format(
+            "Agent[{}]: The agent sent cancel proposal to [{}]".format(
                 self.agent.name, agent_id
             )
         )

@@ -8,16 +8,40 @@ from simfleet.communications.protocol import (
     REQUEST_PROTOCOL,
     PROPOSE_PERFORMATIVE,
     CANCEL_PERFORMATIVE,
-    INFORM_PERFORMATIVE,
     REQUEST_PERFORMATIVE,
-    ACCEPT_PERFORMATIVE,
-    QUERY_PROTOCOL,
 )
 
 from simfleet.common.mixins.chargeable import ChargeableMixin
 from simfleet.common.lib.transports.models.taxi import TaxiAgent
 
 class ElectricTaxiAgent(ChargeableMixin, TaxiAgent):
+    """
+        Represents an electric taxi agent with enhanced functionalities for managing charging stations,
+        nearby station selection, and other electric vehicle-specific features.
+        This class extends the capabilities of `TaxiAgent` and integrates charging functionality
+        through the `ChargeableMixin`.
+
+        Attributes:
+            stations (list): A list of available charging stations.
+            nearby_station (tuple): The ID and position of the nearest charging station.
+            arguments (dict): Additional custom arguments for the access to station agent.
+
+        Methods:
+            set_stations(stations):
+                Sets the list of available charging stations.
+            get_stations():
+                Retrieves the list of available charging stations.
+            get_number_stations():
+                Gets the total number of charging stations.
+            set_nearby_station(station):
+                Sets the nearest charging station.
+            get_nearby_station():
+                Retrieves the nearest charging station.
+            get_nearby_station_id():
+                Retrieves the ID of the nearest charging station.
+            get_nearby_station_position():
+                Retrieves the position of the nearest charging station.
+        """
     def __init__(self, agentjid, password, **kwargs):
         ChargeableMixin.__init__(self)
         TaxiAgent.__init__(self, agentjid, password, **kwargs)
@@ -69,7 +93,7 @@ class ElectricTaxiAgent(ChargeableMixin, TaxiAgent):
                 Retrieve the nearest charging station.
 
                 Returns:
-                    tuple: A tuple containing the ID and position of the nearest charging station.
+                    tuple: A tuple containing the JID and position of the nearest charging station.
         """
         return self.nearby_station
 
@@ -96,54 +120,112 @@ class ElectricTaxiAgent(ChargeableMixin, TaxiAgent):
 
 class ElectricTaxiStrategyBehaviour(State):
     """
-    Class from which to inherit to create a transport strategy.
-    You must overload the ```run`` coroutine
+    Base class to define the transport strategy for an electric taxi.
+    This class should be inherited and extended to create custom strategies.
+    Subclasses must override the `run` coroutine to define specific behaviors.
 
-    Helper functions:
-        * ``pick_up_customer``
-        * ``send_proposal``
-        * ``cancel_proposal``
+    Methods:
+        async on_start():
+            Logs the beginning of the strategy execution.
+        async on_end():
+            Logs the end of the strategy execution.
+        async go_to_the_station(station_id, dest):
+            Directs the taxi to a specific station and updates autonomy based on distance.
+        check_and_decrease_autonomy(customer_orig, customer_dest):
+            Checks if there is enough autonomy for a trip and decreases it if possible.
+        async drop_station():
+            Resets the current station assignment for the taxi.
+        async request_access_station(station_id, content):
+            Sends a request to a station for access.
+        async send_proposal(customer_id, content=None):
+            Sends a transport proposal to a customer.
+        async cancel_proposal(agent_id, content=None):
+            Cancels a previously sent proposal to a customer.
+        async run():
+            Abstract method that must be implemented by subclasses.
     """
 
     async def on_start(self):
+        """
+                Logs the beginning of the strategy execution.
+                """
         # await super().on_start()
         logger.debug(
-            "Strategy {} started in transport {}".format(
-                type(self).__name__, self.agent.name
+            "Agent[{}]: Strategy {} started.".format(
+                self.agent.name, type(self).__name__
             )
         )
 
     async def on_end(self):
+        """
+                Logs the end of the strategy execution.
+                """
         # await super().on_start()
         logger.debug(
-            "Strategy {} finished in transport {}".format(
-                type(self).__name__, self.agent.name
+            "Agent[{}]: Strategy {} finished.".format(
+                self.agent.name, type(self).__name__
             )
         )
-
-    async def send_confirmation_travel(self, station_id):
-        logger.info(
-            "Transport {} sent confirmation to station {}".format(
-                self.agent.name, station_id
-            )
-        )
-        reply = Message()
-        reply.to = station_id
-        reply.set_metadata("protocol", REQUEST_PROTOCOL)
-        reply.set_metadata("performative", ACCEPT_PERFORMATIVE)
-        await self.send(reply)
 
     async def go_to_the_station(self, station_id, dest):
+        """
+                Directs the taxi to a specific station and updates autonomy based on the distance.
 
+                Args:
+                    station_id (str): The ID of the destination station.
+                    dest (list): The coordinates of the station (x, y).
+                """
         logger.info(
-            "Transport {} on route to station {}".format(self.agent.name, station_id)
+            "Agent[{}]: On route to station [{}]".format(self.agent.name, station_id)
         )
         self.set("current_station", station_id)
         #self.agent.current_station_dest = dest
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
-        self.agent.set_km_expense(travel_km)
+        self.agent.decrease_autonomy_km(travel_km)
+
+    def check_and_decrease_autonomy(self, customer_orig, customer_dest):
+        """
+        Verifies if the ttransport has enough autonomy for a trip and decreases autonomy if possible.
+
+        Args:
+            customer_orig (list): The customer's origin coordinates (x, y).
+            customer_dest (list): The customer's destination coordinates (x, y).
+
+        Returns:
+            bool: True if autonomy is sufficient and decreased, False otherwise.
+        """
+
+        if self.agent.has_enough_autonomy(customer_orig, customer_dest):
+            autonomy = self.agent.get_autonomy()
+            travel_km = self.agent.calculate_km_expense(
+                self.agent.get_position(), customer_orig, customer_dest
+            )
+            self.agent.decrease_autonomy_km(travel_km)
+            return True
+        else:
+            return False
+
+    async def drop_station(self):
+        """
+        Resets the current station assignment for the transport.
+        """
+
+        logger.debug(
+            "Agent[{}]: The agent has dropped the station [{}].".format(
+                self.agent.agent_id, self.agent.get("current_station")
+            )
+        )
+        self.agent.set("current_station", None)
 
     async def request_access_station(self, station_id, content):
+
+        """
+                Sends a request to a station for access.
+
+                Args:
+                    station_id (str): The ID of the station to request access from.
+                    content (dict): Additional information to include in the request.
+                """
 
         if content is None:
             content = {}
@@ -153,7 +235,7 @@ class ElectricTaxiStrategyBehaviour(State):
         reply.set_metadata("performative", REQUEST_PERFORMATIVE)
         reply.body = json.dumps(content)
         logger.debug(
-            "{} requesting access to {}".format(
+            "Agent[{}]: The agent requesting access to [{}]".format(
                 self.agent.name,
                 station_id,
                 reply.body
@@ -161,37 +243,18 @@ class ElectricTaxiStrategyBehaviour(State):
         )
         await self.send(reply)
 
-    async def send_get_stations(self, content=None):
-
-        if content is None or len(content) == 0:
-            content = self.agent.service_type
-
-        msg = Message()
-        msg.to = str(self.agent.directory_id)
-        msg.set_metadata("protocol", QUERY_PROTOCOL)
-        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-        msg.body = content
-        await self.send(msg)
-
-        logger.info(
-            "Transport {} asked for stations to Directory {} for type {}.".format(
-                self.agent.name, self.agent.directory_id, self.agent.service_type
-            )
-        )
-
     async def send_proposal(self, customer_id, content=None):
         """
-        Send a ``spade.message.Message`` with a proposal to a customer to pick up him.
-        If the content is empty the proposal is sent without content.
+        Sends a proposal to a customer offering transport.
 
         Args:
-            customer_id (str): the id of the customer
-            content (dict, optional): the optional content of the message
+            customer_id (str): The ID of the customer.
+            content (dict, optional): Additional content for the proposal. Defaults to None.
         """
         if content is None:
             content = {}
         logger.info(
-            "Transport {} sent proposal to {}".format(self.agent.name, customer_id)
+            "Agent[{}]: The agent sent proposal to agent [{}]".format(self.agent.name, customer_id)
         )
         reply = Message()
         reply.to = customer_id
@@ -202,17 +265,16 @@ class ElectricTaxiStrategyBehaviour(State):
 
     async def cancel_proposal(self, agent_id, content=None):
         """
-        Send a ``spade.message.Message`` to cancel a proposal.
-        If the content is empty the proposal is sent without content.
+        Cancels a previously sent proposal.
 
         Args:
-            agent_id (str): the id of the customer
-            content (dict, optional): the optional content of the message
+            agent_id (str): The ID of the customer.
+            content (dict, optional): Additional content for the cancellation. Defaults to None.
         """
         if content is None:
             content = {}
         logger.info(
-            "Transport {} sent cancel proposal to customer {}".format(
+            "Agent[{}]: The agent sent cancel proposal to agent [{}]".format(
                 self.agent.name, agent_id
             )
         )
@@ -223,56 +285,6 @@ class ElectricTaxiStrategyBehaviour(State):
         reply.body = json.dumps(content)
         await self.send(reply)
 
-    async def inform_station(self, data=None):
-        """
-        Sends a message to the current assigned customer to inform her about a new status.
-
-        Args:
-            status (int): The new status code
-            data (dict, optional): complementary info about the status
-        """
-        if data is None:
-            data = {}
-        msg = Message()
-        msg.to = self.get("current_station")
-        msg.set_metadata("protocol", REQUEST_PROTOCOL)
-        msg.set_metadata("performative", INFORM_PERFORMATIVE)
-        msg.body = json.dumps(data)
-        await self.send(msg)
-
-    async def comunicate_for_charging(self):
-
-        # trigger charging
-        self.agent.set("path", None)
-        self.agent.chunked_path = None
-
-        data = {
-            "need": self.agent.max_autonomy_km - self.agent.current_autonomy_km,
-        }
-
-        logger.debug(
-            "Transport {} with autonomy {} tells {} that it needs to charge "
-            "{} km/autonomy".format(
-                self.agent.agent_id,
-                self.agent.current_autonomy_km,
-                self.agent.get("current_station"),
-                self.agent.max_autonomy_km - self.agent.current_autonomy_km,
-            )
-        )
-
-        await self.agent.inform_station(data)
-
-    async def drop_station(self):
-        """
-        Drops the customer that the transport is carring in the current location.
-        """
-
-        logger.debug(
-            "Transport {} has dropped the station {}.".format(
-                self.agent.agent_id, self.agent.get("current_station")
-            )
-        )
-        self.agent.set("current_station", None)
 
     async def run(self):
         raise NotImplementedError

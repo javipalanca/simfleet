@@ -391,7 +391,7 @@ class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour):
         performative = msg.get_metadata("performative")
         if protocol == REQUEST_PROTOCOL and performative == INFORM_PERFORMATIVE:
             if content["charged"]:
-                self.agent.transport_charged()
+                self.agent.increase_full_autonomy_km()
                 await self.drop_station()
 
                 # New statistics
@@ -440,7 +440,7 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
                         self.agent.name, content["customer_id"]
                     )
                 )
-                if not self.agent.check_and_decrease_autonomy(
+                if not self.check_and_decrease_autonomy(
                     content["origin"], content["dest"]
                 ):
                     await self.cancel_proposal(content["customer_id"])

@@ -41,14 +41,14 @@ class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING
-        logger.debug("{} in Transport Waiting State".format(self.agent.jid))
+        #logger.debug("{} in Transport Waiting State".format(self.agent.jid))
 
     async def run(self):
         msg = await self.receive(timeout=60)
         if not msg:
             self.set_next_state(TRANSPORT_WAITING)
             return
-        logger.debug("Transport {} received: {}".format(self.agent.jid, msg.body))
+        logger.debug("Agent[{}]: The agent received: {}".format(self.agent.jid, msg.body))
         content = json.loads(msg.body)
         performative = msg.get_metadata("performative")
         if performative == REQUEST_PERFORMATIVE:
@@ -99,7 +99,7 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_NEEDS_CHARGING
-        logger.debug("{} in Transport Needs Charging State".format(self.agent.jid))
+        #logger.debug("{} in Transport Needs Charging State".format(self.agent.jid))
 
     async def run(self):
 
@@ -107,7 +107,7 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
             self.agent.get_stations() is None
             or self.agent.get_number_stations() < 1
         ):
-            logger.info("Transport {} looking for a station.".format(self.agent.name))
+            logger.info("Agent[{}]: The agent looking for a station.".format(self.agent.name))
 
             # New
             stations = await self.agent.get_list_agent_position(self.agent.service_type, self.agent.get_stations())
@@ -124,7 +124,7 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
             self.agent.set_nearby_station(nearby_station_dest)
 
             logger.info(
-                 "Transport {} selected station {}.".format(self.agent.name, self.agent.get_nearby_station_id())
+                 "Agent[{}]: The agent selected station [{}].".format(self.agent.name, self.agent.get_nearby_station_id())
              )
 
             try:
@@ -152,7 +152,7 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
 
                 except AlreadyInDestination:
                     logger.debug(
-                        "{} is already in the stations' {} position. . .".format(
+                        "Agent[{}]: The agent is already in the stations' ({}) position. . .".format(
                             self.agent.name, self.agent.get_nearby_station_id()
                         )
                     )
@@ -171,7 +171,7 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
 
             except PathRequestException:
                 logger.error(
-                    "Transport {} could not get a path to station {}. Cancelling...".format(
+                    "Agent[{}]: The agent could not get a path to station [{}]. Cancelling...".format(
                         self.agent.name, self.agent.get_nearby_station_id()
                     )
                 )
@@ -181,7 +181,7 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
                 return
             except Exception as e:
                 logger.error(
-                    "Unexpected error in transport {}: {}".format(self.agent.name, e)
+                    "Unexpected error in transport [{}]: {}".format(self.agent.name, e)
                 )
                 self.agent.status = TRANSPORT_WAITING
                 self.set_next_state(TRANSPORT_WAITING)
@@ -199,7 +199,7 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_STATION
-        logger.debug("{} in Transport Moving to Station".format(self.agent.jid))
+        #logger.debug("{} in Transport Moving to Station".format(self.agent.jid))
 
     async def run(self):
         try:
@@ -227,8 +227,8 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
 
         except AlreadyInDestination:
             logger.warning(
-                "Transport {} has arrived to destination: {}.".format(
-                    self.agent.agent_id, self.agent.is_in_destination()
+                "Agent[{}]: The agent has arrived to destination.".format(
+                    self.agent.agent_id
                 )
             )
 
@@ -249,7 +249,7 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
             return
         except PathRequestException:
             logger.error(
-                "Transport {} could not get a path to customer. Cancelling...".format(
+                "Agent[{}]: The agent could not get a path to customer. Cancelling...".format(
                     self.agent.name
                 )
             )
@@ -268,7 +268,7 @@ class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour):
         """
     async def on_start(self):
         await super().on_start()
-        logger.debug("{} in Transport In Station Place State".format(self.agent.jid))
+        #logger.debug("{} in Transport In Station Place State".format(self.agent.jid))
         self.agent.status = TRANSPORT_IN_STATION_PLACE
 
     async def run(self):
@@ -282,7 +282,7 @@ class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour):
         if performative == ACCEPT_PERFORMATIVE:
             if content.get("station_id") is not None:
                 logger.debug(
-                    "Transport {} received a message with ACCEPT_PERFORMATIVE from {}".format(
+                    "Agent[{}]: The agent received a message with ACCEPT_PERFORMATIVE from [{}]".format(
                         self.agent.name, content["station_id"]
                     )
                 )
@@ -320,7 +320,7 @@ class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour):
         """
     async def on_start(self):
         await super().on_start()
-        logger.debug("{} in Transport In Station Place State".format(self.agent.jid))
+        #logger.debug("{} in Transport In Station Place State".format(self.agent.jid))
         self.agent.status = TRANSPORT_IN_WAITING_LIST
 
     async def run(self):
@@ -335,7 +335,7 @@ class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour):
         if performative == INFORM_PERFORMATIVE:
             if content.get("station_id") is not None:
                 logger.debug(
-                    "Transport {} received a message with INFORM_PERFORMATIVE from {}".format(
+                    "Agent[{}]: The agent received a message with INFORM_PERFORMATIVE from [{}]".format(
                         self.agent.name, content["station_id"]
                     )
                 )
@@ -355,7 +355,7 @@ class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour):
         elif performative == REFUSE_PERFORMATIVE:
             if content.get("station_id") is not None:
                 logger.debug(
-                    "Transport {} received a message with REFUSE_PERFORMATIVE from {}".format(
+                    "Agent[{}]: The agent received a message with REFUSE_PERFORMATIVE from [{}]".format(
                         self.agent.name, content["station_id"]
                     )
                 )
@@ -378,7 +378,7 @@ class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_CHARGING
-        logger.debug("{} in Transport Charging State".format(self.agent.jid))
+        #logger.debug("{} in Transport Charging State".format(self.agent.jid))
 
     async def run(self):
 
@@ -421,9 +421,9 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
-        logger.debug(
-            "{} in Transport Waiting For Approval State".format(self.agent.jid)
-        )
+        #logger.debug(
+        #    "{} in Transport Waiting For Approval State".format(self.agent.jid)
+        #)
 
     async def run(self):
         msg = await self.receive(timeout=60)
@@ -436,7 +436,7 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
             # Handle acceptance by the customer or station
             try:
                 logger.debug(
-                    "Transport {} got accept from {}".format(
+                    "Agent[{}]: The agent got accept from [{}]".format(
                         self.agent.name, content["customer_id"]
                     )
                 )
@@ -483,7 +483,7 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
                     return
             except PathRequestException:
                 logger.error(
-                    "Transport {} could not get a path to customer {}. Cancelling...".format(
+                    "Agent[{}]: The agent could not get a path to customer [{}]. Cancelling...".format(
                         self.agent.name, content["customer_id"]
                     )
                 )
@@ -501,7 +501,7 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
                 return
             except Exception as e:
                 logger.error(
-                    "Unexpected error in transport {}: {}".format(self.agent.name, e)
+                    "Unexpected error in transport [{}]: {}".format(self.agent.name, e)
                 )
                 await self.cancel_proposal(content["customer_id"])
                 self.set_next_state(TRANSPORT_WAITING)
@@ -509,7 +509,7 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
 
         elif performative == REFUSE_PERFORMATIVE:
             logger.debug(
-                "Transport {} got refusal from customer/station".format(self.agent.name)
+                "Agent[{}]: The agent got refusal from customer/station".format(self.agent.name)
             )
             self.set_next_state(TRANSPORT_WAITING)
             return
@@ -529,7 +529,7 @@ class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
-        logger.debug("{} in Transport Moving To Customer State".format(self.agent.jid))
+        #logger.debug("{} in Transport Moving To Customer State".format(self.agent.jid))
 
     async def run(self):
 
@@ -550,7 +550,7 @@ class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour):
                         return
                     elif performative == REFUSE_PERFORMATIVE:
                         logger.debug(
-                            "Transport {} got refusal from customer/station".format(self.agent.name)
+                            "Agent[{}]: The agent got refusal from customer/station".format(self.agent.name)
                         )
                         self.agent.status = TRANSPORT_WAITING
                         self.set_next_state(TRANSPORT_WAITING)
@@ -560,7 +560,7 @@ class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour):
                     self.set_next_state(TRANSPORT_MOVING_TO_CUSTOMER)
             else:
                 logger.info(
-                    "Transport {} has arrived to destination. Status: {}".format(
+                    "Agent[{}]: The agent has arrived to destination. Status: {}".format(
                         self.agent.agent_id, self.agent.status
                     )
                 )
@@ -573,7 +573,7 @@ class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour):
 
         except PathRequestException:
             logger.error(
-                "Transport {} could not get a path to customer {}. Cancelling...".format(
+                "Agent[{}]: The agent could not get a path to customer [{}]. Cancelling...".format(
                     self.agent.name, customer_id
                 )
             )
@@ -591,7 +591,7 @@ class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour):
             return
         except Exception as e:
             logger.error(
-                "Unexpected error in transport {}: {}".format(self.agent.name, e)
+                "Unexpected error in transport [{}]: {}".format(self.agent.name, e)
             )
             await self.cancel_proposal(customer_id)
             self.agent.status = TRANSPORT_WAITING
@@ -611,7 +611,7 @@ class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
-        logger.debug("{} in Transport Arrived At Customer State".format(self.agent.jid))
+        #logger.debug("{} in Transport Arrived At Customer State".format(self.agent.jid))
 
     async def run(self):
 
@@ -635,7 +635,7 @@ class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour):
 
                     try:
                         logger.debug(
-                            "Customer {} in transport.".format(self.agent.name)
+                            "Agent[{}]: Customer [{}] in transport.".format(self.agent.name, customer_id)
                         )
 
                         self.agent.add_customer_in_transport(
@@ -644,7 +644,7 @@ class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour):
                         await self.agent.remove_assigned_taxicustomer()
 
                         logger.info(
-                            "Transport {} on route to customer destination of {}".format(self.agent.name, customer_id)
+                            "Agent[{}]: The agent on route to [{}] destination".format(self.agent.name, customer_id)
                         )
 
                         # New statistics
@@ -680,7 +680,7 @@ class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour):
 
                     except Exception as e:
                         logger.error(
-                            "Unexpected error in transport {}: {}".format(self.agent.name, e)
+                            "Unexpected error in transport [{}]: {}".format(self.agent.name, e)
                         )
 
         elif performative == CANCEL_PERFORMATIVE:
@@ -704,7 +704,7 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_DESTINATION
-        logger.debug("{} in Transport Moving To Customer Dest State".format(self.agent.jid))
+        #logger.debug("{} in Transport Moving To Customer Dest State".format(self.agent.jid))
 
     async def run(self):
 
@@ -718,7 +718,7 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour):
                 self.set_next_state(TRANSPORT_MOVING_TO_DESTINATION)
             else:
                 logger.info(
-                    "Transport {} has arrived to destination. Status: {}".format(
+                    "Agent[{}]: The agent has arrived to destination. Status: {}".format(
                         self.agent.agent_id, self.agent.status
                     )
                 )
@@ -738,7 +738,7 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour):
 
         except PathRequestException:
             logger.error(
-                "Transport {} could not get a path to customer {}. Cancelling...".format(
+                "Agent[{}]: The agent could not get a path to customer [{}]. Cancelling...".format(
                     self.agent.name, customer_id
                 )
             )
@@ -763,7 +763,7 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour):
             return
         except Exception as e:
             logger.error(
-                "Unexpected error in transport {}: {}".format(self.agent.name, e)
+                "Unexpected error in transport [{}]: {}".format(self.agent.name, e)
             )
             await self.cancel_proposal(customer_id)
             self.agent.status = TRANSPORT_WAITING
@@ -781,7 +781,7 @@ class ElectricTaxiArrivedAtCustomerDestState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_ARRIVED_AT_DESTINATION
-        logger.debug("{} in Transport Arrived at Customer Dest State".format(self.agent.jid))
+        #logger.debug("{} in Transport Arrived at Customer Dest State".format(self.agent.jid))
 
     async def run(self):
 
@@ -805,7 +805,7 @@ class ElectricTaxiArrivedAtCustomerDestState(ElectricTaxiStrategyBehaviour):
 
                         self.agent.remove_customer_in_transport(customer_id)
                         logger.debug(
-                            "Transport {} has dropped the customer {} in destination.".format(
+                            "Agent[{}]: The agent has dropped the customer [{}] in destination.".format(
                                 self.agent.agent_id, customer_id
                             )
                         )

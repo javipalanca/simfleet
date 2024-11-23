@@ -1,7 +1,7 @@
 import json
 
 from loguru import logger
-from asyncio import CancelledError
+from asyncio import CancelledError, sleep
 
 from spade.message import Message
 from spade.template import Template
@@ -45,6 +45,31 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
         self.fleetmanager_id = None
         self.vehicle_dest = None
 
+    async def setup(self):
+        """
+            Sets up the vehicle agent, registers it with the fleet manager, and ensures that
+            the agent has the required behaviors for communication.
+        """
+        try:
+            template = Template()
+            template.set_metadata("protocol", REGISTER_PROTOCOL)
+            register_behaviour = RegistrationBehaviour()
+            self.add_behaviour(register_behaviour, template)
+            while not self.has_behaviour(register_behaviour):
+                logger.warning(
+                    "Agent[{}]: The agent could not create RegisterBehaviour. Retrying...".format(
+                        self.agent_id
+                    )
+                )
+                self.add_behaviour(register_behaviour, template)
+            self.ready = True
+        except Exception as e:
+            logger.error(
+                "EXCEPTION creating RegisterBehaviour in agent [{}]: {}".format(
+                    self.agent_id, e
+                )
+            )
+
     def set_fleetmanager(self, fleetmanager_id):
         """
         Sets the fleet manager's JID for the vehicle.
@@ -53,8 +78,8 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
             fleetmanager_id (str): The JID of the fleet manager to be set for this vehicle.
         """
         logger.info(
-            "Setting fleet {} for agent {}".format(
-                fleetmanager_id.split("@")[0], self.name
+            "Agent[{}]: Setting fleet {} for agent {}".format(
+                self.name, fleetmanager_id.split("@")[0], self.name
             )
         )
         self.fleetmanager_id = fleetmanager_id
@@ -72,37 +97,8 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
         else:
             self.vehicle_dest = new_random_position(self.boundingbox, self.route_host)
         logger.debug(
-            "Vehicle {} target position is {}".format(self.agent_id, self.vehicle_dest)
+            "Agent[{}]: The agent target position is ({})".format(self.agent_id, self.vehicle_dest)
         )
-
-    async def setup(self):
-        """
-            Sets up the vehicle agent by registering a behavior that handles the vehicle's registration process.
-            The vehicle will attempt to register with the directory and fleet manager upon setup.
-        """
-        try:
-            template = Template()
-            template.set_metadata("protocol", REGISTER_PROTOCOL)
-            register_behaviour = VehicleRegistrationBehaviour()
-            self.add_behaviour(register_behaviour, template)
-            while not self.has_behaviour(register_behaviour):
-                logger.warning(
-                    "Vehicle {} could not create RegisterBehaviour. Retrying...".format(
-                        self.agent_id
-                    )
-                )
-                self.add_behaviour(register_behaviour, template)
-            self.ready = True
-
-            if not self.registration:
-                await self.send_registration()
-
-        except Exception as e:
-            logger.error(
-                "EXCEPTION creating RegisterBehaviour in Vehicle {}: {}".format(
-                    self.agent_id, e
-                )
-            )
 
     def run_strategy(self):
         """
@@ -127,26 +123,6 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
         super().set_position(coords)
         self.set("current_pos", coords)
 
-
-    async def send_registration(self):
-        """
-        Sends a registration request to the directory to register the vehicle. The vehicle sends its JID and type to
-        the directory for registration purposes.
-        """
-        logger.info(
-            "Vehicle {} sent proposal to register to directory {}".format(
-                self.name, self.directory_id
-            )
-        )
-
-        content = {"jid": str(self.jid), "type": self.fleet_type}
-        msg = Message()
-        msg.to = str(self.directory_id)
-        msg.set_metadata("protocol", REGISTER_PROTOCOL)
-        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-        msg.body = json.dumps(content)
-        await self.send(msg)
-
     def to_json(self):
         data = super().to_json()
         data.update({
@@ -160,35 +136,57 @@ class VehicleAgent(MovableMixin, GeoLocatedAgent):
         return data
 
 
-class VehicleRegistrationBehaviour(CyclicBehaviour):
-    """
-        This behavior handles the registration process of the vehicle agent. It listens for registration responses
-        and manages the registration lifecycle of the vehicle within the system.
-    """
+class RegistrationBehaviour(CyclicBehaviour):
     async def on_start(self):
+        logger.debug("Strategy {} started in transport".format(type(self).__name__))
+
+    async def send_registration(self):
         """
-                Logs the start of the registration strategy for the vehicle.
+        Send a ``spade.message.Message`` with a proposal to manager to register.
         """
-        logger.debug("Strategy {} started in vehicle".format(type(self).__name__))
+        logger.debug(
+            "Agent[{}]: The agent sent proposal to register to manager [{}]".format(
+                self.agent.name, self.agent.fleetmanager_id
+            )
+        )
+        content = {
+            "name": self.agent.name,
+            "jid": str(self.agent.jid),
+            "fleet_type": self.agent.fleet_type,
+        }
+        msg = Message()
+        msg.to = str(self.agent.fleetmanager_id)
+        msg.set_metadata("protocol", REGISTER_PROTOCOL)
+        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
+        msg.body = json.dumps(content)
+        await self.send(msg)
 
     async def run(self):
-        """
-            Waits for registration responses and processes them. If the registration is accepted, the vehicle sets
-            itself as registered.
-        """
         try:
-            msg = await self.receive(timeout=5)
+            if not self.agent.registration and self.agent.fleetmanager_id != None:
+                await self.send_registration()
+            msg = await self.receive(timeout=10)
             if msg:
                 performative = msg.get_metadata("performative")
                 if performative == ACCEPT_PERFORMATIVE:
-                    self.agent.set_registration(True)
-                    logger.info("Registration in the dictionary of services")
-
+                    content = json.loads(msg.body)
+                    self.agent.set_registration(True, content)
+                    logger.info(
+                        "Agent[{}]: Registration in the fleet manager [{}] accepted.".format(
+                            self.agent.name, self.agent.fleetmanager_id
+                        )
+                    )
+                    self.kill(exit_code="Fleet Registration Accepted")
+                elif performative == REFUSE_PERFORMATIVE:
+                    logger.warning(
+                        "Registration in the fleet manager was rejected (check fleet type)."
+                    )
+                    self.kill(exit_code="Fleet Registration Rejected")
         except CancelledError:
             logger.debug("Cancelling async tasks...")
         except Exception as e:
             logger.error(
-                "EXCEPTION in RegisterBehaviour of Manager {}: {}".format(
+                "EXCEPTION in RegisterBehaviour of agent [{}]: {}".format(
                     self.agent.name, e
                 )
             )
@@ -218,14 +216,14 @@ class VehicleStrategyBehaviour(State):
             dest (list): The coordinates of the vehicle's destination.
         """
         logger.info(
-            "Vehicle {} on route to destination {}".format(self.agent.name, dest)
+            "Agent[{}]: The agent on route to destination ({})".format(self.agent.name, dest)
         )
         try:
-            logger.debug("{} move_to destination {}".format(self.agent.name, dest))
+            logger.debug("Agent[{}]: The agent move_to destination ({})".format(self.agent.name, dest))
             await self.agent.move_to(dest)
         except AlreadyInDestination:
             logger.debug(
-                "{} is already in the destination' {} position. . .".format(
+                "Agent[{}]: The agent is already in the destination' ({}) position. . .".format(
                     self.agent.name, dest
                 )
             )

@@ -38,7 +38,6 @@ class TransportAgent(VehicleAgent):
         super().__init__(agentjid=agentjid, password=password)
         self.set("current_customer", {})
         self.num_assignments = 0
-        self.transport_type = None
 
         # Customer in transport event
         self.customer_in_transport_event = asyncio.Event(loop=self.loop)
@@ -51,34 +50,10 @@ class TransportAgent(VehicleAgent):
 
         self.customer_in_transport_callback = customer_in_transport_callback
 
-    async def setup(self):
-        """
-            Sets up the transport agent, registers it with the fleet manager, and ensures that
-            the agent has the required behaviors for communication.
-        """
-        try:
-            template = Template()
-            template.set_metadata("protocol", REGISTER_PROTOCOL)
-            register_behaviour = RegistrationBehaviour()
-            self.add_behaviour(register_behaviour, template)
-            while not self.has_behaviour(register_behaviour):
-                logger.warning(
-                    "Transport {} could not create RegisterBehaviour. Retrying...".format(
-                        self.agent_id
-                    )
-                )
-                self.add_behaviour(register_behaviour, template)
-            self.ready = True
-        except Exception as e:
-            logger.error(
-                "EXCEPTION creating RegisterBehaviour in Transport {}: {}".format(
-                    self.agent_id, e
-                )
-            )
 
-    def sleep(self, seconds):
-        # await asyncio.sleep(seconds)
-        time.sleep(seconds)
+    async def setup(self):
+        await super().setup()
+
 
     def run_strategy(self):
         """
@@ -158,7 +133,7 @@ class TransportAgent(VehicleAgent):
             data (dict, optional): Additional cancellation-related information.
         """
         logger.error(
-            "Transport {} could not get a path to customer {}.".format(
+            "Agent[{}]: The agent could not get a path to customer [{}].".format(
                 self.agent_id, self.get("current_customer")
             )
         )
@@ -170,7 +145,7 @@ class TransportAgent(VehicleAgent):
         reply.set_metadata("performative", CANCEL_PERFORMATIVE)
         reply.body = json.dumps(data)
         logger.debug(
-            "Transport {} sent cancel proposal to customer {}".format(
+            "Agent[{}]: The agent sent cancel proposal to customer [{}]".format(
                 self.agent_id, customer_id
             )
         )
@@ -204,6 +179,8 @@ class TransportAgent(VehicleAgent):
 
         del self.get("current_customer")[customer_id]
 
+        self.num_assignments -= 1
+
     async def set_position(self, coords=None):
         """
         Sets the transport's position and updates customers with the new location.
@@ -230,57 +207,4 @@ class TransportAgent(VehicleAgent):
         })
         return data
 
-class RegistrationBehaviour(CyclicBehaviour):
-    async def on_start(self):
-        logger.debug("Strategy {} started in transport".format(type(self).__name__))
 
-    async def send_registration(self):
-        """
-        Send a ``spade.message.Message`` with a proposal to manager to register.
-        """
-        logger.debug(
-            "Transport {} sent proposal to register to manager {}".format(
-                self.agent.name, self.agent.fleetmanager_id
-            )
-        )
-        content = {
-            "name": self.agent.name,
-            "jid": str(self.agent.jid),
-            "fleet_type": self.agent.fleet_type,
-        }
-        msg = Message()
-        msg.to = str(self.agent.fleetmanager_id)
-        msg.set_metadata("protocol", REGISTER_PROTOCOL)
-        msg.set_metadata("performative", REQUEST_PERFORMATIVE)
-        msg.body = json.dumps(content)
-        await self.send(msg)
-
-    async def run(self):
-        try:
-            if not self.agent.registration and self.agent.fleetmanager_id!=None:
-                await self.send_registration()
-            msg = await self.receive(timeout=10)
-            if msg:
-                performative = msg.get_metadata("performative")
-                if performative == ACCEPT_PERFORMATIVE:
-                    content = json.loads(msg.body)
-                    self.agent.set_registration(True, content)
-                    logger.info(
-                        "[{}] Registration in the fleet manager accepted: {}.".format(
-                            self.agent.name, self.agent.fleetmanager_id
-                        )
-                    )
-                    self.kill(exit_code="Fleet Registration Accepted")
-                elif performative == REFUSE_PERFORMATIVE:
-                    logger.warning(
-                        "Registration in the fleet manager was rejected (check fleet type)."
-                    )
-                    self.kill(exit_code="Fleet Registration Rejected")
-        except CancelledError:
-            logger.debug("Cancelling async tasks...")
-        except Exception as e:
-            logger.error(
-                "EXCEPTION in RegisterBehaviour of Transport {}: {}".format(
-                    self.agent.name, e
-                )
-            )

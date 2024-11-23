@@ -44,11 +44,11 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
             return
 
         # If the customer does not have a fleet manager assigned, get the list of fleet managers.
-        if self.agent.fleetmanagers is None:
+        if self.agent.get_fleetmanagers() is None:
 
-            fleetmanager_list = await self.agent.get_list_agent_position(self.agent.fleet_type, self.agent.fleetmanagers)
+            fleetmanager_list = await self.agent.get_list_agent_position(self.agent.fleet_type, self.agent.get_fleetmanagers())
 
-            self.agent.set_fleetmanager(fleetmanager_list)
+            self.agent.set_fleetmanagers(fleetmanager_list)
 
             return
 
@@ -70,13 +70,13 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                 performative = msg.get_metadata("performative")
                 transport_id = msg.sender
                 content = json.loads(msg.body)
-                logger.debug("Customer {} informed of: {}".format(self.agent.name, content))
+                logger.debug("Agent[{}]: The agent informed of: {}".format(self.agent.name, content))
 
                 # Handle transport proposals.
                 if performative == PROPOSE_PERFORMATIVE:
                     if self.agent.status == CUSTOMER_WAITING:
                         logger.debug(
-                            "Customer {} received proposal from transport {}".format(
+                            "Agent[{}]: The agent received proposal from transport [{}]".format(
                                 self.agent.name, transport_id
                             )
                         )
@@ -97,7 +97,7 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
                 elif performative == CANCEL_PERFORMATIVE:
                     if self.agent.transport_assigned == str(transport_id):
                         logger.warning(
-                            "Customer {} received a CANCEL from Transport {}.".format(
+                            "Agent[{}]: The agent received a CANCEL from Transport [{}].".format(
                                 self.agent.name, transport_id
                             )
                         )
@@ -110,7 +110,7 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
 
                         if status == TRANSPORT_MOVING_TO_CUSTOMER:
                             logger.info(
-                                "Customer {} waiting for transport.".format(self.agent.name)
+                                "Agent[{}]: The agent waiting for transport.".format(self.agent.name)
                             )
 
                             # New statistics
@@ -122,7 +122,7 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
 
                         elif status == TRANSPORT_IN_CUSTOMER_PLACE:
                             self.agent.status = CUSTOMER_IN_TRANSPORT
-                            logger.info("Customer {} in transport.".format(self.agent.name))
+                            logger.info("Agent[{}]: The agent in transport.".format(self.agent.name))
 
                             # New statistics
                             # Event 5: Customer Pickup
@@ -151,8 +151,8 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
 
                             await self.inform_transport(transport_id, CUSTOMER_IN_DEST)
                             logger.info(
-                                "Customer {} arrived to destination after {} seconds.".format(
-                                    self.agent.name, self.agent.total_time()
+                                "Agent[{}]: The agent arrived to destination.".format(
+                                    self.agent.name
                                 )
                             )
 
@@ -161,7 +161,7 @@ class AcceptFirstRequestBehaviour(TaxiCustomerStrategyBehaviour):
 
         except Exception as e:
             logger.error(
-                "EXCEPTION in AcceptFirstRequestBehaviour of Customer {}: {}".format(
+                "EXCEPTION in AcceptFirstRequestBehaviour of agent [{}]: {}".format(
                     self.agent.name, e
                 )
             )

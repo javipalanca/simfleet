@@ -20,14 +20,26 @@ from simfleet.utils.abstractstrategies import StrategyBehaviour
 class TaxiCustomerAgent(CustomerAgent):
 
     """
-        Represents a customer agent in the taxi fleet system.
-        Inherits from the `CustomerAgent` class and implements
-        customer-specific behaviors and interactions with the fleet manager.
+    Represents a customer agent in the taxi fleet system.
+    Inherits from the `CustomerAgent` class and provides functionalities
+    for requesting transportation services and interacting with fleet managers.
 
-        Attributes:
-            status (str): The current status of the customer (e.g., waiting).
-            fleetmanagers (str): The fleet manager's JID.
-        """
+    Attributes:
+        fleetmanagers (dict): A dictionary containing the JIDs of the fleet manager(s).
+        transport_assigned (str): The JID of the transport agent currently assigned to the customer.
+
+    Methods:
+        set_fleetmanagers(fleetmanagers):
+            Assigns the fleet manager's JIDs to the customer agent.
+        get_fleetmanagers():
+            Retrieves the fleet managers' JIDs.
+        set_transport_assigned(transport_id):
+            Sets the currently assigned transport agent.
+        clear_transport_assigned():
+            Clears the assigned transport agent.
+        run_strategy():
+            Adds the behavior for handling requests and executes the customer's strategy.
+    """
     def __init__(self, agentjid, password):
         CustomerAgent.__init__(self, agentjid, password)
 
@@ -35,7 +47,7 @@ class TaxiCustomerAgent(CustomerAgent):
         self.transport_assigned = None
 
 
-    def set_fleetmanager(self, fleetmanagers):
+    def set_fleetmanagers(self, fleetmanagers):
         """
         Sets the fleet manager's JID list for the customer agent.
 
@@ -43,6 +55,31 @@ class TaxiCustomerAgent(CustomerAgent):
             fleetmanagers (dict): The JID list of the fleet manager(s).
         """
         self.fleetmanagers = fleetmanagers
+
+    def get_fleetmanagers(self):
+        """
+                Retrieves the fleet managers' JIDs.
+
+                Returns:
+                    dict: The dictionary of fleet managers' JIDs.
+                """
+        return self.fleetmanagers
+
+    def set_transport_assigned(self, transport_id):
+        """
+                Sets the currently assigned transport agent.
+
+                Args:
+                    transport_id (str): The JID of the transport agent.
+                """
+        self.transport_assigned = transport_id
+
+    def clear_transport_assigned(self):
+        """
+                Clears the assigned transport agent.
+                """
+        self.transport_assigned = None
+
 
     def run_strategy(self):
         """
@@ -59,22 +96,27 @@ class TaxiCustomerAgent(CustomerAgent):
 class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
     """
     Represents the strategy behavior for the TaxiCustomerAgent.
-    It defines the communication protocol and decision-making for requesting and accepting transports.
+    It defines the communication protocol and decision-making processes for requesting,
+    accepting, and managing transport services.
 
-    This class should be inherited and the `run` coroutine must be implemented by the user.
-
-    Helper Methods:
-        - `send_request`: Sends a request for transport.
-        - `accept_transport`: Accepts a transport proposal.
-        - `refuse_transport`: Refuses a transport proposal.
-        - `inform_transport`: Inform a transport proposal.
+    Methods:
+        async send_request(content=None):
+            Sends a transport request to the fleet manager(s).
+        async accept_transport(transport_id):
+            Accepts a transport proposal from a transport agent.
+        async refuse_transport(transport_id):
+            Refuses a transport proposal from a transport agent.
+        async inform_transport(transport_id, status, data=None):
+            Sends a message to a transport agent to inform about a status update.
+        async run():
+            Abstract method that must be implemented in a subclass to define behavior.
     """
 
     async def on_start(self):
         await super().on_start()
         logger.debug(
-            "Strategy {} started in agent {}".format(
-                type(self).__name__, self.agent.name
+            "Agent[{}]: Strategy {} started.".format(
+                self.agent.name, type(self).__name__
             )
         )
 
@@ -98,7 +140,7 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
                 "dest": self.agent.customer_dest,
             }
 
-        if self.agent.fleetmanagers is not None:
+        if self.agent.get_fleetmanagers() is not None:
             for (
                 fleetmanager
             ) in self.agent.fleetmanagers.keys():
@@ -109,12 +151,12 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
                 msg.body = json.dumps(content)
                 await self.send(msg)
             logger.info(
-                "Customer {} asked for a transport to {}.".format(
+                "Agent[{}]: The agent asked for a transport to ({}).".format(
                     self.agent.name, self.agent.customer_dest
                 )
             )
         else:
-            logger.warning("Customer {} has no fleet managers.".format(self.agent.name))
+            logger.warning("Agent[{}]: The agent has no fleet managers.".format(self.agent.name))
 
     async def accept_transport(self, transport_id):
         """
@@ -135,9 +177,9 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
         }
         reply.body = json.dumps(content)
         await self.send(reply)
-        self.agent.transport_assigned = str(transport_id)
+        self.agent.set_transport_assigned(str(transport_id))
         logger.info(
-            "Customer {} accepted proposal from transport {}".format(
+            "Agent[{}]: The agent accepted proposal from transport [{}]".format(
                 self.agent.name, transport_id
             )
         )
@@ -163,7 +205,7 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
 
         await self.send(reply)
         logger.info(
-            "Customer {} refused proposal from transport {}".format(
+            "Agent[{}]: The agent refused proposal from transport [{}]".format(
                 self.agent.name, transport_id
             )
         )
@@ -187,9 +229,13 @@ class TaxiCustomerStrategyBehaviour(StrategyBehaviour):
         data["status"] = status
         reply.body = json.dumps(data)
         await self.send(reply)
-        self.agent.transport_assigned = str(transport_id)
+        #self.agent.transport_assigned = str(transport_id)
+        if status != "CUSTOMER_IN_DEST":
+            self.agent.set_transport_assigned(str(transport_id))
+        else:
+            self.agent.clear_transport_assigned()
         logger.info(
-            "Customer {} informs the transport {}".format(
+            "Agent[{}]: The agent informs the transport [{}]".format(
                 self.agent.name, transport_id
             )
         )

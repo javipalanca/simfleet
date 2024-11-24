@@ -1462,7 +1462,7 @@ class CoordinationBehaviour(CyclicBehaviour):
 
         msg = await self.receive(timeout=5)
         logger.warning(
-            "SimulatorAgent {} has a mailbox size of {}".format(
+            "Agent[{}]: The agent has a mailbox size of ({})".format(
                 self.agent.name, self.mailbox_size()
             )
         )
@@ -1477,7 +1477,7 @@ class CoordinationBehaviour(CyclicBehaviour):
             if performative == REQUEST_PERFORMATIVE:
 
                 logger.info(
-                    "SimulatorAgent {} received message from agent {}".format(
+                    "Agent[{}]: The agent received message from agent [{}]".format(
                         self.agent.name, agent_id
                     )
                 )
@@ -1505,7 +1505,7 @@ class CoordinationBehaviour(CyclicBehaviour):
                             await self.inform_agent_position(agent_id, content)
 
                             logger.debug(
-                                "SimulatorAgent {} send msg to {}".format(
+                                "Agent[{}]: The agent send msg to [{}]".format(
                                     self.agent.name, agent_id
                                 )
                             )

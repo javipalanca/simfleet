@@ -18,6 +18,9 @@ class ServiceStationAgent(QueueStationAgent):
         ServiceStationAgent is responsible for managing service stations (e.g., charging or refueling stations).
         It extends the QueueStationAgent class, which allows agents to queue for available services.
 
+        Attributes:
+            services_list (dict): Stores information about the services offered and their capacities.
+
         Methods:
             setup(): Initializes the service station agent and starts its behavior.
             increase_slots_used(service_type): Increases the number of slots currently in use for a specific service type.
@@ -30,14 +33,110 @@ class ServiceStationAgent(QueueStationAgent):
     def __init__(self, agentjid, password):
         QueueStationAgent.__init__(self, agentjid, password)
 
+        self.services_list = {}  # Stores service types and their attributes
 
     async def setup(self):
         """
             Initializes the service station and adds its main behavior.
         """
         await super().setup()
-        logger.info("Service station agent {} running".format(self.name))
+        logger.debug("Agent[{}]: Service station running".format(self.name))
         self.add_behaviour(self.ServiceRunBehaviour())
+
+    def add_service(self, service_name, slots, one_shot_behaviour, **arguments):
+        """
+            Adds a new service to the agent's service list with defined slots and behavior.
+
+            Args:
+                service_name (str): The name of the service (e.g., charging, refueling).
+                slots (int): The number of slots available for this service.
+                one_shot_behaviour (OneShotBehaviour): The behavior to run for this service.
+                **arguments: Additional arguments for service-specific configurations.
+        """
+        if service_name not in self.services_list:
+            self.services_list[service_name] = {
+                'slots': slots,
+                'slots_in_use': 0,
+                'one_shot_behaviour': one_shot_behaviour,
+                'args': arguments,
+            }
+
+            self.add_queue(service_name)
+
+            logger.debug(
+                "Agent[{}]: The service ({}) has been inserted. ".format(
+                    self.name, service_name
+                )
+            )
+        else:
+            logger.warning(
+                "Agent[{}]: The service ({}) doesn't exists.".format(
+                    self.name, service_name
+                )
+            )
+
+    def remove_service(self, service_name):
+        """
+            Removes a service from the service list.
+
+            Args:
+                service_name (str): The name of the service to remove.
+        """
+        if service_name in self.services_list:
+            del self.services_list[service_name]
+            self.remove_queue(service_name)
+            logger.debug(
+                "Agent[{}]: The service ({}) has been removed. ".format(
+                    self.name, service_name
+                )
+            )
+
+    def show_services(self):
+        """
+            Returns the names of all the available services in the station.
+
+            Returns:
+                tuple: A tuple containing the service names.
+        """
+        return tuple(self.services_list.keys())
+
+    def show_service_arguments(self, service_name):
+        """
+            Returns the arguments associated with a specific service.
+
+            Args:
+                service_name (str): The name of the service.
+
+            Returns:
+                dict: The arguments for the specified service.
+        """
+        return self.services_list[service_name]["args"]
+
+    def service_available(self, service_name):
+        """
+            Checks if there are available slots for the given service name.
+            Returns:
+                bool: True if the service has available slots, False otherwise.
+        """
+        if self.services_list[service_name]["slots_in_use"] >= self.services_list[service_name]["slots"]:
+            return False
+        return True
+
+    async def send_inform_service(self, agent_id, content):
+        """
+        Sends a message to a transport agent to inform them that their service has been completed.
+
+        Args:
+            agent_id (str): The ID of the agent.
+            content (dict): The content of the message.
+        """
+        reply = Message()
+        reply.to = str(self.agent_id)
+        reply.set_metadata("protocol", REQUEST_PROTOCOL)
+        reply.set_metadata("performative", INFORM_PERFORMATIVE)
+        content = {"services": self.show_services()}
+        reply.body = json.dumps(content)
+        await self.send(reply)
 
     def increase_slots_used(self, service_type):
         """
@@ -65,16 +164,6 @@ class ServiceStationAgent(QueueStationAgent):
         """
         return self.services_list[service_type]["slots_in_use"]
 
-    def service_available(self, service_name):
-        """
-            Checks if there are available slots for the given service name.
-            Returns:
-                bool: True if the service has available slots, False otherwise.
-        """
-        if self.services_list[service_name]["slots_in_use"] >= self.services_list[service_name]["slots"]:
-            return False
-        return True
-
     def to_json(self):
         data = super().to_json()
         return data
@@ -101,7 +190,7 @@ class ServiceStationAgent(QueueStationAgent):
             reply.body = json.dumps(content)
             await self.send(reply)
             logger.debug(
-                "Service {} request position of agent {}".format(
+                "Agent[{}]: The agent refuse to agent [{}]".format(
                     self.agent.name,
                     agent_id
                 )
@@ -125,7 +214,7 @@ class ServiceStationAgent(QueueStationAgent):
             reply.body = json.dumps(content)
             await self.send(reply)
             logger.debug(
-                "Service {} request position of agent {}".format(
+                "Agent[{}]: The agent inform to agent [{}]".format(
                     self.agent.name,
                     agent_id
                 )
@@ -135,7 +224,7 @@ class ServiceStationAgent(QueueStationAgent):
             """
                 Called when the behavior starts, logging the event.
             """
-            logger.debug("Strategy {} started in station".format(type(self).__name__))
+            logger.debug("Agent[{}]: Standard behaviour ({}) started".format(self.agent.name, type(self).__name__))
 
         async def run(self):
             """
@@ -167,7 +256,8 @@ class ServiceStationAgent(QueueStationAgent):
                             await self.inform_service(str(agent), content)
 
                             logger.info(
-                                "Agent: {} with args: {}, station slots used: {}".format(
+                                "Agent[{}]: The agent [{}] with args: ({}) has slots used: ({})".format(
+                                    self.agent.name,
                                     agent,
                                     kwargs,
                                     self.agent.get_slot_number_used(service_name)

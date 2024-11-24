@@ -52,7 +52,7 @@ class ChargingStationAgent(ServiceStationAgent):
             Sets up the agent with its behavior templates for registration.
         """
         await super().setup()
-        logger.info("Station agent {} running".format(self.name))
+        logger.info("Agent[{}]: Charging station running".format(self.name))
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)
@@ -60,7 +60,7 @@ class ChargingStationAgent(ServiceStationAgent):
             self.add_behaviour(register_behaviour, template)
             while not self.has_behaviour(register_behaviour):
                 logger.warning(
-                    "Station {} could not create RegisterBehaviour. Retrying...".format(
+                    "Agent[{}]: The agent could not create RegisterBehaviour. Retrying...".format(
                         self.agent_id
                     )
                 )
@@ -86,14 +86,14 @@ class RegistrationBehaviour(CyclicBehaviour):
             run(): Manages the registration logic and response handling.
     """
     async def on_start(self):
-        logger.debug("Strategy {} started in directory".format(type(self).__name__))
+        logger.debug("Agent[{}]: Strategy ({}) started".format(self.agent.name, type(self).__name__))
 
     async def send_registration(self):
         """
         Sends a registration message to the directory agent with the station's information.
         """
         logger.info(
-            "Station {} sent proposal to register to directory {}".format(
+            "Agent[{}]: The agent sent proposal to register to directory ({})".format(
                 self.agent.name, self.agent.directory_id
             )
         )
@@ -119,12 +119,12 @@ class RegistrationBehaviour(CyclicBehaviour):
                 performative = msg.get_metadata("performative")
                 if performative == ACCEPT_PERFORMATIVE:
                     self.agent.set_registration(True)
-                    logger.debug("Registration in the directory")
+                    logger.debug("Agent[{}]: Registration in the directory".format(self.agent.name))
         except CancelledError:
-            logger.debug("Cancelling async tasks...")
+            logger.debug("Agent[{}]: Cancelling async tasks...".format(self.agent.name))
         except Exception as e:
             logger.error(
-                "EXCEPTION in RegisterBehaviour of Station {}: {}".format(
+                "Agent[{}]: EXCEPTION in RegisterBehaviour: {}".format(
                     self.agent.name, e
                 )
             )
@@ -160,7 +160,7 @@ class ChargingService(OneShotBehaviour):
         total_time = self.transport_need / self.power
         recarge_time = datetime.timedelta(seconds=total_time)
         logger.info(
-            "Station {} started charging transport {} for {} seconds.".format(
+            "Agent[{}]: The agent started charging transport [{}] for ({}) seconds.".format(
                 self.agent.name, self.agent_id, recarge_time.total_seconds()
             )
         )
@@ -185,12 +185,12 @@ class ChargingService(OneShotBehaviour):
         """
             Main execution of the charging behavior, performing the charging operation and notifying the transport.
         """
-        logger.debug("Station {} start charging.".format(self.agent.name))
+        logger.debug("Agent[{}]: The station start charging.".format(self.agent.name))
 
         await self.charging_transport()
 
         logger.info(
-            "Agent {} has finished receiving the service {}".format(
+            "Agent[{}]: The agent has finished receiving the service ({})".format(
                 self.agent_id,
                 self.service_type
             )

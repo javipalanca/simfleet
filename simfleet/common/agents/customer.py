@@ -30,6 +30,7 @@ class CustomerAgent(GeoLocatedAgent):
 
         self.customer_dest = None
 
+
     async def setup(self):
         """
             Sets up the customer agent, ensuring that the agent is prepared for travel by creating the required
@@ -82,6 +83,9 @@ class CustomerAgent(GeoLocatedAgent):
         logger.debug(
             "Agent[{}]: The agent target position is ({})".format(self.agent_id, self.customer_dest)
         )
+
+    def get_target_position(self):
+        return self.customer_dest
 
     async def set_position(self, coords=None):
         """

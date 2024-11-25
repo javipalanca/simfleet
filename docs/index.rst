@@ -8,6 +8,7 @@ Contents:
 
    readme
    installation
+   quickstart
    usage
    develop
    api

@@ -6,7 +6,7 @@ from spade.behaviour import State, FSMBehaviour
 from simfleet.common.lib.vehicles.models.vehicle import VehicleStrategyBehaviour
 from simfleet.utils.helpers import PathRequestException, AlreadyInDestination
 from simfleet.utils.status import VEHICLE_WAITING, VEHICLE_MOVING_TO_DESTINATION, VEHICLE_IN_DEST
-from simfleet.utils.abstractstrategies import FSMStrategyBehaviour
+from simfleet.utils.abstractstrategies import FSMSimfleetBehaviour
 
 
 ################################################################
@@ -88,7 +88,7 @@ class OneShotVehicleInDestState(VehicleStrategyBehaviour):
         logger.info("{} arrived at its destination".format(self.agent.jid))
 
 
-class FSMOneShotVehicleStrategyBehaviour(FSMStrategyBehaviour):
+class FSMOneShotVehicleBehaviour(FSMSimfleetBehaviour):
     def setup(self):
         # Create states
         self.add_state(VEHICLE_WAITING, OneShotVehicleWaitingState(), initial=True)
@@ -197,7 +197,7 @@ class CycleVehicleInDestState(VehicleStrategyBehaviour):
         self.set_next_state(VEHICLE_WAITING)
         return
 
-class FSMCycleVehicleStrategyBehaviour(FSMStrategyBehaviour):
+class FSMCycleVehicleBehaviour(FSMSimfleetBehaviour):
     def setup(self):
         # Create states
         self.add_state(VEHICLE_WAITING, CycleVehicleWaitingState(), initial=True)

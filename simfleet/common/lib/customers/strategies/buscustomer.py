@@ -4,7 +4,7 @@ import time
 
 from loguru import logger
 
-from simfleet.utils.abstractstrategies import FSMStrategyBehaviour
+from simfleet.utils.abstractstrategies import FSMSimfleetBehaviour
 
 from simfleet.common.lib.customers.models.buscustomer import BusCustomerStrategyBehaviour
 
@@ -321,7 +321,7 @@ class BusCustomerInDestState(BusCustomerStrategyBehaviour):
             logger.critical("Agent {}, Exception {} in CustomerInDestState".format(self.agent.name, e))
 
 
-class FSMBusCustomerStrategyBehaviour(FSMStrategyBehaviour):
+class FSMBusCustomerBehaviour(FSMSimfleetBehaviour):
     """
         The finite state machine that orchestrates the different states for the bus customer strategy.
     """

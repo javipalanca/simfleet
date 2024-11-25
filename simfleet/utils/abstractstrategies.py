@@ -34,29 +34,29 @@ class StrategyBehaviour(CyclicBehaviour, metaclass=ABCMeta):
         raise NotImplementedError
 
 
-class FSMStrategyBehaviour(StrategyBehaviour, FSMBehaviour):
+class FSMSimfleetBehaviour(FSMBehaviour):
     """
     Combines the features of StrategyBehaviour and FSMBehaviour to allow FSM-based strategies
     to share common event handling for their lifecycle.
     """
 
-    async def run(self) -> None:
-        await super(FSMBehaviour, self).run()
-
     async def on_start(self) -> None:
         """
-        Called when the FSM strategy is started. Ensures that the common start event is emitted.
+        Called when the behaviour is started. Emits an initial event for statistics.
         """
-        #await super(StrategyBehaviour).on_start()
-
-        # Alternative
+        self.agent.events_store.emit(
+            event_type="initial_event",
+            details={}
+        )
         await super().on_start()
 
     async def on_end(self) -> None:
         """
-        Called when the FSM strategy ends. Ensures that the common end event is emitted.
+        Called when the behaviour ends. Emits a final event for statistics.
         """
-        #await super(StrategyBehaviour).on_end()
-
-        # Alternative
+        self.agent.events_store.emit(
+            event_type="final_event",
+            details={}
+        )
         await super().on_end()
+

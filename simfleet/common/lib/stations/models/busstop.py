@@ -80,6 +80,7 @@ class BusStopAgent(QueueStationAgent):
             )
         self.ready = True
 
+    #Cambiar en mas lugares
     def set_name(self, name):
         """
             Sets the name of the bus stop.

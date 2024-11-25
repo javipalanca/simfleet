@@ -2,7 +2,7 @@ import json
 import asyncio
 
 from loguru import logger
-from simfleet.utils.abstractstrategies import FSMStrategyBehaviour
+from simfleet.utils.abstractstrategies import FSMSimfleetBehaviour
 
 from simfleet.common.lib.transports.models.taxi import TaxiStrategyBehaviour
 from simfleet.communications.protocol import (
@@ -481,7 +481,7 @@ class TaxiArrivedAtCustomerDestState(TaxiStrategyBehaviour):
                 return
 
 
-class FSMTaxiStrategyBehaviour(FSMStrategyBehaviour):
+class FSMTaxiBehaviour(FSMSimfleetBehaviour):
     """
     Represents the Finite State Machine (FSM) strategy for the electric taxi agent.
     This class manages the different states and transitions for the taxi based on its behavior,

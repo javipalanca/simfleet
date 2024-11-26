@@ -2,9 +2,6 @@
 Quickstart
 ============
 
-.. contents:: Table of Contents
-
-
 Start Guide
 =================
 

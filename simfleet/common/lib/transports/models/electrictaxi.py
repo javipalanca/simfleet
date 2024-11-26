@@ -182,7 +182,6 @@ class ElectricTaxiStrategyBehaviour(State):
             "Agent[{}]: On route to station [{}]".format(self.agent.name, station_id)
         )
         self.set("current_station", station_id)
-        #self.agent.current_station_dest = dest
         travel_km = self.agent.calculate_km_expense(self.get("current_pos"), dest)
         self.agent.decrease_autonomy_km(travel_km)
 

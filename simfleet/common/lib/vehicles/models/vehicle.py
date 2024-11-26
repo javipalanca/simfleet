@@ -17,6 +17,7 @@ from simfleet.communications.protocol import (
     REGISTER_PROTOCOL,
     ACCEPT_PERFORMATIVE,
     REQUEST_PERFORMATIVE,
+    REFUSE_PERFORMATIVE
 )
 
 from simfleet.utils.helpers import AlreadyInDestination

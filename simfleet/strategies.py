@@ -28,7 +28,7 @@ from simfleet.utils.status import TRANSPORT_WAITING, TRANSPORT_WAITING_FOR_APPRO
 ################################################################
 class DelegateRequestBehaviour(FleetManagerStrategyBehaviour):
     """
-    The default strategy for the FleetManager agent. By default it delegates all requests to all transports.
+    The default strategy for the FleetManager agent.rst. By default it delegates all requests to all transports.
     """
 
     async def run(self):
@@ -53,7 +53,7 @@ class DelegateRequestBehaviour(FleetManagerStrategyBehaviour):
 ################################################################
 class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
     """
-    The default strategy for the Transport agent. By default it accepts every request it receives if available.
+    The default strategy for the Transport agent.rst. By default it accepts every request it receives if available.
     """
 
     async def run(self):
@@ -73,13 +73,13 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
                     station_positions,
                     key=lambda x: distance_in_meters(x[1], self.agent.get_position()),
                 )
-                # closest_station = min( station_positions, key = lambda x: request_route_to_server(x[1], self.agent.get_position(), "http://osrm.gti-ia.upv.es/")[1])
+                # closest_station = min( station_positions, key = lambda x: request_route_to_server(x[1], self.agent.rst.get_position(), "http://osrm.gti-ia.upv.es/")[1])
 
-                # closest_station = min( list(self.agent.stations), key = lambda x: distance_in_meters( x['position'], self.agent.get_position() ) )
+                # closest_station = min( list(self.agent.rst.stations), key = lambda x: distance_in_meters( x['position'], self.agent.rst.get_position() ) )
                 logger.info("Closest station {}".format(closest_station))
                 station = closest_station[0]
 
-                # station = random.choice(list(self.agent.stations.keys()))
+                # station = random.choice(list(self.agent.rst.stations.keys()))
                 position = self.agent.stations[station]["position"]
                 logger.info(
                     "Transport {} selected station {}.".format(self.agent.name, station)
@@ -215,7 +215,7 @@ class AcceptAlwaysStrategyBehaviour(TransportStrategyBehaviour):
 ################################################################
 class AcceptFirstRequestBehaviour(CustomerStrategyBehaviour):
     """
-    The default strategy for the Customer agent. By default it accepts the first proposal it receives.
+    The default strategy for the Customer agent.rst. By default it accepts the first proposal it receives.
     """
 
     async def run(self):

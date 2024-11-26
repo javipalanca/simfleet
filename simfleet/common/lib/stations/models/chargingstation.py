@@ -198,7 +198,7 @@ class ChargingService(OneShotBehaviour):
 
         await self.inform_charging_complete()
 
-        self.agent.decrease_slots_used(self.service_type)
+        self.agent.servicebehaviour.decrease_slots_used(self.service_type)
 
 class GasolineService(OneShotBehaviour):
     """
@@ -261,7 +261,7 @@ class GasolineService(OneShotBehaviour):
 
         await self.inform_charging_complete()
 
-        self.agent.decrease_slots_used(self.service_type)
+        self.agent.servicebehaviour.decrease_slots_used(self.service_type)
 
 
 class DieselService(OneShotBehaviour):
@@ -327,5 +327,5 @@ class DieselService(OneShotBehaviour):
 
         await self.inform_charging_complete()
 
-        self.agent.decrease_slots_used(self.service_type)
+        self.agent.servicebehaviour.decrease_slots_used(self.service_type)
 

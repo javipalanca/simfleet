@@ -33,6 +33,8 @@ class ServiceStationAgent(QueueStationAgent):
     def __init__(self, agentjid, password):
         QueueStationAgent.__init__(self, agentjid, password)
 
+        self.servicebehaviour = self.ServiceRunBehaviour()
+
         self.services_list = {}  # Stores service types and their attributes
 
     async def setup(self):
@@ -41,7 +43,7 @@ class ServiceStationAgent(QueueStationAgent):
         """
         await super().setup()
         logger.debug("Agent[{}]: Service station running".format(self.name))
-        self.add_behaviour(self.ServiceRunBehaviour())
+        self.add_behaviour(self.servicebehaviour)
 
     def add_service(self, service_name, slots, one_shot_behaviour, **arguments):
         """
@@ -138,32 +140,6 @@ class ServiceStationAgent(QueueStationAgent):
         reply.body = json.dumps(content)
         await self.send(reply)
 
-    def increase_slots_used(self, service_type):
-        """
-            Increments the number of slots currently in use for a given service type.
-        """
-        if service_type in self.services_list:
-            self.services_list[service_type]["slots_in_use"] += 1
-
-    def decrease_slots_used(self, service_type):
-        """
-            Decrements the number of slots currently in use for a given service type.
-        """
-        if service_type in self.services_list:
-            self.services_list[service_type]["slots_in_use"] -= 1
-
-    def get_slot_number(self, service_type):
-        """
-            Returns the total number of slots for the given service type.
-        """
-        return self.services_list[service_type]["slots"]
-
-    def get_slot_number_used(self, service_type):
-        """
-            Returns the number of slots currently in use for the given service type.
-        """
-        return self.services_list[service_type]["slots_in_use"]
-
     def to_json(self):
         data = super().to_json()
         return data
@@ -173,6 +149,33 @@ class ServiceStationAgent(QueueStationAgent):
 
         def __init__(self):
             super().__init__()
+
+        def increase_slots_used(self, service_type):
+            """
+                Increments the number of slots currently in use for a given service type.
+            """
+            if service_type in self.agent.services_list:
+                self.agent.services_list[service_type]["slots_in_use"] += 1
+
+        def decrease_slots_used(self, service_type):
+            """
+                Decrements the number of slots currently in use for a given service type.
+            """
+            if service_type in self.agent.services_list:
+                self.agent.services_list[service_type]["slots_in_use"] -= 1
+
+        def get_slot_number(self, service_type):
+            """
+                Returns the total number of slots for the given service type.
+            """
+            return self.agent.services_list[service_type]["slots"]
+
+        def get_slot_number_used(self, service_type):
+            """
+                Returns the number of slots currently in use for the given service type.
+            """
+            return self.agent.services_list[service_type]["slots_in_use"]
+
 
         async def refuse_service(self, agent_id, content=None):
             """
@@ -249,7 +252,7 @@ class ServiceStationAgent(QueueStationAgent):
                             agent, kwargs = agent_info
 
                             # Increase the number of slots in use for this service
-                            self.agent.increase_slots_used(service_name)
+                            self.increase_slots_used(service_name)
 
                             # Inform the agent that they are being served
                             content = {"station_id": self.agent.name, "serving": True}
@@ -260,7 +263,7 @@ class ServiceStationAgent(QueueStationAgent):
                                     self.agent.name,
                                     agent,
                                     kwargs,
-                                    self.agent.get_slot_number_used(service_name)
+                                    self.get_slot_number_used(service_name)
                                 )
                             )
 

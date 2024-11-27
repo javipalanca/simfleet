@@ -377,3 +377,12 @@ Configures the FleetManagerAgent by establishing a behaviour to handle the regis
 Clears the list of registered transport agents and resets the simulation clock. This method is useful for resetting the fleet manager's state between sessions.
 
 
+Main Agent Classes
+==================
+
+SimFleet is built on a series of main agent classes that represent the fundamental components of the mobility simulation system.
+These classes provide the essential functionality for different types of agents and serve as the foundation for creating specialised
+agents. Below is a description of each of these main classes:
+
+VehicleAgent
+------------

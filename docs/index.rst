@@ -12,6 +12,8 @@ Contents:
    agent
    architecture
    stations
+   custome-agent
+   agent-skills
    usage
    develop
    api

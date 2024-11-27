@@ -1,6 +1,6 @@
-=================================
-Station Configuration in Simfleet
-=================================
+=====================
+Station Configuration
+=====================
 
 
 QueueStationAgent with QueueBehaviour

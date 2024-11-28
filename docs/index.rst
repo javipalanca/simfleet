@@ -14,6 +14,7 @@ Contents:
    stations
    custome-agent
    agent-skills
+   statistics
    usage
    develop
    api

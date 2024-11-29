@@ -35,21 +35,21 @@ we need to identify the key actors and their needs through a UML use case system
     Use case FleetManager
 
 
-.. figure:: images/customise-agents/taxi-uc.png
+.. figure:: images/customise-agents/all-taxi-uc.png
     :align: center
     :alt: Use case Taxi
 
     Use case Taxi
 
 
-.. figure:: images/customise-agents/taxicustomer-uc.png
+.. figure:: images/customise-agents/all-taxicustomer-uc.png
     :align: center
     :alt: Use case TaxiCustomer
 
     Use case TaxiCustomer
 
 
-.. figure:: images/customise-agents/chargingstation-uc.png
+.. figure:: images/customise-agents/all-chargingstation-uc.png
     :align: center
     :alt: Use case ChargingStation
 
@@ -71,28 +71,22 @@ New Transport: TaxiAgent
 Analysing our use case for the `Taxi`, we can see that a generic transport agent (`TransportAgent`) is sufficient to model basic transport
 functionalities that cover the use cases **Move to location** and **Take TaxiCustomer to destination**. However, it does not address the additional needs.
 
-Thus, we customise the TaxiAgent to meet the remaining requirements in our use case (**Manage FleetManager request** and **Manage the Proposal**).
-
-.. figure:: images/customise-agents/taxi-dc.png
+.. figure:: images/customise-agents/transport-uc.png
     :align: center
-    :alt: Taxi
+    :alt: Transport Use Case
 
-    Taxi
+    Transport Use Case
 
-**Main Methods**
+Thus, we customise the TaxiAgent to meet the remaining requirements in our use case (**Manage FleetManager request** and **Manage customer proposal**).
 
-.. code-block:: python
+.. figure:: images/customise-agents/taxi-uc.png
+    :align: center
+    :alt: Taxi Use Case
 
+    Taxi Use Case
 
-    async def add_assigned_taxicustomer(self, customer_id, origin=None, dest=None)
-    async def remove_assigned_taxicustomer(self)
-
-* ``add_assigned_taxicustomer()``
-Stores information when a customer is in the negotiation process with the transport.
-
-* ``remove_assigned_taxicustomer()``
-Deletes the customer's information.
-
+.. note::
+    The main methods of the `TaxiAgent` can be found in: **LINK**
 
 With this customisation, `TaxiAgent` can interact directly with its `FleetManagerAgent` and manage the direct relationship between the taxi and the customer.
 
@@ -102,38 +96,24 @@ New Customer: TaxiCustomerAgent
 ===============================
 
 Analysing the `TaxiCustomer` use case, we find that a generic customer agent (`CustomerAgent`) is sufficient to model basic customers
-that cover the use case **Interacting with the taxi**. However, it does not address the additional requirements.
+that cover the use case **Interacting with the transport**. However, it does not address the additional requirements.
+
+.. figure:: images/customise-agents/customer-uc.png
+    :align: center
+    :alt: Customer Use Case
+
+    Customer Use Case
 
 Thus, we customise the `TaxiCustomerAgent` to meet the remaining needs in our use case (**Request Taxi from FleetManager** and **Manage the Proposal**).
 
-.. figure:: images/customise-agents/taxicustomer-dc.png
+.. figure:: images/customise-agents/taxicustomer-uc.png
     :align: center
-    :alt: TaxiCustomer
+    :alt: TaxiCustomer Use Case
 
-    TaxiCustomer
+    TaxiCustomer Use Case
 
-**Main Methods**
-
-.. code-block:: python
-
-
-    def set_fleetmanagers(self, fleetmanagers)
-    def get_fleetmanagers(self)
-    def set_transport_assigned(self, transport_id)
-    def clear_transport_assigned(self)
-
-* ``set_fleetmanagers()``
-Stores the available fleet managers with whom the customer can interact.
-
-* ``get_fleetmanagers()``
-Returns the list of fleet managers.
-
-* ``set_transport_assignment()``
-Stores the transport the customer is currently interacting with.
-
-* ``clear_transport_assignment()``
-Clears the transport the customer is currently interacting with.
-
+.. note::
+    The main methods of the `TaxiCustomerAgent` can be found in: **LINK**
 
 With this customisation, the `TaxiCustomerAgent` can directly interact with available fleet managers and handle negotiations with the taxi.
 
@@ -144,6 +124,12 @@ New Station: ChargingStationAgent
 Analysing the `ChargingStation` use case, we observe that a generic service station agent (`ServiceStationAgent`) is sufficient to model a station that covers
 the use cases **Slots management** and **Queue management**. However, it does not address the requirement of the **Charging** use case.
 
+.. figure:: images/customise-agents/stations-uc.png
+    :align: center
+    :alt: Stations Use Case
+
+    Stations Use Case
+
 In this regard, we can approach the idea with two alternatives:
 
 #. Create a customised agent by adding features to meet the required needs.
@@ -153,12 +139,11 @@ In this regard, we can approach the idea with two alternatives:
 Both alternatives are valid. However, the second is more effective and reasonable. For this illustrative example,
 we will create a customised agent inheriting from `ServiceStationAgent`.
 
-
-.. figure:: images/customise-agents/chargingstation-dc.png
+.. figure:: images/customise-agents/chargingstation-uc.png
     :align: center
-    :alt: ChargingStation
+    :alt: ChargingStation Use Case
 
-    ChargingStation
+    ChargingStation Use Case
 
 **Code**
 

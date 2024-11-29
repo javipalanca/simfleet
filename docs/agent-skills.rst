@@ -25,12 +25,11 @@ It already has the ability to move, interact, and transport passengers, but to b
 it needs specific features such as autonomy and the ability to coordinate with charging stations. Without these skills,
 its role as a protagonist in the system remains incomplete.
 
-
-.. figure:: images/agent-skills/electrictaxi-uc.png
+.. figure:: images/customise-agents/all-taxi-uc.png
     :align: center
-    :alt: Use case ElectricTaxi
+    :alt: Use case Taxi
 
-    Use case ElectricTaxi
+    Use case Taxi
 
 Analysing the `TaxiAgent` problem, although `TaxiAgent` is a specialised class derived from `TransportAgent`, it has specific
 limitations in a more complex context. For this reason, we reformulate and propose the creation of a new type of agent
@@ -144,50 +143,16 @@ New Agent: ElectricTaxiAgent
 Analysing the use case for the `ElectricTaxi`, we observe that a specialised transport agent (`TaxiAgent`) is sufficient
 to model taxis that cover the proposed use cases. However, it does not address the new needs that we have identified and added.
 
+.. figure:: images/agent-skills/electrictaxi-uc.png
+    :align: center
+    :alt: Use case ElectricTaxi
+
+    Use case ElectricTaxi
+
 To meet these requirements, we extend its functionalities by integrating the `ChargeableMixin` class and customise a new agent,
 `ElectricTaxiAgent`, to fulfil the missing need in our use case: **Manage autonomy**.
 
-
-.. figure:: images/agent-skills/electrictaxi-dc.png
-    :align: center
-    :alt: ElectricTaxiAgent
-
-    ElectricTaxiAgent
-
-
-**Main Methods**
-
-.. code-block:: python
-
-
-    def set_stations(self, stations)
-    def get_stations(self)
-    def get_number_stations(self)
-    def set_nearby_station(self, station)
-    def get_nearby_station(self)
-    def get_nearby_station_id(self)
-    def get_nearby_station_position(self)
-
-* ``set_stations()``
-Defines the list of available charging stations.
-
-* ``get_stations()``
-Returns the list of registered charging stations.
-
-* ``get_number_stations()``
-Returns the total number of available stations.
-
-* ``set_nearby_station()``
-Sets the configuration for the nearest charging station to the agent.
-
-* ``get_nearby_station()``
-Retrieves the configuration for the nearest charging station to the agent.
-
-* ``get_nearby_station_id()``
-Retrieve the ID of the nearest charging station.
-
-* ``get_nearby_station_position()``
-Retrieve the position of the nearest charging station.
-
+.. note::
+    The main methods of the `ElectricTaxiAgent` can be found in: **LINK**
 
 With this customisation, the `ElectricTaxiAgent` can monitor and manage its autonomy, calculate energy expenditure for journeys, and select nearby charging stations.

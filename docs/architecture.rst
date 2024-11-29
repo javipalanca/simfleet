@@ -377,12 +377,252 @@ Configures the FleetManagerAgent by establishing a behaviour to handle the regis
 Clears the list of registered transport agents and resets the simulation clock. This method is useful for resetting the fleet manager's state between sessions.
 
 
-Main Agent Classes
-==================
+Custom Agent Classes
+====================
 
 SimFleet is built on a series of main agent classes that represent the fundamental components of the mobility simulation system.
 These classes provide the essential functionality for different types of agents and serve as the foundation for creating specialised
 agents. Below is a description of each of these main classes:
 
-VehicleAgent
+TaxiAgent
+---------
+
+The `TaxiAgent` class represents a taxi within the simulation and inherits from TransportAgent. This class is designed to manage
+assigned customers and provide specific functionalities for taxis, such as accepting or cancelling passenger assignments.
+Its focus is on delivering an efficient transportation experience within the simulation.
+
+
+.. figure:: images/architecture/taxi-class.png
+    :align: center
+    :alt: Taxi
+
+    Taxi
+
+**Main Methods**
+
+.. code-block:: python
+
+
+    async def add_assigned_taxicustomer(self, customer_id, origin=None, dest=None)
+    async def remove_assigned_taxicustomer(self)
+
+* ``add_assigned_taxicustomer()``
+Stores information when a customer is in the process of negotiating with the transport. This allows the taxi to manage
+the transport in detail, always knowing the passenger's starting and destination points.
+
+* ``remove_assigned_taxicustomer()``
+Removes all customers from the list of assigned customers. This is useful for freeing the taxi when the customer completes negotiations.
+
+
+ElectricTaxiAgent
+-----------------
+
+The `ElectricTaxiAgent` class represents an electric taxi within the simulation and extends the capabilities of `TaxiAgent` by integrating
+specific functionalities for managing charging stations. It also leverages the `ChargeableMixin` to provide features related to electric
+charging, enabling the taxi to manage its autonomy effectively.
+
+.. figure:: images/architecture/electrictaxi-class.png
+    :align: center
+    :alt: ElectricTaxiAgent
+
+    ElectricTaxiAgent
+
+
+**Main Methods**
+
+.. code-block:: python
+
+
+    def set_stations(self, stations)
+    def get_stations(self)
+    def get_number_stations(self)
+    def set_nearby_station(self, station)
+    def get_nearby_station(self)
+    def get_nearby_station_id(self)
+    def get_nearby_station_position(self)
+
+* ``set_stations()``
+Defines the list of available charging stations.
+
+* ``get_stations()``
+Returns the list of registered charging stations.
+
+* ``get_number_stations()``
+Returns the total number of available stations.
+
+* ``set_nearby_station()``
+Sets the configuration for the nearest charging station to the agent.
+
+* ``get_nearby_station()``
+Retrieves the configuration for the nearest charging station to the agent.
+
+* ``get_nearby_station_id()``
+Retrieve the ID of the nearest charging station.
+
+* ``get_nearby_station_position()``
+Retrieve the position of the nearest charging station.
+
+
+
+TaxiCustomerAgent
+-----------------
+
+The `TaxiCustomerAgent` class represents a customer in the taxi fleet simulation system. It inherits from `CustomerAgent`
+and provides additional functionalities that allow customers to request transport services, accept or reject proposals,
+and interact with fleet managers. This agent is key to simulating the experience of a passenger needing to navigate
+through a taxi system.
+
+.. figure:: images/architecture/taxicustomer-class.png
+    :align: center
+    :alt: TaxiCustomer
+
+    TaxiCustomer
+
+**Main Methods**
+
+.. code-block:: python
+
+
+    def set_fleetmanagers(self, fleetmanagers)
+    def get_fleetmanagers(self)
+    def set_transport_assigned(self, transport_id)
+    def clear_transport_assigned(self)
+
+* ``set_fleetmanagers()``
+Stores the available fleet managers with whom the customer can interact.
+
+* ``get_fleetmanagers()``
+Returns the list of fleet managers.
+
+* ``set_transport_assignment()``
+Stores the transport the customer is currently interacting with.
+
+* ``clear_transport_assignment()``
+Clears the transport the customer is currently interacting with.
+
+
+BusAgent
+--------
+
+The `BusAgent` class represents a bus within the simulated transport system. It manages bus line stops, capacity,
+and interactions with passengers. It extends the functionalities of `TransportAgent`, enabling the bus to move in a
+planned manner along a predefined route of stops.
+
+
+.. figure:: images/architecture/bus-class.png
+    :align: center
+    :alt: Bus
+
+    Bus
+
+**Main Methods**
+
+.. code-block:: python
+
+
+    def set_line(self, line)
+    def set_line_type(self, line_type)
+    def set_stop_list(self, stop_list)
+    def set_capacity(self, capacity)
+    async def set_position(self, coords=None)
+    def setup_current_stop(self)
+    async def arrived_to_stop(self)
+
+
+* ``set_line()``
+Sets the bus line identifier for the agent.
+
+* ``set_line_type()``
+Sets the type of line for the transport.
+
+* ``def set_stop_list()``
+Sets the list of stops for the bus line.
+
+* ``def set_capacity()``
+Sets the capacity of the bus and initializes the current capacity.
+
+* ``async def set_position()``
+Clears the transport the customer is currently interacting with.
+
+* ``def setup_current_stop()``
+Sets the current stop based on the transport's position.
+
+* ``async def arrived_to_stop()``
+Marks the current stop as arrived and triggers the event.
+
+
+BusStopAgent
 ------------
+
+The `BusStopAgent` class represents a bus stop within the transport simulation system. This agent handles customer
+registration, notifies customers of bus arrivals, and monitors the status of the stop. It extends the `QueueStationAgent`
+class, enabling efficient management of passenger queues and coordination of bus arrivals and departures.
+
+
+.. figure:: images/architecture/busstop-class.png
+    :align: center
+    :alt: BusStop
+
+    BusStop
+
+**Main Methods**
+
+.. code-block:: python
+
+
+    def set_type(self, station_type)
+    def set_lines(self, lines)
+
+
+* ``set_type()``
+Specifies the type of the stop (e.g., a regular bus stop), allowing differentiation between various types of stops or
+stations within the system.
+
+* ``set_lines()``
+Assigns the bus lines that serve the stop, specifying which buses will pick up passengers at that location.
+
+
+BusCustomerAgent
+----------------
+
+The `BusCustomerAgent` class represents a customer using the bus service within the transport simulation system.
+This agent inherits from `PedestrianAgent` and manages the customer's interaction with the public transport system,
+including stop configuration, wait times, and registration at bus stops. BusCustomerAgent simulates the experience
+of a passenger using a bus to reach their destination.
+
+
+.. figure:: images/architecture/buscustomer-class.png
+    :align: center
+    :alt: BusCustomer
+
+    BusCustomer
+
+**Main Method**
+
+.. code-block:: python
+
+
+    def set_line(self, line)
+
+
+* ``set_line()``
+Sets the bus line the customer will use to reach their destination.
+
+
+ChargingStationAgent
+--------------------
+
+The `ChargingStationAgent` class represents a charging station within the simulation system. This class provides charging
+services for electric vehicles and may also offer additional services, such as refuelling gasoline, diesel or charging.
+`ChargingStationAgent` extends the `ServiceStationAgent` class, enabling it to manage waiting queues and the services
+requested by vehicles.
+
+
+.. figure:: images/architecture/chargingstation-class.png
+    :align: center
+    :alt: ChargingStation
+
+    ChargingStation
+
+.. note::
+    It is important to consider that it is necessary to create a custom service behaviour for the agent.

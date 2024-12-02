@@ -211,3 +211,33 @@ that match that template:
 
 These are the basics of SPADE programming. You will not need to create all these structures, templates and classes
 in order to use `SimFleet`, but it is always better to know the foundations before getting down to business.
+
+
+Logger Function
+===============
+
+There is also a very useful helper function which is the **logger**. This is not a single function but a system of logs
+which can be used to generate debug information at different levels. There are five levels of logging which are now
+presented, in order of importance:
+
+* **DEBUG**
+    Used with ``logger.debug("my debug message")``. These messages are only shown when the simulator is
+    called with the ``-v`` option. This is usually superfluous information.
+* **INFO**
+    Used with ``logger.info("my info message")``. These messages are always shown and are the regular
+    information shown in logs.
+* **WARNING**
+    Used with ``logger.warn("my warning message")``. These messages are always shown and are used to
+    show warnings to the user.
+* **ERROR**
+    Used with ``logger.error("my error message")``. These messages are always shown and are used to show
+    errors to the user.
+* **SUCCESS**
+    Used with ``logger.success("my success message")``. These messages are always shown and are used to show
+    success messages to the user.
+
+In order to use this logger just remember to import the ``loguru`` library as follows:
+
+.. code-block:: python
+
+    from loguru import logger

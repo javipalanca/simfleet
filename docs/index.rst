@@ -14,6 +14,7 @@ Contents:
    stations
    custome-agent
    agent-skills
+   strategies
    statistics
    usage
    develop

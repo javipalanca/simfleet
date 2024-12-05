@@ -1,5 +1,4 @@
 import json
-import asyncio
 
 from loguru import logger
 from simfleet.utils.abstractstrategies import FSMSimfleetBehaviour
@@ -41,7 +40,6 @@ class ElectricTaxiWaitingState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING
-        #logger.debug("{} in Transport Waiting State".format(self.agent.jid))
 
     async def run(self):
         msg = await self.receive(timeout=60)
@@ -99,7 +97,6 @@ class ElectricTaxiNeedsChargingState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_NEEDS_CHARGING
-        #logger.debug("{} in Transport Needs Charging State".format(self.agent.jid))
 
     async def run(self):
 
@@ -199,7 +196,6 @@ class ElectricTaxiMovingToStationState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_STATION
-        #logger.debug("{} in Transport Moving to Station".format(self.agent.jid))
 
     async def run(self):
         try:
@@ -268,7 +264,6 @@ class ElectricTaxiInStationState(ElectricTaxiStrategyBehaviour):
         """
     async def on_start(self):
         await super().on_start()
-        #logger.debug("{} in Transport In Station Place State".format(self.agent.jid))
         self.agent.status = TRANSPORT_IN_STATION_PLACE
 
     async def run(self):
@@ -320,7 +315,6 @@ class ElectricTaxiInWaitingListState(ElectricTaxiStrategyBehaviour):
         """
     async def on_start(self):
         await super().on_start()
-        #logger.debug("{} in Transport In Station Place State".format(self.agent.jid))
         self.agent.status = TRANSPORT_IN_WAITING_LIST
 
     async def run(self):
@@ -378,7 +372,6 @@ class ElectricTaxiChargingState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_CHARGING
-        #logger.debug("{} in Transport Charging State".format(self.agent.jid))
 
     async def run(self):
 
@@ -421,9 +414,6 @@ class ElectricTaxiWaitingForApprovalState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_WAITING_FOR_APPROVAL
-        #logger.debug(
-        #    "{} in Transport Waiting For Approval State".format(self.agent.jid)
-        #)
 
     async def run(self):
         msg = await self.receive(timeout=60)
@@ -529,7 +519,6 @@ class ElectricTaxiMovingToCustomerState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_CUSTOMER
-        #logger.debug("{} in Transport Moving To Customer State".format(self.agent.jid))
 
     async def run(self):
 
@@ -611,7 +600,6 @@ class ElectricTaxiArrivedAtCustomerState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_ARRIVED_AT_CUSTOMER
-        #logger.debug("{} in Transport Arrived At Customer State".format(self.agent.jid))
 
     async def run(self):
 
@@ -704,7 +692,6 @@ class ElectricTaxiMovingToCustomerDestState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_MOVING_TO_DESTINATION
-        #logger.debug("{} in Transport Moving To Customer Dest State".format(self.agent.jid))
 
     async def run(self):
 
@@ -781,7 +768,6 @@ class ElectricTaxiArrivedAtCustomerDestState(ElectricTaxiStrategyBehaviour):
     async def on_start(self):
         await super().on_start()
         self.agent.status = TRANSPORT_ARRIVED_AT_DESTINATION
-        #logger.debug("{} in Transport Arrived at Customer Dest State".format(self.agent.jid))
 
     async def run(self):
 

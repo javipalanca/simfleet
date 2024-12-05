@@ -49,7 +49,7 @@ class QueueStationAgent(GeoLocatedAgent):
             Args:
                 jid (str): The JID of the simulator agent.
         """
-        self.simulatorjid = jid
+        self.simulatorjid = str(jid)
 
     def get_simulatorjid(self):
         """
@@ -300,7 +300,7 @@ class QueueStationAgent(GeoLocatedAgent):
                     template3.set_metadata("protocol", COORDINATION_PROTOCOL)
                     template3.set_metadata("performative", INFORM_PERFORMATIVE)
 
-                    instance = CheckNearBehaviour(self.agent.get_simulatorjid(), agent_id, service_name, object_type, arguments)
+                    instance = CheckNearBehaviour(self.agent.get_simulatorjid(), str(agent_id), service_name, object_type, arguments)
                     self.agent.add_behaviour(instance, template3)
 
                     await instance.join()       # Wait for the behaviour to complete

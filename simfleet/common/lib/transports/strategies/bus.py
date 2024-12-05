@@ -3,7 +3,7 @@ import time
 
 from loguru import logger
 
-from simfleet.utils.abstractstrategies import FSMStrategyBehaviour
+from simfleet.utils.abstractstrategies import FSMSimfleetBehaviour
 from simfleet.common.lib.transports.models.bus import BusStrategyBehaviour
 
 from simfleet.utils.status import TRANSPORT_WAITING, TRANSPORT_MOVING_TO_DESTINATION, TRANSPORT_IN_DEST, TRANSPORT_BOARDING
@@ -159,7 +159,7 @@ class BusBoardingCustomersState(BusStrategyBehaviour):
         return self.set_next_state(TRANSPORT_WAITING)
 
 
-class FSMBusStrategyBehaviour(FSMStrategyBehaviour):
+class FSMBusBehaviour(FSMSimfleetBehaviour):
     """
         The finite state machine (FSM) that defines the behavior of the bus transport agent.
 

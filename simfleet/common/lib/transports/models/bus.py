@@ -48,6 +48,8 @@ class BusAgent(TransportAgent):
     def __init__(self, agentjid, password, **kwargs):
         super().__init__(agentjid, password)
 
+        self.fleetmanager_id = kwargs.get('fleet', None)
+
         # Bus line attributes
         self.stop_list = []
         self.line = None

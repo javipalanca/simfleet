@@ -104,7 +104,7 @@ def main(name, output, max_time, autorun, config, verbose):
             await simulator.start()
 
             if autorun:
-                await simulator.run()
+                simulator.run()
 
             while not simulator.is_simulation_finished() and not stop_event.is_set():
                 await asyncio.sleep(0.5)

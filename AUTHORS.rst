@@ -12,3 +12,4 @@ Contributors
 ------------
 
 * Pasqual Marti
+* Christian Calderón

@@ -16,8 +16,6 @@ Contents:
    agent-skills
    strategies
    statistics
-   usage
-   develop
    api
    contributing
    authors

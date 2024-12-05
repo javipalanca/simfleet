@@ -3,11 +3,13 @@
 """Console script for SimFleet."""
 import logging
 import sys
-import time
+import spade
+import asyncio
+
+import signal
 
 import click
 from loguru import logger
-from spade import quit_spade
 
 from simfleet.config.settings import SimfleetConfig
 from simfleet.simulator import SimulatorAgent
@@ -31,7 +33,7 @@ from simfleet.simulator import SimulatorAgent
     count=True,
     help="Show verbose debug level: -v level 1, -vv level 2, -vvv level 3, -vvvv level 4",
 )
-#def main(name, output, max_time, autorun, config, verbose):
+
 def main(name, output, max_time, autorun, config, verbose):
     """
     Console script for SimFleet.
@@ -60,24 +62,65 @@ def main(name, output, max_time, autorun, config, verbose):
     simulator_name = "simulator_{}@{}".format(simfleet_config.simulation_name, simfleet_config.host)
 
     simulator = SimulatorAgent(config=simfleet_config, agentjid=simulator_name)
-    simulator.start()
 
-    if autorun:
-        simulator.run()
+    # Version 3 - No funciona Crt+C ------------ Versión Javi
+    # async def run_simulation():
+    #
+    #     #simulator = SimulatorAgent(config=simfleet_config, agentjid=simulator_name)
+    #     await simulator.start()
+    #
+    #     if autorun:
+    #         #await simulator.auto_run()
+    #         await simulator.run()
+    #     #else:
+    #     #    await simulator.start()
+    #
+    #     while not simulator.is_simulation_finished():
+    #         logger.warning("Simulation continue.....")
+    #         try:
+    #             await asyncio.sleep(0.5)
+    #         except KeyboardInterrupt:
+    #             logger.warning("Simulation interrupted by user.")
+    #             break
+    #
+    #     await simulator.stop()
+    #     if output:
+    #         #await simulator.auto_stop(output)
+    #         await simulator.write_file(output)
+    #     #else:
+    #     #    await simulator.stop()
+    #     sys.exit(0)
+    #
+    # spade.run(run_simulation())
 
-    while not simulator.is_simulation_finished():
+
+    # Versión 5 --- Añadido un evento - FUNCIONAAAAA!!!!
+    async def run_simulation():
+        loop = asyncio.get_running_loop()
+        stop_event = asyncio.Event()
+        loop.add_signal_handler(signal.SIGINT, stop_event.set)
+
         try:
-            time.sleep(0.5)
-        except KeyboardInterrupt:
-            break
+            await simulator.start()
 
-    simulator.stop().result()
-    if output:
-        simulator.write_file(output)
+            if autorun:
+                await simulator.run()
 
-    quit_spade()
+            while not simulator.is_simulation_finished() and not stop_event.is_set():
+                await asyncio.sleep(0.5)
 
-    sys.exit(0)
+            await simulator.stop()
+
+            if output:
+                await simulator.write_file(output)
+
+            sys.exit(0)
+
+        except Exception as e:
+            logger.error(f"An error occurred: {e}")
+            sys.exit(0)
+
+    spade.run(run_simulation())
 
 
 if __name__ == "__main__":

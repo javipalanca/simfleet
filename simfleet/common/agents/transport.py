@@ -70,22 +70,6 @@ class TransportAgent(VehicleAgent):
             self.add_behaviour(self.strategy(), template1 | template2)
             self.running_strategy = True
 
-    async def send(self, msg):
-        """
-            Sends a message via the XMPP protocol, ensuring the sender is correctly set.
-
-            Args:
-                msg (Message): The message to send.
-        """
-        if not msg.sender:
-            msg.sender = str(self.jid)
-            logger.debug(f"Adding agent's jid as sender to message: {msg}")
-        aioxmpp_msg = msg.prepare()
-        await self.client.send(aioxmpp_msg)
-        msg.sent = True
-        self.traces.append(msg, category=str(self))
-
-
     async def inform_customer(self, customer_id, status, data=None):
         """
         Sends a message to inform the customer of the transport's new status.

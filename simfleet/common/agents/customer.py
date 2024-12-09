@@ -12,9 +12,7 @@ from simfleet.communications.protocol import (
     TRAVEL_PROTOCOL,
     QUERY_PROTOCOL,
 )
-from simfleet.utils.utils_old import (
-    CUSTOMER_LOCATION,
-)
+from simfleet.utils.status import CUSTOMER_LOCATION
 
 from simfleet.common.geolocatedagent import GeoLocatedAgent
 
@@ -32,6 +30,7 @@ class CustomerAgent(GeoLocatedAgent):
 
         self.customer_dest = None
 
+
     async def setup(self):
         """
             Sets up the customer agent, ensuring that the agent is prepared for travel by creating the required
@@ -44,7 +43,7 @@ class CustomerAgent(GeoLocatedAgent):
             self.add_behaviour(travel_behaviour, template)
             while not self.has_behaviour(travel_behaviour):
                 logger.warning(
-                    "Customer {} could not create TravelBehaviour. Retrying...".format(
+                    "Agent[{}]: The agent could not create TravelBehaviour. Retrying...".format(
                         self.agent_id
                     )
                 )
@@ -52,7 +51,7 @@ class CustomerAgent(GeoLocatedAgent):
             self.ready = True
         except Exception as e:
             logger.error(
-                "EXCEPTION creating TravelBehaviour in Customer {}: {}".format(
+                "EXCEPTION creating TravelBehaviour in Customer [{}]: {}".format(
                     self.agent_id, e
                 )
             )
@@ -82,8 +81,11 @@ class CustomerAgent(GeoLocatedAgent):
         else:
             self.customer_dest = new_random_position(self.boundingbox, self.route_host)
         logger.debug(
-            "Customer {} target position is {}".format(self.agent_id, self.customer_dest)
+            "Agent[{}]: The agent target position is ({})".format(self.agent_id, self.customer_dest)
         )
+
+    def get_target_position(self):
+        return self.customer_dest
 
     async def set_position(self, coords=None):
         """
@@ -117,7 +119,7 @@ class TravelBehaviour(CyclicBehaviour):
         """
             Called when the behaviour is started. Logs a message indicating the customer has started travel.
         """
-        logger.debug("Customer {} started TravelBehavior.".format(self.agent.name))
+        logger.debug("Agent[{}]: The agent started TravelBehavior.".format(self.agent.name))
 
     async def run(self):
         """
@@ -129,7 +131,7 @@ class TravelBehaviour(CyclicBehaviour):
             if not msg:
                 return
             content = json.loads(msg.body)
-            logger.debug("Customer {} informed of: {}".format(self.agent.name, content))
+            logger.debug("Agent[{}]: The agent informed of: {}".format(self.agent.name, content))
             if "status" in content:
                 status = content["status"]
                 if status == CUSTOMER_LOCATION:
@@ -139,7 +141,7 @@ class TravelBehaviour(CyclicBehaviour):
             logger.debug("Cancelling async tasks...")
         except Exception as e:
             logger.error(
-                "EXCEPTION in Travel Behaviour of Customer {}: {}".format(
+                "EXCEPTION in Travel Behaviour of Customer [{}]: {}".format(
                     self.agent.name, e
                 )
             )

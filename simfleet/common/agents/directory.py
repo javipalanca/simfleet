@@ -56,11 +56,18 @@ class DirectoryAgent(Agent):
         template.set_metadata("protocol", QUERY_PROTOCOL)
         self.add_behaviour(self.strategy(), template)
 
+    async def stop(self):
+        """
+                    Stops the agent and marks it as stopped. Overrides the default stop behavior in spade.
+                """
+        self.stopped = True
+        await super().stop()
+
     async def setup(self):
         """
             Initializes the DirectoryAgent and adds the RegistrationBehaviour to handle service registrations.
         """
-        logger.info("Directory agent {} running".format(self.name))
+        logger.info("Agent[{}]: The agent running".format(self.name))
         try:
             template = Template()
             template.set_metadata("protocol", REGISTER_PROTOCOL)
@@ -68,14 +75,14 @@ class DirectoryAgent(Agent):
             self.add_behaviour(register_behaviour, template)
             while not self.has_behaviour(register_behaviour):
                 logger.warning(
-                    "Directory {} could not create RegisterBehaviour. Retrying...".format(
+                    "Agent[{}]: The directory could not create RegisterBehaviour. Retrying...".format(
                         self.agent_id
                     )
                 )
                 self.add_behaviour(register_behaviour, template)
         except Exception as e:
             logger.error(
-                "EXCEPTION creating RegisterBehaviour in Directory {}: {}".format(
+                "Agent[{}]: EXCEPTION creating RegisterBehaviour in Directory: {}".format(
                     self.agent_id, e
                 )
             )
@@ -90,7 +97,7 @@ class RegistrationBehaviour(CyclicBehaviour):
         """
             Logs when the strategy starts running.
         """
-        logger.debug("Strategy {} started in directory".format(type(self).__name__))
+        logger.debug("Agent[{}]: Strategy ({}) started in directory".format(self.agent.name, type(self).__name__))
 
     def add_service(self, content):
         """
@@ -115,8 +122,8 @@ class RegistrationBehaviour(CyclicBehaviour):
         """
         del self.get("service_agents")[service_type][agent]
         logger.debug(
-            "Deregistration of the Manager {} for service {}".format(
-                agent, service_type
+            "Agent[{}]: Deregistration of the [{}] for service ({})".format(
+                self.agent.name, agent, service_type
             )
         )
 
@@ -153,12 +160,12 @@ class RegistrationBehaviour(CyclicBehaviour):
                             service_content["type"] = service
                             self.add_service(service_content)
                             logger.debug(
-                                "Registration in the dictionary: {} with service: {}".format(content["jid"], service)
+                                "Agent[{}]: Registration in the dictionary: [{}] with service: ({})".format(self.agent.name, content["jid"], service)
                             )
                     else:
                         self.add_service(content)
                         logger.debug(
-                            "Registration in the dictionary: {}".format(content["jid"])
+                            "Agent[{}]: Registration in the dictionary: {}".format(self.agent.name, content["jid"])
                         )
 
                     await self.send_confirmation(agent_id)
@@ -166,19 +173,18 @@ class RegistrationBehaviour(CyclicBehaviour):
             logger.debug("Cancelling async tasks...")
         except Exception as e:
             logger.error(
-                "EXCEPTION in DirectoryRegister Behaviour of Directory {}: {}".format(
+                "Agent[{}]: EXCEPTION in DirectoryRegister Behaviour of Directory: {}".format(
                     self.agent.name, e
                 )
             )
 
-
-class DirectoryStrategyBehaviour(StrategyBehaviour):
+class DirectoryStrategyBehaviour(CyclicBehaviour):
     """
     Class to define and implement a custom strategy for the DirectoryAgent.
     """
 
     async def on_start(self):
-        logger.debug("Strategy {} started in directory".format(type(self).__name__))
+        logger.debug("Agent[{}]: Strategy ({}) started in directory".format(self.agent.name, type(self).__name__))
 
     async def send_services(self, agent_id, type_service):
         """
@@ -214,7 +220,7 @@ class DirectoryStrategyBehaviour(StrategyBehaviour):
         """
         msg = await self.receive(timeout=5)
         logger.debug(
-            "Directory {} has a mailbox size of {}".format(
+            "Agent[{}]: Directory has a mailbox size of ({})".format(
                 self.agent.name, self.mailbox_size()
             )
         )
@@ -225,7 +231,7 @@ class DirectoryStrategyBehaviour(StrategyBehaviour):
             if performative == REQUEST_PERFORMATIVE:
 
                 logger.info(
-                    "Directory {} received message from customer/transport {}".format(
+                    "Agent[{}]: Directory received message from [{}]".format(
                         self.agent.name, agent_id
                     )
                 )

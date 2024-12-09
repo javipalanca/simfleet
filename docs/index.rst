@@ -8,8 +8,14 @@ Contents:
 
    readme
    installation
-   usage
-   develop
+   quickstart
+   agent
+   architecture
+   stations
+   custome-agent
+   agent-skills
+   strategies
+   statistics
    api
    contributing
    authors

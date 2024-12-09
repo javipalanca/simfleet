@@ -1,7 +1,10 @@
 import time
+import asyncio
+
 from loguru import logger
 from spade.agent import Agent
 from collections import defaultdict
+from spade.message import Message
 
 from simfleet.utils.statistics import StatisticsStore
 
@@ -31,6 +34,7 @@ class SimfleetAgent(Agent):
         super().__init__(agentjid, password)
         self.__observers = defaultdict(list)
         self.agent_id = None
+        self.agent_name = None
         self.strategy = None
         self.running_strategy = False
         self.port = None
@@ -76,15 +80,15 @@ class SimfleetAgent(Agent):
         return not self.is_launched or (self.is_launched and self.ready)
 
 
-    def sleep(self, seconds):
+    async def sleep(self, seconds):
         """
             Pauses the agent’s operation for a specified duration.
 
             Args:
                 seconds (int): The duration in seconds for which the agent should pause.
         """
-        # await asyncio.sleep(seconds)
-        time.sleep(seconds)
+        await asyncio.sleep(seconds)
+        #time.sleep(seconds)
 
 
     def set(self, key, value):
@@ -137,8 +141,8 @@ class SimfleetAgent(Agent):
         """
         self.fleet_type = fleet_type
 
-
-    async def send(self, msg):
+    #New version send for spade 4
+    async def send(self, msg: Message) -> None:
         """
             Sends a message to another agent, ensuring that the sender's JID is correctly included in the message.
 
@@ -148,11 +152,9 @@ class SimfleetAgent(Agent):
         if not msg.sender:
             msg.sender = str(self.jid)
             logger.debug(f"Adding agent's jid as sender to message: {msg}")
-        aioxmpp_msg = msg.prepare()
-        await self.client.send(aioxmpp_msg)
+        await self.container.send(msg, self)
         msg.sent = True
         self.traces.append(msg, category=str(self))
-
 
     def set_id(self, agent_id):
         """
@@ -172,6 +174,12 @@ class SimfleetAgent(Agent):
             str: The identifier of the agent.
         """
         return self.agent_id
+
+    def set_name(self, name):
+        """
+            Sets the name of the bus stop.
+        """
+        self.agent_name = name
 
 
     def set_directory(self, directory_id):

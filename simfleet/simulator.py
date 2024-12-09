@@ -22,7 +22,7 @@ from simfleet.common.agents.factory.create import StationFactory
 from simfleet.common.agents.factory.create import TransportFactory
 from simfleet.common.agents.factory.create import VehicleFactory
 from simfleet.common.agents.factory.create import TransportStopFactory
-from simfleet.utils.utils_old import request_path as async_request_path
+from simfleet.utils.routing import request_path as async_request_path
 
 from simfleet.config.settings import set_default_strategies, set_default_metrics
 
@@ -82,6 +82,8 @@ class SimulatorAgent(Agent):
         self.kill_simulator.clear()
         self.lock = threading.RLock()
 
+        self.stopped = False
+
         self.events_log = None
         self.default_strategies = {}
         self.delayed_launch_agents = {}
@@ -112,10 +114,6 @@ class SimulatorAgent(Agent):
         icons_path = self.base_path / "templates" / "data" / "img_transports.json"
         self.load_icons(icons_path)
 
-        self.create_directory_agent(name=config.directory_name,
-                                    password=config.directory_password
-                                    )
-
         logger.info(
             "Creating {} managers, {} transports, {} customers, {} stations and {} vehicles.".format(
                 config.num_managers,
@@ -125,7 +123,6 @@ class SimulatorAgent(Agent):
                 config.num_vehicles,
             )
         )
-        self.load_scenario()
 
         self.template_path = self.base_path / "templates"
 
@@ -154,6 +151,12 @@ class SimulatorAgent(Agent):
             )
         )
 
+        await self.create_directory_agent(name=self.config.directory_name,
+                                    password=self.config.directory_password
+                                    )
+
+        await self.load_scenario()
+
         #Comunication template
         template = Template()
         template.set_metadata("protocol", COORDINATION_PROTOCOL)
@@ -162,10 +165,12 @@ class SimulatorAgent(Agent):
         self.add_behaviour(CoordinationBehaviour(), template)
 
 
-    def load_scenario(self):
+    async def load_scenario(self):
         """
         Load the information from the preloaded scenario through the SimfleetConfig class
         """
+        managers = []
+
         logger.info("Loading scenario...")
         for manager in self.config["fleets"]:
             name = manager["name"]
@@ -184,6 +189,8 @@ class SimulatorAgent(Agent):
                                                     )
 
             self.set_icon(agent, icon, default=fleet_type)
+            managers.append(agent.start())
+        await asyncio.gather(*managers)
 
         while len(self.manager_agents) < self.config.num_managers:
             time.sleep(0.1)
@@ -196,47 +203,30 @@ class SimulatorAgent(Agent):
             line_type = line["line_type"]
             self.add_line(line_id, stop_list, line_type)
 
-        all_coroutines = []
+        all_agents = []
         try:
-            future = self.submit(
-                self.async_create_agents_batch_transport(self.config["transports"])
-            )
-            all_coroutines += future.result()
+            all_agents += await self.async_create_agents_batch_transport(self.config["transports"])
         except Exception as e:
             logger.exception("EXCEPTION creating Transport agents batch {}".format(e))
         try:
-            future = self.submit(
-                self.async_create_agents_batch_customer(self.config["customers"])
-            )
-            all_coroutines += future.result()
+            all_agents += await self.async_create_agents_batch_customer(self.config["customers"])
         except Exception as e:
             logger.exception("EXCEPTION creating Customer agents batch {}".format(e))
         try:
-            future = self.submit(
-                self.async_create_agents_batch_station(self.config["stations"])
-            )
-            all_coroutines += future.result()
+            all_agents += await self.async_create_agents_batch_station(self.config["stations"])
         except Exception as e:
             logger.exception("EXCEPTION creating Station agents batch {}".format(e))
-
         try:
-            future = self.submit(
-                self.async_create_agents_batch_vehicle(self.config["vehicles"])
-            )
-            all_coroutines += future.result()
+            all_agents += await self.async_create_agents_batch_vehicle(self.config["vehicles"])
         except Exception as e:
             logger.exception("EXCEPTION creating Vehicles agents batch {}".format(e))
-
         try:
-            future = self.submit(
-                self.async_create_agents_batch_stop(self.config["stops"])
-            )
-            all_coroutines += future.result()
+            all_agents += await self.async_create_agents_batch_stop(self.config["stops"])
         except Exception as e:
             logger.exception("EXCEPTION creating Stop agents batch {}".format(e))
 
-        assert all([asyncio.iscoroutine(x) for x in all_coroutines])
-        self.submit(self.gather_batch(all_coroutines))
+        assert all([asyncio.iscoroutine(x) for x in all_agents])
+        await self.gather_batch(all_agents)
 
     async def gather_batch(self, all_coroutines):
         agents_batch = 20
@@ -500,7 +490,7 @@ class SimulatorAgent(Agent):
         """
         if self.config.max_time is None:
             return False
-        return self.time_is_out() or self.all_agents_stopped()
+        return self.time_is_out() or self.stopped
 
     def time_is_out(self):
         """
@@ -580,7 +570,7 @@ class SimulatorAgent(Agent):
 
         self.add_behaviour(RunBehaviour())
 
-    def stop(self):
+    async def stop(self):
         """
         Finishes the simulation and prints simulation stats.
         Tasks done when a simulation is stopped:
@@ -589,20 +579,24 @@ class SimulatorAgent(Agent):
             #. Stop fleetmanager agent.
         """
         self.simulation_time = self.get_simulation_time()
+        await self.directory_agent.stop()
 
-        self.directory_agent.stop().result()
+        logger.info("Stopping simulation...")
 
         logger.info(
             "Terminating... ({0:.1f} seconds elapsed)".format(self.simulation_time)
         )
 
-        self.stop_agents()
+        coroutines = await self.stop_agents()
 
-        self.generate_metrics()
+        await asyncio.gather(*coroutines)
 
-        return super().stop()
+        await self.generate_metrics()
 
-    def generate_metrics(self):
+        await super().stop()
+
+
+    async def generate_metrics(self):
 
         self.generate_all_events()
 
@@ -663,7 +657,7 @@ class SimulatorAgent(Agent):
 
         self.events_log.sort_by_timestamp(reverse=False)
 
-    def write_file(self, filename):
+    async def write_file(self, filename):
         """
         Writes the dataframes collected by ``collect_stats`` in JSON or Excel format.
 
@@ -841,9 +835,9 @@ class SimulatorAgent(Agent):
             ],
             "tree": self.generate_tree(),
             "stats": self.get_stats(),
-            "stations": [station.to_json() for station in self.station_agents.values()],
+            "stations": [station.to_json() for station in self.station_agents.values()] + [stop.to_json() for stop in self.bus_stop_agents.values()],
             # Bus line
-            "stops": [stop.to_json() for stop in self.bus_stop_agents.values()],
+            #"stops": [stop.to_json() for stop in self.bus_stop_agents.values()],
         }
         return result
 
@@ -863,7 +857,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            # "status": i.status,
+                            #"status": i.status,
                             "icon": "fa-taxi",
                         }
                         for i in self.transport_agents.values()
@@ -875,7 +869,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            # "status": i.status,
+                            #"status": i.status,
                             "icon": "fa-lib",
                         }
                         for i in self.customer_agents.values()
@@ -887,7 +881,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            # "status": i.status,
+                            #"status": i.status,
                             "icon": "fa-vehicle",
                         }
                         for i in self.vehicle_agents.values()
@@ -935,52 +929,6 @@ class SimulatorAgent(Agent):
             "is_running": self.simulation_running,
         }
 
-    def all_agents_stopped(self):
-        """
-        Checks whether all agents have finished or not.
-
-        Returns:`
-            bool: whether all agents have finished or not.
-        """
-        if self.all_customers_stopped() and self.all_transports_stopped():
-            return True
-        else:
-            return False
-
-    def all_customers_stopped(self):
-        """
-                Checks whether all customers have finished or not.
-
-                Returns:`
-                    bool: whether all customers have finished or not.
-                """
-        if len(self.customer_agents) > 0:
-            return all(
-                [
-                    customer.is_stopped()
-                    for customer in self.customer_agents.values()
-                ]
-            )
-        else:
-            return False
-
-    def all_transports_stopped(self):
-        """
-                Checks whether all transports have finished or not.
-
-                Returns:`
-                    bool: whether all transports have finished or not.
-                """
-        if len(self.transport_agents) > 0:
-            return all(
-                [
-                    transport.is_stopped()
-                    for transport in self.transport_agents.values()
-                ]
-            )
-        else:
-            return False
-
     async def run_controller(self, request):
         """
         Web controller that starts the simulator.
@@ -998,10 +946,8 @@ class SimulatorAgent(Agent):
         Returns:
             dict: no template is returned since this is an AJAX controller, a dict with status=done
         """
-        coroutines = self.stop_agents()
-        await asyncio.gather(*coroutines)
+        self.stopped = True
         return {"status": "done"}
-
 
     async def download_events_json_controller(self, request):
         """
@@ -1022,6 +968,19 @@ class SimulatorAgent(Agent):
 
         return aioweb.Response(body=output.getvalue(), headers=headers)
 
+    def clear_agents(self):
+        """
+        Resets the set of transports and customers. Resets the simulation clock.
+        """
+        self.set("manager_agents", {})
+        self.set("transport_agents", {})
+        self.set("customer_agents", {})
+        self.set("station_agents", {})
+        self.set("vehicle_agents", {})
+        self.set("bus_stop_agents", {})
+        self.set("bus_lines", {})
+        self.simulation_time = None
+        self.simulation_init_time = None
 
     def clear_stopped_agents(self):
         """
@@ -1056,57 +1015,39 @@ class SimulatorAgent(Agent):
         self.simulation_time = None
         self.simulation_init_time = None
 
-    def stop_agents(self):
-        """
-        Stops the simulator and all the agents
-        """
+    #New and compact
+    async def stop_agents(self):
         self.kill_simulator.set()
         self.simulation_running = False
-        results = []
-        if not self.simulation_time:
-            self.simulation_time = (
-                time.time() - self.simulation_init_time
-                if self.simulation_init_time
-                else 0
-            )
-        with self.lock:
-            for name, agent in self.manager_agents.items():
-                logger.debug("Stopping manager {}".format(name))
-                results.append(agent.stop())
-                agent.stopped = True
-        with self.lock:
-            for name, agent in self.transport_agents.items():
-                logger.debug("Stopping transport {}".format(name))
-                results.append(agent.stop())
-                agent.stopped = True
-        with self.lock:
-            for name, agent in self.customer_agents.items():
-                logger.debug("Stopping customer {}".format(name))
-                results.append(agent.stop())
-                agent.stopped = True
-        with self.lock:
-            for name, agent in self.station_agents.items():
-                logger.debug("Stopping station {}".format(name))
-                results.append(agent.stop())
-                agent.stopped = True
-        # New vehicle
-        with self.lock:
-            for name, agent in self.vehicle_agents.items():
-                logger.debug("Stopping vehicle {}".format(name))
-                results.append(agent.stop())
-                agent.stopped = True
-        # Bus line
-        with self.lock:
-            for name, agent in self.bus_stop_agents.items():
-                logger.debug("Stopping stop {}".format(name))
-                results.append(agent.stop())
-                agent.stopped = True
-        return results
+
+        categories = {
+            "manager": self.manager_agents,
+            "transport": self.transport_agents,
+            "customer": self.customer_agents,
+            "station": self.station_agents,
+            "vehicle": self.vehicle_agents,
+            "bus_stop": self.bus_stop_agents,
+        }
+
+        async def stop_agent(agent):
+            try:
+                return await agent.stop()
+            except Exception as e:
+                logger.error(f"Error stopping agent {agent.name}: {e}")
+                return None
+
+        coroutines = [
+            stop_agent(agent)
+            for agents in categories.values()
+            for agent in agents.values()
+        ]
+
+        return coroutines
 
     async def async_start_agent(self, agent):
         await agent.start()
 
-    def create_directory_agent(self, name, password):
+    async def create_directory_agent(self, name, password):
         agent = DirectoryFactory.create_agent(domain=self.jid.domain,
                                               name=name,
                                               password=password,
@@ -1114,7 +1055,7 @@ class SimulatorAgent(Agent):
                                               )
         self.set_directory(agent)
         agent.run_strategy()
-        agent.start().result()
+        await agent.start()
 
     def create_fleetmanager_agent(
         self, name, password, fleet_type, strategy=None, icon=None
@@ -1133,8 +1074,6 @@ class SimulatorAgent(Agent):
         self.add_manager(agent)
 
         agent.is_launched = True
-
-        self.submit(self.async_start_agent(agent))
 
         return agent
 
@@ -1400,10 +1339,12 @@ class SimulatorAgent(Agent):
             float: the whole simulation time.
         """
         if not self.simulation_init_time:
+            self.simulation_init_time = 0
             return 0
         if self.simulation_running:
             return time.time() - self.simulation_init_time
         return self.simulation_time
+
 
     def request_path(self, origin, destination):
         """
@@ -1435,7 +1376,6 @@ class CoordinationBehaviour(CyclicBehaviour):
         super().__init__()
 
     async def inform_agent_position(self, agent_id, content):
-
         reply = Message()
         reply.to = str(agent_id)
         reply.set_metadata("protocol", COORDINATION_PROTOCOL)
@@ -1448,27 +1388,22 @@ class CoordinationBehaviour(CyclicBehaviour):
 
         msg = await self.receive(timeout=5)
         logger.warning(
-            "SimulatorAgent {} has a mailbox size of {}".format(
+            "Agent[{}]: The agent has a mailbox size of ({})".format(
                 self.agent.name, self.mailbox_size()
             )
         )
         if msg:
-            logger.warning(
-                "SimulatorAgent {} message: {}".format(
-                    self.agent.name, msg
-                )
-            )
             performative = msg.get_metadata("performative")
             agent_id = msg.sender
-            user_agent_id = json.loads(msg.body)["user_agent_id"][0]
-            host = json.loads(msg.body)["user_agent_id"][1]
+            user_agent_id = json.loads(msg.body)["user_agent_id"].split('@')[0]
+            host = json.loads(msg.body)["user_agent_id"].split('@')[1]
             object_type = json.loads(msg.body)["object_type"]
 
 
             if performative == REQUEST_PERFORMATIVE:
 
                 logger.info(
-                    "SimulatorAgent {} received message from agent {}".format(
+                    "Agent[{}]: The agent received message from agent [{}]".format(
                         self.agent.name, agent_id
                     )
                 )
@@ -1476,7 +1411,6 @@ class CoordinationBehaviour(CyclicBehaviour):
                 if object_type == "transport":
 
                     for transport in self.agent.transport_agents.values():
-
                         if transport.get_id() == user_agent_id:
                             agent_position = transport.get_position()
                             send_agent_id = user_agent_id + "@" + host
@@ -1496,7 +1430,7 @@ class CoordinationBehaviour(CyclicBehaviour):
                             await self.inform_agent_position(agent_id, content)
 
                             logger.debug(
-                                "SimulatorAgent {} send msg to {}".format(
+                                "Agent[{}]: The agent send msg to [{}]".format(
                                     self.agent.name, agent_id
                                 )
                             )

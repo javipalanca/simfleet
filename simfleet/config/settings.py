@@ -94,12 +94,12 @@ class SimfleetConfig(object):
         )
         # New statistics
         self.__config["mobility_metrics"] = self.__config.get(          #Metric - Renombrar
-            "mobility_metrics", "simfleet.metrics.extensions.mobilitystatistics.MobilityStatistics"      #Metric - Renombrar
+            "mobility_metrics", "simfleet.metrics.lib.mobilitystatistics.MobilityStatistics"      #Metric - Renombrar
         )
 
         # Bus line
         self.__config["bus_stop_strategy"] = self.__config.get(
-            "bus_stop_strategy", "simfleet.common.extensions.stations.models.busstop.BusStopStrategyBehaviour")
+            "bus_stop_strategy", "simfleet.common.lib.stations.models.busstop.BusStopStrategyBehaviour")
 
         self.__config["fleetmanager_name"] = self.__config.get(
             "fleetmanager_name", "fleetmanager"

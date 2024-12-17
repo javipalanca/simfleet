@@ -74,27 +74,27 @@ class SimfleetConfig(object):
         #self.__config["zoom"] = self.__config.get("zoom", 12)
 
         self.__config["transport_strategy"] = self.__config.get(
-            "transport_strategy", "simfleet.common.transports.strategies.taxi.FSMTaxiStrategyBehaviour"
+            "transport_strategy", "simfleet.common.lib.transports.strategies.taxi.FSMTaxiBehaviour"
         )
         self.__config["customer_strategy"] = self.__config.get(
-            "customer_strategy", "simfleet.common.customers.strategies.taxicustomer.AcceptFirstRequestBehaviour"
+            "customer_strategy", "simfleet.common.lib.customers.strategies.taxicustomer.AcceptFirstRequestBehaviour"
         )
         self.__config["fleetmanager_strategy"] = self.__config.get(
-            "fleetmanager_strategy", "simfleet.strategies.DelegateRequestBehaviour"
+            "fleetmanager_strategy", "simfleet.common.lib.fleet.strategies.fleetmanager.DelegateRequestBehaviour"
         )
         self.__config["directory_strategy"] = self.__config.get(
-            "directory_strategy", "simfleet.directory.DirectoryStrategyBehaviour"
+            "directory_strategy", "simfleet.common.agents.directory.DirectoryStrategyBehaviour"
         )
         self.__config["station_strategy"] = self.__config.get(
-            "station_strategy", "simfleet.station.StationStrategyBehaviour"
+            "station_strategy", "simfleet.common.lib.stations.models.chargingstation.ChargingService"
         )
         #New vehicle
         self.__config["vehicle_strategy"] = self.__config.get(
-            "vehicle_strategy", "simfleet.strategies_fsm.RequestAndTravelBehavior"
+            "vehicle_strategy", "simfleet.common.lib.vehicles.strategies.vehicle.FSMOneShotVehicleBehaviour"
         )
         # New statistics
         self.__config["mobility_metrics"] = self.__config.get(          #Metric - Renombrar
-            "mobility_metrics", "simfleet.metrics.lib.mobilitystatistics.MobilityStatistics"      #Metric - Renombrar
+            "mobility_metrics", "simfleet.metrics.lib.mobilitystatistics.MobilityStatisticsClass"
         )
 
         # Bus line

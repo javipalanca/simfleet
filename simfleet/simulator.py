@@ -421,7 +421,7 @@ class SimulatorAgent(Agent):
             )
 
             position = transport.get("position")
-            fleet_type = transport["fleet_type"]
+            fleet_type = transport.get("fleet_type")
             speed = transport.get("speed")
             target = transport.get("destination")
             strategy = transport.get("strategy")
@@ -442,7 +442,7 @@ class SimulatorAgent(Agent):
                                                 delayed=delayed,
                                                 target=target,
                                             )
-            self.set_icon(agent, icon, default="transport")
+            self.set_icon(agent, icon, default="drone")
 
             if delay is not None:
                 if delay not in self.delayed_launch_agents:
@@ -1193,8 +1193,8 @@ class SimulatorAgent(Agent):
     def create_vehicle_agent(self,
                             name,
                             password,
-                            fleet_type,
                             position,
+                            fleet_type=None,
                             strategy=None,
                             speed=None,
                             delayed=False,

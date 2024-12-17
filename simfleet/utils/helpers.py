@@ -21,7 +21,7 @@ def get_bbox_from_location(location_str, zoom):
     """
     # Obtener las coordenadas de la ubicación (ciudad, calle, avenida, etc.)
     geolocator = Nominatim(user_agent="zoom_bbox_simfleet")
-    location = geolocator.geocode(location_str, addressdetails=True)
+    location = geolocator.geocode(location_str, addressdetails=True, timeout=10)
 
     if location is None:
         raise Exception ("Could not find coordinates for the entered location")

@@ -34,8 +34,17 @@ SimFleet
         :alt: Documentation Status
 
 
-Agent-based fleet simulator to test strategies
+Simfleet is a multi-agent simulation and fleet management platform that facilitates the training, optimization, and operation
+of transportation systems within virtual environments. Its primary purpose is to study mobility in realistic scenarios without
+the need for physical testing.
 
+Simfleet includes three predefined types of transportation (taxi, electric taxi, and bus), two types of infrastructure
+(taxi charging station and bus stop), and two types of clients (taxi customer and bus customer) to enable quick and
+efficient simulations.
+
+However, for advanced users, the platform allows extending the study cases by developing additional types of agents.
+This flexibility is made possible by Simfleet's architecture, which supports the implementation of custom agents tailored
+to the user's specific needs.
 
 * Free software: MIT license
 * Documentation: https://simfleet.readthedocs.io.

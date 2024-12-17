@@ -2,8 +2,8 @@
 Quickstart
 ============
 
-This quickstart guide demonstrates how to launch a basic simulation in SimFleet using vehicles as the sole mode of transportation.
-Make sure you have the appropriate configuration file (in this case, ``vehicles.json``), which already defines vehicle movements with specified
+This quickstart guide demonstrates how to launch a basic simulation in SimFleet using vehicles as the sole mode of transportation with
+the web-based graphical interface (GUI). Make sure you have the appropriate configuration file (in this case, ``vehicles.json``), which defines vehicle movements with specified
 origins and destinations.
 
 Steps to Start a Simulation:

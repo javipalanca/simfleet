@@ -9,6 +9,7 @@ Contents:
    readme
    installation
    quickstart
+   advanced-config
    agent
    architecture
    stations

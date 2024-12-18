@@ -1,6 +1,6 @@
-====================
-Configuration Manual
-====================
+============
+Usage Manual
+============
 
 Using SimFleet is straightforward and can be done by running the application from the command line. There are two modes of use:
 a **command-line interface (CLI)** and a **web-based graphical interface (GUI)**. You can execute simulations purely through the command
@@ -13,8 +13,8 @@ we will explore how to use both interfaces of advance mode and the different sim
 Taxi simulation scenario
 ========================
 
-In this scenario, SimFleet there are three types of agent that interact among them during simulations. These are the FleetManager
-agent, the Taxi agent, and the TaxiCustomer agent.
+In this scenario, SimFleet there are three types of agent that interact among them during simulations. These are the **FleetManager agent**,
+the **Taxi agent**, and the **TaxiCustomer agent**.
 
 
 Description of the Agents
@@ -40,9 +40,10 @@ Description of the Agents
     In order to do so, the FleetManager has a registration protocol by which Taxi agents subscribe to the Fleet Manager
     that represents their fleet. This is automatically done when a Taxi agent is started.
 
-    In the context of SimFleet, a "transport service" involves, once a particular TaxiCustomer and Taxi agents have reached
-    an agreement, the movement of the Taxi agent from its current position to the TaxiCustomer's position in
-    order to pick the Customer up, and then the transportation of the TaxiCustomer agent to its destination.
+In the context of SimFleet, a "transport service" involves the following steps:
+
+    #. The Taxi moves from its current position to the TaxiCustomer's location to pick them up.
+    #. The Taxi transports the TaxiCustomer to their destination.
 
 The Config file
 ---------------
@@ -93,7 +94,7 @@ For taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | fleet_type       |   Fleet type that the customer wants to use                              |
 +------------------+--------------------------------------------------------------------------+
-| optional         |   **fleet**: The fleet manager's JID to be subscribed to (optional)        |
+| optional         |   **fleet**: The fleet manager's JID to be subscribed to (optional)      |
 +------------------+--------------------------------------------------------------------------+
 | icon             |   Custom icon (in base64 format) to be used by the transport  (optional) |
 +------------------+--------------------------------------------------------------------------+
@@ -215,17 +216,883 @@ An example of a config file with four customers, two transports and one fleet ma
     "http_ip": "localhost"
     }
 
+This configuration file includes:
+
+    * One taxi with a fixed position and another with a random position.
+    * One customer with fixed origin and destination coordinates.
+    * Three customers with random origin and destination coordinates.
+
 Electric taxi simulation scenario
 =================================
 
+In this scenario, SimFleet includes four types of agents that interact with each other during simulations. These are the
+**FleetManager agent**, the **ElectricTaxi agent**, the **TaxiCustomer agent**, and the **ChargingStation agent**.
+
+Description of the Agents
+-------------------------
+
+* **TaxiCustomer Agents**
+
+    The TaxiCustomer agents represent people that need to go from one location in the city (their "current location") to another (their "destination").
+    To achieve this, each TaxiCustomer agent requests a transport service. Once they are transported to their destination, they reach their final state and end their execution.
+
+* **ElectricTaxi Agents**
+
+    The ElectricTaxi agents represent electric vehicles that can transport TaxiCustomer agents from their current positions to their respective destinations.
+    Unlike traditional taxis, ElectricTaxi agents have a limited battery capacity and need to monitor their charge levels. When their battery is low, they must
+    go to a ChargingStation to recharge before continuing to provide transportation services.
+
+* **ChargingStation Agents**
+
+    The ChargingStation agents represent locations where ElectricTaxi agents can recharge their batteries. These stations allow ElectricTaxi agents to restore their battery level,
+    enabling them to continue offering transport services.
+    ChargingStations may have limited availability or charging slots, which means ElectricTaxi agents may need to wait if the station is occupied.
+
+* **FleetManager Agent**
+
+    The FleetManager Agent is responsible for putting in contact the TaxiCustomer agents that need a transport service, and the Taxi
+    agents that may be available to offer these services. In short, the FleetManager Agent acts like a transport call center, accepting
+    the incoming requests from customers (TaxiCustomer agents) and forwarding these requests to the (appropriate) Taxi agents.
+    In order to do so, the FleetManager has a registration protocol by which Taxi agents subscribe to the Fleet Manager
+    that represents their fleet. This is automatically done when a Taxi agent is started.
+
+In the context of SimFleet, a "transport service" involves the following steps:
+
+    #. The ElectricTaxi moves from its current position to the TaxiCustomer's location to pick them up.
+    #. The ElectricTaxi transports the TaxiCustomer to their destination.
+    #. If the ElectricTaxi's battery is low after the trip, it travels to a ChargingStation to recharge before accepting another request.
+
+The Config file
+---------------
+
+The most important fields that the Electric taxi simulation scenario file must include are a taxi customers list, a taxis list and a stations list.
+Each taxi customer must include the following fields:
+
++--------------------------------------------------------------------------------------+
+|  Taxi Customers                                                                      |
++-------------+------------------------------------------------------------------------+
+|  Field      |  Description                                                           |
++=============+========================================================================+
+| class       |   Custom agent file in the format module.file.Class                    |
++-------------+------------------------------------------------------------------------+
+| position    |   Initial coordinates of the customer (optional)                       |
++-------------+------------------------------------------------------------------------+
+| destination |   Destination coordinates of the customer (optional)                   |
++-------------+------------------------------------------------------------------------+
+| name        |   Name of the customer                                                 |
++-------------+------------------------------------------------------------------------+
+| password    |   Password for registering the customer in the platform (optional)     |
++-------------+------------------------------------------------------------------------+
+| fleet_type  |   Fleet type that the customer wants to use                            |
++-------------+------------------------------------------------------------------------+
+| icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
++-------------+------------------------------------------------------------------------+
+| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
++-------------+------------------------------------------------------------------------+
+| delay       |   Intentional agent pause in seconds  (optional)                       |
++-------------+------------------------------------------------------------------------+
+
+For electric taxis the fields are as follows:
+
++---------------------------------------------------------------------------------------------+
+|  Electric Taxis                                                                             |
++------------------+--------------------------------------------------------------------------+
+|  Field           |  Description                                                             |
++==================+==========================================================================+
+| class            |   Custom agent file in the format module.file.Class                      |
++------------------+--------------------------------------------------------------------------+
+| position         |   Initial coordinates of the transport (optional)                        |
++------------------+--------------------------------------------------------------------------+
+| name             |   Name of the transport                                                  |
++------------------+--------------------------------------------------------------------------+
+| password         |   Password for registering the transport in the platform (optional)      |
++------------------+--------------------------------------------------------------------------+
+| speed            |   Speed of the transport (in meters per second)  (optional)              |
++------------------+--------------------------------------------------------------------------+
+| service          |   Type of Service requiring transport                                    |
++------------------+--------------------------------------------------------------------------+
+| autonomy         |   The maximum autonomy of the transport (in km)                          |
++------------------+--------------------------------------------------------------------------+
+| current_autonomy |   The initial autonomy of the transport (in km)                          |
++------------------+--------------------------------------------------------------------------+
+| fleet_type       |   Fleet type that the customer wants to use                              |
++------------------+--------------------------------------------------------------------------+
+| optional         |   **fleet**: The fleet manager's JID to be subscribed to (optional)      |
++------------------+--------------------------------------------------------------------------+
+| icon             |   Custom icon (in base64 format) to be used by the transport  (optional) |
++------------------+--------------------------------------------------------------------------+
+| strategy         |   Custom strategy file in the format module.file.Class  (optional)       |
++------------------+--------------------------------------------------------------------------+
+| delay            |   Intentional agent pause in seconds  (optional)                         |
++------------------+--------------------------------------------------------------------------+
+
+For charging stations the fields are as follows:
+
++--------------------------------------------------------------------------------------+
+|  Charging stations                                                                   |
++-------------+------------------------------------------------------------------------+
+|  Field      |  Description                                                           |
++=============+========================================================================+
+| class       |   Custom agent file in the format module.file.Class                    |
++-------------+------------------------------------------------------------------------+
+| position    |   Initial coordinates of the customer (optional)                       |
++-------------+------------------------------------------------------------------------+
+| name        |   Name of the station                                                  |
++-------------+------------------------------------------------------------------------+
+| password    |   Password for registering the station in the platform (optional)      |
++-------------+------------------------------------------------------------------------+
+| services    |   **type:** Type of Service offered by the station                     |
+|             +------------------------------------------------------------------------+
+|             |   **behaviour:** Custom behaviour file in the format module.file.Class |
+|             +------------------------------------------------------------------------+
+|             |   **slots:** Number of recharge slots available                        |
+|             +------------------------------------------------------------------------+
+|             |   **args:** Extra arguments such as: **Power**                         |
++-------------+------------------------------------------------------------------------+
+| icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
++-------------+------------------------------------------------------------------------+
+| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
++-------------+------------------------------------------------------------------------+
+| delay       |   Intentional agent pause in seconds  (optional)                       |
++-------------+------------------------------------------------------------------------+
+
+For fleet managers the fields are as follows:
+
++--------------------------------------------------------------------------------------+
+|  Fleet managers                                                                      |
++-------------+------------------------------------------------------------------------+
+|  Field      |  Description                                                           |
++=============+========================================================================+
+| name        |   Name of the manager                                                  |
++-------------+------------------------------------------------------------------------+
+| password    |   Password for registering the manager in the platform (optional)      |
++-------------+------------------------------------------------------------------------+
+| fleet_type  |   Fleet type that the agent manages                                    |
++-------------+------------------------------------------------------------------------+
+| icon        |   Custom icon (in base64 format) to be used by the manager  (optional) |
++-------------+------------------------------------------------------------------------+
+| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
++-------------+------------------------------------------------------------------------+
+
+An example of a config file with four customers, two transports, one fleet manager and two stations:
+
+.. code-block:: json
+
+    {
+    "fleets": [
+        {
+            "password": "secret",
+            "name": "fleet1",
+            "fleet_type": "electric-taxi"
+        }
+    ],
+    "transports": [
+        {
+            "class": "simfleet.common.lib.transports.models.electrictaxi.ElectricTaxiAgent",
+            "position": [
+                39.457364,
+                -0.401621
+            ],
+            "name": "taxi1",
+            "password": "secret",
+            "speed": 2000,
+            "service": "electricity",
+            "autonomy": 30,
+            "current_autonomy": 5,
+            "fleet_type": "electric-taxi",
+            "optional": {
+                "fleet": "fleet1@localhost"
+            },
+            "icon": "taxi",
+            "delay": 0
+        },
+        {
+            "class": "simfleet.common.lib.transports.models.electrictaxi.ElectricTaxiAgent",
+            "name": "taxi2",
+            "password": "secret",
+            "speed": 2000,
+            "service": "electricity",
+            "autonomy": 20,
+            "current_autonomy": 5,
+            "fleet_type": "electric-taxi",
+            "optional": {
+                "fleet": "fleet1@localhost"
+            },
+            "icon": "taxi"
+        }
+    ],
+    "customers": [
+        {
+            "class": "simfleet.common.lib.customers.models.taxicustomer.TaxiCustomerAgent",
+            "position": [
+                39.494655,
+                -0.361639
+            ],
+            "destination": [
+                39.43038,
+                -0.354089
+            ],
+            "name": "customer1",
+            "password": "secret",
+            "fleet_type": "electric-taxi",
+            "delay": 0
+        },
+        {
+            "class": "simfleet.common.lib.customers.models.taxicustomer.TaxiCustomerAgent",
+            "name": "customer2",
+            "password": "secret",
+            "fleet_type": "electric-taxi"
+        },
+        {
+            "class": "simfleet.common.lib.customers.models.taxicustomer.TaxiCustomerAgent",
+            "name": "customer3",
+            "password": "secret",
+            "fleet_type": "electric-taxi",
+            "delay": 5
+        },
+        {
+            "class": "simfleet.common.lib.customers.models.taxicustomer.TaxiCustomerAgent",
+            "name": "customer4",
+            "password": "secret",
+            "fleet_type": "electric-taxi",
+            "delay": 5
+        }
+    ],
+    "stations": [
+        {
+            "class": "simfleet.common.lib.stations.models.chargingstation.ChargingStationAgent",
+            "position": [
+                39.45874369,
+                -0.34011479
+            ],
+            "name": "station1",
+            "password": "secret",
+            "services": [
+                {
+                    "type": "electricity",
+                    "behaviour": "simfleet.common.lib.stations.models.chargingstation.ChargingService",
+                    "slots": 1,
+                    "args": {
+                        "power": 5
+                    }
+                }
+            ],
+            "icon": "electric_station"
+        },
+        {
+            "class": "simfleet.common.lib.stations.models.chargingstation.ChargingStationAgent",
+            "name": "station2",
+            "password": "secret",
+            "services": [
+                {
+                    "type": "electricity",
+                    "behaviour": "simfleet.common.lib.stations.models.chargingstation.ChargingService",
+                    "slots": 1,
+                    "args": {
+                        "power": 10
+                    }
+                }
+            ],
+            "icon": "electric_station"
+        }
+    ],
+    "vehicles": [],
+    "simulation_name": "electrictaxi",
+    "max_time": 200,
+    "transport_strategy": "simfleet.common.lib.transports.strategies.electrictaxi.FSMElectricTaxiBehaviour",
+    "customer_strategy": "simfleet.common.lib.customers.strategies.taxicustomer.AcceptFirstRequestBehaviour",
+    "fleetmanager_strategy": "simfleet.common.lib.fleet.strategies.fleetmanager.DelegateRequestBehaviour",
+    "station_strategy": "simfleet.common.lib.stations.models.chargingstation.ChargingService",
+    "fleetmanager_name": "fleetmanager",
+    "fleetmanager_password": "fleetmanager_passwd",
+    "directory_name": "directory",
+    "directory_password": "directory_passwd",
+    "host": "localhost",
+    "http_port": 9000,
+    "http_ip": "localhost"
+    }
+
+This configuration file includes:
+
+    * One ElectricTaxi with a fixed position and one with a random position.
+    * Low autonomy for both ElectricTaxis.
+    * One TaxiCustomer with fixed origin and destination coordinates.
+    * Three TaxiCustomers with random positions.
+    * Two ChargingStations, one with a fixed position and one with a random position.
 
 Bus simulation scenario
 =======================
 
+In this scenario, SimFleet includes four types of agents that interact with each other during simulations. These are the **FleetManager agent**,
+the **Bus agent**, the **BusCustomer agent**, and the **BusStop agent**.
+
+
+Description of the Agents
+-------------------------
+
+* **BusCustomer Agents**
+
+    The BusCustomer agents represent people who need to travel from one location in the city (their "current location") to another (their "destination").
+    To achieve this, each BusCustomer agent requests a transport service. Unlike TaxiCustomer agents, BusCustomer agents have the option to walk to the
+    nearest BusStop to catch a bus. Once they are transported to their destination, they enter a final state and end their execution.
+
+* **Bus Agents**
+
+    The Bus agents represent public transport vehicles that can pick up and transport BusCustomer agents along predefined routes. Buses stop at designated BusStops to pick up and drop off passengers.
+    Each Bus agent operates based on a fixed route, and they only provide transport services to BusCustomer agents who are waiting at BusStops.
+
+* **BusStop Agents**
+
+    The BusStop agents represent designated stopping points where buses can pick up and drop off BusCustomer agents. BusCustomers can move to the nearest BusStop to catch a bus.
+    BusStops are essential for coordinating the pickup and drop-off of passengers.
+
+* **FleetManager Agent**
+
+    The FleetManager acts as a central system that manages the fleet of buses, ensuring that they operate smoothly and follow their routes.
+    In order to do so, the FleetManager has a registration protocol by which Bus agents subscribe to the Fleet Manager that represents their fleet.
+
+In the context of SimFleet, a "transport service" for buses involves:
+
+    #. The Bus agent following its predefined route.
+    #. Picking up BusCustomer agents waiting at BusStops.
+    #. Dropping off BusCustomer agents at BusStops near their destinations.
+
+The Config file
+---------------
+
+The most important fields that the Bus simulation scenario file must include are a BusCustomers list, a Buses list, a BusStops list and a Lines list.
+Each bus customer must include the following fields:
+
++--------------------------------------------------------------------------------------+
+|  Bus Customers                                                                       |
++-------------+------------------------------------------------------------------------+
+|  Field      |  Description                                                           |
++=============+========================================================================+
+| class       |   Custom agent file in the format module.file.Class                    |
++-------------+------------------------------------------------------------------------+
+| position    |   Initial coordinates of the customer                                  |
++-------------+------------------------------------------------------------------------+
+| destination |   Destination coordinates of the customer                              |
++-------------+------------------------------------------------------------------------+
+| name        |   Name of the customer                                                 |
++-------------+------------------------------------------------------------------------+
+| password    |   Password for registering the customer in the platform (optional)     |
++-------------+------------------------------------------------------------------------+
+| speed       |   Speed of the customer (in meters per second)  (optional)             |
++-------------+------------------------------------------------------------------------+
+| line        |   Bus line that the customer wants to use                              |
++-------------+------------------------------------------------------------------------+
+| fleet_type  |   Fleet type that the customer wants to use                            |
++-------------+------------------------------------------------------------------------+
+| icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
++-------------+------------------------------------------------------------------------+
+| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
++-------------+------------------------------------------------------------------------+
+| delay       |   Intentional agent pause in seconds  (optional)                       |
++-------------+------------------------------------------------------------------------+
+
+.. note::
+    If the speed field is not used, the customer's position and destination must match the origin and destination positions of the bus stops.
+
+For buses the fields are as follows:
+
++---------------------------------------------------------------------------------------------+
+|  Buses                                                                                      |
++------------------+--------------------------------------------------------------------------+
+|  Field           |  Description                                                             |
++==================+==========================================================================+
+| class            |   Custom agent file in the format module.file.Class                      |
++------------------+--------------------------------------------------------------------------+
+| position         |   Initial coordinates of the transport                                   |
++------------------+--------------------------------------------------------------------------+
+| name             |   Name of the transport                                                  |
++------------------+--------------------------------------------------------------------------+
+| password         |   Password for registering the transport in the platform (optional)      |
++------------------+--------------------------------------------------------------------------+
+| speed            |   Speed of the transport (in meters per second)                          |
++------------------+--------------------------------------------------------------------------+
+| line             |   Bus line that the transport wants to use                               |
++------------------+--------------------------------------------------------------------------+
+| capacity         |   Capacity of customer that can be transported                           |
++------------------+--------------------------------------------------------------------------+
+| fleet_type       |   Fleet type that the customer wants to use                              |
++------------------+--------------------------------------------------------------------------+
+| optional         |   **fleet**: The fleet manager's JID to be subscribed to                 |
++------------------+--------------------------------------------------------------------------+
+| icon             |   Custom icon (in base64 format) to be used by the transport  (optional) |
++------------------+--------------------------------------------------------------------------+
+| strategy         |   Custom strategy file in the format module.file.Class  (optional)       |
++------------------+--------------------------------------------------------------------------+
+| delay            |   Intentional agent pause in seconds  (optional)                         |
++------------------+--------------------------------------------------------------------------+
+
+.. note::
+    The bus agent's position must match one of the stops on its assigned line for correct operation.
+
+For bus stops the fields are as follows:
+
++--------------------------------------------------------------------------------------+
+|  Bus stops                                                                           |
++-------------+------------------------------------------------------------------------+
+|  Field      |  Description                                                           |
++=============+========================================================================+
+| class       |   Custom agent file in the format module.file.Class                    |
++-------------+------------------------------------------------------------------------+
+| position    |   Initial coordinates of the customer                                  |
++-------------+------------------------------------------------------------------------+
+| id          |   Id of the station                                                    |
++-------------+------------------------------------------------------------------------+
+| name        |   Name of the station                                                  |
++-------------+------------------------------------------------------------------------+
+| password    |   Password for registering the station in the platform (optional)      |
++-------------+------------------------------------------------------------------------+
+| lines       |   Bus line that the bus stop wants to use                              |
++-------------+------------------------------------------------------------------------+
+| icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
++-------------+------------------------------------------------------------------------+
+| delay       |   Intentional agent pause in seconds  (optional)                       |
++-------------+------------------------------------------------------------------------+
+
+For bus lines the fields are as follows:
+
++--------------------------------------------------------------------------------------+
+|  Bus lines                                                                           |
++-------------+------------------------------------------------------------------------+
+|  Field      |  Description                                                           |
++=============+========================================================================+
+| id          |   Id of the line                                                       |
++-------------+------------------------------------------------------------------------+
+| line_type   |   Line type that the bus want to use                                   |
++-------------+------------------------------------------------------------------------+
+| stops       |   Stop list that the line wants to use                                 |
++-------------+------------------------------------------------------------------------+
+
+.. note::
+    The line_type field supports three types of routes:
+
+        1) **circular:** The bus choose first stop of the route as next destination (circular routes).
+        2) **end-to-end:** The bus inverse stop list and choose previous destination as next destination (end-to-end lines).
+        3) **teleport:** The bus "teleport" to first stop and choose next destination.
+
+For fleet managers the fields are as follows:
+
++--------------------------------------------------------------------------------------+
+|  Fleet managers                                                                      |
++-------------+------------------------------------------------------------------------+
+|  Field      |  Description                                                           |
++=============+========================================================================+
+| name        |   Name of the manager                                                  |
++-------------+------------------------------------------------------------------------+
+| password    |   Password for registering the manager in the platform (optional)      |
++-------------+------------------------------------------------------------------------+
+| fleet_type  |   Fleet type that the agent manages                                    |
++-------------+------------------------------------------------------------------------+
+| icon        |   Custom icon (in base64 format) to be used by the manager  (optional) |
++-------------+------------------------------------------------------------------------+
+| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
++-------------+------------------------------------------------------------------------+
+
+An example of a config file with two customers, two transports, one fleet manager and eleven stops:
+
+.. code-block:: json
+
+    {
+    "fleets": [
+        {
+            "password": "secret",
+            "name": "fleet1",
+            "fleet_type": "bus"
+        }
+    ],
+    "transports": [
+        {
+            "class": "simfleet.common.lib.transports.models.bus.BusAgent",
+            "position": [
+                39.4783129,
+                -0.3476785
+            ],
+            "name": "bus1",
+            "password": "secret",
+            "speed": 1500,
+            "line": 18,
+            "capacity": 60,
+            "fleet_type": "bus",
+            "optional": {
+                "fleet": "fleet1@localhost"
+            },
+            "icon": "bus",
+            "delay": 0
+        },
+        {
+            "class": "simfleet.common.lib.transports.models.bus.BusAgent",
+            "position": [
+                39.4541141,
+                -0.3689441
+            ],
+            "name": "bus2",
+            "password": "secret",
+            "speed": 1500,
+            "line": 18,
+            "capacity": 60,
+            "fleet_type": "bus",
+            "optional": {
+                "fleet": "fleet1@localhost"
+            },
+            "icon": "bus"
+        }
+    ],
+    "customers": [
+        {
+	        "class": "simfleet.common.lib.customers.models.buscustomer.BusCustomerAgent",
+            "position": [
+                39.4570888,
+                -0.3561952
+            ],
+            "destination": [
+                39.4819241,
+                -0.3501210
+            ],
+            "name": "buscustomer1",
+            "password": "secret",
+            "speed": 400,
+	        "line": 18,
+            "fleet_type": "bus",
+            "delay": 5
+        },
+        {
+	        "class": "simfleet.common.lib.customers.models.buscustomer.BusCustomerAgent",
+            "position": [
+                39.4653021,
+                -0.3595032
+            ],
+            "destination": [
+                39.4540184,
+                -0.3727660
+            ],
+	        "line": 18,
+            "name": "buscustomer2",
+            "password": "secret",
+            "speed": 400,
+            "fleet_type": "bus",
+            "delay": 5
+        }
+    ],
+    "stops": [
+        {
+            "class": "simfleet.common.lib.stations.models.busstop.BusStopAgent",
+            "position": [
+                39.4541141,
+                -0.3689441
+            ],
+            "id": 1,
+            "name": "Parc Central de Bombers",
+            "password": "secret",
+            "lines": [
+                18
+            ],
+            "icon": "bus_stop"
+        },
+        {
+            "class": "simfleet.common.lib.stations.models.busstop.BusStopAgent",
+            "position": [
+                39.4582910,
+                -0.3602457
+            ],
+            "id": 2,
+            "name": "Escultor J. Capuz (imparell) - la Plata",
+            "password": "secret",
+            "lines": [
+                18
+            ],
+            "icon": "bus_stop"
+        },
+        {
+            "class": "simfleet.common.lib.stations.models.busstop.BusStopAgent",
+            "position": [
+                39.4613975,
+                -0.3623484
+            ],
+            "id": 3,
+            "name": "Centre d'Especialitats Montolivet",
+            "password": "secret",
+            "lines": [
+                18
+            ],
+            "icon": "bus_stop"
+        },
+        {
+            "class": "simfleet.common.lib.stations.models.busstop.BusStopAgent",
+            "position": [
+                39.4645590,
+                -0.3576047
+            ],
+            "id": 4,
+            "name": "Eduard Bosca - Balears",
+            "password": "secret",
+            "lines": [
+                18
+            ],
+            "icon": "bus_stop"
+        },
+        {
+            "class": "simfleet.common.lib.stations.models.busstop.BusStopAgent",
+            "position": [
+                39.4742214,
+                -0.3528733
+            ],
+            "id": 5,
+            "name": "Cardenal Benlloch - Dr. Vicente Pallares",
+            "password": "secret",
+            "lines": [
+                18
+            ],
+            "icon": "bus_stop"
+        },
+        {
+            "class": "simfleet.common.lib.stations.models.busstop.BusStopAgent",
+            "position": [
+                39.4801655,
+                -0.3471697
+            ],
+            "id": 6,
+            "name": "Tarongers - Facultat de Magisteri",
+            "password": "secret",
+            "lines": [
+                18
+            ],
+            "icon": "bus_stop"
+        },
+        {
+            "class": "simfleet.common.lib.stations.models.busstop.BusStopAgent",
+            "position": [
+                39.4783129,
+                -0.3476785
+            ],
+            "id": 7,
+            "name": "Albalat dels Tarongers - Vinalopo",
+            "password": "secret",
+            "lines": [
+                18
+            ],
+            "icon": "bus_stop"
+        },
+        {
+            "class": "simfleet.common.lib.stations.models.busstop.BusStopAgent",
+            "position": [
+                39.4741881,
+                -0.3531690
+            ],
+            "id": 8,
+            "name": "Cardenal Benlloch - Ciutat de Mula",
+            "password": "secret",
+            "lines": [
+                18
+            ],
+            "icon": "bus_stop"
+        },
+        {
+            "class": "simfleet.common.lib.stations.models.busstop.BusStopAgent",
+            "position": [
+                39.4646234,
+                -0.3578487
+            ],
+            "id": 9,
+            "name": "Eduard Bosca - Passeig de l'Albereda",
+            "password": "secret",
+            "lines": [
+                18
+            ],
+            "icon": "bus_stop"
+        },
+        {
+            "class": "simfleet.common.lib.stations.models.busstop.BusStopAgent",
+            "position": [
+                39.4603469,
+                -0.3618095
+            ],
+            "id": 10,
+            "name": "Escultor J. Capuz - Pere Aleixandre",
+            "password": "secret",
+            "lines": [
+                18
+            ],
+            "icon": "bus_stop"
+        },
+        {
+            "class": "simfleet.common.lib.stations.models.busstop.BusStopAgent",
+            "position": [
+                39.4543455,
+                -0.3691169
+            ],
+            "id": 11,
+            "name": "la Plata - Alberola",
+            "password": "secret",
+            "lines": [
+                18
+            ],
+            "icon": "bus_stop"
+        }
+    ],
+    "lines": [
+        {
+            "id": 18,
+            "line_type": "circular",
+            "stops": [
+                [
+                39.4541141,
+                -0.3689441
+            	],
+                [
+                39.4582910,
+                -0.3602457
+            	],
+            	[
+                39.4613975,
+                -0.3623484
+            	],
+            	[
+                39.4645590,
+                -0.3576047
+            	],
+            	[
+                39.4742214,
+                -0.3528733
+            	],
+            	[
+                39.4801655,
+                -0.3471697
+            	],
+            	[
+                39.4783129,
+                -0.3476785
+            	],
+            	[
+                39.4741881,
+                -0.3531690
+            	],
+            	[
+                39.4646234,
+                -0.3578487
+            	],
+            	[
+                39.4603469,
+                -0.3618095
+            	],
+            	[
+                39.4543455,
+                -0.3691169
+            	]
+             ]
+         }
+     ],
+    "vehicles": [],
+    "simulation_name": "bus",
+    "max_time": 200,
+    "transport_strategy": "simfleet.common.lib.transports.strategies.bus.FSMBusBehaviour",
+    "customer_strategy": "simfleet.common.lib.customers.strategies.buscustomer.FSMBusCustomerBehaviour",
+    "fleetmanager_name": "fleetmanager",
+    "fleetmanager_password": "fleetmanager_passwd",
+    "host": "localhost",
+    "http_port": 9000,
+    "http_ip": "localhost"
+    }
+
+This configuration file includes:
+
+    * Two Buses with a fixed position.
+    * Two BusCustomer with fixed origin and destination positions.
+    * Eleven BusStops with fixed positions.
+    * One Line with eleven BusStop.
 
 Another simulation scenario
 ===========================
 
+SimFleet includes vehicle agents to create an autonomous vehicle simulation scenario.
+
+Description of the Agent
+-------------------------
+
+* **Vehicle Agents**
+
+    These agents can autonomously travel from an origin point to a destination. They can either perform a single trip or continuously travel to new random destinations in a cyclic manner.
+
+
+The Config file
+---------------
+
+The most important field that the autonomous vehicle simulation scenario file must include is a Vehicles list.
+Each vehicles must include the following fields:
+
++--------------------------------------------------------------------------------------+
+|  Vehicles                                                                            |
++-------------+------------------------------------------------------------------------+
+|  Field      |  Description                                                           |
++=============+========================================================================+
+| class       |   Custom agent file in the format module.file.Class                    |
++-------------+------------------------------------------------------------------------+
+| position    |   Initial coordinates of the customer (optional)                       |
++-------------+------------------------------------------------------------------------+
+| destination |   Destination coordinates of the customer (optional)                   |
++-------------+------------------------------------------------------------------------+
+| name        |   Name of the customer                                                 |
++-------------+------------------------------------------------------------------------+
+| password    |   Password for registering the customer in the platform (optional)     |
++-------------+------------------------------------------------------------------------+
+| speed       |   Speed of the vehicle (in meters per second)  (optional)              |
++-------------+------------------------------------------------------------------------+
+| icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
++-------------+------------------------------------------------------------------------+
+| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
++-------------+------------------------------------------------------------------------+
+| delay       |   Intentional agent pause in seconds  (optional)                       |
++-------------+------------------------------------------------------------------------+
+
+An example of a config file with two autonomous vehicles:
+
+.. code-block:: json
+
+    {
+    "fleets": [],
+    "transports": [],
+    "customers": [],
+    "stations": [],
+    "vehicles": [
+        {
+            "class": "simfleet.common.lib.vehicles.models.vehicle.VehicleAgent",
+            "strategy": "simfleet.common.lib.vehicles.strategies.vehicle.FSMCycleVehicleBehaviour",
+            "position": [
+                39.457364,
+                -0.401621
+            ],
+            "destination": [
+                39.45333818,
+                -0.33223699
+            ],
+            "name": "drone1",
+            "password": "secret",
+            "speed": 2000,
+            "icon": "drone"
+        },
+        {
+            "class": "simfleet.common.lib.vehicles.models.vehicle.VehicleAgent",
+            "strategy": "simfleet.common.lib.vehicles.strategies.vehicle.FSMOneShotVehicleBehaviour",
+            "name": "drone2",
+            "password": "secret",
+            "speed": 2000,
+            "icon": "drone"
+        }
+	],
+    "simulation_name": "drone",
+    "max_time": 30,
+    "host": "localhost",
+    "http_port": 9000
+
+    }
+
+This configuration file includes:
+
+    * One autonomous vehicle with a fixed initial position and destination, following a cyclic behavior.
+    * One autonomous vehicle without a specified initial position or destination, performing a one-shot behavior.
 
 Command-line interface
 ======================

@@ -115,7 +115,7 @@ This structure provides a flexible framework for creating different scenarios. A
     "vehicles": [],
     "simulation_name": "my_city",
     "max_time": 1000,
-    "coords": Valencia,
+    "coords": "Valencia",
     "zoom": 12,
     "transport_strategy": "simfleet.module.file.TransportBehaviourClass",
     "customer_strategy": "simfleet.module.file.CustomerBehaviourClass",

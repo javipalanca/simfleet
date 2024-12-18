@@ -10,6 +10,133 @@ SimFleet supports a wide variety of urban mobility scenarios, as the simulator i
 we will explore how to use both interfaces of advance mode and the different simulation scenarios available.
 
 
+The Config file: Structure
+==========================
+
+The configuration file for a SimFleet simulation follows a JSON structure that defines the agents, simulation settings, and strategies used. Here's an explanation of each field:
+
++--------------------------------------------------------------------------------------+
+|  Agents and Their Lists                                                              |
++-------------+------------------------------------------------------------------------+
+|  Field      |  Description                                                           |
++=============+========================================================================+
+| fleets      |   A list of fleet manager agents                                       |
++-------------+------------------------------------------------------------------------+
+| transports  |   A list of transport agents                                           |
++-------------+------------------------------------------------------------------------+
+| customers   |   A list of customer agents                                            |
++-------------+------------------------------------------------------------------------+
+| stations    |   A list of mobility infrastructure agents                             |
++-------------+------------------------------------------------------------------------+
+| stops       |   A list of bus stop agents                                            |
++-------------+------------------------------------------------------------------------+
+| lines       |   A list of predefined bus lines or routes that buses follow           |
++-------------+------------------------------------------------------------------------+
+| vehicles    |   A list of autonomous vehicle agents                                  |
++-------------+------------------------------------------------------------------------+
+
+
+
++---------------------------------------------------------------------------------------------+
+|  Simulation Settings                                                                        |
++------------------+--------------------------------------------------------------------------+
+|  Field           |  Description                                                             |
++==================+==========================================================================+
+| simulation_name  |   The name of the simulation scenario                                    |
++------------------+--------------------------------------------------------------------------+
+| max_time         |   The maximum duration (in seconds) for which the simulation will run    |
++------------------+--------------------------------------------------------------------------+
+| coords           |   The initial geographic coordinates for the simulation map              |
++------------------+--------------------------------------------------------------------------+
+| zoom             |   The initial zoom level of the simulation map                           |
++------------------+--------------------------------------------------------------------------+
+
+.. note::
+    The **coords** field can use the name of a city, town, neighbourhood or a specific coordinate, e.g. ‘Valencia’ or [39.4697065, -0.3763353]. This reference point centres the simulation on the map.
+    In addition, the **zoom** field controls the scale of the bounding box for the random creation of positions of an agent on the map.
+
+
++--------------------------------------------------------------------------------------------------+
+|  Default Strategies                                                                              |
++-----------------------+--------------------------------------------------------------------------+
+|  Field                |  Description                                                             |
++=======================+==========================================================================+
+| transport_strategy    |   The behavior strategy used by transport agents                         |
++-----------------------+--------------------------------------------------------------------------+
+| customer_strategy     |   The behavior strategy used by customer agents                          |
++-----------------------+--------------------------------------------------------------------------+
+| fleetmanager_strategy |   The behavior strategy used by fleet manager                            |
++-----------------------+--------------------------------------------------------------------------+
+| directory_strategy    |   The behavior strategy used by directory agent                          |
++-----------------------+--------------------------------------------------------------------------+
+| station_strategy      |   The behavior strategy used by charging stations                        |
++-----------------------+--------------------------------------------------------------------------+
+| vehicle_strategy      |   The behavior strategy used by vehicle agents                           |
++-----------------------+--------------------------------------------------------------------------+
+
+
++--------------------------------------------------------------------------------------------------+
+|  Metrics, Credentials and Network Settings                                                       |
++-----------------------+--------------------------------------------------------------------------+
+|  Field                |  Description                                                             |
++=======================+==========================================================================+
+| mobility_metrics      |   Custom class used to collect mobility statistics during the simulation |
++-----------------------+--------------------------------------------------------------------------+
+| fleetmanager_name     |   Name for registering the fleet manager agent in the XMPP server        |
++-----------------------+--------------------------------------------------------------------------+
+| fleetmanager_password |   Password for registering the fleet manager agent in the XMPP server    |
++-----------------------+--------------------------------------------------------------------------+
+| directory_name        |   Name for registering the directory agent in the XMPP server            |
++-----------------------+--------------------------------------------------------------------------+
+| directory_password    |   Password for registering the directory agent in the XMPP server        |
++-----------------------+--------------------------------------------------------------------------+
+| route_host            |   The URL of the OSRM routing service used for calculating optimal routes|
++-----------------------+--------------------------------------------------------------------------+
+| host                  |   The XMPP host address where the simulation platform is running         |
++-----------------------+--------------------------------------------------------------------------+
+| xmpp_port             |   The port for XMPP communication                                        |
++-----------------------+--------------------------------------------------------------------------+
+| http_port             |   The port for the HTTP server used in the simulation (GUI)              |
++-----------------------+--------------------------------------------------------------------------+
+| http_ip               |   IP address for the HTTP server used in the simulation (GUI)            |
++-----------------------+--------------------------------------------------------------------------+
+
+This structure provides a flexible framework for creating different scenarios. An example of a config file structure:
+
+.. code-block:: json
+
+    {
+    "fleets": [],
+    "transports": [],
+    "customers": [],
+    "stations": [],
+    "stops": [],
+    "lines": [],
+    "vehicles": [],
+    "simulation_name": "my_city",
+    "max_time": 1000,
+    "coords": Valencia,
+    "zoom": 12,
+    "transport_strategy": "simfleet.module.file.TransportBehaviourClass",
+    "customer_strategy": "simfleet.module.file.CustomerBehaviourClass",
+    "fleetmanager_strategy": "simfleet.module.file.FleetManagerBehaviourClass",
+    "directory_strategy": "simfleet.module.file.DirectoryBehaviourClass",
+    "station_strategy": "simfleet.module.file.StationBehaviourClass",
+    "vehicle_strategy": "simfleet.module.file.VehicleBehaviourClass",
+    "mobility_metrics": "simfleet.module.file.MyMetricsClass",
+    "fleetmanager_name": "fleetmanager",
+    "fleetmanager_password": "fleetmanager_passwd",
+    "route_host": "http://router.project-osrm.org/",
+    "directory_name": "directory",
+    "directory_password": "directory_passwd",
+    "host": "localhost",
+    "xmpp_port": 5222,
+    "http_port": 9000,
+    "http_ip": "localhost"
+    }
+
+This modular approach allows for easy customization and expansion to fit diverse simulation needs.
+
 Taxi simulation scenario
 ========================
 
@@ -592,7 +719,7 @@ Each bus customer must include the following fields:
 +-------------+------------------------------------------------------------------------+
 
 .. note::
-    If the speed field is not used, the customer's position and destination must match the origin and destination positions of the bus stops.
+    If the **speed** field is not used, the customer's position and destination must match the origin and destination positions of the bus stops.
 
 For buses the fields are as follows:
 
@@ -668,7 +795,7 @@ For bus lines the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 
 .. note::
-    The line_type field supports three types of routes:
+    The **line_type** field supports three types of routes:
 
         1) **circular:** The bus choose first stop of the route as next destination (circular routes).
         2) **end-to-end:** The bus inverse stop list and choose previous destination as next destination (end-to-end lines).
@@ -1093,6 +1220,7 @@ This configuration file includes:
 
     * One autonomous vehicle with a fixed initial position and destination, following a cyclic behavior.
     * One autonomous vehicle without a specified initial position or destination, performing a one-shot behavior.
+
 
 Command-line interface
 ======================

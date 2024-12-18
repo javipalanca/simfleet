@@ -98,8 +98,8 @@ class SimfleetConfig(object):
         )
 
         # Bus line
-        self.__config["bus_stop_strategy"] = self.__config.get(
-            "bus_stop_strategy", "simfleet.common.lib.stations.models.busstop.BusStopStrategyBehaviour")
+        #self.__config["bus_stop_strategy"] = self.__config.get(
+        #    "bus_stop_strategy", "simfleet.common.lib.stations.models.busstop.BusStopStrategyBehaviour")
 
         self.__config["fleetmanager_name"] = self.__config.get(
             "fleetmanager_name", "fleetmanager"
@@ -219,7 +219,7 @@ def set_default_strategies(
         customer_strategy,
         station_strategy,
         vehicle_strategy,   #New vehicle
-        bus_stop_strategy,  #Bus line
+        #bus_stop_strategy,  #Bus line
 ):
     """
     Gets the strategy strings and loads their classes. This strategies are prepared to be injected into any
@@ -240,7 +240,7 @@ def set_default_strategies(
     class_dict['customer'] = load_class(customer_strategy)
     class_dict['station'] = load_class(station_strategy)
     class_dict['vehicle'] = load_class(vehicle_strategy)  #New vehicle
-    class_dict['stop'] = load_class(bus_stop_strategy)  # Bus line
+    #class_dict['stop'] = load_class(bus_stop_strategy)  # Bus line
 
     logger.debug(
         "Loaded default strategy classes: {}, {}, {}, {} and {}".format(
@@ -250,7 +250,7 @@ def set_default_strategies(
             class_dict['customer'],
             class_dict['station'],
             class_dict['vehicle'],  #New vehicle
-            class_dict['stop'],  # Bus line
+            #class_dict['stop'],  # Bus line
         )
     )
 

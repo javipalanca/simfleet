@@ -96,8 +96,8 @@ class SimulatorAgent(Agent):
                                                 config.transport_strategy,
                                                 config.customer_strategy,
                                                 config.station_strategy,
-                                                config.vehicle_strategy,
-                                                config.bus_stop_strategy
+                                                config.vehicle_strategy
+                                                #config.bus_stop_strategy
                                                 )
 
         self.metrics_class = {}
@@ -115,11 +115,12 @@ class SimulatorAgent(Agent):
         self.load_icons(icons_path)
 
         logger.info(
-            "Creating {} managers, {} transports, {} customers, {} stations and {} vehicles.".format(
+            "Creating {} managers, {} transports, {} customers, {} stations, {} stops, and {} vehicles.".format(
                 config.num_managers,
                 config.num_transport,
                 config.num_customers,
                 config.num_stations,
+                config.num_stops,
                 config.num_vehicles,
             )
         )
@@ -548,11 +549,11 @@ class SimulatorAgent(Agent):
                             logger.debug(
                                 f"Running strategy {self.agent.default_strategies['vehicle']} to vehicle {vehicle.name}"
                             )
-                        for stop in self.agent.bus_stop_agents.values():
-                            stop.run_strategy()
-                            logger.debug(
-                                f"Running strategy {self.agent.default_strategies['stop']} to stop {stop.name}"
-                            )
+                        #for stop in self.agent.bus_stop_agents.values():
+                        #    stop.run_strategy()
+                        #    logger.debug(
+                        #        f"Running strategy {self.agent.default_strategies['stop']} to stop {stop.name}"
+                        #    )
 
                     self.agent.simulation_running = True
                     self.agent.simulation_init_time = time.time()
@@ -1244,7 +1245,7 @@ class SimulatorAgent(Agent):
         agent = TransportStopFactory.create_agent(domain=self.jid.domain,
                                                 name=name,
                                                 password=password,
-                                                default_strategy=self.default_strategies['stop'],
+                                                #default_strategy=self.default_strategies['stop'],
                                                 class_=class_,
                                                 simulatorjid=self.simulatorjid,
                                                 strategy=strategy,

@@ -139,25 +139,3 @@ in the terminal or by clicking the **Stop** button in the GUI.
 
     2024-11-25 16:36:26.108 | INFO     | simfleet.simulator:stop:258 -
     Terminating... (17.3 seconds elapsed)
-
-
-.. hint::
-    To view the options available in SimFleet's command line interface, use the following command ``--help``
-
-.. code-block:: console
-
-    $ simfleet --help
-
-    Usage: simfleet [OPTIONS]
-
-  Console script for SimFleet.
-
-    Options:
-      -n, --name TEXT              Name of the simulation execution.
-      -o, --output TEXT            Filename for saving simulation events in JSON format.
-      -mt, --max-time INTEGER      Maximum simulation time (in seconds).
-      -r, --autorun                Run simulation as soon as the agents are ready.
-      -c, --config TEXT            Filename of JSON file with initial config.
-      -v, --verbose                Show verbose debug level: -v level 1, -vv level
-                                   2, -vvv level 3, -vvvv level 4
-      --help                       Show this message and exit.

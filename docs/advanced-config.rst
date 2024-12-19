@@ -7,7 +7,7 @@ a **command-line interface (CLI)** and a **web-based graphical interface (GUI)**
 line or use the simpler and more intuitive graphical interface.
 
 SimFleet supports a wide variety of urban mobility scenarios, as the simulator includes predefined agents and strategies. In this section,
-we will explore how to use both interfaces of advance mode and the different simulation scenarios available.
+we will explore how to use **command-line interface (CLI)** of advance mode and the different simulation scenarios available.
 
 
 The Config file: Structure
@@ -183,7 +183,7 @@ following fields:
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
-| class       |   Custom agent file in the format module.file.Class                    |
+| class       |   Custom agent file in the format ``module.file.Class``                |
 +-------------+------------------------------------------------------------------------+
 | position    |   Initial coordinates of the customer (optional)                       |
 +-------------+------------------------------------------------------------------------+
@@ -197,7 +197,7 @@ following fields:
 +-------------+------------------------------------------------------------------------+
 | icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
 +-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
+| strategy    |   Custom strategy file in the format ``module.file.Class`` (optional)  |
 +-------------+------------------------------------------------------------------------+
 | delay       |   Intentional agent pause in seconds  (optional)                       |
 +-------------+------------------------------------------------------------------------+
@@ -209,7 +209,7 @@ For taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 |  Field           |  Description                                                             |
 +==================+==========================================================================+
-| class            |   Custom agent file in the format module.file.Class                      |
+| class            |   Custom agent file in the format ``module.file.Class``                  |
 +------------------+--------------------------------------------------------------------------+
 | position         |   Initial coordinates of the transport (optional)                        |
 +------------------+--------------------------------------------------------------------------+
@@ -225,7 +225,7 @@ For taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | icon             |   Custom icon (in base64 format) to be used by the transport  (optional) |
 +------------------+--------------------------------------------------------------------------+
-| strategy         |   Custom strategy file in the format module.file.Class  (optional)       |
+| strategy         |   Custom strategy file in the format ``module.file.Class`` (optional)    |
 +------------------+--------------------------------------------------------------------------+
 | delay            |   Intentional agent pause in seconds  (optional)                         |
 +------------------+--------------------------------------------------------------------------+
@@ -245,7 +245,7 @@ For fleet managers the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 | icon        |   Custom icon (in base64 format) to be used by the manager  (optional) |
 +-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
+| strategy    |   Custom strategy file in the format ``module.file.Class``  (optional) |
 +-------------+------------------------------------------------------------------------+
 
 An example of a config file with four customers, two transports and one fleet manager:
@@ -360,8 +360,7 @@ Description of the Agents
 
 * **TaxiCustomer Agents**
 
-    The TaxiCustomer agents represent people that need to go from one location in the city (their "current location") to another (their "destination").
-    To achieve this, each TaxiCustomer agent requests a transport service. Once they are transported to their destination, they reach their final state and end their execution.
+    Function identically to the Taxi simulation scenario.
 
 * **ElectricTaxi Agents**
 
@@ -377,11 +376,7 @@ Description of the Agents
 
 * **FleetManager Agent**
 
-    The FleetManager Agent is responsible for putting in contact the TaxiCustomer agents that need a transport service, and the Taxi
-    agents that may be available to offer these services. In short, the FleetManager Agent acts like a transport call center, accepting
-    the incoming requests from customers (TaxiCustomer agents) and forwarding these requests to the (appropriate) Taxi agents.
-    In order to do so, the FleetManager has a registration protocol by which Taxi agents subscribe to the Fleet Manager
-    that represents their fleet. This is automatically done when a Taxi agent is started.
+    Functions identically to the Taxi simulation scenario.
 
 In the context of SimFleet, a "transport service" involves the following steps:
 
@@ -393,31 +388,10 @@ The Config file
 ---------------
 
 The most important fields that the Electric taxi simulation scenario file must include are a taxi customers list, a taxis list and a stations list.
+
 Each taxi customer must include the following fields:
 
-+--------------------------------------------------------------------------------------+
-|  Taxi Customers                                                                      |
-+-------------+------------------------------------------------------------------------+
-|  Field      |  Description                                                           |
-+=============+========================================================================+
-| class       |   Custom agent file in the format module.file.Class                    |
-+-------------+------------------------------------------------------------------------+
-| position    |   Initial coordinates of the customer (optional)                       |
-+-------------+------------------------------------------------------------------------+
-| destination |   Destination coordinates of the customer (optional)                   |
-+-------------+------------------------------------------------------------------------+
-| name        |   Name of the customer                                                 |
-+-------------+------------------------------------------------------------------------+
-| password    |   Password for registering the customer in the platform (optional)     |
-+-------------+------------------------------------------------------------------------+
-| fleet_type  |   Fleet type that the customer wants to use                            |
-+-------------+------------------------------------------------------------------------+
-| icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
-+-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
-+-------------+------------------------------------------------------------------------+
-| delay       |   Intentional agent pause in seconds  (optional)                       |
-+-------------+------------------------------------------------------------------------+
+*(Same fields as the Taxi simulation scenario)*
 
 For electric taxis the fields are as follows:
 
@@ -426,7 +400,7 @@ For electric taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 |  Field           |  Description                                                             |
 +==================+==========================================================================+
-| class            |   Custom agent file in the format module.file.Class                      |
+| class            |   Custom agent file in the format ``module.file.Class``                  |
 +------------------+--------------------------------------------------------------------------+
 | position         |   Initial coordinates of the transport (optional)                        |
 +------------------+--------------------------------------------------------------------------+
@@ -448,7 +422,7 @@ For electric taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | icon             |   Custom icon (in base64 format) to be used by the transport  (optional) |
 +------------------+--------------------------------------------------------------------------+
-| strategy         |   Custom strategy file in the format module.file.Class  (optional)       |
+| strategy         |   Custom strategy file in the format ``module.file.Class`` (optional)    |
 +------------------+--------------------------------------------------------------------------+
 | delay            |   Intentional agent pause in seconds  (optional)                         |
 +------------------+--------------------------------------------------------------------------+
@@ -460,7 +434,7 @@ For charging stations the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
-| class       |   Custom agent file in the format module.file.Class                    |
+| class       |   Custom agent file in the format ``module.file.Class``                |
 +-------------+------------------------------------------------------------------------+
 | position    |   Initial coordinates of the customer (optional)                       |
 +-------------+------------------------------------------------------------------------+
@@ -478,28 +452,14 @@ For charging stations the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 | icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
 +-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
+| strategy    |   Custom strategy file in the format ``module.file.Class`` (optional)  |
 +-------------+------------------------------------------------------------------------+
 | delay       |   Intentional agent pause in seconds  (optional)                       |
 +-------------+------------------------------------------------------------------------+
 
 For fleet managers the fields are as follows:
 
-+--------------------------------------------------------------------------------------+
-|  Fleet managers                                                                      |
-+-------------+------------------------------------------------------------------------+
-|  Field      |  Description                                                           |
-+=============+========================================================================+
-| name        |   Name of the manager                                                  |
-+-------------+------------------------------------------------------------------------+
-| password    |   Password for registering the manager in the platform (optional)      |
-+-------------+------------------------------------------------------------------------+
-| fleet_type  |   Fleet type that the agent manages                                    |
-+-------------+------------------------------------------------------------------------+
-| icon        |   Custom icon (in base64 format) to be used by the manager  (optional) |
-+-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
-+-------------+------------------------------------------------------------------------+
+*(Same fields as the Taxi simulation scenario)*
 
 An example of a config file with four customers, two transports, one fleet manager and two stations:
 
@@ -695,7 +655,7 @@ Each bus customer must include the following fields:
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
-| class       |   Custom agent file in the format module.file.Class                    |
+| class       |   Custom agent file in the format ``module.file.Class``                |
 +-------------+------------------------------------------------------------------------+
 | position    |   Initial coordinates of the customer                                  |
 +-------------+------------------------------------------------------------------------+
@@ -713,7 +673,7 @@ Each bus customer must include the following fields:
 +-------------+------------------------------------------------------------------------+
 | icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
 +-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
+| strategy    |   Custom strategy file in the format ``module.file.Class``  (optional) |
 +-------------+------------------------------------------------------------------------+
 | delay       |   Intentional agent pause in seconds  (optional)                       |
 +-------------+------------------------------------------------------------------------+
@@ -728,7 +688,7 @@ For buses the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 |  Field           |  Description                                                             |
 +==================+==========================================================================+
-| class            |   Custom agent file in the format module.file.Class                      |
+| class            |   Custom agent file in the format ``module.file.Class``                  |
 +------------------+--------------------------------------------------------------------------+
 | position         |   Initial coordinates of the transport                                   |
 +------------------+--------------------------------------------------------------------------+
@@ -748,7 +708,7 @@ For buses the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | icon             |   Custom icon (in base64 format) to be used by the transport  (optional) |
 +------------------+--------------------------------------------------------------------------+
-| strategy         |   Custom strategy file in the format module.file.Class  (optional)       |
+| strategy         |   Custom strategy file in the format ``module.file.Class``  (optional)   |
 +------------------+--------------------------------------------------------------------------+
 | delay            |   Intentional agent pause in seconds  (optional)                         |
 +------------------+--------------------------------------------------------------------------+
@@ -763,7 +723,7 @@ For bus stops the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
-| class       |   Custom agent file in the format module.file.Class                    |
+| class       |   Custom agent file in the format ``module.file.Class``                |
 +-------------+------------------------------------------------------------------------+
 | position    |   Initial coordinates of the customer                                  |
 +-------------+------------------------------------------------------------------------+
@@ -803,21 +763,7 @@ For bus lines the fields are as follows:
 
 For fleet managers the fields are as follows:
 
-+--------------------------------------------------------------------------------------+
-|  Fleet managers                                                                      |
-+-------------+------------------------------------------------------------------------+
-|  Field      |  Description                                                           |
-+=============+========================================================================+
-| name        |   Name of the manager                                                  |
-+-------------+------------------------------------------------------------------------+
-| password    |   Password for registering the manager in the platform (optional)      |
-+-------------+------------------------------------------------------------------------+
-| fleet_type  |   Fleet type that the agent manages                                    |
-+-------------+------------------------------------------------------------------------+
-| icon        |   Custom icon (in base64 format) to be used by the manager  (optional) |
-+-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
-+-------------+------------------------------------------------------------------------+
+*(Same fields as the Taxi simulation scenario)*
 
 An example of a config file with two customers, two transports, one fleet manager and eleven stops:
 
@@ -1155,7 +1101,7 @@ Each vehicles must include the following fields:
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
-| class       |   Custom agent file in the format module.file.Class                    |
+| class       |   Custom agent file in the format ``module.file.Class``                |
 +-------------+------------------------------------------------------------------------+
 | position    |   Initial coordinates of the customer (optional)                       |
 +-------------+------------------------------------------------------------------------+
@@ -1169,7 +1115,7 @@ Each vehicles must include the following fields:
 +-------------+------------------------------------------------------------------------+
 | icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
 +-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
+| strategy    |   Custom strategy file in the format ``module.file.Class``  (optional) |
 +-------------+------------------------------------------------------------------------+
 | delay       |   Intentional agent pause in seconds  (optional)                       |
 +-------------+------------------------------------------------------------------------+

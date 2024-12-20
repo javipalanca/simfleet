@@ -10,41 +10,73 @@ SimFleet supports a wide variety of urban mobility scenarios, as the simulator i
 we will explore how to use **command-line interface (CLI)** of advance mode and the different simulation scenarios available.
 
 
-The Config file: Structure
+The Configuration file's Structure
 ==========================
 
-The configuration file for a SimFleet simulation follows a JSON structure that defines the agents, simulation settings, and strategies used. Here's an explanation of each field:
+The configuration file of a SimFleet simulation fully characterizes the simulation scenario including the information of every agent.
+The file follows a JSON structure, presenting one list per type of agent in the simulation, as well as some general configuration entries.
+In turn, the list of each agent type contains individual agent definitions: one dictionary per agent, describing its necessary attributes.
+
+Following, we present a description of each basic field present in default configuration files, splitting the information in sections.
+
+**Agent settings**: Listings of agent definitions, split by specific agent types. Any combination of agents may be included in a simulation scenario,
+although their interaction will be dependent on their strategic behaviour.
 
 +--------------------------------------------------------------------------------------+
-|  Agents and Their Lists                                                              |
+|  Agent definitions & settings                                                        |
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
-| fleets      |   A list of fleet manager agents                                       |
+| fleets      |   List of FleetManager agents                                          |
 +-------------+------------------------------------------------------------------------+
-| transports  |   A list of transport agents                                           |
+| transports  |   List of Transport agents                                             |
 +-------------+------------------------------------------------------------------------+
-| customers   |   A list of customer agents                                            |
+| customers   |   List of Customer agents                                              |
 +-------------+------------------------------------------------------------------------+
-| stations    |   A list of mobility infrastructure agents                             |
+| stations    |   List of Station (infrastructure) agents                              |
 +-------------+------------------------------------------------------------------------+
-| stops       |   A list of bus stop agents                                            |
+| stops       |   List of BusStop agents (for urban bus simulations)                   |
 +-------------+------------------------------------------------------------------------+
-| lines       |   A list of predefined bus lines or routes that buses follow           |
+| *lines*     |   List of bus lines (for urban bus simulation)                         |
 +-------------+------------------------------------------------------------------------+
-| vehicles    |   A list of autonomous vehicle agents                                  |
+| vehicles    |   List of autonomous Vehicle agents                                    |
 +-------------+------------------------------------------------------------------------+
 
+.. note::
+    The field *lines* does not define agents. It is an auxiliary configuration field for bus transportation simulations.
 
+**Default Strategies**: The behaviour of an agent during the simulation is governed by its so-called Strategy.
+The configuration file allows for the definition of a specific strategy for each of the introduced agents. However, in most cases,
+all agents of the same type will behave in the same manner. For that, the configuration file includes the following fields.
+
++--------------------------------------------------------------------------------------------------+
+|  Default strategic behaviours                                                                    |
++-----------------------+--------------------------------------------------------------------------+
+|  Field                |  Description                                                             |
++=======================+==========================================================================+
+| transport_strategy    |   The strategic behaviour used by Transport agents                       |
++-----------------------+--------------------------------------------------------------------------+
+| customer_strategy     |   The strategic behaviour used by Customer agents                        |
++-----------------------+--------------------------------------------------------------------------+
+| fleetmanager_strategy |   The strategic behaviour used by Fleet manager                          |
++-----------------------+--------------------------------------------------------------------------+
+| station_strategy      |   The strategic behaviour used by Station agents                         |
++-----------------------+--------------------------------------------------------------------------+
+| vehicle_strategy      |   The strategic behaviour used by Vehicle agents                         |
++-----------------------+--------------------------------------------------------------------------+
+| directory_strategy    |   The strategic behaviour used by the Directory agent                    |
++-----------------------+--------------------------------------------------------------------------+
+
+**Simulation settings**: General settings for the localization of a scenario and the duration of its simulation.
 
 +---------------------------------------------------------------------------------------------+
-|  Simulation Settings                                                                        |
+|  Simulation settings                                                                        |
 +------------------+--------------------------------------------------------------------------+
 |  Field           |  Description                                                             |
 +==================+==========================================================================+
-| simulation_name  |   The name of the simulation scenario                                    |
+| simulation_name  |   Name of the simulation defined by this configuration file              |
 +------------------+--------------------------------------------------------------------------+
-| max_time         |   The maximum duration (in seconds) for which the simulation will run    |
+| max_time         |   Maximum time (in seconds) for which the simulation will run            |
 +------------------+--------------------------------------------------------------------------+
 | coords           |   The initial geographic coordinates for the simulation map              |
 +------------------+--------------------------------------------------------------------------+
@@ -55,53 +87,38 @@ The configuration file for a SimFleet simulation follows a JSON structure that d
     The **coords** field can use the name of a city, town, neighbourhood or a specific coordinate, e.g. ‘Valencia’ or [39.4697065, -0.3763353]. This reference point centres the simulation on the map.
     In addition, the **zoom** field controls the scale of the bounding box for the random creation of positions of an agent on the map.
 
+**Metrics and Server settings:** Among the remaining fields, we highlight **mobility_metrics**, which accepts a path to the file that defines the metrics to be calculated at the end of a simulation.
+The rest refer to parameters necessary for the communication of SimFleet agents with the routing server and the XMPP server.
+We recommend keeping their default values, which appear in the example configuration files.
 
-+--------------------------------------------------------------------------------------------------+
-|  Default Strategies                                                                              |
-+-----------------------+--------------------------------------------------------------------------+
-|  Field                |  Description                                                             |
-+=======================+==========================================================================+
-| transport_strategy    |   The behavior strategy used by transport agents                         |
-+-----------------------+--------------------------------------------------------------------------+
-| customer_strategy     |   The behavior strategy used by customer agents                          |
-+-----------------------+--------------------------------------------------------------------------+
-| fleetmanager_strategy |   The behavior strategy used by fleet manager                            |
-+-----------------------+--------------------------------------------------------------------------+
-| directory_strategy    |   The behavior strategy used by directory agent                          |
-+-----------------------+--------------------------------------------------------------------------+
-| station_strategy      |   The behavior strategy used by charging stations                        |
-+-----------------------+--------------------------------------------------------------------------+
-| vehicle_strategy      |   The behavior strategy used by vehicle agents                           |
-+-----------------------+--------------------------------------------------------------------------+
++--------------------------------------------------------------------------------------------------------------+
+|  Metrics, Credentials and Network Settings                                                                   |
++-----------------------+--------------------------------------------------------------------------------------+
+|  Field                |  Description                                                                         |
++=======================+======================================================================================+
+| mobility_metrics      |   Custom class for the computation of simulation metrics at the end of the execution |
++-----------------------+--------------------------------------------------------------------------------------+
+| fleetmanager_name     |   Name for registering the fleet manager agent in the XMPP server                    |
++-----------------------+--------------------------------------------------------------------------------------+
+| fleetmanager_password |   Password for registering the fleet manager agent in the XMPP server                |
++-----------------------+--------------------------------------------------------------------------------------+
+| directory_name        |   Name for registering the directory agent in the XMPP server                        |
++-----------------------+--------------------------------------------------------------------------------------+
+| directory_password    |   Password for registering the directory agent in the XMPP server                    |
++-----------------------+--------------------------------------------------------------------------------------+
+| route_host            |   URL of the OSRM routing service used for calculating agent movement                |
++-----------------------+--------------------------------------------------------------------------------------+
+| host                  |   The XMPP host address where the simulation platform is running                     |
++-----------------------+--------------------------------------------------------------------------------------+
+| xmpp_port             |   Port for XMPP communication                                                        |
++-----------------------+--------------------------------------------------------------------------------------+
+| http_port             |   Port for the HTTP server used for the simulator's GUI                              |
++-----------------------+--------------------------------------------------------------------------------------+
+| http_ip               |   IP address for the HTTP server used for the simulator's GUI                        |
++-----------------------+--------------------------------------------------------------------------------------+
 
-
-+--------------------------------------------------------------------------------------------------+
-|  Metrics, Credentials and Network Settings                                                       |
-+-----------------------+--------------------------------------------------------------------------+
-|  Field                |  Description                                                             |
-+=======================+==========================================================================+
-| mobility_metrics      |   Custom class used to collect mobility statistics during the simulation |
-+-----------------------+--------------------------------------------------------------------------+
-| fleetmanager_name     |   Name for registering the fleet manager agent in the XMPP server        |
-+-----------------------+--------------------------------------------------------------------------+
-| fleetmanager_password |   Password for registering the fleet manager agent in the XMPP server    |
-+-----------------------+--------------------------------------------------------------------------+
-| directory_name        |   Name for registering the directory agent in the XMPP server            |
-+-----------------------+--------------------------------------------------------------------------+
-| directory_password    |   Password for registering the directory agent in the XMPP server        |
-+-----------------------+--------------------------------------------------------------------------+
-| route_host            |   The URL of the OSRM routing service used for calculating optimal routes|
-+-----------------------+--------------------------------------------------------------------------+
-| host                  |   The XMPP host address where the simulation platform is running         |
-+-----------------------+--------------------------------------------------------------------------+
-| xmpp_port             |   The port for XMPP communication                                        |
-+-----------------------+--------------------------------------------------------------------------+
-| http_port             |   The port for the HTTP server used in the simulation (GUI)              |
-+-----------------------+--------------------------------------------------------------------------+
-| http_ip               |   IP address for the HTTP server used in the simulation (GUI)            |
-+-----------------------+--------------------------------------------------------------------------+
-
-This structure provides a flexible framework for creating different scenarios. An example of a config file structure:
+This structure provides a flexible framework for creating different scenarios. You may find an empty configuration file below,
+to be used as a template for the development of custom simulation scenarios.
 
 .. code-block:: json
 
@@ -135,17 +152,18 @@ This structure provides a flexible framework for creating different scenarios. A
     "http_ip": "localhost"
     }
 
-This modular approach allows for easy customization and expansion to fit diverse simulation needs.
+Transportation simulation modes
+===============================
 
 Taxi simulation scenario
-========================
+------------------------
 
 In this scenario, SimFleet there are three types of agent that interact among them during simulations. These are the **FleetManager agent**,
 the **Taxi agent**, and the **TaxiCustomer agent**.
 
 
 Description of the Agents
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * **TaxiCustomer Agents**
 

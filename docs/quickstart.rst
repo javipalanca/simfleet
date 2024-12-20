@@ -11,9 +11,9 @@ Steps to Start a Simulation:
 Setting the Scenario
 ====================
 
-SimFleet uses a configuration file to define all the parameters needed for consistent scenario loading. This configuration file must be written in **JSON format**.
+SimFleet requires a configuration file to define a simulation scenario, including the information of each present agent. The configuration file must be written in **JSON format**.
 
-Here's an example of a configuration file with two vehicles:
+Here's an example of a configuration file of a scenario with only two vehicle agents:
 
 .. code-block:: json
 
@@ -57,13 +57,13 @@ Here's an example of a configuration file with two vehicles:
 Starting the Simulator
 ======================
 
-Once you have the configuration file (our case: ``vehicles.json``), open a command line and start the simulator using the following command:
+Once you have downloaded the configuration file ``vehicles.json``, open a console in the same folder and start the simulator using the following command:
 
 .. code-block:: console
 
     $ simfleet --config vehicles.json
 
-.. hint:: For the simulator to work, you need to run the XMPP message server. To do this, open a command prompt and run the following command:
+.. hint:: For the simulator to work, you need to run the XMPP message server. To do this, open a new command prompt and run the following command:
 
     .. code-block:: console
 
@@ -94,17 +94,17 @@ Once you visit the GUI address you see an interface like this:
     :align: center
     :alt: GUI at startup
 
-    GUI at startup
+GUI at startup
 
 In the GUI you can see a map of the city on the right and a Control Panel with various options on the left:
 
-#. A **Run** button that runs the simulation.
+#. A **Run** button that starts the simulation.
 
 #. A **Stop** button to stop and reset the simulation.
 
 #. A **Download** button to get the simulation events in json format.
 
-#. A collapsable tree view with the transports and customers that are included in the simulation.
+#. A collapsable tree view with the agents that are active in the simulation.
 
 When you press the **Run** button, the simulation will show the vehicles moving to their destinations.
 
@@ -112,7 +112,7 @@ When you press the **Run** button, the simulation will show the vehicles moving 
     :align: center
     :alt: Simulation in progress
 
-    Simulation in progress
+Simulation in progress
 
 Stopping the Simulator
 ======================

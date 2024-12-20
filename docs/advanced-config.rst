@@ -155,49 +155,61 @@ to be used as a template for the development of custom simulation scenarios.
 Transportation simulation modes
 ===============================
 
-Taxi simulation scenario
-------------------------
+SimFleet is designed to give its users the tools to easily setup and execute complex transportation scenarios. In addition,
+users may extend the provided agents to create new versions that adapt to their needs. However, the platform currently
+provides two predefined transportation modes: Taxi/Electric Taxi service, and Urban Bus. Following, the agents employed in
+each of the modes are briefly described, together with the necessary attributes to define them in a configuration file.
 
-In this scenario, SimFleet there are three types of agent that interact among them during simulations. These are the **FleetManager agent**,
-the **Taxi agent**, and the **TaxiCustomer agent**.
+Taxi service simulation
+-----------------------
+
+This transportation mode represents a taxi service coordinated by a centralised manager. Customers of the service send
+travel requests to the manager who, in turn, broadcasts them to all available transports in its fleet. Upon the reception
+of a customer request, taxi agents may choose to serve such the issuing customer, which emcompases picking them up at their
+current position and driving them to their destination. The scenario features three agents: A **FleetManager Agent**,
+the **Taxi Agents**, and the **TaxiCustomer Agents**.
 
 
-Description of the Agents
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Agent description
+^^^^^^^^^^^^^^^^^
 
 * **TaxiCustomer Agents**
 
-    The TaxiCustomer agents represent people that need to go from one location of the city (their "current location") to
+    TaxiCustomer agents represent people that need to go from one location of the city (their "current location") to
     another (their "destination").
-    For doing so, each Taxi customer agent requests a single transport service and, once it is transported to its destination,
-    it reaches its final state and ends its execution.
+    For doing so, each customer requests a single transport service and, once it is delivered to its destination,
+    it ends its execution.
 
 * **Taxi Agents**
 
-    The Taxi agents represent vehicles which can transport Taxi customer agents from their current positions to their respective
-    destinations.
+    The Taxi agents represent vehicles which can transport TaxiCustomer agents from their current positions to their respective
+    destinations. Taxis spawn available in given locations and react to customer requests received from their fleet manager.
 
 * **FleetManager Agent**
 
-    The FleetManager Agent is responsible for putting in contact the TaxiCustomer agents that need a transport service, and the Taxi
+    The FleetManager agent is responsible for putting in contact the TaxiCustomer agents that need a transport service, and the Taxi
     agents that may be available to offer these services. In short, the FleetManager Agent acts like a transport call center, accepting
-    the incoming requests from customers (TaxiCustomer agents) and forwarding these requests to the (appropriate) Taxi agents.
-    In order to do so, the FleetManager has a registration protocol by which Taxi agents subscribe to the Fleet Manager
-    that represents their fleet. This is automatically done when a Taxi agent is started.
+    the incoming requests from customers and forwarding them to the (appropriate) taxis.
+    In order to do so, the FleetManager features a registration protocol that allows Taxi agents to subscribe to their manager.
+    This is process is automatically done when a Taxi agent starts its execution.
 
-In the context of SimFleet, a "transport service" involves the following steps:
 
-    #. The Taxi moves from its current position to the TaxiCustomer's location to pick them up.
-    #. The Taxi transports the TaxiCustomer to their destination.
+.. In the context of SimFleet, a "transport service" involves the following steps:
 
-The Config file
----------------
+    .. The Taxi moves from its current position to the TaxiCustomer's location to pick them up.
+    .. The Taxi transports the TaxiCustomer to their destination.
 
-The most important fields that the Taxi simulation scenario file must include are a taxi customers list and a taxis list. Each taxi customer must include the
-following fields:
+
+Configuration file
+^^^^^^^^^^^^^^^^^^
+
+Following, the necessary configuration file fields to define the taxi service agents are shown. These include a list of
+taxi customers, taxi transports and the fleet manager.
+
+A TaxiCustomer agent is defined with the following fields:
 
 +--------------------------------------------------------------------------------------+
-|  Taxi Customers                                                                      |
+|  Taxi Customer                                                                       |
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
@@ -207,7 +219,7 @@ following fields:
 +-------------+------------------------------------------------------------------------+
 | destination |   Destination coordinates of the customer (optional)                   |
 +-------------+------------------------------------------------------------------------+
-| name        |   Name of the customer                                                 |
+| name        |   Name of the customer (unique)                                        |
 +-------------+------------------------------------------------------------------------+
 | password    |   Password for registering the customer in the platform (optional)     |
 +-------------+------------------------------------------------------------------------+
@@ -217,10 +229,10 @@ following fields:
 +-------------+------------------------------------------------------------------------+
 | strategy    |   Custom strategy file in the format ``module.file.Class`` (optional)  |
 +-------------+------------------------------------------------------------------------+
-| delay       |   Intentional agent pause in seconds  (optional)                       |
+| delay       |   Agent's execution time start, in seconds  (optional)                 |
 +-------------+------------------------------------------------------------------------+
 
-For taxis the fields are as follows:
+A Taxi agent is defined by the following fields:
 
 +---------------------------------------------------------------------------------------------+
 |  Taxi                                                                                       |
@@ -231,7 +243,7 @@ For taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | position         |   Initial coordinates of the transport (optional)                        |
 +------------------+--------------------------------------------------------------------------+
-| name             |   Name of the transport                                                  |
+| name             |   Name of the transport (unique)                                         |
 +------------------+--------------------------------------------------------------------------+
 | password         |   Password for registering the transport in the platform (optional)      |
 +------------------+--------------------------------------------------------------------------+
@@ -245,17 +257,17 @@ For taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | strategy         |   Custom strategy file in the format ``module.file.Class`` (optional)    |
 +------------------+--------------------------------------------------------------------------+
-| delay            |   Intentional agent pause in seconds  (optional)                         |
+| delay            |   Agent's execution time start, in seconds  (optional)                   |
 +------------------+--------------------------------------------------------------------------+
 
-For fleet managers the fields are as follows:
+A FleetManager agent fields are defined as follows:
 
 +--------------------------------------------------------------------------------------+
-|  Fleet managers                                                                      |
+|  Fleet Manager                                                                       |
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
-| name        |   Name of the manager                                                  |
+| name        |   Name of the manager (unique)                                         |
 +-------------+------------------------------------------------------------------------+
 | password    |   Password for registering the manager in the platform (optional)      |
 +-------------+------------------------------------------------------------------------+
@@ -266,7 +278,12 @@ For fleet managers the fields are as follows:
 | strategy    |   Custom strategy file in the format ``module.file.Class``  (optional) |
 +-------------+------------------------------------------------------------------------+
 
-An example of a config file with four customers, two transports and one fleet manager:
+Finally, we show an example of a taxi service configuration file featuring four customers, two transports and a fleet manager.
+This configuration file includes:
+
+    * One taxi with a fixed initial position and another with a random initial position.
+    * One customer with fixed origin and destination coordinates.
+    * Three customers with random origin and destination coordinates.
 
 .. code-block:: json
 
@@ -361,57 +378,45 @@ An example of a config file with four customers, two transports and one fleet ma
     "http_ip": "localhost"
     }
 
-This configuration file includes:
+Electric taxi service simulation
+--------------------------------
 
-    * One taxi with a fixed position and another with a random position.
-    * One customer with fixed origin and destination coordinates.
-    * Three customers with random origin and destination coordinates.
+This transportation mode represents the same taxi service explained previously, with the modification that taxis are now
+modeled as electric vehicles with a given autonomy level. A transport's autonomy will decrease as it serves customer requests.
+The electric taxis check their autonomy level before each trip and may decide to recharge their batteries at a
+charging station when necessary. Thus, this simulation scenarios introduces two new agents: the **ElectricTaxi Agents**
+and the **ChargingStation Agents**; and keep the TaxiCustomer and the FleetManager agents previously described.
 
-Electric taxi simulation scenario
-=================================
-
-In this scenario, SimFleet includes four types of agents that interact with each other during simulations. These are the
-**FleetManager agent**, the **ElectricTaxi agent**, the **TaxiCustomer agent**, and the **ChargingStation agent**.
-
-Description of the Agents
--------------------------
-
-* **TaxiCustomer Agents**
-
-    Function identically to the Taxi simulation scenario.
+Agent description
+^^^^^^^^^^^^^^^^^
 
 * **ElectricTaxi Agents**
 
     The ElectricTaxi agents represent electric vehicles that can transport TaxiCustomer agents from their current positions to their respective destinations.
-    Unlike traditional taxis, ElectricTaxi agents have a limited battery capacity and need to monitor their charge levels. When their battery is low, they must
-    go to a ChargingStation to recharge before continuing to provide transportation services.
+    In contrast with Taxi agents, ElectricTaxi agents have a limited battery autonomy and thus need to monitor their charge levels. When their battery is low, they
+    travel to a ChargingStation to fully recharge before continuing to provide transportation services.
 
 * **ChargingStation Agents**
 
-    The ChargingStation agents represent locations where ElectricTaxi agents can recharge their batteries. These stations allow ElectricTaxi agents to restore their battery level,
+    The ChargingStation agents represent locations where ElectricTaxi agents can recharge their batteries,
     enabling them to continue offering transport services.
-    ChargingStations may have limited availability or charging slots, which means ElectricTaxi agents may need to wait if the station is occupied.
+    ChargingStations may have a limited availability of charging slots, which means ElectricTaxi agents may need to wait if the station
+    they wish to use is full.
 
-* **FleetManager Agent**
 
-    Functions identically to the Taxi simulation scenario.
+.. In the context of SimFleet, a "transport service" involves the following steps:
 
-In the context of SimFleet, a "transport service" involves the following steps:
+    .. . The ElectricTaxi moves from its current position to the TaxiCustomer's location to pick them up.
+    .. . The ElectricTaxi transports the TaxiCustomer to their destination.
+    .. . If the ElectricTaxi's battery is low after the trip, it travels to a ChargingStation to recharge before accepting another request.
 
-    #. The ElectricTaxi moves from its current position to the TaxiCustomer's location to pick them up.
-    #. The ElectricTaxi transports the TaxiCustomer to their destination.
-    #. If the ElectricTaxi's battery is low after the trip, it travels to a ChargingStation to recharge before accepting another request.
+Configuration file
+^^^^^^^^^^^^^^^^^^
 
-The Config file
----------------
+Following, the necessary configuration file fields to define the new agents that implement the electric taxi service are shown.
+This includes a list of electric taxi transports and charging stations.
 
-The most important fields that the Electric taxi simulation scenario file must include are a taxi customers list, a taxis list and a stations list.
-
-Each taxi customer must include the following fields:
-
-*(Same fields as the Taxi simulation scenario)*
-
-For electric taxis the fields are as follows:
+For ElectricTaxi agents, the fields are as follows:
 
 +---------------------------------------------------------------------------------------------+
 |  Electric Taxis                                                                             |
@@ -422,13 +427,13 @@ For electric taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | position         |   Initial coordinates of the transport (optional)                        |
 +------------------+--------------------------------------------------------------------------+
-| name             |   Name of the transport                                                  |
+| name             |   Name of the transport (unique)                                         |
 +------------------+--------------------------------------------------------------------------+
 | password         |   Password for registering the transport in the platform (optional)      |
 +------------------+--------------------------------------------------------------------------+
 | speed            |   Speed of the transport (in meters per second)  (optional)              |
 +------------------+--------------------------------------------------------------------------+
-| service          |   Type of Service requiring transport                                    |
+| service          |   Type of Service the transport requires from stations                   |
 +------------------+--------------------------------------------------------------------------+
 | autonomy         |   The maximum autonomy of the transport (in km)                          |
 +------------------+--------------------------------------------------------------------------+
@@ -442,10 +447,10 @@ For electric taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | strategy         |   Custom strategy file in the format ``module.file.Class`` (optional)    |
 +------------------+--------------------------------------------------------------------------+
-| delay            |   Intentional agent pause in seconds  (optional)                         |
+| delay            |   Agent's execution time start, in seconds  (optional)                   |
 +------------------+--------------------------------------------------------------------------+
 
-For charging stations the fields are as follows:
+For ChargingStation agents the fields are as follows:
 
 +--------------------------------------------------------------------------------------+
 |  Charging stations                                                                   |
@@ -456,7 +461,7 @@ For charging stations the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 | position    |   Initial coordinates of the customer (optional)                       |
 +-------------+------------------------------------------------------------------------+
-| name        |   Name of the station                                                  |
+| name        |   Name of the station (unique)                                         |
 +-------------+------------------------------------------------------------------------+
 | password    |   Password for registering the station in the platform (optional)      |
 +-------------+------------------------------------------------------------------------+
@@ -472,14 +477,17 @@ For charging stations the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 | strategy    |   Custom strategy file in the format ``module.file.Class`` (optional)  |
 +-------------+------------------------------------------------------------------------+
-| delay       |   Intentional agent pause in seconds  (optional)                       |
+| delay       |   Agent's execution time start, in seconds  (optional)                 |
 +-------------+------------------------------------------------------------------------+
 
-For fleet managers the fields are as follows:
+Finally, An example of a config file with four customers, two transports, one fleet manager and two stations.
+This configuration file includes:
 
-*(Same fields as the Taxi simulation scenario)*
-
-An example of a config file with four customers, two transports, one fleet manager and two stations:
+    * One ElectricTaxi with a fixed position and one with a random position.
+    * Low initial autonomy for both ElectricTaxi agents.
+    * One TaxiCustomer with fixed origin and destination coordinates.
+    * Three TaxiCustomers with random positions.
+    * Two ChargingStations, one with a fixed position and one with a random position.
 
 .. code-block:: json
 
@@ -617,23 +625,15 @@ An example of a config file with four customers, two transports, one fleet manag
     "http_ip": "localhost"
     }
 
-This configuration file includes:
-
-    * One ElectricTaxi with a fixed position and one with a random position.
-    * Low autonomy for both ElectricTaxis.
-    * One TaxiCustomer with fixed origin and destination coordinates.
-    * Three TaxiCustomers with random positions.
-    * Two ChargingStations, one with a fixed position and one with a random position.
-
-Bus simulation scenario
-=======================
+Urban Bus simulation
+--------------------
 
 In this scenario, SimFleet includes four types of agents that interact with each other during simulations. These are the **FleetManager agent**,
 the **Bus agent**, the **BusCustomer agent**, and the **BusStop agent**.
 
 
-Description of the Agents
--------------------------
+Agent description
+^^^^^^^^^^^^^^^^^
 
 * **BusCustomer Agents**
 
@@ -662,8 +662,8 @@ In the context of SimFleet, a "transport service" for buses involves:
     #. Picking up BusCustomer agents waiting at BusStops.
     #. Dropping off BusCustomer agents at BusStops near their destinations.
 
-The Config file
----------------
+Configuration file
+^^^^^^^^^^^^^^^^^^
 
 The most important fields that the Bus simulation scenario file must include are a BusCustomers list, a Buses list, a BusStops list and a Lines list.
 Each bus customer must include the following fields:
@@ -693,7 +693,7 @@ Each bus customer must include the following fields:
 +-------------+------------------------------------------------------------------------+
 | strategy    |   Custom strategy file in the format ``module.file.Class``  (optional) |
 +-------------+------------------------------------------------------------------------+
-| delay       |   Intentional agent pause in seconds  (optional)                       |
+| delay       |   Agent's execution time start, in seconds  (optional)                       |
 +-------------+------------------------------------------------------------------------+
 
 .. note::
@@ -728,7 +728,7 @@ For buses the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | strategy         |   Custom strategy file in the format ``module.file.Class``  (optional)   |
 +------------------+--------------------------------------------------------------------------+
-| delay            |   Intentional agent pause in seconds  (optional)                         |
+| delay            |   Agent's execution time start, in seconds  (optional)                         |
 +------------------+--------------------------------------------------------------------------+
 
 .. note::
@@ -755,7 +755,7 @@ For bus stops the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 | icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
 +-------------+------------------------------------------------------------------------+
-| delay       |   Intentional agent pause in seconds  (optional)                       |
+| delay       |   Agent's execution time start, in seconds  (optional)                       |
 +-------------+------------------------------------------------------------------------+
 
 For bus lines the fields are as follows:
@@ -1135,7 +1135,7 @@ Each vehicles must include the following fields:
 +-------------+------------------------------------------------------------------------+
 | strategy    |   Custom strategy file in the format ``module.file.Class``  (optional) |
 +-------------+------------------------------------------------------------------------+
-| delay       |   Intentional agent pause in seconds  (optional)                       |
+| delay       |   Agent's execution time start, in seconds  (optional)                 |
 +-------------+------------------------------------------------------------------------+
 
 An example of a config file with two autonomous vehicles:

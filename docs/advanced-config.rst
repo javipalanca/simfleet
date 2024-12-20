@@ -628,8 +628,14 @@ This configuration file includes:
 Urban Bus simulation
 --------------------
 
-In this scenario, SimFleet includes four types of agents that interact with each other during simulations. These are the **FleetManager agent**,
-the **Bus agent**, the **BusCustomer agent**, and the **BusStop agent**.
+This transportation mode represents an urban bus service, where buses travel continuously following their assigned line, visiting
+the stops that belong to such a line, in order. Customers make use of the bus service by walking to a stop and waiting
+for their desired bus to arrive. The customer boards the bus travels inside it until the bus visits their desired destination stop.
+Bus stops are modeled as agents that act as intermediaries between buses and customers, keeping waiting queues for each bus line
+in which the stop is included, and informing waiting customers of each bus arrival. Optionally, the bus service may be
+coordinated by a fleet manager.
+
+The scenario features four types of agent: The **BusCustomer Agents**, the **Bus Agents**, the **BusStop Agents**, and a **FleetManager Agent**.
 
 
 Agent description
@@ -638,38 +644,42 @@ Agent description
 * **BusCustomer Agents**
 
     The BusCustomer agents represent people who need to travel from one location in the city (their "current location") to another (their "destination").
-    To achieve this, each BusCustomer agent requests a transport service. Unlike TaxiCustomer agents, BusCustomer agents have the option to walk to the
-    nearest BusStop to catch a bus. Once they are transported to their destination, they enter a final state and end their execution.
+    To achieve this, each BusCustomer agent knows the bus line it needs to use. Upon spawning, the customer walks to their
+    nearest BusStop which belongs to their line, in order to catch a Bus transport. Once they are transported to their destination, customers end their execution.
 
 * **Bus Agents**
 
-    The Bus agents represent public transport vehicles that can pick up and transport BusCustomer agents along predefined routes. Buses stop at designated BusStops to pick up and drop off passengers.
-    Each Bus agent operates based on a fixed route, and they only provide transport services to BusCustomer agents who are waiting at BusStops.
+    The Bus agents represent a bus transport that travels along the BusStops of a predefined route, indicated by its assigned line.
+    Buses stop at the designated BusStops to pick up and drop off passengers.
 
 * **BusStop Agents**
 
-    The BusStop agents represent designated stopping points where buses can pick up and drop off BusCustomer agents. BusCustomers can move to the nearest BusStop to catch a bus.
-    BusStops are essential for coordinating the pickup and drop-off of passengers.
+    The BusStop agents represent designated stopping points where buses can pick up and drop off BusCustomer agents. BusStops must belong to at least one line
+    of the service, although they may belong to many lines. For each of their lines, the BusStop keeps a waiting queue where BusCustomer agents
+    are registered upon arrival. In addition, BusStops inform their registered customers of the arrival of each Bus, and coordinates
+    the processed of passenger de-boarding and boarding to the transport.
 
 * **FleetManager Agent**
 
-    The FleetManager acts as a central system that manages the fleet of buses, ensuring that they operate smoothly and follow their routes.
-    In order to do so, the FleetManager has a registration protocol by which Bus agents subscribe to the Fleet Manager that represents their fleet.
+    The FleetManager acts as a central coordinator of the fleet of buses.
+    In order to do so, the FleetManager has a registration protocol by which Bus agents subscribe to their fleet.
 
-In the context of SimFleet, a "transport service" for buses involves:
+.. In the context of SimFleet, a "transport service" for buses involves:
 
-    #. The Bus agent following its predefined route.
-    #. Picking up BusCustomer agents waiting at BusStops.
-    #. Dropping off BusCustomer agents at BusStops near their destinations.
+    .. The Bus agent following its predefined route.
+    .. Picking up BusCustomer agents waiting at BusStops.
+    .. Dropping off BusCustomer agents at BusStops near their destinations.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
 
-The most important fields that the Bus simulation scenario file must include are a BusCustomers list, a Buses list, a BusStops list and a Lines list.
-Each bus customer must include the following fields:
+Following, the necessary configuration file fields to define the urban bus service agents are shown. These include a list of
+bus customers, bus transports, bus stops, and the predefined lines of the service.
+
+Each BusCustomer agent must include the following fields:
 
 +--------------------------------------------------------------------------------------+
-|  Bus Customers                                                                       |
+|  Bus Customer                                                                        |
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
@@ -679,7 +689,7 @@ Each bus customer must include the following fields:
 +-------------+------------------------------------------------------------------------+
 | destination |   Destination coordinates of the customer                              |
 +-------------+------------------------------------------------------------------------+
-| name        |   Name of the customer                                                 |
+| name        |   Name of the customer (unique)                                        |
 +-------------+------------------------------------------------------------------------+
 | password    |   Password for registering the customer in the platform (optional)     |
 +-------------+------------------------------------------------------------------------+
@@ -693,16 +703,17 @@ Each bus customer must include the following fields:
 +-------------+------------------------------------------------------------------------+
 | strategy    |   Custom strategy file in the format ``module.file.Class``  (optional) |
 +-------------+------------------------------------------------------------------------+
-| delay       |   Agent's execution time start, in seconds  (optional)                       |
+| delay       |   Agent's execution time start, in seconds  (optional)                 |
 +-------------+------------------------------------------------------------------------+
 
 .. note::
-    If the **speed** field is not used, the customer's position and destination must match the origin and destination positions of the bus stops.
+    If the **speed** field is not defined, the customer will not be able to walk. In this case, the customer's position
+    and destination must match positions of bus stops.
 
-For buses the fields are as follows:
+For Bus agents the fields are as follows:
 
 +---------------------------------------------------------------------------------------------+
-|  Buses                                                                                      |
+|  Bus                                                                                        |
 +------------------+--------------------------------------------------------------------------+
 |  Field           |  Description                                                             |
 +==================+==========================================================================+
@@ -710,17 +721,17 @@ For buses the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | position         |   Initial coordinates of the transport                                   |
 +------------------+--------------------------------------------------------------------------+
-| name             |   Name of the transport                                                  |
+| name             |   Name of the transport (unique)                                         |
 +------------------+--------------------------------------------------------------------------+
 | password         |   Password for registering the transport in the platform (optional)      |
 +------------------+--------------------------------------------------------------------------+
 | speed            |   Speed of the transport (in meters per second)                          |
 +------------------+--------------------------------------------------------------------------+
-| line             |   Bus line that the transport wants to use                               |
+| line             |   Bus line assigned to the transport                                     |
 +------------------+--------------------------------------------------------------------------+
-| capacity         |   Capacity of customer that can be transported                           |
+| capacity         |   Number of customers that can be transported together                   |
 +------------------+--------------------------------------------------------------------------+
-| fleet_type       |   Fleet type that the customer wants to use                              |
+| fleet_type       |   Fleet type of the transport                                            |
 +------------------+--------------------------------------------------------------------------+
 | optional         |   **fleet**: The fleet manager's JID to be subscribed to                 |
 +------------------+--------------------------------------------------------------------------+
@@ -728,16 +739,16 @@ For buses the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | strategy         |   Custom strategy file in the format ``module.file.Class``  (optional)   |
 +------------------+--------------------------------------------------------------------------+
-| delay            |   Agent's execution time start, in seconds  (optional)                         |
+| delay            |   Agent's execution time start, in seconds  (optional)                   |
 +------------------+--------------------------------------------------------------------------+
 
 .. note::
-    The bus agent's position must match one of the stops on its assigned line for correct operation.
+    The bus agent's position must match one of the bus stops on its assigned line for correct operation.
 
-For bus stops the fields are as follows:
+For BusStop agents the fields are as follows:
 
 +--------------------------------------------------------------------------------------+
-|  Bus stops                                                                           |
+|  Bus stop                                                                            |
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
@@ -745,23 +756,26 @@ For bus stops the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 | position    |   Initial coordinates of the customer                                  |
 +-------------+------------------------------------------------------------------------+
-| id          |   Id of the station                                                    |
+| id          |   Id of the station (unique)                                           |
 +-------------+------------------------------------------------------------------------+
-| name        |   Name of the station                                                  |
+| name        |   Name of the stop                                                     |
 +-------------+------------------------------------------------------------------------+
 | password    |   Password for registering the station in the platform (optional)      |
 +-------------+------------------------------------------------------------------------+
-| lines       |   Bus line that the bus stop wants to use                              |
+| lines       |   Bus lines to which the stops belongs                                 |
 +-------------+------------------------------------------------------------------------+
 | icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
 +-------------+------------------------------------------------------------------------+
-| delay       |   Agent's execution time start, in seconds  (optional)                       |
+| delay       |   Agent's execution time start, in seconds  (optional)                 |
 +-------------+------------------------------------------------------------------------+
 
-For bus lines the fields are as follows:
+**Bus lines** are necessary auxiliary fields of the configuration file for urban bus simulations.
+Their most relevant parameter are the list of stops that belong to it. Such a list must appear ordered, and
+each stop is defined by its coordinates. Once a Bus transport reaches the last stop of its line, the line_type
+indicates how it continues its operation.
 
 +--------------------------------------------------------------------------------------+
-|  Bus lines                                                                           |
+|  Bus line                                                                           |
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
@@ -773,17 +787,19 @@ For bus lines the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 
 .. note::
-    The **line_type** field supports three types of routes:
+    The **line_type** field defined three types of bus behaviour upon reaching the end of its line:
 
-        1) **circular:** The bus choose first stop of the route as next destination (circular routes).
-        2) **end-to-end:** The bus inverse stop list and choose previous destination as next destination (end-to-end lines).
-        3) **teleport:** The bus "teleport" to first stop and choose next destination.
+        1) **circular:** The bus chooses the first stop of the line as next destination (circular routes).
+        2) **end-to-end:** The bus inverses the stop list and choose previous stop as next destination (end-to-end lines).
+        3) **teleport:** The bus teleports to the first stop of the line, and continues its operation.
 
-For fleet managers the fields are as follows:
 
-*(Same fields as the Taxi simulation scenario)*
+Finally, we show an example of a configuration file with two customers, two transports, one fleet manager, and eleven stops that belong to the same line:
+This configuration file includes:
 
-An example of a config file with two customers, two transports, one fleet manager and eleven stops:
+    * Two Buses with a fixed position.
+    * Two BusCustomer with fixed origin and destination positions.
+    * One Line with eleven BusStops.
 
 .. code-block:: json
 
@@ -1088,12 +1104,6 @@ An example of a config file with two customers, two transports, one fleet manage
     "http_ip": "localhost"
     }
 
-This configuration file includes:
-
-    * Two Buses with a fixed position.
-    * Two BusCustomer with fixed origin and destination positions.
-    * Eleven BusStops with fixed positions.
-    * One Line with eleven BusStop.
 
 Another simulation scenario
 ===========================

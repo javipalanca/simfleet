@@ -2,12 +2,14 @@
 Usage Manual
 ============
 
-Using SimFleet is straightforward and can be done by running the application from the command line. There are two modes of use:
-a **command-line interface (CLI)** and a **web-based graphical interface (GUI)**. You can execute simulations purely through the command
+The SimFleet platform employs JSON configuration files to define simulation scenarios. Once a configuration file has been
+defined, its simulation can be launched by running the application from the console. SimFleet can be executed in two modes:
+a **command-line interface (CLI)** and a **web-based graphical interface (GUI)**. You may execute simulations purely through the command
 line or use the simpler and more intuitive graphical interface.
 
-SimFleet supports a wide variety of urban mobility scenarios, as the simulator includes predefined agents and strategies. In this section,
-we will explore how to use **command-line interface (CLI)** of advance mode and the different simulation scenarios available.
+In this section, the structure and usage of SimFleet configuration files is described. First, we focus on the general structure.
+Then, we present the currently included transportation modes and describe how to setup a simulation using its agents. Finally,
+we indicate how to use **command-line interface (CLI)** to launch simulation scenarios with different execution options.
 
 
 The Configuration file's Structure
@@ -1105,50 +1107,56 @@ This configuration file includes:
     }
 
 
-Another simulation scenario
-===========================
+Vehicle transit simulation
+--------------------------
 
-SimFleet includes vehicle agents to create an autonomous vehicle simulation scenario.
+SimFleet includes the so-called Vehicle agents which represent vehicles that move autonomously in the simulation scenario.
+Vehicles are a simplified version of transports which do not provide transportation services. However, vehicles may be extended to make
+use of the transportation infrastructure (stations) of the scenario, introducing simulation load. Following, we describe
+the **Vehicle Agent** and its use.
 
-Description of the Agent
--------------------------
+Agent description
+^^^^^^^^^^^^^^^^^
 
 * **Vehicle Agents**
 
     These agents can autonomously travel from an origin point to a destination. They can either perform a single trip or continuously travel to new random destinations in a cyclic manner.
 
 
-The Config file
----------------
+Configuration file
+^^^^^^^^^^^^^^^^^^
 
-The most important field that the autonomous vehicle simulation scenario file must include is a Vehicles list.
-Each vehicles must include the following fields:
+Following, the necessary configuration file fields to define vehicle agents are shown. Each vehicle must include:
 
 +--------------------------------------------------------------------------------------+
-|  Vehicles                                                                            |
+|  Vehicle                                                                             |
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
 | class       |   Custom agent file in the format ``module.file.Class``                |
 +-------------+------------------------------------------------------------------------+
-| position    |   Initial coordinates of the customer (optional)                       |
+| position    |   Initial coordinates of the agent (optional)                          |
 +-------------+------------------------------------------------------------------------+
-| destination |   Destination coordinates of the customer (optional)                   |
+| destination |   Destination coordinates of the agent (optional)                      |
 +-------------+------------------------------------------------------------------------+
-| name        |   Name of the customer                                                 |
+| name        |   Name of the agent (unique)                                           |
 +-------------+------------------------------------------------------------------------+
-| password    |   Password for registering the customer in the platform (optional)     |
+| password    |   Password for registering the agent in the platform (optional)        |
 +-------------+------------------------------------------------------------------------+
 | speed       |   Speed of the vehicle (in meters per second)  (optional)              |
 +-------------+------------------------------------------------------------------------+
-| icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
+| icon        |   Custom icon (in base64 format) to be used by the agent (optional)    |
 +-------------+------------------------------------------------------------------------+
 | strategy    |   Custom strategy file in the format ``module.file.Class``  (optional) |
 +-------------+------------------------------------------------------------------------+
 | delay       |   Agent's execution time start, in seconds  (optional)                 |
 +-------------+------------------------------------------------------------------------+
 
-An example of a config file with two autonomous vehicles:
+Finally, we show an example of a configuration file with two autonomous vehicles.
+This configuration file includes:
+
+    * One autonomous vehicle with a fixed initial position and destination, following a cyclic behavior.
+    * One autonomous vehicle without a specified initial position or destination, performing a one-shot behavior.
 
 .. code-block:: json
 
@@ -1190,18 +1198,13 @@ An example of a config file with two autonomous vehicles:
 
     }
 
-This configuration file includes:
-
-    * One autonomous vehicle with a fixed initial position and destination, following a cyclic behavior.
-    * One autonomous vehicle without a specified initial position or destination, performing a one-shot behavior.
-
 
 Command-line interface
 ======================
 
 In the QuickStart guide, we covered how to quickly get started with SimFleet using the graphical interface. In this section, we will explore
 in greater detail how to use the **Command-Line Interface (CLI)** to configure and launch transport simulation scenarios directly from the command line.
-This guide explains the usage and available options for the ``simfleet`` command, making it easier to start simulations, debug processes, and save results.
+This guide explains the usage and available options of the ``simfleet`` command, making it easier to run simulations, debug processes, and save results.
 
 .. hint::
     To view the options available in SimFleet's command line interface, use the following command ``--help``
@@ -1230,6 +1233,14 @@ This will display the following output:
 The simfleet command initializes and starts simulations using custom configurations and customizable options. You can specify simulation parameters such as the execution name,
 output file, maximum simulation time, and verbosity level. This flexibility allows for efficient control and debugging of your SimFleet simulations.
 
+.. note::
+    To visualize the simulation scenario in the GUI while running simulator from the CLI, use the web interface address displayed in the output, such as:
+
+    .. code-block:: console
+
+        2024-11-25 16:29:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
+
+    This address is (in most cases): `http://127.0.0.1:9000/app <http://127.0.0.1:9000/app>`_
 
 Examples of CLI Execution
 -------------------------
@@ -1307,15 +1318,6 @@ detailed debug information during execution. This is particularly useful for tro
 **DEBUG** verbosity, while ``-vvvv`` displays the most detailed internal messages of the platform.
 
 
-.. note::
-    To start the simulation scenario in the GUI while running simulator from the CLI, use the web interface address displayed in the output, such as:
-
-    .. code-block:: console
-
-        2024-11-25 16:29:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
-
-    This address is (in most cases): `http://127.0.0.1:9000/app <http://127.0.0.1:9000/app>`_
-
 * **Example 3: Simulation with Time Limit and Autorun**
 
 .. code-block:: console
@@ -1325,4 +1327,3 @@ detailed debug information during execution. This is particularly useful for tro
 In this example, the configuration file ``myconfig.json`` is used, and the simulation is named "My Simulation". The ``--autorun`` flag ensures the simulation starts automatically
 as soon as the agents are ready. Additionally, the ``--max-time 100`` option limits the simulation duration to 100 seconds. The simulation events are saved to ``results.json``,
 making it easy to review the results once the simulation concludes.
-

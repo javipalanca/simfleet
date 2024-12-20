@@ -10,6 +10,7 @@ Contents:
    installation
    quickstart
    advanced-config
+   metrics
    agent
    architecture
    stations

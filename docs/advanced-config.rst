@@ -7,7 +7,7 @@ a **command-line interface (CLI)** and a **web-based graphical interface (GUI)**
 line or use the simpler and more intuitive graphical interface.
 
 SimFleet supports a wide variety of urban mobility scenarios, as the simulator includes predefined agents and strategies. In this section,
-we will explore how to use both interfaces of advance mode and the different simulation scenarios available.
+we will explore how to use **command-line interface (CLI)** of advance mode and the different simulation scenarios available.
 
 
 The Config file: Structure
@@ -183,7 +183,7 @@ following fields:
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
-| class       |   Custom agent file in the format module.file.Class                    |
+| class       |   Custom agent file in the format ``module.file.Class``                |
 +-------------+------------------------------------------------------------------------+
 | position    |   Initial coordinates of the customer (optional)                       |
 +-------------+------------------------------------------------------------------------+
@@ -197,7 +197,7 @@ following fields:
 +-------------+------------------------------------------------------------------------+
 | icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
 +-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
+| strategy    |   Custom strategy file in the format ``module.file.Class`` (optional)  |
 +-------------+------------------------------------------------------------------------+
 | delay       |   Intentional agent pause in seconds  (optional)                       |
 +-------------+------------------------------------------------------------------------+
@@ -209,7 +209,7 @@ For taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 |  Field           |  Description                                                             |
 +==================+==========================================================================+
-| class            |   Custom agent file in the format module.file.Class                      |
+| class            |   Custom agent file in the format ``module.file.Class``                  |
 +------------------+--------------------------------------------------------------------------+
 | position         |   Initial coordinates of the transport (optional)                        |
 +------------------+--------------------------------------------------------------------------+
@@ -225,7 +225,7 @@ For taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | icon             |   Custom icon (in base64 format) to be used by the transport  (optional) |
 +------------------+--------------------------------------------------------------------------+
-| strategy         |   Custom strategy file in the format module.file.Class  (optional)       |
+| strategy         |   Custom strategy file in the format ``module.file.Class`` (optional)    |
 +------------------+--------------------------------------------------------------------------+
 | delay            |   Intentional agent pause in seconds  (optional)                         |
 +------------------+--------------------------------------------------------------------------+
@@ -245,7 +245,7 @@ For fleet managers the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 | icon        |   Custom icon (in base64 format) to be used by the manager  (optional) |
 +-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
+| strategy    |   Custom strategy file in the format ``module.file.Class``  (optional) |
 +-------------+------------------------------------------------------------------------+
 
 An example of a config file with four customers, two transports and one fleet manager:
@@ -360,8 +360,7 @@ Description of the Agents
 
 * **TaxiCustomer Agents**
 
-    The TaxiCustomer agents represent people that need to go from one location in the city (their "current location") to another (their "destination").
-    To achieve this, each TaxiCustomer agent requests a transport service. Once they are transported to their destination, they reach their final state and end their execution.
+    Function identically to the Taxi simulation scenario.
 
 * **ElectricTaxi Agents**
 
@@ -377,11 +376,7 @@ Description of the Agents
 
 * **FleetManager Agent**
 
-    The FleetManager Agent is responsible for putting in contact the TaxiCustomer agents that need a transport service, and the Taxi
-    agents that may be available to offer these services. In short, the FleetManager Agent acts like a transport call center, accepting
-    the incoming requests from customers (TaxiCustomer agents) and forwarding these requests to the (appropriate) Taxi agents.
-    In order to do so, the FleetManager has a registration protocol by which Taxi agents subscribe to the Fleet Manager
-    that represents their fleet. This is automatically done when a Taxi agent is started.
+    Functions identically to the Taxi simulation scenario.
 
 In the context of SimFleet, a "transport service" involves the following steps:
 
@@ -393,31 +388,10 @@ The Config file
 ---------------
 
 The most important fields that the Electric taxi simulation scenario file must include are a taxi customers list, a taxis list and a stations list.
+
 Each taxi customer must include the following fields:
 
-+--------------------------------------------------------------------------------------+
-|  Taxi Customers                                                                      |
-+-------------+------------------------------------------------------------------------+
-|  Field      |  Description                                                           |
-+=============+========================================================================+
-| class       |   Custom agent file in the format module.file.Class                    |
-+-------------+------------------------------------------------------------------------+
-| position    |   Initial coordinates of the customer (optional)                       |
-+-------------+------------------------------------------------------------------------+
-| destination |   Destination coordinates of the customer (optional)                   |
-+-------------+------------------------------------------------------------------------+
-| name        |   Name of the customer                                                 |
-+-------------+------------------------------------------------------------------------+
-| password    |   Password for registering the customer in the platform (optional)     |
-+-------------+------------------------------------------------------------------------+
-| fleet_type  |   Fleet type that the customer wants to use                            |
-+-------------+------------------------------------------------------------------------+
-| icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
-+-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
-+-------------+------------------------------------------------------------------------+
-| delay       |   Intentional agent pause in seconds  (optional)                       |
-+-------------+------------------------------------------------------------------------+
+*(Same fields as the Taxi simulation scenario)*
 
 For electric taxis the fields are as follows:
 
@@ -426,7 +400,7 @@ For electric taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 |  Field           |  Description                                                             |
 +==================+==========================================================================+
-| class            |   Custom agent file in the format module.file.Class                      |
+| class            |   Custom agent file in the format ``module.file.Class``                  |
 +------------------+--------------------------------------------------------------------------+
 | position         |   Initial coordinates of the transport (optional)                        |
 +------------------+--------------------------------------------------------------------------+
@@ -448,7 +422,7 @@ For electric taxis the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | icon             |   Custom icon (in base64 format) to be used by the transport  (optional) |
 +------------------+--------------------------------------------------------------------------+
-| strategy         |   Custom strategy file in the format module.file.Class  (optional)       |
+| strategy         |   Custom strategy file in the format ``module.file.Class`` (optional)    |
 +------------------+--------------------------------------------------------------------------+
 | delay            |   Intentional agent pause in seconds  (optional)                         |
 +------------------+--------------------------------------------------------------------------+
@@ -460,7 +434,7 @@ For charging stations the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
-| class       |   Custom agent file in the format module.file.Class                    |
+| class       |   Custom agent file in the format ``module.file.Class``                |
 +-------------+------------------------------------------------------------------------+
 | position    |   Initial coordinates of the customer (optional)                       |
 +-------------+------------------------------------------------------------------------+
@@ -478,28 +452,14 @@ For charging stations the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 | icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
 +-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
+| strategy    |   Custom strategy file in the format ``module.file.Class`` (optional)  |
 +-------------+------------------------------------------------------------------------+
 | delay       |   Intentional agent pause in seconds  (optional)                       |
 +-------------+------------------------------------------------------------------------+
 
 For fleet managers the fields are as follows:
 
-+--------------------------------------------------------------------------------------+
-|  Fleet managers                                                                      |
-+-------------+------------------------------------------------------------------------+
-|  Field      |  Description                                                           |
-+=============+========================================================================+
-| name        |   Name of the manager                                                  |
-+-------------+------------------------------------------------------------------------+
-| password    |   Password for registering the manager in the platform (optional)      |
-+-------------+------------------------------------------------------------------------+
-| fleet_type  |   Fleet type that the agent manages                                    |
-+-------------+------------------------------------------------------------------------+
-| icon        |   Custom icon (in base64 format) to be used by the manager  (optional) |
-+-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
-+-------------+------------------------------------------------------------------------+
+*(Same fields as the Taxi simulation scenario)*
 
 An example of a config file with four customers, two transports, one fleet manager and two stations:
 
@@ -695,7 +655,7 @@ Each bus customer must include the following fields:
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
-| class       |   Custom agent file in the format module.file.Class                    |
+| class       |   Custom agent file in the format ``module.file.Class``                |
 +-------------+------------------------------------------------------------------------+
 | position    |   Initial coordinates of the customer                                  |
 +-------------+------------------------------------------------------------------------+
@@ -713,7 +673,7 @@ Each bus customer must include the following fields:
 +-------------+------------------------------------------------------------------------+
 | icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
 +-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
+| strategy    |   Custom strategy file in the format ``module.file.Class``  (optional) |
 +-------------+------------------------------------------------------------------------+
 | delay       |   Intentional agent pause in seconds  (optional)                       |
 +-------------+------------------------------------------------------------------------+
@@ -728,7 +688,7 @@ For buses the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 |  Field           |  Description                                                             |
 +==================+==========================================================================+
-| class            |   Custom agent file in the format module.file.Class                      |
+| class            |   Custom agent file in the format ``module.file.Class``                  |
 +------------------+--------------------------------------------------------------------------+
 | position         |   Initial coordinates of the transport                                   |
 +------------------+--------------------------------------------------------------------------+
@@ -748,7 +708,7 @@ For buses the fields are as follows:
 +------------------+--------------------------------------------------------------------------+
 | icon             |   Custom icon (in base64 format) to be used by the transport  (optional) |
 +------------------+--------------------------------------------------------------------------+
-| strategy         |   Custom strategy file in the format module.file.Class  (optional)       |
+| strategy         |   Custom strategy file in the format ``module.file.Class``  (optional)   |
 +------------------+--------------------------------------------------------------------------+
 | delay            |   Intentional agent pause in seconds  (optional)                         |
 +------------------+--------------------------------------------------------------------------+
@@ -763,7 +723,7 @@ For bus stops the fields are as follows:
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
-| class       |   Custom agent file in the format module.file.Class                    |
+| class       |   Custom agent file in the format ``module.file.Class``                |
 +-------------+------------------------------------------------------------------------+
 | position    |   Initial coordinates of the customer                                  |
 +-------------+------------------------------------------------------------------------+
@@ -803,21 +763,7 @@ For bus lines the fields are as follows:
 
 For fleet managers the fields are as follows:
 
-+--------------------------------------------------------------------------------------+
-|  Fleet managers                                                                      |
-+-------------+------------------------------------------------------------------------+
-|  Field      |  Description                                                           |
-+=============+========================================================================+
-| name        |   Name of the manager                                                  |
-+-------------+------------------------------------------------------------------------+
-| password    |   Password for registering the manager in the platform (optional)      |
-+-------------+------------------------------------------------------------------------+
-| fleet_type  |   Fleet type that the agent manages                                    |
-+-------------+------------------------------------------------------------------------+
-| icon        |   Custom icon (in base64 format) to be used by the manager  (optional) |
-+-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
-+-------------+------------------------------------------------------------------------+
+*(Same fields as the Taxi simulation scenario)*
 
 An example of a config file with two customers, two transports, one fleet manager and eleven stops:
 
@@ -1155,7 +1101,7 @@ Each vehicles must include the following fields:
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+
-| class       |   Custom agent file in the format module.file.Class                    |
+| class       |   Custom agent file in the format ``module.file.Class``                |
 +-------------+------------------------------------------------------------------------+
 | position    |   Initial coordinates of the customer (optional)                       |
 +-------------+------------------------------------------------------------------------+
@@ -1169,7 +1115,7 @@ Each vehicles must include the following fields:
 +-------------+------------------------------------------------------------------------+
 | icon        |   Custom icon (in base64 format) to be used by the customer (optional) |
 +-------------+------------------------------------------------------------------------+
-| strategy    |   Custom strategy file in the format module.file.Class  (optional)     |
+| strategy    |   Custom strategy file in the format ``module.file.Class``  (optional) |
 +-------------+------------------------------------------------------------------------+
 | delay       |   Intentional agent pause in seconds  (optional)                       |
 +-------------+------------------------------------------------------------------------+
@@ -1225,38 +1171,14 @@ This configuration file includes:
 Command-line interface
 ======================
 
-After installing SimFleet open a command-line and type ``simfleet --config config_file.json``. This starts a
-simulator with the configuration specified at the JSON file and runs the simulator agent. The console will output the default logging
-information and you can terminate the simulator by pressing ``Ctrl+C``. When you terminate the simulator the results of
-the simulations are printed.
+In the QuickStart guide, we covered how to quickly get started with SimFleet using the graphical interface. In this section, we will explore
+in greater detail how to use the **Command-Line Interface (CLI)** to configure and launch transport simulation scenarios directly from the command line.
+This guide explains the usage and available options for the ``simfleet`` command, making it easier to start simulations, debug processes, and save results.
 
-Despues de instalar Simfleet podemos ejecutar nuestro archivo de configuración
+.. hint::
+    To view the options available in SimFleet's command line interface, use the following command ``--help``
 
-.. code-block:: console
-
-    $ simfleet --config vehicles.json
-    2024-11-25 16:35:15.429 | INFO     | simfleet.config.settings:load_config:134 - Reading config vehicles.json
-    2024-11-25 16:35:15.710 | INFO     | simfleet.simulator:__init__:89 - Starting SimFleet (simulation_drone)
-    2024-11-25 16:35:15.722 | INFO     | simfleet.simulator:load_icons:467 - Reading icons /simfleet/templates/data/img_drones.json
-    2024-11-25 16:35:15.934 | INFO     | simfleet.common.agents.directory:setup:63 - Directory agent directory running
-    2024-11-25 16:35:15.935 | INFO     | simfleet.simulator:__init__:119 - Creating 0 managers, 0 transports, 0 customers, 0 stations and 2 vehicles.
-    2024-11-25 16:35:15.935 | INFO     | simfleet.simulator:load_scenario:169 - Loading scenario...
-    2024-11-25 16:35:15.937 | INFO     | simfleet.simulator:load_scenario:192 - Loading lines...
-    2024-11-25 16:35:16.061 | SUCCESS  | simfleet.simulator:gather_batch:258 - All agents gathered
-    2024-11-25 16:35:16.292 | INFO     | simfleet.simulator:setup:133 - Simulator agent running
-    2024-11-25 16:35:16.295 | INFO     | simfleet.simulator:setup:151 - Web interface running at http://localhost:9000/app
-
-
-    ^C
-
-    2024-11-25 16:36:26.108 | INFO     | simfleet.simulator:stop:258 -
-    Terminating... (17.3 seconds elapsed)
-
-However, if you don't use some options when running the simulator there will be no default transports nor customers. That's
-why stats are empty. To run a simulation with some parameters you must fill a configuration file where the simulation scenario
-is defined.
-
-To show he command line interface options you can enter the ``--help`` command:
+This will display the following output:
 
 .. code-block:: console
 
@@ -1268,9 +1190,7 @@ To show he command line interface options you can enter the ``--help`` command:
 
     Options:
       -n, --name TEXT              Name of the simulation execution.
-      -o, --output TEXT            Filename to save simulation results.
-      -of, --oformat [json|excel]  Output format used to save simulation results.
-                                   (default: json)
+      -o, --output TEXT            Filename for saving simulation events in JSON format.
       -mt, --max-time INTEGER      Maximum simulation time (in seconds).
       -r, --autorun                Run simulation as soon as the agents are ready.
       -c, --config TEXT            Filename of JSON file with initial config.
@@ -1279,125 +1199,102 @@ To show he command line interface options you can enter the ``--help`` command:
       --help                       Show this message and exit.
 
 
-The output of a simulation shows some statistics of the simulation, with the `Average Total Time`, which
-represents the average time of customers from the moment they request a transport until they are delivered to their
-destination, and the `Average Waiting Time`, which is the average time of customers from requesting a transport to being
-picked up. This information is also shown for each customer along with their status at the end of the simulation.
+The simfleet command initializes and starts simulations using custom configurations and customizable options. You can specify simulation parameters such as the execution name,
+output file, maximum simulation time, and verbosity level. This flexibility allows for efficient control and debugging of your SimFleet simulations.
 
-In the case of transports, the shown information includes the number of assignments of each transport (how many customers it has
-delivered), the total distance it has traveled and its final status.
 
-This information is going to be useful for the development of new strategies that improve the system balancing or for
-debugging errors if a transport or a customer gets stuck or any other unexpected situation occurs.
+Examples of CLI Execution
+-------------------------
 
-The last but no less important option is the verbosity option. It allows you to specify how verbose you want the
-simulator to be. The number of ``v`` letters you pass to the option indicates the level of verbosity (e.g. ``-v`` is
-**DEBUG** verbosity and ``-vvvv`` is the highest level of verbosity where the internal messages of the platform are
-shown).
-
-Saving the simulation results
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you want to store the results of simulation in a file you may use the ``--output`` option (or ``-o``) to specify the
-name of the file where the simulation results will be saved. The ``--oformat`` (``-of``) allows you to choose the output
-format between json (default) or excel. It is also useful to use the ``--name`` (or ``-n``) to name the simulation.
-
-Example:
+* **Example 1: Basic Simulation with Output File**
 
 .. code-block:: console
 
-    $ simfleet --config myconfig.json --name "My Simulation" --output results.xls --oformat excel
+    $ simfleet --config myconfig.json --name "My Simulation" --output results.json
 
-Graphical User Interface
-========================
-A much more user-friendly way to use SimFleet is through the built-in graphical user interface. This interface is
-accessed via any web browser and is designed as a viewer for your running simulations.
-To open it just visit the address shown on the screen when you run the simulator and access that website.
+In this example, the simulation uses the configuration file ``myconfig.json``, sets the simulation name to "My Simulation", and saves all the simulation events to a file named ``results.json``.
+This setup is ideal for running a simple simulation and storing the output for later analysis. The output of the simulation captures a series of events generated by agents as they execute
+their strategies. Each event represents a key action within the simulation.
 
-.. hint::
-    The Simulator agent is who raises the GUI and shows the address in the console output:
+An example of the output would be:
 
-    .. code-block:: console
+.. code-block:: json
 
-        2015-10-21 16:29:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
+    [
+    {
+        "name": "taxicustomer1@localhost",
+        "timestamp": 6.138403,
+        "event_type": "customer_request",
+        "class_type": "TaxiCustomerAgent",
+        "details": {}
+    },
+    {
+        "name": "taxi1@localhost",
+        "timestamp": 6.1398,
+        "event_type": "transport_offer_acceptance",
+        "class_type": "TaxiAgent",
+        "details": {}
+    },
+    {
+        "name": "taxicustomer1@localhost",
+        "timestamp": 6.141237,
+        "event_type": "wait_for_pickup",
+        "class_type": "TaxiCustomerAgent",
+        "details": {}
+    },
+    {
+        "name": "taxi1@localhost",
+        "timestamp": 6.159652,
+        "event_type": "travel_to_pickup",
+        "class_type": "TaxiAgent",
+        "details": {
+            "distance": 2815,
+            "duration": 261.1
+        }
+    },
+    {
+        "name": "taxicustomer1@localhost",
+        "timestamp": 12.195493,
+        "event_type": "customer_pickup",
+        "class_type": "TaxiCustomerAgent",
+        "details": {}
+    },
+    {
+        "name": "taxi1@localhost",
+        "timestamp": 23.262776,
+        "event_type": "trip_completion",
+        "class_type": "TaxiAgent",
+        "details": {}
+    }
+    ]
 
-    This address is (in most cases): `http://127.0.0.1:9000/app <http://127.0.0.1:9000/app>`_
+* **Example 2: Simulation with Maximum Verbosity**
 
-Once you visit the GUI address you see an interface like this:
+.. code-block:: console
 
-.. figure:: images/screen3.png
-    :align: center
-    :alt: GUI at startup
+    $ simfleet --config myconfig.json --name "My Simulation" --vvvv
 
-    GUI at startup
-
-In the GUI you can see a map of the city on the right and a Control Panel with various options on the left:
-
-#. A **Run** button that starts the simulation.
-
-#. A **Clear** button to stop and reset the simulation.
-
-#. Stats of the waiting time and total time of the simulation in real time.
-
-#. A **Download** button to get the stats of the simulation in excel or json format.
-
-#. A collapsable tree view with the transports and customers that are included in the simulation, with a color bullet that indicates their current status.
-
-If the **Run** button is pressed the simulation shows how the transports move to the customers and deliver them to their
-destinations.
-
-.. figure:: images/madrid.png
-    :align: center
-    :alt: Simulation in progress
-
-    Simulation in progress
-
-Notice that when a transport picks up a customer, the customer's icon disappears from the map view (since it
-is inside the transport) and is no longer viewed (it's also not shown when it arrives to its destination). However, you can
-check at any time your customers status in the tree view of the Control Panel.
-
-The code colors in the tree view indicate the status of a transport or a customer. The legend of colors is as follows:
-
-+--------------------------------------+---------------------------------+
-|              Transports              |            Customers            |
-+--------------+-----------------------+---------------+-----------------+
-|  Bullet      |     Status            |  Bullet       |     Status      |
-+==============+=======================+===============+=================+
-| |positive|   | WAITING               | |active|      |  WAITING        |
-+--------------+-----------------------+---------------+-----------------+
-| |inter|      | WAITING FOR APPROVAL  | |inter|       |  ASSIGNED       |
-+--------------+-----------------------+---------------+-----------------+
-| |interpulse| | MOVING TO CUSTOMER    | |activepulse| |  IN TRANSPORT   |
-+--------------+-----------------------+---------------+-----------------+
-| |activepulse|| MOVING TO DESTINATION | |positive|    |  IN DESTINATION |
-+--------------+-----------------------+---------------+-----------------+
-
-
-
-.. |positive| image:: images/positive2.png
-                :width: 36px
-
-.. |inter| image:: images/inter2.png
-                :width: 36px
-
-.. |interpulse| image:: images/interpulse2.png
-                :width: 36px
-
-.. |activepulse| image:: images/activepulse2.png
-                :width: 36px
-
-.. |active| image:: images/active2.png
-                :width: 36px
-
-.. hint::
-    Every time than a bullet is pulsing means that the agent is moving.
-
-
-When a transport is moving it's also shown in the GUI the path that the transport is following. The color of the path indicates the
-type of movement that the transport is doing. A yellow path indicates that the transport is going to pick up the customer.
-On the other hand, a blue path indicates that the transport is taking the customer to his destination.
+This example uses the configuration file ``myconfig.json`` and sets the simulation name to "My Simulation". The ``--vvvv`` option enables the highest verbosity level (level 4), providing
+detailed debug information during execution. This is particularly useful for troubleshooting and understanding the internal workings of the simulation. For instance, ``-v`` represents
+**DEBUG** verbosity, while ``-vvvv`` displays the most detailed internal messages of the platform.
 
 
 .. note::
-    A simulation is finished when all transports are free (and waiting for new customers) and all customers are in their
-    destinations (i.e. all bullets are green).
+    To start the simulation scenario in the GUI while running simulator from the CLI, use the web interface address displayed in the output, such as:
+
+    .. code-block:: console
+
+        2024-11-25 16:29:07.229 | INFO     | simfleet.simulator:setup:110 - Web interface running at http://127.0.0.1:9000/app
+
+    This address is (in most cases): `http://127.0.0.1:9000/app <http://127.0.0.1:9000/app>`_
+
+* **Example 3: Simulation with Time Limit and Autorun**
+
+.. code-block:: console
+
+    $ simfleet --config myconfig.json --name "My Simulation" --output results.json --max-time 100 --autorun
+
+In this example, the configuration file ``myconfig.json`` is used, and the simulation is named "My Simulation". The ``--autorun`` flag ensures the simulation starts automatically
+as soon as the agents are ready. Additionally, the ``--max-time 100`` option limits the simulation duration to 100 seconds. The simulation events are saved to ``results.json``,
+making it easy to review the results once the simulation concludes.
+

@@ -11,13 +11,6 @@ Contents:
    quickstart
    advanced-config
    metrics
-   agent
-   architecture
-   stations
-   custome-agent
-   agent-skills
-   strategies
-   statistics
    api
    contributing
    authors

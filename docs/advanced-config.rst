@@ -777,7 +777,7 @@ each stop is defined by its coordinates. Once a Bus transport reaches the last s
 indicates how it continues its operation.
 
 +--------------------------------------------------------------------------------------+
-|  Bus line                                                                           |
+|  Bus line                                                                            |
 +-------------+------------------------------------------------------------------------+
 |  Field      |  Description                                                           |
 +=============+========================================================================+

@@ -158,7 +158,7 @@ Specifically, these metrics include:
 
 Example CLI Output:
 
-.. code-block:: json:
+.. code-block:: console
 
     2024-12-20 15:12:53.351 | WARNING  | simfleet.simulator:run:1391 - Agent[simulator_taxis]: The agent has a mailbox size of (0)
     2024-12-20 15:12:53.381 | INFO     | simfleet.simulator:stop:585 - Stopping simulation...

@@ -1,4 +1,5 @@
 import pandas as pd
+from loguru import logger
 from tabulate import tabulate
 from simfleet.metrics.basestatistics import BaseStatisticsClass
 from simfleet.utils.statistics import Log
@@ -13,10 +14,15 @@ class MobilityStatisticsClass(BaseStatisticsClass):
         Args:
             events_log (Log): A log containing all events from the simulation.
         """
+        try:
 
-        self.taxi_metrics(events_log, "simfleet_metrics_taxi.json")
+            self.taxi_metrics(events_log, "simfleet_metrics_taxi.json")
 
-        self.electric_taxi_metrics(events_log, "simfleet_metrics_electrictaxi.json")
+        except Exception as e:
+            logger.warning(
+                "EXCEPTION - taxi_metrics hasn't events: {}".format(e)
+            )
+            self.electric_taxi_metrics(events_log, "simfleet_metrics_electrictaxi.json")
 
         self.customer_taxi_metrics(events_log, "simfleet_metrics_taxicustomer.json")
 

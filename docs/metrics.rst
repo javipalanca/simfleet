@@ -2,22 +2,36 @@
 Metrics Usage Manual
 ====================
 
-Simfleet includes a default metrics module that filters specific simulation events and calculates key performance indicators (KPIs) for different agent types.
+During the development of a simulation, SimFleet agents may emit events that indicate where they are in their life cycle
+at a certain time within the execution. In addition, these events can include information about their operation, such as the
+traveled distance or the number of served customers of a transport agent. These events can be used to compute simulation
+metrics which relate to agent performance.
+
+The platform is prepared for its users to implement customized events and metrics. However, the current version of
+SimFleet includes a default metrics module that filters specific events and calculates key performance indicators (KPIs) for different agent types.
 The results are exported in JSON format and summarized for easier analysis. Key components include base statistics for taxi and electric taxi scenarios,
 as well as KPIs such as total distance, number of assignments, and waiting times.
 
-Default events
+.. note::
+    The selection of the metrics to be computed after the execution of a simulation is defined in the simulation's
+    configuration file, under the section **mobility_metrics**. This value must point to the class that filters the event log
+    and computes each KPI.
+
+Following, we illustrate the default events and metrics, grouped by agent type.
+
+Default Events
 ==============
 
-Simfleet includes an Event System that records critical activities performed by agents during the simulation. These events provide valuable information about agent
-behavior and performance.
+SimFleet includes an Event System that records critical activities performed by agents during the simulation.
+These events provide valuable information about agent behavior and performance.
 
-Simfleet comes with default event types for taxi and electric taxi scenarios.
+The current version of the platform comes with default events for agents of the Taxi and Electric Taxi service simulations.
+These are TaxiCustomer, Taxi and ElectricTaxi agents.
 
 The key default events are:
 
 +-------------------------------+
-|  Default events: TaxiCustomer |
+|  TaxiCustomer                 |
 +-------------------------------+
 |  Event                        |
 +===============================+
@@ -35,7 +49,7 @@ The key default events are:
 +-------------------------------+
 
 +----------------------------------------------------------+
-|  Default events: Taxi and ElectricTaxi                   |
+|  Taxi and ElectricTaxi                                   |
 +----------------------------+----------+------------------+
 |  Event                     |   Taxi   |   ElectricTaxi   |
 +============================+==========+==================+
@@ -66,7 +80,14 @@ The key default events are:
 | service_completion         |   no     |       yes        |
 +----------------------------+----------+------------------+
 
-Both the GUI and the CLI allow users to extract these events once a simulation starts. An example of the output with events:
+By default, upon the completion of a simulation, SimFleet generates a log of all emitted events sorted by emission time.
+In addition, the GUI allows users to generate and download the event log at any point after the simulation has started.
+
+.. and the CLI once a simulation has star
+
+You can find below an example of an event log. Each entry contains the name of the emitting agent and its class, the emission
+timestamp, the type of the event, and any additional details necessary to contextualize the event and used for the subsequent
+metrics computation.
 
 .. code-block:: json
 
@@ -118,22 +139,22 @@ Both the GUI and the CLI allow users to extract these events once a simulation s
     }
     ]
 
-Default metrics
+Default Metrics
 ===============
 
 Taxi metrics
 ------------
 
-The Taxi and ElectricTaxi metrics calculate and export statistics for regular taxis and electric taxis, respectively. Both metrics track similar KPIs,
-such as the number of assignments, total distance and customer total distance.
+The Taxi and ElectricTaxi metrics calculate and export statistics regarding agents of these types. The metrics for both agent types
+track similar KPIs such as the number of assignments, total distance and customer total distance.
 
-These metrics include:
+Specifically, these metrics include:
 
-* **Assignments:** The number of assignments each taxi completes.
+* **Assignments:** The number of assignments each transport completes.
 
-* **Total Distance:** The sum of distances traveled by each taxi.
+* **Total Distance:** The sum of distances traveled by each transport, in meters.
 
-* **Customer Total Distance:** The distance traveled with customers onboard.
+* **Customer Total Distance:** The distance traveled by a transport with a customer onboard, in meters.
 
 Example CLI Output:
 
@@ -175,16 +196,17 @@ Example JSON Output:
 ElectricTaxi metrics
 --------------------
 
-The ElectricTaxi metrics module calculates and exports additional metrics specific to electric taxis. These include station-related distances, waiting times at charging stations,
-and charging durations. These distinctions help to understand the operational differences and requirements of electric taxis.
+The ElectricTaxi metrics module calculates, in addition to the Taxi metrics, additional indicators specific to electric taxis.
+These include station-related distances, waiting times at charging stations, and charging durations. These distinctions
+help understand the operational differences and requirements of electric taxis.
 
 These metrics include:
 
-* **Station Total Distance:** The distance traveled to charging stations.
+* **Station Total Distance:** The distance traveled moving to charging stations, in meters.
 
-* **Waiting in Station Time:** Time spent waiting for charging service.
+* **Waiting in Station Time:** Time spent in a charging station waiting for a charging service, in seconds.
 
-* **Charging Time:** Time spent charging.
+* **Charging Time:** Time spent charging, in seconds.
 
 Example CLI Output:
 
@@ -242,13 +264,13 @@ Example JSON Output:
 TaxiCustomer metrics
 --------------------
 
-The TaxiCustomer metrics calculate and export statistics for taxi customers.
+The TaxiCustomer metrics calculate and export statistics for this type of transportation customers.
 
 These metrics include:
 
-* **Waiting Time:** The time between requesting a taxi and being picked up.
+* **Waiting Time:** Time elapsed between requesting a taxi and being picked up, in seconds.
 
-* **Total Trip Time:** The time from requesting a taxi to arriving at the destination.
+* **Total Trip Time:** Time elapse between requesting a taxi and arriving at the destination, in seconds.
 
 Example CLI Output:
 

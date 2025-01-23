@@ -8,10 +8,7 @@ SimFleet
 
 .. image:: https://img.shields.io/pypi/pyversions/simfleet.svg
     :target: https://pypi.python.org/pypi/simfleet
-
-.. image:: https://img.shields.io/tokei/lines/github/javipalanca/simfleet?label=lines
-    :alt: Total Lines
-    :target: https://pepy.tech/project/simfleet
+    :alt: Python Versions
 
 .. image:: https://img.shields.io/github/languages/count/javipalanca/simfleet?label=languages
     :alt: Languages
@@ -21,7 +18,7 @@ SimFleet
     :alt: Code Size
     :target: https://pepy.tech/project/simfleet
 
-.. image:: https://img.shields.io/apm/l/atomic-design-ui.svg?
+.. image:: https://img.shields.io/pypi/l/simfleet
     :target: https://opensource.org/licenses/MIT
     :alt: MIT License
 
@@ -32,6 +29,9 @@ SimFleet
 .. image:: https://readthedocs.org/projects/simfleet/badge/?version=latest
         :target: https://simfleet.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
+
+.. image:: https://img.shields.io/pypi/format/simfleet.svg
+    :target: https://pypi.python.org/pypi/simfleet
 
 
 SimFleet is a multi-agent simulation platform for the orchestration and execution of transportation services.

@@ -2,6 +2,14 @@
 History
 =======
 
+2.0.0 (2025-01-23)
+------------------
+* New brand release
+* Upgraded to SPADE 4
+* Full code refactor
+* New class hierarchy
+* New documentation
+
 1.0.3 (2022-12-13)
 ------------------
 * Update third-party libs

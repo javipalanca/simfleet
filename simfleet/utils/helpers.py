@@ -9,7 +9,7 @@ import os
 import random
 import requests
 
-from geopy.distance import vincenty
+from geopy.distance import geodesic as vincenty
 from geopy.geocoders import Nominatim
 
 def get_bbox_from_location(location_str, zoom):

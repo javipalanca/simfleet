@@ -9,13 +9,8 @@ Contents:
    readme
    installation
    quickstart
-   agent
-   architecture
-   stations
-   custome-agent
-   agent-skills
-   strategies
-   statistics
+   advanced-config
+   metrics
    api
    contributing
    authors

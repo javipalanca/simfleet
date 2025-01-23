@@ -452,7 +452,7 @@ class TransportStopFactory(Factory):
                     domain,
                     name,
                     password,
-                    default_strategy,
+                    default_strategy=None,
                     simulatorjid=None,
                     class_=None,
                     optional=None,

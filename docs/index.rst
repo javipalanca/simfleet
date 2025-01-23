@@ -8,8 +8,9 @@ Contents:
 
    readme
    installation
-   usage
-   develop
+   quickstart
+   advanced-config
+   metrics
    api
    contributing
    authors

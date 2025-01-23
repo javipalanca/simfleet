@@ -5,29 +5,33 @@ export const store = new Vuex.Store({
         transports: [],
         customers: [],
         stations: [],
+        vehicles: [],
         paths: [],
-        waiting_time: 0,
         total_time: 0,
         simulation_status: false,
         treedata: {}
     },
     mutations: {
         addTransports: (state, payload) => {
-            if (payload.length > 0) {
-                let new_paths = [];
-                for (let i = 0; i < payload.length; i++) {
-                    update_item_in_collection(state.transports, payload[i], transport_popup);
+        if (payload.length > 0) {
+            let new_paths = [];
+            for (let i = 0; i < payload.length; i++) {
+                update_item_in_collection(state.transports, payload[i], transport_popup);
 
-                    if (payload[i].path) {
-                        new_paths.push({latlngs: payload[i].path, color: get_color(payload[i].status)})
-                    }
+                // Ahora el path se dibuja siempre que exista, sin depender del estado
+                if (payload[i].path) {
+                    new_paths.push({
+                        latlngs: payload[i].path,
+                        color: "rgb(255, 170, 0)"  // Color naranja para todos los paths
+                    });
                 }
-                state.paths = new_paths;
-            } else {
-                state.transports = [];
-                state.paths = [];
             }
-        },
+            state.paths = new_paths;
+        } else {
+            state.transports = [];
+            state.paths = [];
+        }
+    },
         addCustomers: (state, payload) => {
             if (payload.length > 0) {
                 for (let i = 0; i < payload.length; i++) {
@@ -44,6 +48,17 @@ export const store = new Vuex.Store({
                 }
             } else {
                 state.stations = [];
+            }
+        },
+        addVehicles: (state, payload) => {
+            if (payload.length > 0) {
+                for (let i = 0; i < payload.length; i++) {
+                    update_item_in_collection(state.vehicles, payload[i], vehicle_popup); // Usa una función similar a la de transports
+
+
+                }
+            } else {
+                state.vehicles = [];
             }
         },
         update_simulation_status: (state, stats) => {
@@ -66,17 +81,17 @@ export const store = new Vuex.Store({
         get_stations: (state) => {
             return state.stations;
         },
+        get_vehicles: (state) => {
+            return state.vehicles;
+        },
         get_paths: (state) => {
             return state.paths;
-        },
-        get_waiting_time: (state) => {
-            return state.waiting_time;
         },
         get_total_time: (state) => {
             return state.total_time;
         },
         status: (state) => {
-            return state.simulation_status && (state.customers.length || state.transports.length);
+            return state.simulation_status && (state.customers.length || state.transports.length || state.vehicles.length);
         },
         tree: (state) => {
             return state.treedata;
@@ -130,8 +145,6 @@ let update_station_in_collection = function (collection, item, get_popup) {
     }
     else {
         collection[p].popup = get_popup(item);
-        collection[p].power = item.power;
-        collection[p].places = item.places;
         collection[p].status = item.status;
         item.icon_url = item.icon;
         if(item.icon) {
@@ -148,19 +161,6 @@ let getitem = function (collection, item) {
     }
     return false;
 };
-
-let color = {
-    11: "rgb(255, 170, 0)",
-    13: "rgb(0, 149, 255)",
-    15: "rgb(0, 255, 15)",
-    "TRANSPORT_MOVING_TO_CUSTOMER": "rgb(255, 170, 0)",
-    "TRANSPORT_MOVING_TO_DESTINATION": "rgb(0, 149, 255)",
-    "TRANSPORT_MOVING_TO_STATION": "rgb(0, 255, 15)"
-};
-
-function get_color(status) {
-    return color[status];
-}
 
 let statuses = {
     10: "TRANSPORT_WAITING",
@@ -187,34 +187,32 @@ let statuses = {
 
 function customer_popup(customer) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + customer.id + "</td></tr>" +
-        "<tr><th>STATUS</th><td>" + customer.status + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + customer.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + customer.dest + "</td></tr>" +
-        "<tr><th>TRANSPORT</th><td>" + customer.transport + "</td></tr>" +
-        "<tr><th>WAITING</th><td>" + customer.waiting + "</td></tr>" +
         "</table>"
 }
 
 function transport_popup(transport) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + transport.id + "</td></tr>" +
-        "<tr><th>STATUS</th><td>" + transport.status + "</td></tr>" +
-        "<tr><th>FLEETNAME</th><td>" + transport.fleet + "</td></tr>" +
-        "<tr><th>TYPE</th><td>" + transport.service + "</td></tr>" +
-        "<tr><th>CUSTOMER</th><td>" + transport.customer + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + transport.position + "</td></tr>" +
         "<tr><th>DEST</th><td>" + transport.dest + "</td></tr>" +
         "<tr><th>ASSIGNMENTS</th><td>" + transport.assignments + "</td></tr>" +
         "<tr><th>SPEED</th><td>" + transport.speed + "</td></tr>" +
         "<tr><th>DISTANCE</th><td>" + transport.distance + "</td></tr>" +
-        "<tr><th>AUTONOMY</th><td>" + transport.autonomy + " / " + transport.max_autonomy + "</td></tr>" +
         "</table>"
 }
 
 function station_popup(station) {
     return "<table class='table'><tbody><tr><th>NAME</th><td>" + station.id + "</td></tr>" +
-        "<tr><th>STATUS</th><td>" + station.status + "</td></tr>" +
         "<tr><th>POSITION</th><td>" + station.position + "</td></tr>" +
-        "<tr><th>POWERCHARGE</th><td>" + station.power + 'kW' + "</td></tr>" +
-        "<tr><th>PLACES</th><td>" + station.places + "</td></tr>" +
+        "</table>"
+}
+
+function vehicle_popup(vehicle) {
+    return "<table class='table'><tbody><tr><th>NAME</th><td>" + vehicle.id + "</td></tr>" +
+        "<tr><th>POSITION</th><td>" + vehicle.position + "</td></tr>" +
+        "<tr><th>DEST</th><td>" + vehicle.dest + "</td></tr>" +
+        "<tr><th>SPEED</th><td>" + vehicle.speed + "</td></tr>" +
+        "<tr><th>DISTANCE</th><td>" + vehicle.distance + "</td></tr>" +
         "</table>"
 }

@@ -2,6 +2,22 @@
 History
 =======
 
+2.0.0 (2025-01-23)
+------------------
+* New brand release
+* Upgraded to SPADE 4
+* Full code refactor
+* New class hierarchy
+* New documentation
+
+1.0.3 (2022-12-13)
+------------------
+* Update third-party libs
+
+1.0.2 (2021-02-14)
+------------------
+* Fixed bug with Vuex version
+
 1.0.1 (2019-11-07)
 ------------------
 

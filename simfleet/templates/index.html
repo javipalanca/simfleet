@@ -79,7 +79,7 @@
             <sidebar-component ref="sidebar">
                 <div class="treeview">
                     <ul id="treeview-ul" class="list-group" style="list-style-type: none;">
-                      <tree-view class="item" :transports="transports" :customers="customers"></tree-view>
+                      <tree-view class="item" :transports="transports" :customers="customers" :vehicles="vehicles" :stations="stations" ></tree-view>
                     </ul>
                 </div>
             </sidebar-component>
@@ -105,6 +105,11 @@
                         <v-popup :content="station.popup"></v-popup>
                     </v-marker>
                 </span>
+                <span v-for="vehicle in vehicles">
+                    <v-marker :lat-lng="vehicle.latlng" :icon="vehicle.icon" @l-move="set_speed($event, vehicle)">
+                        <v-popup :content="vehicle.popup"></v-popup>
+                    </v-marker>
+                </span>
             </v-map>
 
         <input type="hidden" id="backport" value="{{ port }}">
@@ -115,7 +120,7 @@
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 <script src="https://unpkg.com/vue@2.2.4/dist/vue.js"></script>
-<script src="https://unpkg.com/vuex"></script>
+<script src="https://unpkg.com/vuex@3.6.2"></script>
 <script src="https://unpkg.com/leaflet@1.0.3"></script>
 <script src="https://unpkg.com/vue2-leaflet@0.0.45"></script>
 <script src="https://unpkg.com/axios/dist/axios.min.js"></script>

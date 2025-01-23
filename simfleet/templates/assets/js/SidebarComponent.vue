@@ -39,22 +39,12 @@
                                     <i class="fa fa-stop"></i>
                                     &nbsp;&nbsp;Stop
                                 </button>
-                                <button type="button" class="btn btn-warning"
-                                        data-sort="feature-name"
-                                        @click="clean">
-                                    <i class="fa fa-trash-alt"></i>
-                                    &nbsp;&nbsp;Clear
-                                </button>
                             </th>
                         </tr>
                         </thead>
                         <tbody class="list">
                         <tr>
-                            <th colspan="2">Waiting Time</th>
-                            <td id="waiting">{{ waiting }}</td>
-                        </tr>
-                        <tr>
-                            <th colspan="2">Total Time</th>
+                            <th colspan="2">Simulation time</th>
                             <td id="total">{{ totaltime }}</td>
                         </tr>
                         <tr>
@@ -66,8 +56,7 @@
                                     <span class="caret"></span>
                                   </button>
                                   <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
-                                    <li><a href="/download/excel/">Excel</a></li>
-                                    <li><a href="/download/json/">JSON</a></li>
+                                    <li><a href="/download/json/">Events - JSON</a></li>
                                   </ul>
                                 </div>
 
@@ -95,9 +84,6 @@
             }
         },
         computed: {
-            waiting() {
-                return this.$store.getters.get_waiting_time;
-            },
             totaltime() {
                 return this.$store.getters.get_total_time;
             },
@@ -111,9 +97,6 @@
             },
             stop() {
                 axios.get("/stop");
-            },
-            clean() {
-                axios.get("/clean");
             }
         }
     }

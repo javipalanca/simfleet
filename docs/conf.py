@@ -40,7 +40,7 @@ import simfleet
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", 'sphinx.ext.autosectionlabel', "sphinx.ext.napoleon"]
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", 'sphinx.ext.autosectionlabel'] #, "sphinx.ext.napoleon"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -56,7 +56,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"SimFleet"
-copyright = u"2022, Javi Palanca"
+copyright = u"2025, Javi Palanca"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -79,7 +79,20 @@ language = "python"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build"]
+exclude_patterns = ["_build",
+        "agent.rst",
+        "agent-skills.rst",
+        "modules.rst",
+        "architecture.rst",
+        "custome-agent.rst",
+        "develop.rst",
+        "stations.rst",
+        "statistics.rst",
+        "strategies.rst",
+        "usage.rst",
+        "modules.rst"]
+
+suppress_warnings = ['ref.duplicate']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -104,7 +117,7 @@ pygments_style = "sphinx"
 
 # If true, keep warnings as "system message" paragraphs in the built
 # documents.
-# keep_warnings = False
+keep_warnings = False
 
 
 # -- Options for HTML output -------------------------------------------

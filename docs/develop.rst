@@ -253,7 +253,7 @@ In order to fully understand how SPADE works, it is necessary to know how the ag
 communicate. In the following sections we will summarize the SPADE agent model and its communication API.
 
 Agent Model: Behaviours
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 SPADE agents are threaded-based objects that can be run concurrently and that are connected to a SPADE platform, which
 internally runs an XMPP server. Each agent must provide an ID and password in order to be allowed to connect to the platform.
 The agent ID is called JID and has the form of an email: a user name string plus a "`@`" character plus the IP address

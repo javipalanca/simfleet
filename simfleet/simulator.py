@@ -41,17 +41,15 @@ class SimulatorAgent(Agent):
     """
     The Simulator. It manages all the simulation processes.
     Tasks done by the simulator at initialization:
-        #. Create the XMPP server
-        #. Run the SPADE backend
-        #. Run the directory agent.
-        #. Create agents defined in scenario (if any).
+    #. Create the XMPP server
+    #. Run the SPADE backend
+    #. Run the directory agent.
+    #. Create agents defined in scenario (if any).
 
     After these tasks are done in the Simulator constructor, the simulation is started when the ``run`` method is called.
     """
 
-    def __init__(
-        self, config, agentjid="simulator@localhost", password="simulator123j3"
-    ):
+    def __init__(self, config, agentjid, password):
         self.config = config
 
         super().__init__(jid=agentjid, password=password)
@@ -91,14 +89,14 @@ class SimulatorAgent(Agent):
         logger.info("Starting SimFleet {}".format(self.pretty_name))
 
         self.default_strategies = set_default_strategies(
-                                                config.directory_strategy,
-                                                config.fleetmanager_strategy,
-                                                config.transport_strategy,
-                                                config.customer_strategy,
-                                                config.station_strategy,
-                                                config.vehicle_strategy
-                                                #config.bus_stop_strategy
-                                                )
+            config.directory_strategy,
+            config.fleetmanager_strategy,
+            config.transport_strategy,
+            config.customer_strategy,
+            config.station_strategy,
+            config.vehicle_strategy,
+            # config.bus_stop_strategy
+        )
 
         self.metrics_class = {}
 
@@ -152,19 +150,18 @@ class SimulatorAgent(Agent):
             )
         )
 
-        await self.create_directory_agent(name=self.config.directory_name,
-                                    password=self.config.directory_password
-                                    )
+        await self.create_directory_agent(
+            name=self.config.directory_name, password=self.config.directory_password
+        )
 
         await self.load_scenario()
 
-        #Comunication template
+        # Comunication template
         template = Template()
         template.set_metadata("protocol", COORDINATION_PROTOCOL)
         template.set_metadata("performative", REQUEST_PERFORMATIVE)
 
         self.add_behaviour(CoordinationBehaviour(), template)
-
 
     async def load_scenario(self):
         """
@@ -183,11 +180,9 @@ class SimulatorAgent(Agent):
             fleet_type = manager["fleet_type"]
             strategy = manager.get("strategy")
             icon = manager.get("icon")
-            agent = self.create_fleetmanager_agent(name,
-                                                   password,
-                                                   fleet_type=fleet_type,
-                                                   strategy=strategy
-                                                    )
+            agent = self.create_fleetmanager_agent(
+                name, password, fleet_type=fleet_type, strategy=strategy
+            )
 
             self.set_icon(agent, icon, default=fleet_type)
             managers.append(agent.start())
@@ -206,23 +201,33 @@ class SimulatorAgent(Agent):
 
         all_agents = []
         try:
-            all_agents += await self.async_create_agents_batch_transport(self.config["transports"])
+            all_agents += await self.async_create_agents_batch_transport(
+                self.config["transports"]
+            )
         except Exception as e:
             logger.exception("EXCEPTION creating Transport agents batch {}".format(e))
         try:
-            all_agents += await self.async_create_agents_batch_customer(self.config["customers"])
+            all_agents += await self.async_create_agents_batch_customer(
+                self.config["customers"]
+            )
         except Exception as e:
             logger.exception("EXCEPTION creating Customer agents batch {}".format(e))
         try:
-            all_agents += await self.async_create_agents_batch_station(self.config["stations"])
+            all_agents += await self.async_create_agents_batch_station(
+                self.config["stations"]
+            )
         except Exception as e:
             logger.exception("EXCEPTION creating Station agents batch {}".format(e))
         try:
-            all_agents += await self.async_create_agents_batch_vehicle(self.config["vehicles"])
+            all_agents += await self.async_create_agents_batch_vehicle(
+                self.config["vehicles"]
+            )
         except Exception as e:
             logger.exception("EXCEPTION creating Vehicles agents batch {}".format(e))
         try:
-            all_agents += await self.async_create_agents_batch_stop(self.config["stops"])
+            all_agents += await self.async_create_agents_batch_stop(
+                self.config["stops"]
+            )
         except Exception as e:
             logger.exception("EXCEPTION creating Stop agents batch {}".format(e))
 
@@ -278,21 +283,21 @@ class SimulatorAgent(Agent):
                 delayed = True
 
             agent = self.create_transport_agent(
-                                                name,
-                                                password,
-                                                class_,
-                                                fleet_type,
-                                                strategy=strategy,
-                                                position=position,
-                                                service=service,
-                                                autonomy=autonomy,
-                                                current_autonomy=current_autonomy,
-                                                speed=speed,
-                                                optional=optional,
-                                                delayed=delayed,
-                                                capacity=capacity,
-                                                line=line
-                                                )
+                name,
+                password,
+                class_,
+                fleet_type,
+                strategy=strategy,
+                position=position,
+                service=service,
+                autonomy=autonomy,
+                current_autonomy=current_autonomy,
+                speed=speed,
+                optional=optional,
+                delayed=delayed,
+                capacity=capacity,
+                line=line,
+            )
             self.set_icon(agent, icon, default="transport")
 
             if delay is not None:
@@ -329,17 +334,17 @@ class SimulatorAgent(Agent):
                 delayed = True
 
             agent = self.create_customer_agent(
-                                                name,
-                                                password,
-                                                class_,
-                                                fleet_type,
-                                                position=position,
-                                                target=target,
-                                                strategy=strategy,
-                                                delayed=delayed,
-                                                speed=speed,
-                                                line=line
-                                                )
+                name,
+                password,
+                class_,
+                fleet_type,
+                position=position,
+                target=target,
+                strategy=strategy,
+                delayed=delayed,
+                speed=speed,
+                line=line,
+            )
 
             self.set_icon(agent, icon, default="customer")
 
@@ -366,27 +371,24 @@ class SimulatorAgent(Agent):
             services = station.get("services")
             icon = station.get("icon")
             agent = self.create_station_agent(
-                                                name=station["name"],
-                                                password=password,
-                                                position=position,
-                                                class_=class_,
-                                                services=services,
-                                                strategy=strategy,
-                                            )
+                name=station["name"],
+                password=password,
+                position=position,
+                class_=class_,
+                services=services,
+                strategy=strategy,
+            )
             self.set_icon(agent, icon, default="electric_station")
 
             coros.append(agent.start())
         return coros
-
 
     async def async_create_agents_batch_stop(self, agents: list) -> List:
         coros = []
         for stop in agents:
             logger.debug("stop creation batch = {}".format(stop["name"]))
             password = (
-                stop["password"]
-                if "password" in stop
-                else faker_factory.password()
+                stop["password"] if "password" in stop else faker_factory.password()
             )
             strategy = stop.get("strategy")
             icon = stop.get("icon")
@@ -395,20 +397,19 @@ class SimulatorAgent(Agent):
             lines = stop["lines"]
 
             agent = self.create_bus_stop_agent(
-                                                id=stop["id"],
-                                                name=stop["name"],
-                                                password=password,
-                                                position=position,
-                                                class_=class_,
-                                                lines=lines,
-                                                strategy=strategy,
-                                            )
+                id=stop["id"],
+                name=stop["name"],
+                password=password,
+                position=position,
+                class_=class_,
+                lines=lines,
+                strategy=strategy,
+            )
 
             self.set_icon(agent, icon, default="solar_station")
 
             coros.append(agent.start())
         return coros
-
 
     async def async_create_agents_batch_vehicle(self, agents: list) -> List:
         coros = []
@@ -434,15 +435,15 @@ class SimulatorAgent(Agent):
                 delayed = True
 
             agent = self.create_vehicle_agent(
-                                                name,
-                                                password,
-                                                position=position,
-                                                speed=speed,
-                                                fleet_type=fleet_type,
-                                                strategy=strategy,
-                                                delayed=delayed,
-                                                target=target,
-                                            )
+                name,
+                password,
+                position=position,
+                speed=speed,
+                fleet_type=fleet_type,
+                strategy=strategy,
+                delayed=delayed,
+                target=target,
+            )
             self.set_icon(agent, icon, default="drone")
 
             if delay is not None:
@@ -549,7 +550,7 @@ class SimulatorAgent(Agent):
                             logger.debug(
                                 f"Running strategy {self.agent.default_strategies['vehicle']} to vehicle {vehicle.name}"
                             )
-                        #for stop in self.agent.bus_stop_agents.values():
+                        # for stop in self.agent.bus_stop_agents.values():
                         #    stop.run_strategy()
                         #    logger.debug(
                         #        f"Running strategy {self.agent.default_strategies['stop']} to stop {stop.name}"
@@ -575,9 +576,9 @@ class SimulatorAgent(Agent):
         """
         Finishes the simulation and prints simulation stats.
         Tasks done when a simulation is stopped:
-            #. Stop participant agents.
-            #. Print stats.
-            #. Stop fleetmanager agent.
+        #. Stop participant agents.
+        #. Print stats.
+        #. Stop fleetmanager agent.
         """
         self.simulation_time = self.get_simulation_time()
         await self.directory_agent.stop()
@@ -596,14 +597,13 @@ class SimulatorAgent(Agent):
 
         await super().stop()
 
-
     async def generate_metrics(self):
 
         self.generate_all_events()
 
-        statistics = self.metrics_class['mobility_metrics']
+        statistics = self.metrics_class["mobility_metrics"]
 
-        #Create a instance
+        # Create a instance
         statistics = statistics()
 
         the_log = self.events_log
@@ -654,7 +654,9 @@ class SimulatorAgent(Agent):
 
                 self.events_log.add_events(partial_log)
 
-        self.events_log.adjust_timestamps(simulator_timestamp=str(self.simulation_init_time))
+        self.events_log.adjust_timestamps(
+            simulator_timestamp=str(self.simulation_init_time)
+        )
 
         self.events_log.sort_by_timestamp(reverse=False)
 
@@ -673,8 +675,6 @@ class SimulatorAgent(Agent):
         with open(filename, "w") as f:
             f.seek(0)
             json.dump(log_events, f, indent=4)
-
-
 
     # ////////////////////////////////////////////////////////////
 
@@ -836,9 +836,10 @@ class SimulatorAgent(Agent):
             ],
             "tree": self.generate_tree(),
             "stats": self.get_stats(),
-            "stations": [station.to_json() for station in self.station_agents.values()] + [stop.to_json() for stop in self.bus_stop_agents.values()],
+            "stations": [station.to_json() for station in self.station_agents.values()]
+            + [stop.to_json() for stop in self.bus_stop_agents.values()],
             # Bus line
-            #"stops": [stop.to_json() for stop in self.bus_stop_agents.values()],
+            # "stops": [stop.to_json() for stop in self.bus_stop_agents.values()],
         }
         return result
 
@@ -858,7 +859,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            #"status": i.status,
+                            # "status": i.status,
                             "icon": "fa-taxi",
                         }
                         for i in self.transport_agents.values()
@@ -870,7 +871,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            #"status": i.status,
+                            # "status": i.status,
                             "icon": "fa-lib",
                         }
                         for i in self.customer_agents.values()
@@ -882,7 +883,7 @@ class SimulatorAgent(Agent):
                     "children": [
                         {
                             "name": " {}".format(i.name.split("@")[0]),
-                            #"status": i.status,
+                            # "status": i.status,
                             "icon": "fa-vehicle",
                         }
                         for i in self.vehicle_agents.values()
@@ -1016,7 +1017,7 @@ class SimulatorAgent(Agent):
         self.simulation_time = None
         self.simulation_init_time = None
 
-    #New and compact
+    # New and compact
     async def stop_agents(self):
         self.kill_simulator.set()
         self.simulation_running = False
@@ -1049,11 +1050,12 @@ class SimulatorAgent(Agent):
         await agent.start()
 
     async def create_directory_agent(self, name, password):
-        agent = DirectoryFactory.create_agent(domain=self.jid.domain,
-                                              name=name,
-                                              password=password,
-                                              default_strategy=self.default_strategies['directory'],
-                                              )
+        agent = DirectoryFactory.create_agent(
+            domain=self.jid.domain,
+            name=name,
+            password=password,
+            default_strategy=self.default_strategies["directory"],
+        )
         self.set_directory(agent)
         agent.run_strategy()
         await agent.start()
@@ -1061,14 +1063,15 @@ class SimulatorAgent(Agent):
     def create_fleetmanager_agent(
         self, name, password, fleet_type, strategy=None, icon=None
     ):
-        agent = FleetManagerFactory.create_agent(domain=self.jid.domain,
-                                                name=name,
-                                                password=password,
-                                                default_strategy=self.default_strategies['fleetmanager'],
-                                                strategy=strategy,
-                                                jid_directory=self.get_directory().jid,
-                                                fleet_type=fleet_type,
-                                                )
+        agent = FleetManagerFactory.create_agent(
+            domain=self.jid.domain,
+            name=name,
+            password=password,
+            default_strategy=self.default_strategies["fleetmanager"],
+            strategy=strategy,
+            jid_directory=self.get_directory().jid,
+            fleet_type=fleet_type,
+        )
         if self.simulation_time:
             agent.run_strategy()
 
@@ -1078,43 +1081,45 @@ class SimulatorAgent(Agent):
 
         return agent
 
-    def create_transport_agent(self,
-                               name,
-                               password,
-                               class_,
-                               fleet_type,
-                               position,
-                               service,
-                               strategy=None,
-                               autonomy=None,
-                               current_autonomy=None,
-                               speed=None,
-                               optional=None,
-                               delayed=False,
-                               capacity=None,
-                               line=None
-                               ):
+    def create_transport_agent(
+        self,
+        name,
+        password,
+        class_,
+        fleet_type,
+        position,
+        service,
+        strategy=None,
+        autonomy=None,
+        current_autonomy=None,
+        speed=None,
+        optional=None,
+        delayed=False,
+        capacity=None,
+        line=None,
+    ):
 
-        agent = TransportFactory.create_agent(domain=self.jid.domain,
-                                              jid_directory=self.get_directory().jid,
-                                              route_host=self.route_host,
-                                              bbox=self.config.coords[1],
-                                              name=name,
-                                              password=password,
-                                              class_=class_,
-                                              fleet_type=fleet_type,
-                                              strategy=strategy,
-                                              default_strategy=self.default_strategies['transport'],
-                                              position=position,
-                                              services=service,
-                                              autonomy=autonomy,
-                                              current_autonomy=current_autonomy,
-                                              speed=speed,
-                                              optional=optional,
-                                              capacity=capacity,
-                                              line=line,
-                                              lines=self.bus_lines
-                                              )
+        agent = TransportFactory.create_agent(
+            domain=self.jid.domain,
+            jid_directory=self.get_directory().jid,
+            route_host=self.route_host,
+            bbox=self.config.coords[1],
+            name=name,
+            password=password,
+            class_=class_,
+            fleet_type=fleet_type,
+            strategy=strategy,
+            default_strategy=self.default_strategies["transport"],
+            position=position,
+            services=service,
+            autonomy=autonomy,
+            current_autonomy=current_autonomy,
+            speed=speed,
+            optional=optional,
+            capacity=capacity,
+            line=line,
+            lines=self.bus_lines,
+        )
 
         if self.simulation_running:
             agent.run_strategy()
@@ -1137,23 +1142,24 @@ class SimulatorAgent(Agent):
         target=None,
         delayed=False,
         speed=None,
-        line=None
+        line=None,
     ):
-        agent = CustomerFactory.create_agent(domain=self.jid.domain,
-                                            name=name,
-                                            password=password,
-                                            class_=class_,
-                                            default_strategy=self.default_strategies['customer'],
-                                            strategy=strategy,
-                                            jid_directory=self.get_directory().jid,
-                                            fleet_type=fleet_type,
-                                            route_host=self.route_host,
-                                            bbox=self.config.coords[1],
-                                            position=position,
-                                            speed=speed,
-                                            target=target,
-                                            line=line,
-                                            )
+        agent = CustomerFactory.create_agent(
+            domain=self.jid.domain,
+            name=name,
+            password=password,
+            class_=class_,
+            default_strategy=self.default_strategies["customer"],
+            strategy=strategy,
+            jid_directory=self.get_directory().jid,
+            fleet_type=fleet_type,
+            route_host=self.route_host,
+            bbox=self.config.coords[1],
+            position=position,
+            speed=speed,
+            target=target,
+            line=line,
+        )
 
         if self.simulation_running:
             agent.run_strategy()
@@ -1169,19 +1175,20 @@ class SimulatorAgent(Agent):
         self, name, password, position, class_, services, strategy=None
     ):
 
-        agent = StationFactory.create_agent(domain=self.jid.domain,
-                                            name=name,
-                                            password=password,
-                                            default_strategy=self.default_strategies['station'],
-                                            class_=class_,
-                                            simulatorjid=self.simulatorjid,
-                                            strategy=strategy,
-                                            jid_directory=self.get_directory().jid,
-                                            route_host=self.route_host,
-                                            bbox=self.config.coords[1],
-                                            position=position,
-                                            services=services,
-                                            )
+        agent = StationFactory.create_agent(
+            domain=self.jid.domain,
+            name=name,
+            password=password,
+            default_strategy=self.default_strategies["station"],
+            class_=class_,
+            simulatorjid=self.simulatorjid,
+            strategy=strategy,
+            jid_directory=self.get_directory().jid,
+            route_host=self.route_host,
+            bbox=self.config.coords[1],
+            position=position,
+            services=services,
+        )
         if self.simulation_running:
             agent.run_strategy()
 
@@ -1191,30 +1198,32 @@ class SimulatorAgent(Agent):
 
         return agent
 
-    def create_vehicle_agent(self,
-                            name,
-                            password,
-                            position,
-                            fleet_type=None,
-                            strategy=None,
-                            speed=None,
-                            delayed=False,
-                            target=None,
-                            ):
+    def create_vehicle_agent(
+        self,
+        name,
+        password,
+        position,
+        fleet_type=None,
+        strategy=None,
+        speed=None,
+        delayed=False,
+        target=None,
+    ):
 
-        agent = VehicleFactory.create_agent(domain=self.jid.domain,
-                                            name=name,
-                                            password=password,
-                                            default_strategy=self.default_strategies['vehicle'],
-                                            strategy=strategy,
-                                            jid_directory=self.get_directory().jid,
-                                            bbox=self.config.coords[1],
-                                            fleet_type=fleet_type,
-                                            route_host=self.route_host,
-                                            position=position,
-                                            speed=speed,
-                                            target=target,
-                                            )
+        agent = VehicleFactory.create_agent(
+            domain=self.jid.domain,
+            name=name,
+            password=password,
+            default_strategy=self.default_strategies["vehicle"],
+            strategy=strategy,
+            jid_directory=self.get_directory().jid,
+            bbox=self.config.coords[1],
+            fleet_type=fleet_type,
+            route_host=self.route_host,
+            position=position,
+            speed=speed,
+            target=target,
+        )
 
         if self.simulation_running:
             agent.run_strategy()
@@ -1228,7 +1237,15 @@ class SimulatorAgent(Agent):
 
     # bus line
     def create_bus_stop_agent(
-        self, id, name, password, class_, position, lines, strategy=None, services=None,
+        self,
+        id,
+        name,
+        password,
+        class_,
+        position,
+        lines,
+        strategy=None,
+        services=None,
     ):
         """
         Create a customer agent.
@@ -1242,20 +1259,21 @@ class SimulatorAgent(Agent):
             strategy (class, optional): strategy class of the agent
         """
         name = (id, name)
-        agent = TransportStopFactory.create_agent(domain=self.jid.domain,
-                                                name=name,
-                                                password=password,
-                                                #default_strategy=self.default_strategies['stop'],
-                                                class_=class_,
-                                                simulatorjid=self.simulatorjid,
-                                                strategy=strategy,
-                                                jid_directory=self.get_directory().jid,
-                                                route_host=self.route_host,
-                                                bbox=self.config.coords[1],
-                                                position=position,
-                                                services=services,
-                                                lines=lines,
-                                                )
+        agent = TransportStopFactory.create_agent(
+            domain=self.jid.domain,
+            name=name,
+            password=password,
+            # default_strategy=self.default_strategies['stop'],
+            class_=class_,
+            simulatorjid=self.simulatorjid,
+            strategy=strategy,
+            jid_directory=self.get_directory().jid,
+            route_host=self.route_host,
+            bbox=self.config.coords[1],
+            position=position,
+            services=services,
+            lines=lines,
+        )
 
         if self.simulation_running:
             agent.run_strategy()
@@ -1329,7 +1347,10 @@ class SimulatorAgent(Agent):
 
     def add_line(self, line_id, stop_list, line_type):
         with self.simulation_mutex:
-            self.get("bus_lines")[line_id] = {"stop_list": stop_list, "line_type": line_type}
+            self.get("bus_lines")[line_id] = {
+                "stop_list": stop_list,
+                "line_type": line_type,
+            }
 
     def get_simulation_time(self):
         """
@@ -1345,7 +1366,6 @@ class SimulatorAgent(Agent):
         if self.simulation_running:
             return time.time() - self.simulation_init_time
         return self.simulation_time
-
 
     def request_path(self, origin, destination):
         """
@@ -1384,7 +1404,6 @@ class CoordinationBehaviour(CyclicBehaviour):
         reply.body = json.dumps(content)
         await self.send(reply)
 
-
     async def run(self):
 
         msg = await self.receive(timeout=5)
@@ -1396,10 +1415,9 @@ class CoordinationBehaviour(CyclicBehaviour):
         if msg:
             performative = msg.get_metadata("performative")
             agent_id = msg.sender
-            user_agent_id = json.loads(msg.body)["user_agent_id"].split('@')[0]
-            host = json.loads(msg.body)["user_agent_id"].split('@')[1]
+            user_agent_id = json.loads(msg.body)["user_agent_id"].split("@")[0]
+            host = json.loads(msg.body)["user_agent_id"].split("@")[1]
             object_type = json.loads(msg.body)["object_type"]
-
 
             if performative == REQUEST_PERFORMATIVE:
 
@@ -1416,7 +1434,10 @@ class CoordinationBehaviour(CyclicBehaviour):
                             agent_position = transport.get_position()
                             send_agent_id = user_agent_id + "@" + host
 
-                            content = {"agent_position": agent_position, "user_agent_id": send_agent_id}
+                            content = {
+                                "agent_position": agent_position,
+                                "user_agent_id": send_agent_id,
+                            }
                             await self.inform_agent_position(agent_id, content)
 
                 if object_type == "customer":
@@ -1427,7 +1448,10 @@ class CoordinationBehaviour(CyclicBehaviour):
                             agent_position = customer.get_position()
                             send_agent_id = user_agent_id + "@" + host
 
-                            content = {"agent_position": agent_position, "user_agent_id": send_agent_id}
+                            content = {
+                                "agent_position": agent_position,
+                                "user_agent_id": send_agent_id,
+                            }
                             await self.inform_agent_position(agent_id, content)
 
                             logger.debug(

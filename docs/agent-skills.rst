@@ -71,14 +71,11 @@ for agents that need to physically interact with other elements in a geographica
     def is_in_destination(self)
     def set_speed(self, speed_in_kmh)
 
-* ``move_to()``
-Requests a route from the current position to a destination and moves the agent along the calculated steps.
+* ``move_to()`` Requests a route from the current position to a destination and moves the agent along the calculated steps.
 
-* ``is_in_destination()``
-Checks if the agent has reached its destination.
+* ``is_in_destination()`` Checks if the agent has reached its destination.
 
-* ``set_speed()``
-Sets the agent's speed in kilometres per hour.
+* ``set_speed()`` Sets the agent's speed in kilometres per hour.
 
 
 **Example of Use**
@@ -107,26 +104,19 @@ or transport agents that rely on autonomy supply points.
     def calculate_km_expense(self, current_pos, origin, dest=None)
     def has_enough_autonomy(self, orig, dest)
 
-* ``set_autonomy()``
-Sets the agent's maximum and current autonomy.
+* ``set_autonomy()`` Sets the agent's maximum and current autonomy.
 
-* ``get_autonomy()``
-Returns the agent's current autonomy level.
+* ``get_autonomy()`` Returns the agent's current autonomy level.
 
-* ``decrease_autonomy_km()``
-Reduces the agent's current autonomy based on a completed journey.
+* ``decrease_autonomy_km()`` Reduces the agent's current autonomy based on a completed journey.
 
-* ``increase_autonomy_km()``
-Increases the agent's current autonomy, up to the maximum limit.
+* ``increase_autonomy_km()`` Increases the agent's current autonomy, up to the maximum limit.
 
-* ``increase_full_autonomy_km()``
-Restores the agent's autonomy to its maximum value, simulating a full recharge.
+* ``increase_full_autonomy_km()`` Restores the agent's autonomy to its maximum value, simulating a full recharge.
 
-* ``calculate_km_expense()``
-Calculates the energy expenditure in kilometres for a journey from the current position to the destination.
+* ``calculate_km_expense()`` Calculates the energy expenditure in kilometres for a journey from the current position to the destination.
 
-* ``has_enough_autonomy()``
-Checks if the agent has sufficient autonomy to complete a trip.
+* ``has_enough_autonomy()`` Checks if the agent has sufficient autonomy to complete a trip.
 
 
 **Example of Use**

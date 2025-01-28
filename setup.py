@@ -29,13 +29,14 @@ test_requirements = parse_requirements("requirements_dev.txt")
 
 setup(
     name="simfleet",
-    version="2.0.0",
+    version="2.0.1",
     description="Agent-based fleet simulator to test strategies",
     long_description=readme + "\n\n" + history,
     author="Javi Palanca",
     author_email="jpalanca@dsic.upv.es",
     url="https://github.com/javipalanca/simfleet",
-    packages=find_packages(include=["simfleet"]),
+    packages=find_packages(include=["simfleet", "simfleet.*",
+        "simfleet.common.*", "simfleet.common.agents.*"]),
     entry_points={"console_scripts": ["simfleet=simfleet.cli:main"]},
     include_package_data=True,
     package_data={"simfleet": ["templates"]},

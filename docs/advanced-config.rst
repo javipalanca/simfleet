@@ -13,7 +13,7 @@ we indicate how to use **command-line interface (CLI)** to launch simulation sce
 
 
 The Configuration file's Structure
-==========================
+==================================
 
 The configuration file of a SimFleet simulation fully characterizes the simulation scenario including the information of every agent.
 The file follows a JSON structure, presenting one list per type of agent in the simulation, as well as some general configuration entries.
@@ -172,8 +172,8 @@ current position and driving them to their destination. The scenario features th
 the **Taxi Agents**, and the **TaxiCustomer Agents**.
 
 
-Agent description
-^^^^^^^^^^^^^^^^^
+Taxi Service Agent description
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * **TaxiCustomer Agents**
 
@@ -202,8 +202,8 @@ Agent description
     .. The Taxi transports the TaxiCustomer to their destination.
 
 
-Configuration file
-^^^^^^^^^^^^^^^^^^
+Taxi Service Configuration file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Following, the necessary configuration file fields to define the taxi service agents are shown. These include a list of
 taxi customers, taxi transports and the fleet manager.
@@ -389,8 +389,10 @@ The electric taxis check their autonomy level before each trip and may decide to
 charging station when necessary. Thus, this simulation scenarios introduces two new agents: the **ElectricTaxi Agents**
 and the **ChargingStation Agents**; and keep the TaxiCustomer and the FleetManager agents previously described.
 
-Agent description
-^^^^^^^^^^^^^^^^^
+.. _agent_description_electric_taxi:
+
+Electric Taxi Service Agent description
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * **ElectricTaxi Agents**
 
@@ -412,8 +414,8 @@ Agent description
     .. . The ElectricTaxi transports the TaxiCustomer to their destination.
     .. . If the ElectricTaxi's battery is low after the trip, it travels to a ChargingStation to recharge before accepting another request.
 
-Configuration file
-^^^^^^^^^^^^^^^^^^
+Electric Taxi Service Configuration file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Following, the necessary configuration file fields to define the new agents that implement the electric taxi service are shown.
 This includes a list of electric taxi transports and charging stations.
@@ -640,8 +642,10 @@ coordinated by a fleet manager.
 The scenario features four types of agent: The **BusCustomer Agents**, the **Bus Agents**, the **BusStop Agents**, and a **FleetManager Agent**.
 
 
-Agent description
-^^^^^^^^^^^^^^^^^
+.. _agent_description_urban_bus:
+
+Urban Bus Agent description
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * **BusCustomer Agents**
 
@@ -672,8 +676,8 @@ Agent description
     .. Picking up BusCustomer agents waiting at BusStops.
     .. Dropping off BusCustomer agents at BusStops near their destinations.
 
-Configuration file
-^^^^^^^^^^^^^^^^^^
+Urban Bus Configuration file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Following, the necessary configuration file fields to define the urban bus service agents are shown. These include a list of
 bus customers, bus transports, bus stops, and the predefined lines of the service.
@@ -1115,16 +1119,17 @@ Vehicles are a simplified version of transports which do not provide transportat
 use of the transportation infrastructure (stations) of the scenario, introducing simulation load. Following, we describe
 the **Vehicle Agent** and its use.
 
-Agent description
-^^^^^^^^^^^^^^^^^
+
+Vehicle Transit Agent description
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * **Vehicle Agents**
 
     These agents can autonomously travel from an origin point to a destination. They can either perform a single trip or continuously travel to new random destinations in a cyclic manner.
 
 
-Configuration file
-^^^^^^^^^^^^^^^^^^
+Vehicle Transit Configuration file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Following, the necessary configuration file fields to define vehicle agents are shown. Each vehicle must include:
 

@@ -66,7 +66,7 @@ class BusAgent(TransportAgent):
 
         # Transport in stop event
         self.set("arrived_to_stop", None)  # new
-        self.transport_arrived_to_stop_event = asyncio.Event(loop=self.loop)
+        self.transport_arrived_to_stop_event = asyncio.Event()
 
         def transport_arrived_to_stop_callback(old, new):
             if not self.transport_arrived_to_stop_event.is_set() and new is True:

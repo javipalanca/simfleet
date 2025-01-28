@@ -47,6 +47,7 @@ class SimfleetConfig(object):
         self.__config["simulation_name"] = self.__config.get("simulation_name", name)
         self.__config["max_time"] = self.__config.get("max_time", max_time)
         self.__config["verbose"] = self.__config.get("verbose", verbose)
+        self.__config["simulation_password"] = self.__config.get("simulation_password", "secret")
 
         #New coords
         if self.__config.get("coords"):

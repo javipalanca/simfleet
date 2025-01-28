@@ -394,7 +394,7 @@ which allows the user to set up the coordinates and zoom of the city where the s
 
 
 Saving the simulation results
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------
 
 If you want to store the results of simulation in a file you may use the ``--output`` option (or ``-o``) to specify the
 name of the file where the simulation results will be saved. The ``--oformat`` (``-of``) allows you to choose the output

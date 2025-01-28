@@ -52,7 +52,7 @@ class BusCustomerAgent(PedestrianAgent):
 
         # Event for tracking when the customer arrives at the destination
         self.set("arrived_to_destination", None)
-        self.customer_arrived_to_destination_event = asyncio.Event(loop=self.loop)
+        self.customer_arrived_to_destination_event = asyncio.Event()
 
         def customer_arrived_to_destination_callback(old, new):
             if not self.customer_arrived_to_destination_event.is_set() and new is True:

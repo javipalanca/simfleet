@@ -40,7 +40,7 @@ class TransportAgent(VehicleAgent):
         self.num_assignments = 0
 
         # Customer in transport event
-        self.customer_in_transport_event = asyncio.Event(loop=self.loop)
+        self.customer_in_transport_event = asyncio.Event()
 
         def customer_in_transport_callback(old, new):
             # if event flag is False and new is None
